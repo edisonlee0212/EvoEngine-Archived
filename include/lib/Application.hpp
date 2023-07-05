@@ -14,13 +14,7 @@ namespace EvoEngine {
 	class Application final : public ISingleton<Application>
 	{
 		std::string m_name;
-
-		
 		bool m_initialized = false;
-
-		
-
-
 	public:
 		static void Initialize(const ApplicationCreateInfo& applicationCreateInfo);
 		static void Start();

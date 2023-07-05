@@ -57,6 +57,9 @@ namespace EvoEngine
 		static void SetMonitorCallback(GLFWmonitor* monitor, int event);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 	public:
+		static VkDevice GetVkDevice();
+
+		static GLFWwindow* GetGlfwWindow();
 		static void Initialize(const ApplicationCreateInfo& applicationCreateInfo, const VkApplicationInfo& vkApplicationInfo);
 		static void Terminate();
 

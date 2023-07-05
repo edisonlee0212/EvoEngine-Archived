@@ -51,9 +51,19 @@ void Graphics::WindowFocusCallback(GLFWwindow* window, int focused)
 	 */
 }
 
+VkDevice Graphics::GetVkDevice()
+{
+	return GetInstance().m_vkDevice;
+}
+
+GLFWwindow* Graphics::GetGlfwWindow()
+{
+	return GetInstance().m_window;
+}
+
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
+                       VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                       void* pUserData)
 {
 	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
