@@ -1,6 +1,5 @@
 #pragma once
 #include "shaderc/shaderc.h"
-
 namespace EvoEngine
 {
 	class ShaderModule
@@ -20,9 +19,7 @@ namespace EvoEngine
 	{
 		VkRenderPass m_vkRenderPass = VK_NULL_HANDLE;
 	public:
-		void Create(
-			const std::vector<VkAttachmentDescription>& vkAttachmentDescriptions,
-			const std::vector<VkSubpassDescription>& vkSubpassDescriptions);
+		void Create(const VkRenderPassCreateInfo& renderPassCreateInfo);
 		void Destroy();
 
 		VkRenderPass GetVkRenderPass() const;
@@ -32,7 +29,7 @@ namespace EvoEngine
 	{
 		VkPipelineLayout m_vkPipelineLayout = VK_NULL_HANDLE;
 	public:
-		void Create();
+		void Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo);
 		void Destroy();
 
 		VkPipelineLayout GetVkPipelineLayout() const;
@@ -42,16 +39,7 @@ namespace EvoEngine
 	{
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
 	public:
-		void Create(const std::vector<VkPipelineShaderStageCreateInfo>& vkShaderStageStates,
-			VkPipelineVertexInputStateCreateInfo vertexInputState,
-			VkPipelineInputAssemblyStateCreateInfo inputAssemblyState,
-			VkPipelineViewportStateCreateInfo viewportState,
-			VkPipelineRasterizationStateCreateInfo rasterizationState,
-			VkPipelineMultisampleStateCreateInfo multisampleState,
-			VkPipelineColorBlendStateCreateInfo colorBlendState,
-			VkPipelineDynamicStateCreateInfo dynamicState,
-			VkRenderPass vkRenderPass,
-			VkPipelineLayout vkPipelineLayout);
+		void Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo);
 
 		void Destroy();
 

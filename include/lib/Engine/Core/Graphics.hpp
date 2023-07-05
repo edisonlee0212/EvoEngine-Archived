@@ -1,6 +1,7 @@
 #pragma once
 #include "ISingleton.hpp"
 #include "Application.hpp"
+#include "GraphicsPipeline.hpp"
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {
@@ -49,6 +50,9 @@ namespace EvoEngine
 
 		std::vector<VkImageView> m_vkSwapChainVkImageViews;
 #pragma endregion
+		PipelineLayout m_pipelineLayout;
+		RenderPass m_renderPass;
+		GraphicsPipeline m_graphicsPipeline;
 
 		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		static SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
