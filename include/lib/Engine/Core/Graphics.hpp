@@ -43,17 +43,20 @@ namespace EvoEngine
 		VkQueue m_vkGraphicsQueue = VK_NULL_HANDLE;
 		VkQueue m_vkPresentQueue = VK_NULL_HANDLE;
 
-		VkSwapchainKHR m_vkSwapChain = VK_NULL_HANDLE;
-		std::vector<VkImage> m_vkSwapChainVkImages;
-		VkFormat m_vkSwapChainVkFormat = {};
-		VkExtent2D m_vkSwapChainVkExtent2D = {};
-
-		std::vector<VkImageView> m_vkSwapChainVkImageViews;
+		Swapchain m_swapChain;
+		
+		std::vector<ImageView> m_swapChainImageViews;
 #pragma endregion
 		PipelineLayout m_pipelineLayout;
 		RenderPass m_renderPass;
 		GraphicsPipeline m_graphicsPipeline;
 
+		std::vector<Framebuffer> m_framebuffers;
+
+		CommandPool m_commandPool;
+		VkCommandBuffer m_vkCommandBuffer = VK_NULL_HANDLE;
+
+		static void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		static SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
 		static bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
@@ -61,6 +64,7 @@ namespace EvoEngine
 		static void SetMonitorCallback(GLFWmonitor* monitor, int event);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 	public:
+		static VkPhysicalDevice GetVkPhysicalDevice();
 		static VkDevice GetVkDevice();
 
 		static GLFWwindow* GetGlfwWindow();

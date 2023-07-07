@@ -52,6 +52,11 @@ void Graphics::WindowFocusCallback(GLFWwindow* window, int focused)
 	 */
 }
 
+VkPhysicalDevice Graphics::GetVkPhysicalDevice()
+{
+	return GetInstance().m_vkPhysicalDevice;
+}
+
 VkDevice Graphics::GetVkDevice()
 {
 	return GetInstance().m_vkDevice;
@@ -63,8 +68,8 @@ GLFWwindow* Graphics::GetGlfwWindow()
 }
 
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                       VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                       void* pUserData)
+	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
 {
 	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
@@ -156,6 +161,54 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 	return requiredExtensions.empty();
 }
 
+
+void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+{
+	auto& graphics = GetInstance();
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+		throw std::runtime_error("failed to begin recording command buffer!");
+	}
+
+	VkRenderPassBeginInfo renderPassBeginInfo{};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = graphics.m_renderPass.GetVkRenderPass();
+	renderPassBeginInfo.framebuffer = graphics.m_framebuffers[imageIndex].GetVkFrameBuffer();
+	renderPassBeginInfo.renderArea.offset = { 0, 0 };
+	renderPassBeginInfo.renderArea.extent = graphics.m_swapChain.GetVkExtent2D();
+
+	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+	renderPassBeginInfo.clearValueCount = 1;
+	renderPassBeginInfo.pClearValues = &clearColor;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.m_graphicsPipeline.GetVkPipeline());
+
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)graphics.m_swapChain.GetVkExtent2D().width;
+	viewport.height = (float)graphics.m_swapChain.GetVkExtent2D().height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = graphics.m_swapChain.GetVkExtent2D();
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to record command buffer!");
+	}
+}
 
 QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
 	auto& graphics = GetInstance();
@@ -286,7 +339,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	const std::vector<std::string> requiredLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> cRequiredDeviceExtensions;
 	for (const auto& i : requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
-	std::vector<const char *> cRequiredLayers;
+	std::vector<const char*> cRequiredLayers;
 	for (const auto& i : requiredLayers) cRequiredLayers.emplace_back(i.c_str());
 #pragma region Instance
 	VkInstanceCreateInfo instanceCreateInfo{};
@@ -330,7 +383,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 		throw std::runtime_error("Validation layers requested, but not available!");
 	}
 
-	
+
 
 	instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size());
 	instanceCreateInfo.ppEnabledLayerNames = cRequiredLayers.data();
@@ -471,77 +524,69 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 		imageCount = swapChainSupportDetails.m_capabilities.maxImageCount;
 	}
 
-	VkSwapchainCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = graphics.m_vkSurface;
+	VkSwapchainCreateInfoKHR swapchainCreateInfo{};
+	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swapchainCreateInfo.surface = graphics.m_vkSurface;
 
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
-	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-	createInfo.imageExtent = extent;
-	createInfo.imageArrayLayers = 1;
+	swapchainCreateInfo.minImageCount = imageCount;
+	swapchainCreateInfo.imageFormat = surfaceFormat.format;
+	swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+	swapchainCreateInfo.imageExtent = extent;
+	swapchainCreateInfo.imageArrayLayers = 1;
 	/*
 	 * It is also possible that you'll render images to a separate image first to perform operations like post-processing.
 	 * In that case you may use a value like VK_IMAGE_USAGE_TRANSFER_DST_BIT instead and use a memory operation to transfer the rendered image to a swap chain image.
 	 */
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	uint32_t queueFamilyIndices[] = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
 
 	if (indices.m_graphicsFamily != indices.m_presentFamily) {
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+		swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		swapchainCreateInfo.queueFamilyIndexCount = 2;
+		swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
 	else {
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	}
 
-	createInfo.preTransform = swapChainSupportDetails.m_capabilities.currentTransform;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;
+	swapchainCreateInfo.preTransform = swapChainSupportDetails.m_capabilities.currentTransform;
+	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapchainCreateInfo.presentMode = presentMode;
+	swapchainCreateInfo.clipped = VK_TRUE;
 
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
+	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(graphics.m_vkDevice, &createInfo, nullptr, &graphics.m_vkSwapChain) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create swap chain!");
-	}
+	graphics.m_swapChain.Create(swapchainCreateInfo);
 
-	vkGetSwapchainImagesKHR(graphics.m_vkDevice, graphics.m_vkSwapChain, &imageCount, nullptr);
-	graphics.m_vkSwapChainVkImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(graphics.m_vkDevice, graphics.m_vkSwapChain, &imageCount, graphics.m_vkSwapChainVkImages.data());
-
-	graphics.m_vkSwapChainVkFormat = surfaceFormat.format;
-	graphics.m_vkSwapChainVkExtent2D = extent;
 #pragma endregion
 #pragma region Image Views
-	graphics.m_vkSwapChainVkImageViews.resize(graphics.m_vkSwapChainVkImages.size());
+	const auto& swapChainImages = graphics.m_swapChain.GetVkImages();
 
-	for (size_t i = 0; i < graphics.m_vkSwapChainVkImages.size(); i++) {
-		VkImageViewCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = graphics.m_vkSwapChainVkImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = graphics.m_vkSwapChainVkFormat;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
+	graphics.m_swapChainImageViews.resize(swapChainImages.size());
 
-		if (vkCreateImageView(graphics.m_vkDevice, &createInfo, nullptr, &graphics.m_vkSwapChainVkImageViews[i]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create image views!");
-		}
+	for (size_t i = 0; i < swapChainImages.size(); i++) {
+		VkImageViewCreateInfo imageViewCreateInfo{};
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.image = swapChainImages[i];
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = graphics.m_swapChain.GetVkFormat();
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+		graphics.m_swapChainImageViews[i].Create(imageViewCreateInfo);
 	}
 #pragma endregion
 #pragma region RenderPass
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = graphics.m_vkSwapChainVkFormat;
+	colorAttachment.format = graphics.m_swapChain.GetVkFormat();
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -576,10 +621,9 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	graphics.m_pipelineLayout.Create(pipelineLayoutInfo);
 #pragma endregion
 #pragma region Graphics Pipeline
-
 	ShaderModule vertShader, fragShader;
 
-	vertShader.Create(shaderc_vertex_shader, 
+	vertShader.Create(shaderc_vertex_shader,
 		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert"));
 	fragShader.Create(shaderc_fragment_shader,
 		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag"));
@@ -674,6 +718,46 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	vertShader.Destroy();
 	fragShader.Destroy();
 #pragma endregion
+#pragma region Framebuffer
+	graphics.m_framebuffers.resize(graphics.m_swapChainImageViews.size());
+
+	for (size_t i = 0; i < graphics.m_swapChainImageViews.size(); i++) {
+		VkImageView attachments[] = {
+			graphics.m_swapChainImageViews[i].GetVkImageView()
+		};
+
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = graphics.m_renderPass.GetVkRenderPass();
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.width = graphics.m_swapChain.GetVkExtent2D().width;
+		framebufferInfo.height = graphics.m_swapChain.GetVkExtent2D().height;
+		framebufferInfo.layers = 1;
+
+		graphics.m_framebuffers[i].Create(framebufferInfo);
+	}
+#pragma endregion
+#pragma region Command pool
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = indices.m_graphicsFamily.value();
+	graphics.m_commandPool.Create(poolInfo);
+#pragma endregion
+#pragma region Command buffer
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = graphics.m_commandPool.GetVkCommandPool();
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = 1;
+
+	if (vkAllocateCommandBuffers(graphics.m_vkDevice, &allocInfo, &graphics.m_vkCommandBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate command buffers!");
+	}
+
+
+#pragma endregion
 #pragma endregion
 }
 
@@ -681,15 +765,21 @@ void Graphics::Terminate()
 {
 	auto& graphics = GetInstance();
 #pragma region Vulkan
+	graphics.m_commandPool.Destroy();
+
+	for (auto& framebuffer : graphics.m_framebuffers) {
+		framebuffer.Destroy();
+	}
+
 	graphics.m_graphicsPipeline.Destroy();
 	graphics.m_pipelineLayout.Destroy();
 	graphics.m_renderPass.Destroy();
 #pragma region Image Views
-	for (const auto &vkImageView : graphics.m_vkSwapChainVkImageViews) {
-		vkDestroyImageView(graphics.m_vkDevice, vkImageView, nullptr);
+	for (auto& swapChainImageView : graphics.m_swapChainImageViews) {
+		swapChainImageView.Destroy();
 	}
 #pragma endregion
-	vkDestroySwapchainKHR(graphics.m_vkDevice, graphics.m_vkSwapChain, nullptr);
+	graphics.m_swapChain.Destroy();
 	vkDestroyDevice(graphics.m_vkDevice, nullptr);
 #pragma region Debug Messenger
 #ifndef NDEBUG

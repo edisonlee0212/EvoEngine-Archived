@@ -3,7 +3,116 @@
 #include "Graphics.hpp"
 #include "Utilities.hpp"
 
-void EvoEngine::ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char>& code)
+using namespace EvoEngine;
+
+void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo)
+{
+	Destroy();
+	m_vkFormat = swapchainCreateInfo.imageFormat;
+	m_vkExtent2D = swapchainCreateInfo.imageExtent;
+
+	const auto& device = Graphics::GetVkDevice();
+	if (vkCreateSwapchainKHR(Graphics::GetVkDevice(), &swapchainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create swap chain!");
+	}
+	uint32_t imageCount = 0;
+	vkGetSwapchainImagesKHR(device, m_vkSwapchain, &imageCount, nullptr);
+	m_vkImages.resize(imageCount);
+	vkGetSwapchainImagesKHR(device, m_vkSwapchain, &imageCount, m_vkImages.data());
+}
+
+void Swapchain::Destroy()
+{
+	if (m_vkSwapchain != VK_NULL_HANDLE) {
+		vkDestroySwapchainKHR(Graphics::GetVkDevice(), m_vkSwapchain, nullptr);
+		m_vkSwapchain = VK_NULL_HANDLE;
+	}
+}
+
+VkSwapchainKHR Swapchain::GetVkSwapchain() const
+{
+	return m_vkSwapchain;
+}
+
+const std::vector<VkImage>& Swapchain::GetVkImages() const
+{
+	return m_vkImages;
+}
+
+VkFormat Swapchain::GetVkFormat() const
+{
+	return m_vkFormat;
+}
+
+VkExtent2D Swapchain::GetVkExtent2D() const
+{
+	return m_vkExtent2D;
+}
+
+void Image::Create(const VkImageCreateInfo& imageCreateInfo)
+{
+	Destroy();
+	if (vkCreateImage(Graphics::GetVkDevice(), &imageCreateInfo, nullptr, &m_vkImage) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image!");
+	}
+}
+
+void Image::Destroy()
+{
+	if (m_vkImage != VK_NULL_HANDLE) {
+		vkDestroyImage(Graphics::GetVkDevice(), m_vkImage, nullptr);
+		m_vkImage = VK_NULL_HANDLE;
+	}
+}
+
+VkImage Image::GetVkImage() const
+{
+	return m_vkImage;
+}
+
+void ImageView::Create(const VkImageViewCreateInfo& imageViewCreateInfo)
+{
+	Destroy();
+	if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image views!");
+	}
+}
+
+void ImageView::Destroy()
+{
+	if (m_vkImageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(Graphics::GetVkDevice(), m_vkImageView, nullptr);
+		m_vkImageView = VK_NULL_HANDLE;
+	}
+}
+
+VkImageView ImageView::GetVkImageView() const
+{
+	return m_vkImageView;
+}
+
+void Framebuffer::Create(const VkFramebufferCreateInfo& framebufferCreateInfo)
+{
+	Destroy();
+	if (vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create framebuffer!");
+	}
+}
+
+void Framebuffer::Destroy()
+{
+	if (m_vkFramebuffer != VK_NULL_HANDLE) {
+		vkDestroyFramebuffer(Graphics::GetVkDevice(), m_vkFramebuffer, nullptr);
+		m_vkFramebuffer = VK_NULL_HANDLE;
+	}
+}
+
+VkFramebuffer Framebuffer::GetVkFrameBuffer() const
+{
+	return m_vkFramebuffer;
+}
+
+void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char>& code)
 {
 	Destroy();
 	m_shaderKind = shaderKind;
@@ -12,11 +121,11 @@ void EvoEngine::ShaderModule::Create(shaderc_shader_kind shaderKind, const std::
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create shader module!");
+		throw std::runtime_error("Failed to create shader module!");
 	}
 }
 
-void EvoEngine::ShaderModule::Destroy()
+void ShaderModule::Destroy()
 {
 	if (m_vkShaderModule != VK_NULL_HANDLE) {
 		vkDestroyShaderModule(Graphics::GetVkDevice(), m_vkShaderModule, nullptr);
@@ -24,7 +133,7 @@ void EvoEngine::ShaderModule::Destroy()
 	}
 }
 
-void EvoEngine::ShaderModule::Create(shaderc_shader_kind shaderKind, const std::string& code)
+void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::string& code)
 {
 	Destroy();
 	m_shaderKind = shaderKind;
@@ -34,24 +143,24 @@ void EvoEngine::ShaderModule::Create(shaderc_shader_kind shaderKind, const std::
 	createInfo.pCode = binary.data();
 	createInfo.codeSize = binary.size() * sizeof(uint32_t);
 	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create shader module!");
+		throw std::runtime_error("Failed to create shader module!");
 	}
 }
 
-VkShaderModule EvoEngine::ShaderModule::GetVkShaderModule() const
+VkShaderModule ShaderModule::GetVkShaderModule() const
 {
 	return m_vkShaderModule;
 }
 
-void EvoEngine::RenderPass::Create(const VkRenderPassCreateInfo& renderPassCreateInfo)
+void RenderPass::Create(const VkRenderPassCreateInfo& renderPassCreateInfo)
 {
 	Destroy();
 	if (vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create render pass!");
+		throw std::runtime_error("Failed to create render pass!");
 	}
 }
 
-void EvoEngine::RenderPass::Destroy()
+void RenderPass::Destroy()
 {
 	if (m_vkRenderPass != VK_NULL_HANDLE) {
 		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
@@ -59,20 +168,20 @@ void EvoEngine::RenderPass::Destroy()
 	}
 }
 
-VkRenderPass EvoEngine::RenderPass::GetVkRenderPass() const
+VkRenderPass RenderPass::GetVkRenderPass() const
 {
 	return m_vkRenderPass;
 }
 
-void EvoEngine::PipelineLayout::Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
+void PipelineLayout::Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
 	Destroy();
 	if (vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create pipeline layout!");
+		throw std::runtime_error("Failed to create pipeline layout!");
 	}
 }
 
-void EvoEngine::PipelineLayout::Destroy()
+void PipelineLayout::Destroy()
 {
 	if (m_vkPipelineLayout != VK_NULL_HANDLE) {
 		vkDestroyPipelineLayout(Graphics::GetVkDevice(), m_vkPipelineLayout, nullptr);
@@ -80,22 +189,22 @@ void EvoEngine::PipelineLayout::Destroy()
 	}
 }
 
-VkPipelineLayout EvoEngine::PipelineLayout::GetVkPipelineLayout() const
+VkPipelineLayout PipelineLayout::GetVkPipelineLayout() const
 {
 	return m_vkPipelineLayout;
 }
 
 
-void EvoEngine::GraphicsPipeline::Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
+void GraphicsPipeline::Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
 {
 	Destroy();
 	if (vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create graphics pipeline!");
+		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 }
 
-void EvoEngine::GraphicsPipeline::Destroy()
+void GraphicsPipeline::Destroy()
 {
 	if (m_vkGraphicsPipeline != VK_NULL_HANDLE) {
 		vkDestroyPipeline(Graphics::GetVkDevice(), m_vkGraphicsPipeline, nullptr);
@@ -103,8 +212,32 @@ void EvoEngine::GraphicsPipeline::Destroy()
 	}
 }
 
-VkPipeline EvoEngine::GraphicsPipeline::GetVkPipeline() const
+VkPipeline GraphicsPipeline::GetVkPipeline() const
 {
 	return m_vkGraphicsPipeline;
 }
 
+
+
+
+void CommandPool::Create(const VkCommandPoolCreateInfo& commandPoolCreateInfo)
+{
+	Destroy();
+	if (vkCreateCommandPool(Graphics::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool!");
+	}
+}
+
+void CommandPool::Destroy()
+{
+	if (m_vkCommandPool != VK_NULL_HANDLE)
+	{
+		vkDestroyCommandPool(Graphics::GetVkDevice(), m_vkCommandPool, nullptr);
+		m_vkCommandPool = VK_NULL_HANDLE;
+	}
+}
+
+VkCommandPool CommandPool::GetVkCommandPool() const
+{
+	return m_vkCommandPool;
+}

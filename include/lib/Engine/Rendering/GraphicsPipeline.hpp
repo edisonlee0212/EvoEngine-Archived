@@ -2,6 +2,57 @@
 #include "shaderc/shaderc.h"
 namespace EvoEngine
 {
+	class Swapchain
+	{
+		VkSwapchainKHR m_vkSwapchain = VK_NULL_HANDLE;
+		std::vector<VkImage> m_vkImages;
+
+		VkFormat m_vkFormat = {};
+		VkExtent2D m_vkExtent2D = {};
+	public:
+		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
+		void Destroy();
+
+		VkSwapchainKHR GetVkSwapchain() const;
+
+		const std::vector<VkImage>& GetVkImages() const;
+
+		VkFormat GetVkFormat() const;
+
+		VkExtent2D GetVkExtent2D() const;
+	};
+
+	class Image
+	{
+		VkImage m_vkImage = VK_NULL_HANDLE;
+
+	public:
+		void Create(const VkImageCreateInfo& imageCreateInfo);
+		void Destroy();
+
+		VkImage GetVkImage() const;
+	};
+
+	class ImageView
+	{
+		VkImageView m_vkImageView = VK_NULL_HANDLE;
+	public:
+		void Create(const VkImageViewCreateInfo& imageViewCreateInfo);
+		void Destroy();
+
+		VkImageView GetVkImageView() const;
+	};
+
+	class Framebuffer
+	{
+		VkFramebuffer m_vkFramebuffer = VK_NULL_HANDLE;
+	public:
+		void Create(const VkFramebufferCreateInfo& framebufferCreateInfo);
+		void Destroy();
+
+		VkFramebuffer GetVkFrameBuffer() const;
+	};
+
 	class ShaderModule
 	{
 		shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source;
@@ -44,5 +95,16 @@ namespace EvoEngine
 		void Destroy();
 
 		VkPipeline GetVkPipeline() const;
+	};
+
+	class CommandPool
+	{
+		VkCommandPool m_vkCommandPool = VK_NULL_HANDLE;
+	public:
+		void Create(const VkCommandPoolCreateInfo& commandPoolCreateInfo);
+
+		void Destroy();
+
+		VkCommandPool GetVkCommandPool() const;
 	};
 }
