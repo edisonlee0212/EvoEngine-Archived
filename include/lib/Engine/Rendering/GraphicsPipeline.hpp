@@ -2,6 +2,25 @@
 #include "shaderc/shaderc.h"
 namespace EvoEngine
 {
+	class Fence
+	{
+		VkFence m_vkFence = VK_NULL_HANDLE;
+	public:
+		void Create(const VkFenceCreateInfo& vkFenceCreateInfo);
+		void Destroy(); 
+
+		VkFence GetVkFence() const;
+	};
+
+	class Semaphore
+	{
+		VkSemaphore m_vkSemaphore = VK_NULL_HANDLE;
+	public:
+		void Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
+		void Destroy();
+		VkSemaphore GetVkSemaphore() const;
+	};
+
 	class Swapchain
 	{
 		VkSwapchainKHR m_vkSwapchain = VK_NULL_HANDLE;

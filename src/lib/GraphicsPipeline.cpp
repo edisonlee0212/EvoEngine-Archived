@@ -5,6 +5,52 @@
 
 using namespace EvoEngine;
 
+void Fence::Create(const VkFenceCreateInfo& vkFenceCreateInfo)
+{
+	//Destroy();
+	if (vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create vkFence!");
+	}
+}
+
+void Fence::Destroy()
+{
+	if(m_vkFence != VK_NULL_HANDLE)
+	{
+		vkDestroyFence(Graphics::GetVkDevice(), m_vkFence, nullptr);
+		m_vkFence = nullptr;
+	}
+}
+
+VkFence Fence::GetVkFence() const
+{
+	return m_vkFence;
+}
+
+void Semaphore::Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
+{
+	//Destroy();
+	if(vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create vkSemaphore!");
+	}
+}
+
+void Semaphore::Destroy()
+{
+	if(m_vkSemaphore != VK_NULL_HANDLE)
+	{
+		vkDestroySemaphore(Graphics::GetVkDevice(), m_vkSemaphore, nullptr);
+		m_vkSemaphore = VK_NULL_HANDLE;
+	}
+}
+
+
+
+VkSemaphore Semaphore::GetVkSemaphore() const
+{
+	return m_vkSemaphore;
+}
+
 void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo)
 {
 	Destroy();

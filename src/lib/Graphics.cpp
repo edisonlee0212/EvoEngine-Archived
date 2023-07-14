@@ -71,7 +71,7 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
+	//if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
 	switch (messageType)
 	{
@@ -604,12 +604,22 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = 1;
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependency;
 	graphics.m_renderPass.Create(renderPassInfo);
 #pragma endregion
 #pragma region Pipeline layout
@@ -758,6 +768,16 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 
 
 #pragma endregion
+#pragma region Sync Objects
+	VkSemaphoreCreateInfo semaphoreCreateInfo{};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	VkFenceCreateInfo fenceCreateInfo{};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	graphics.m_imageAvailableSemaphore.Create(semaphoreCreateInfo);
+	graphics.m_renderFinishedSemaphore.Create(semaphoreCreateInfo);
+	graphics.m_inFlightFence.Create(fenceCreateInfo);
+#pragma endregion
 #pragma endregion
 }
 
@@ -765,6 +785,10 @@ void Graphics::Terminate()
 {
 	auto& graphics = GetInstance();
 #pragma region Vulkan
+	graphics.m_inFlightFence.Destroy();
+	graphics.m_renderFinishedSemaphore.Destroy();
+	graphics.m_imageAvailableSemaphore.Destroy();
+
 	graphics.m_commandPool.Destroy();
 
 	for (auto& framebuffer : graphics.m_framebuffers) {
@@ -817,5 +841,57 @@ bool Graphics::CheckLayerSupport(const std::string& layerName)
 		}
 	}
 	return false;
+}
+
+void Graphics::DrawFrame()
+{
+	auto& graphics = GetInstance();
+	VkFence inFlightFences[] = { graphics.m_inFlightFence.GetVkFence() };
+	vkWaitForFences(graphics.m_vkDevice, 1, inFlightFences,
+		VK_TRUE, UINT64_MAX);
+	vkResetFences(graphics.m_vkDevice, 1, inFlightFences);
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(graphics.m_vkDevice, 
+		graphics.m_swapChain.GetVkSwapchain(), UINT64_MAX,
+		graphics.m_imageAvailableSemaphore.GetVkSemaphore(), 
+		VK_NULL_HANDLE, &imageIndex);
+
+	vkResetCommandBuffer(graphics.m_vkCommandBuffer, 0);
+
+	RecordCommandBuffer(graphics.m_vkCommandBuffer, imageIndex);
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore waitSemaphores[] = { graphics.m_imageAvailableSemaphore.GetVkSemaphore() };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &graphics.m_vkCommandBuffer;
+
+	VkSemaphore signalSemaphores[] = { graphics.m_renderFinishedSemaphore.GetVkSemaphore() };
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	if (vkQueueSubmit(graphics.m_vkGraphicsQueue, 1, &submitInfo, graphics.m_inFlightFence.GetVkFence()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = { graphics.m_swapChain.GetVkSwapchain() };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+
+	presentInfo.pImageIndices = &imageIndex;
+
+	vkQueuePresentKHR(graphics.m_vkPresentQueue, &presentInfo);
+
 }
 

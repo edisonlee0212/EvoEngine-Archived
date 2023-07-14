@@ -56,6 +56,10 @@ namespace EvoEngine
 		CommandPool m_commandPool;
 		VkCommandBuffer m_vkCommandBuffer = VK_NULL_HANDLE;
 
+		Semaphore m_imageAvailableSemaphore;
+		Semaphore m_renderFinishedSemaphore;
+		Fence m_inFlightFence;
+
 		static void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		static SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
@@ -70,8 +74,10 @@ namespace EvoEngine
 		static GLFWwindow* GetGlfwWindow();
 		static void Initialize(const ApplicationCreateInfo& applicationCreateInfo, const VkApplicationInfo& vkApplicationInfo);
 		static void Terminate();
-
+		
 		static bool CheckExtensionSupport(const std::string& extensionName);
 		static bool CheckLayerSupport(const std::string& layerName);
+
+		static void DrawFrame();
 	};
 }
