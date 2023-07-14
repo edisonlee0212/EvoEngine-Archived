@@ -784,6 +784,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 void Graphics::Terminate()
 {
 	auto& graphics = GetInstance();
+	vkDeviceWaitIdle(graphics.m_vkDevice);
 #pragma region Vulkan
 	graphics.m_inFlightFence.Destroy();
 	graphics.m_renderFinishedSemaphore.Destroy();

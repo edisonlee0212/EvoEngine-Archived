@@ -3,6 +3,9 @@
 using namespace EvoEngine;
 int main() {
     Application::Initialize({});
-    Application::Terminate();
+
+    Application::Start();
+    
+	Application::Terminate();
     return 0;
 }
