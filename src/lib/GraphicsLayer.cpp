@@ -737,8 +737,8 @@ void GraphicsLayer::OnCreate()
 
 void GraphicsLayer::OnDestroy()
 {
-	
 	vkDeviceWaitIdle(m_vkDevice);
+
 #pragma region Vulkan
 	m_inFlightFence.Destroy();
 	m_renderFinishedSemaphore.Destroy();
