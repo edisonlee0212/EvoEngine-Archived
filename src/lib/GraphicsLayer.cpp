@@ -133,7 +133,6 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 
 void GraphicsLayer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -181,7 +180,7 @@ void GraphicsLayer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 QueueFamilyIndices GraphicsLayer::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
 
-
+	auto windowLayer = Application::GetLayer<WindowLayer>();
 	QueueFamilyIndices indices;
 
 	uint32_t queueFamilyCount = 0;
@@ -196,9 +195,11 @@ QueueFamilyIndices GraphicsLayer::FindQueueFamilies(VkPhysicalDevice physicalDev
 			indices.m_graphicsFamily = i;
 		}
 		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_vkSurface, &presentSupport);
-		if (presentSupport) {
-			indices.m_presentFamily = i;
+		if (windowLayer) {
+			vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_vkSurface, &presentSupport);
+			if (presentSupport) {
+				indices.m_presentFamily = i;
+			}
 		}
 		if (indices.IsComplete()) {
 			break;
@@ -235,10 +236,12 @@ SwapChainSupportDetails GraphicsLayer::QuerySwapChainSupport(VkPhysicalDevice ph
 
 bool GraphicsLayer::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions)
 {
-	if (!FindQueueFamilies(physicalDevice).IsComplete()) return false;
 	if (!CheckDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions)) return false;
-	const auto swapChainSupportDetails = QuerySwapChainSupport(physicalDevice);
-	if (swapChainSupportDetails.m_formats.empty() || swapChainSupportDetails.m_presentModes.empty()) return false;
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
+	if (windowLayer) {
+		const auto swapChainSupportDetails = QuerySwapChainSupport(physicalDevice);
+		if (swapChainSupportDetails.m_formats.empty() || swapChainSupportDetails.m_presentModes.empty()) return false;
+	}
 	return true;
 }
 
@@ -573,7 +576,8 @@ void GraphicsLayer::OnCreate()
 	auto windowLayer = Application::GetLayer<WindowLayer>();
 
 #pragma region Vulkan
-	const std::vector<std::string> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	std::vector<std::string> requiredDeviceExtensions;
+	if (windowLayer) requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	const std::vector<std::string> requiredLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> cRequiredDeviceExtensions;
 	for (const auto& i : requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
@@ -700,8 +704,9 @@ void GraphicsLayer::OnCreate()
 #pragma region Queues requirement
 	m_queueFamilyIndices = FindQueueFamilies(m_vkPhysicalDevice);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { m_queueFamilyIndices.m_graphicsFamily.value(), m_queueFamilyIndices.m_presentFamily.value() };
-
+	std::set<uint32_t> uniqueQueueFamilies;
+	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) uniqueQueueFamilies.emplace(m_queueFamilyIndices.m_graphicsFamily.value());
+	if (m_queueFamilyIndices.m_presentFamily.has_value()) uniqueQueueFamilies.emplace(m_queueFamilyIndices.m_presentFamily.value());
 	float queuePriority = 1.0f;
 	for (uint32_t queueFamily : uniqueQueueFamilies) {
 		VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -726,48 +731,52 @@ void GraphicsLayer::OnCreate()
 #endif
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
-}
+	}
 
-	vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
-	vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
+	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
+	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 
 #pragma endregion
-	CreateSwapChain();
-	CreateRenderPass();
-	CreateGraphicsPipeline();
-	CreateFramebuffers();
+	if (m_queueFamilyIndices.m_presentFamily.has_value()) {
+		CreateSwapChain();
+		CreateRenderPass();
+		CreateGraphicsPipeline();
+		CreateFramebuffers();
+	}
+	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) {
 #pragma region Command pool
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = m_queueFamilyIndices.m_graphicsFamily.value();
-	m_commandPool.Create(poolInfo);
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = m_queueFamilyIndices.m_graphicsFamily.value();
+		m_commandPool.Create(poolInfo);
 #pragma endregion
 #pragma region Command buffers
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool.GetVkCommandPool();
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = static_cast<uint32_t>(m_maxFrameInFlight);
-	m_vkCommandBuffers.resize(m_maxFrameInFlight);
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = m_commandPool.GetVkCommandPool();
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = static_cast<uint32_t>(m_maxFrameInFlight);
+		m_vkCommandBuffers.resize(m_maxFrameInFlight);
 
-	if (vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCommandBuffers.data()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate command buffers!");
-	}
+		if (vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCommandBuffers.data()) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to allocate command buffers!");
+		}
 #pragma endregion
 #pragma region Sync Objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo{};
-	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	VkFenceCreateInfo fenceCreateInfo{};
-	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	m_renderFinishedSemaphores.resize(m_maxFrameInFlight);
-	m_inFlightFences.resize(m_maxFrameInFlight);
-	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_renderFinishedSemaphores[i].Create(semaphoreCreateInfo);
-		m_inFlightFences[i].Create(fenceCreateInfo);
-	}
+		VkSemaphoreCreateInfo semaphoreCreateInfo{};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		VkFenceCreateInfo fenceCreateInfo{};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		m_renderFinishedSemaphores.resize(m_maxFrameInFlight);
+		m_inFlightFences.resize(m_maxFrameInFlight);
+		for (int i = 0; i < m_maxFrameInFlight; i++) {
+			m_renderFinishedSemaphores[i].Create(semaphoreCreateInfo);
+			m_inFlightFences[i].Create(fenceCreateInfo);
+		}
 #pragma endregion
+	}
 #pragma endregion
 }
 
@@ -807,11 +816,11 @@ void GraphicsLayer::OnDestroy()
 void GraphicsLayer::PreUpdate()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)return;
+	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
+	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex].GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
-
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
 		m_swapChain.GetVkSwapchain(), UINT64_MAX,
 		m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
@@ -834,14 +843,16 @@ void GraphicsLayer::PreUpdate()
 void GraphicsLayer::Update()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)return;
+	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
+	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
 	RecordCommandBuffer(m_vkCommandBuffers[m_currentFrameIndex], m_nextImageIndex);
 }
 
 void GraphicsLayer::LateUpdate()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)return;
+	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
+	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -857,7 +868,6 @@ void GraphicsLayer::LateUpdate()
 	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex].GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
-
 	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex].GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
