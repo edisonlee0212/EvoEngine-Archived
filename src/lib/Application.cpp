@@ -1,236 +1,294 @@
 #include "Application.hpp"
-#include "Graphics.hpp"
+#include "GraphicsLayer.hpp"
 #include "Utilities.hpp"
 #include "Scene.hpp"
+#include "Time.hpp"
+#include "ProjectManager.hpp"
 using namespace EvoEngine;
-
-
-void ApplicationTime::OnInspect()
-{
-    if (ImGui::CollapsingHeader("Time Settings"))
-    {
-        float timeStep = m_timeStep;
-        if (ImGui::DragFloat("Time step", &timeStep, 0.001f, 0.001f, 1.0f))
-        {
-            m_timeStep = timeStep;
-        }
-    }
-}
-double ApplicationTime::TimeStep() const
-{
-    return m_timeStep;
-}
-void ApplicationTime::SetTimeStep(const double& value)
-{
-    m_timeStep = value;
-}
-double ApplicationTime::FixedDeltaTime() const
-{
-    return glfwGetTime() - m_lastFixedUpdateTime;
-}
-
-double ApplicationTime::DeltaTime() const
-{
-    return m_deltaTime;
-}
-double ApplicationTime::CurrentTime() const
-{
-    return glfwGetTime();
-}
-
-double ApplicationTime::LastFrameTime() const
-{
-    return m_lastUpdateTime;
-}
-void ApplicationTime::StartFixedUpdate()
-{
-    m_fixedUpdateTimeStamp = glfwGetTime();
-}
-
-void ApplicationTime::EndFixedUpdate()
-{
-    m_lastFixedUpdateTime = m_fixedUpdateTimeStamp;
-}
 
 void Application::PreUpdateInternal()
 {
-    auto& application = GetInstance();
-    glfwPollEvents();
-    if (glfwWindowShouldClose(Graphics::GetGlfwWindow()))
-    {
-        application.m_applicationStatus = ApplicationStatus::OnDestroy;
-    }
-    application.m_time.m_deltaTime = glfwGetTime() - application.m_time.m_frameStartTime;
-    application.m_time.m_frameStartTime = glfwGetTime();
-    //Editor::ImGuiPreUpdate();
-    //OpenGLUtils::PreUpdate();
-    Graphics::DrawFrame();
-    if (application.m_applicationStatus == ApplicationStatus::Initialized)
-    {
-        //Inputs::PreUpdate();
-        for (const auto& i : application.m_externalPreUpdateFunctions)
-            i();
+	auto& application = GetInstance();
+	Time::m_lastUpdateTime = std::chrono::system_clock::now();
+	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
+	{
+		EVOENGINE_ERROR("Application uninitialized!")
+			return;
+	}
+	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
 
-        if (application.m_gameStatus == GameStatus::Playing || application.m_gameStatus == GameStatus::Step)
-        {
-            application.m_activeScene->Start();
-        }
-        for (auto& i : application.m_layers)
-        {
-            i->PreUpdate();
-        }
-        auto fixedDeltaTime = application.m_time.FixedDeltaTime();
-        if (fixedDeltaTime >= application.m_time.m_timeStep)
-        {
-            application.m_time.StartFixedUpdate();
-            for (const auto& i : application.m_externalFixedUpdateFunctions)
-                i();
-            for (auto& i : application.m_layers)
-            {
-                i->FixedUpdate();
-            }
-            if (application.m_gameStatus == GameStatus::Playing || application.m_gameStatus == GameStatus::Step)
-            {
-                application.m_activeScene->FixedUpdate();
-            }
-            application.m_time.EndFixedUpdate();
-        }
-    }
+	for (const auto& i : application.m_externalPreUpdateFunctions)
+		i();
+
+	if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
+	{
+		application.m_activeScene->Start();
+	}
+	for (const auto& i : application.m_layers)
+	{
+		i->PreUpdate();
+	}
+	if (Time::m_steps == 0) Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+	const auto lastFixedUpdateTime = Time::m_lastFixedUpdateTime;
+	std::chrono::duration<double> duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
+	size_t step = 1;
+	while (duration.count() >= step * Time::m_timeStep)
+	{
+		for (const auto& i : application.m_externalFixedUpdateFunctions)
+			i();
+		for (const auto& i : application.m_layers)
+		{
+			i->FixedUpdate();
+		}
+		if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
+		{
+			application.m_activeScene->FixedUpdate();
+		}
+		duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
+		step++;
+		Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+		if (step > 10)
+		{
+			EVOENGINE_WARNING("Fixed update timeout!");
+			break;
+		}
+	}
+
 }
 
 void Application::UpdateInternal()
 {
-    auto& application = GetInstance();
-    if (application.m_applicationStatus == ApplicationStatus::Initialized)
-    {
-        for (const auto& i : application.m_externalUpdateFunctions)
-            i();
+	const auto& application = GetInstance();
+	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
+	{
+		EVOENGINE_ERROR("Application uninitialized!")
+			return;
+	}
+	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
 
-        for (auto& i : application.m_layers)
-        {
-            i->Update();
-        }
-        if (application.m_gameStatus == GameStatus::Playing || application.m_gameStatus == GameStatus::Step)
-        {
-            application.m_activeScene->Update();
-        }
-    }
+	for (const auto& i : application.m_externalUpdateFunctions)
+		i();
+
+	for (auto& i : application.m_layers)
+	{
+		i->Update();
+	}
+	if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
+	{
+		application.m_activeScene->Update();
+	}
 }
 
 void Application::LateUpdateInternal()
 {
-    auto& application = GetInstance();
-    if (application.m_applicationStatus == ApplicationStatus::Initialized)
-    {
-        for (const auto& i : application.m_externalLateUpdateFunctions)
-            i();
+	auto& application = GetInstance();
+	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
+	{
+		EVOENGINE_ERROR("Application uninitialized!")
+			return;
+	}
+	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
 
-        if (application.m_gameStatus == GameStatus::Playing || application.m_gameStatus == GameStatus::Step)
-        {
-            application.m_activeScene->LateUpdate();
-        }
+	if (application.m_applicationStatus == ApplicationStatus::NoProject)
+	{
+		/*
+		if (ImGui::BeginMainMenuBar())
+		{
+			FileUtils::SaveFile(
+				"Create or load New Project",
+				"Project",
+				{ ".ueproj" },
+				[&](const std::filesystem::path& path) {
+					ProjectManager::GetOrCreateProject(path);
+					if (ProjectManager::GetInstance().m_projectFolder)
+					{
+						Windows::ResizeWindow(
+							application.m_applicationConfigs.m_defaultWindowSize.x,
+							application.m_applicationConfigs.m_defaultWindowSize.y);
+						application.m_applicationStatus = ApplicationStatus::Initialized;
+					}
+				},
+				false);
+			ImGui::EndMainMenuBar();
+		}
+		*/
 
-        for (auto& i : application.m_layers)
-        {
-            i->LateUpdate();
-        }
-        for (auto& i : application.m_layers)
-        {
-            i->OnInspect();
-        }
-        // Post-processing happens here
-        // Manager settings
-        //OnInspect();
-        if (application.m_gameStatus == GameStatus::Step)
-            application.m_gameStatus = GameStatus::Pause;
-    }
-    /*
-    else
-    {
-        if (ImGui::BeginMainMenuBar())
-        {
-            FileUtils::SaveFile(
-                "Create or load New Project",
-                "Project",
-                { ".ueproj" },
-                [&](const std::filesystem::path& path) {
-                    ProjectManager::GetOrCreateProject(path);
-                    if (ProjectManager::GetInstance().m_projectFolder)
-                    {
-                        Windows::ResizeWindow(
-                            application.m_applicationConfigs.m_defaultWindowSize.x,
-                            application.m_applicationConfigs.m_defaultWindowSize.y);
-                        application.m_applicationStatus = ApplicationStatus::Initialized;
-                    }
-                },
-                false);
-            ImGui::EndMainMenuBar();
-        }
-    }*/
-    // ImGui drawing
-    //Editor::ImGuiLateUpdate();
-    // Swap Window's framebuffer
-    //Windows::LateUpdate();
-    application.m_time.m_lastUpdateTime = glfwGetTime();
+	}
+	else {
+		for (const auto& i : application.m_externalLateUpdateFunctions)
+			i();
+
+		if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
+		{
+			application.m_activeScene->LateUpdate();
+		}
+	}
+	for (const auto& i : application.m_layers)
+	{
+		i->LateUpdate();
+	}
+	for (const auto& i : application.m_layers)
+	{
+		i->OnInspect();
+	}
+	// Post-processing happens here
+	// Manager settings
+	//OnInspect();
+	if (application.m_applicationStatus == ApplicationStatus::Step)
+		application.m_applicationStatus = ApplicationStatus::Pause;
+	// ImGui drawing
+	//Editor::ImGuiLateUpdate();
+	// Swap Window's framebuffer
+	//Windows::LateUpdate();
+
+}
+
+const ApplicationInfo& Application::GetApplicationInfo()
+{
+	return GetInstance().m_applicationInfo;
 }
 
 std::shared_ptr<Scene> Application::GetActiveScene()
 {
-    auto& application = GetInstance();
-    return application.m_activeScene;
+	auto& application = GetInstance();
+	return application.m_activeScene;
 }
 
-void Application::Initialize(const ApplicationCreateInfo& applicationCreateInfo)
+void Application::Reset()
 {
 	auto& application = GetInstance();
-	if (application.m_initialized) return;
-	application.m_name = applicationCreateInfo.m_applicationName;
+	application.m_applicationStatus = ApplicationStatus::Stop;
+	Time::m_steps = Time::m_frames = 0;
+}
 
-#pragma region Graphics
-	VkApplicationInfo vkApplicationInfo{};
-	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	vkApplicationInfo.pApplicationName = applicationCreateInfo.m_applicationName.c_str();
-	vkApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	vkApplicationInfo.pEngineName = "EvoEngine";
-	vkApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	vkApplicationInfo.apiVersion = VK_API_VERSION_1_0;
-	Graphics::Initialize(applicationCreateInfo, vkApplicationInfo);
-#pragma endregion
+void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
+{
+	auto& application = GetInstance();
+	if (application.m_applicationStatus != ApplicationStatus::Uninitialized) {
+		EVOENGINE_ERROR("Application is not uninitialzed!")
+			return;
+	}
+	application.m_applicationInfo = applicationCreateInfo;
+
+
+	for (const auto& layer : application.m_layers)
+	{
+		layer->OnCreate();
+	}
+	application.m_applicationStatus = ApplicationStatus::NoProject;
 }
 
 void Application::Start()
 {
-    auto& application = GetInstance();
-    /*
-    for (auto& i : application.m_layers)
-    {
-        i->OnCreate();
-    }
-    application.m_applicationStatus = ApplicationStatus::Uninitialized;
-    if (!application.m_applicationConfigs.m_projectPath.empty())
-    {
-        ProjectManager::GetOrCreateProject(application.m_applicationConfigs.m_projectPath);
-        if (ProjectManager::GetInstance().m_projectFolder)
-        {
-            Windows::ResizeWindow(
-                application.m_applicationConfigs.m_defaultWindowSize.x,
-                application.m_applicationConfigs.m_defaultWindowSize.y);
-            application.m_applicationStatus = ApplicationStatus::Initialized;
-        }
-    }
-    application.m_gameStatus = GameStatus::Stop;
-    */
-    while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
-    {
-        PreUpdateInternal();
-        UpdateInternal();
-        LateUpdateInternal();
-    }
+	auto& application = GetInstance();
+	/*
+	if (!application.m_applicationConfigs.m_projectPath.empty())
+	{
+		ProjectManager::GetOrCreateProject(application.m_applicationConfigs.m_projectPath);
+		if (ProjectManager::GetInstance().m_projectFolder)
+		{
+			Windows::ResizeWindow(
+				application.m_applicationConfigs.m_defaultWindowSize.x,
+				application.m_applicationConfigs.m_defaultWindowSize.y);
+			application.m_applicationStatus = ApplicationStatus::Initialized;
+		}
+	}
+	*/
+	Time::m_startTime = std::chrono::system_clock::now();
+	Time::m_steps = Time::m_frames = 0;
+	while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
+	{
+		PreUpdateInternal();
+		UpdateInternal();
+		LateUpdateInternal();
+	}
+}
+
+void Application::End()
+{
+	GetInstance().m_applicationStatus = ApplicationStatus::OnDestroy;
 }
 
 void Application::Terminate()
 {
+	const auto& application = GetInstance();
+	for (auto i = application.m_layers.rbegin(); i != application.m_layers.rend(); ++i)
+	{
+		(*i)->OnDestroy();
+	}
+}
+
+void Application::Attach(const std::shared_ptr<Scene>& scene)
+{
 	auto& application = GetInstance();
-	Graphics::Terminate();
+	if (application.m_applicationStatus == ApplicationStatus::Playing)
+	{
+		EVOENGINE_ERROR("Stop Application to attach scene");
+	}
 	
+	application.m_activeScene = scene;
+	for (auto& func : application.m_postAttachSceneFunctions)
+	{
+		func(scene);
+	}
+	for (auto& layer : application.m_layers)
+	{
+		layer->m_scene = scene;
+	}
+}
+
+void Application::Play()
+{
+	auto& application = GetInstance();
+	if (application.m_applicationStatus == ApplicationStatus::NoProject || application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	if (application.m_applicationStatus != ApplicationStatus::Pause && application.m_applicationStatus != ApplicationStatus::Stop)
+		return;
+	if (application.m_applicationStatus == ApplicationStatus::Stop)
+	{
+		auto copiedScene = ProjectManager::CreateTemporaryAsset<Scene>();
+		Scene::Clone(ProjectManager::GetStartScene().lock(), copiedScene);
+		Attach(copiedScene);
+	}
+	application.m_applicationStatus = ApplicationStatus::Playing;
+}
+void Application::Stop()
+{
+	auto& application = GetInstance();
+	if (application.m_applicationStatus == ApplicationStatus::NoProject || application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	if (application.m_applicationStatus == ApplicationStatus::Stop) return;
+	application.m_applicationStatus = ApplicationStatus::Stop;
+	Attach(ProjectManager::GetStartScene().lock());
+}
+void Application::Pause()
+{
+	auto& application = GetInstance();
+	if (application.m_applicationStatus == ApplicationStatus::NoProject || application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	if (application.m_applicationStatus != ApplicationStatus::Playing)
+		return;
+	application.m_applicationStatus = ApplicationStatus::Pause;
+}
+
+void Application::RegisterPreUpdateFunction(const std::function<void()>& func)
+{
+	GetInstance().m_externalPreUpdateFunctions.push_back(func);
+}
+
+void Application::RegisterUpdateFunction(const std::function<void()>& func)
+{
+	GetInstance().m_externalUpdateFunctions.push_back(func);
+}
+
+void Application::RegisterLateUpdateFunction(const std::function<void()>& func)
+{
+	GetInstance().m_externalLateUpdateFunctions.push_back(func);
+}
+void Application::RegisterFixedUpdateFunction(const std::function<void()>& func)
+{
+	GetInstance().m_externalFixedUpdateFunctions.push_back(func);
+}
+
+void Application::RegisterPostAttachSceneFunction(
+	const std::function<void(const std::shared_ptr<Scene>& newScene)>& func)
+{
+	GetInstance().m_postAttachSceneFunctions.push_back(func);
 }

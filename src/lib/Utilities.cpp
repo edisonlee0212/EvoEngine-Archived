@@ -1,7 +1,8 @@
 #include "Utilities.hpp"
 
+#include "Application.hpp"
 #include "Console.hpp"
-#include "Graphics.hpp"
+#include "WindowLayer.hpp"
 using namespace EvoEngine;
 std::string FileUtils::LoadFileAsString(const std::filesystem::path& path)
 {
@@ -34,13 +35,14 @@ void FileUtils::OpenFile(
     bool projectDirCheck)
 {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    if (ImGui::Button(dialogTitle.c_str()))
+    auto windowLayer = Application::GetLayer<WindowLayer>();
+    if (windowLayer && ImGui::Button(dialogTitle.c_str()))
     {
         OPENFILENAMEA ofn;
         CHAR szFile[260] = { 0 };
         ZeroMemory(&ofn, sizeof(OPENFILENAME));
         ofn.lStructSize = sizeof(OPENFILENAME);
-        ofn.hwndOwner = glfwGetWin32Window(Graphics::GetGlfwWindow());
+        ofn.hwndOwner = glfwGetWin32Window(windowLayer->GetGlfwWindow());
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
         std::string filters = fileType + " (";
@@ -101,7 +103,7 @@ void FileUtils::OpenFile(
         }
     }
 #else
-    if (ImGui::Button(dialogTitle.c_str()))
+    if (windowLayer && ImGui::Button(dialogTitle.c_str()))
         ImGui::OpenPopup(dialogTitle.c_str());
     static imgui_addons::ImGuiFileBrowser file_dialog;
     std::string filters;

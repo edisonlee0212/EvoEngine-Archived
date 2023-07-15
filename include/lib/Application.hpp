@@ -4,31 +4,8 @@
 #include "ILayer.hpp"
 
 namespace EvoEngine {
-	class ApplicationTime
-	{
-		friend class Scene;
-		friend class Application;
-		double m_lastFixedUpdateTime = 0;
-		double m_lastUpdateTime = 0;
-		double m_timeStep = 0.016;
-		double m_frameStartTime = 0;
-		double m_deltaTime = 0;
-		double m_fixedUpdateTimeStamp = 0;
-		void StartFixedUpdate();
-		void EndFixedUpdate();
 
-	public:
-		void Reset();
-		void OnInspect();
-		void SetTimeStep(const double& value);
-		[[nodiscard]] double CurrentTime() const;
-		[[nodiscard]] double TimeStep() const;
-		[[nodiscard]] double FixedDeltaTime() const;
-		[[nodiscard]] double DeltaTime() const;
-		[[nodiscard]] double LastFrameTime() const;
-	};
-
-	struct ApplicationCreateInfo {
+	struct ApplicationInfo {
 		std::filesystem::path m_projectPath;
 		std::string m_applicationName = "Application";
 		glm::ivec2 m_defaultWindowSize = { 1280, 720 };
@@ -39,23 +16,21 @@ namespace EvoEngine {
 
 	enum class ApplicationStatus {
 		Uninitialized,
-		Initialized,
-		OnDestroy
-	};
-	enum class GameStatus {
+		NoProject,
+
 		Stop,
 		Pause,
 		Step,
-		Playing
+		Playing,
+
+		OnDestroy
 	};
 
 	class Application final : public ISingleton<Application>
 	{
-		std::string m_name;
-		bool m_initialized = false;
-
+		friend class ProjectManager;
+		ApplicationInfo m_applicationInfo;
 		ApplicationStatus m_applicationStatus = ApplicationStatus::Uninitialized;
-		GameStatus m_gameStatus = GameStatus::Stop;
 
 		static void PreUpdateInternal();
 		static void UpdateInternal();
@@ -69,19 +44,75 @@ namespace EvoEngine {
 		std::vector<std::function<void()>> m_externalFixedUpdateFunctions;
 		std::vector<std::function<void()>> m_externalLateUpdateFunctions;
 
-		ApplicationTime m_time;
+		std::vector<std::function<void(const std::shared_ptr<Scene>& newScene)>> m_postAttachSceneFunctions;
 
 	public:
-		static std::shared_ptr<Scene> GetActiveScene();
+		static void RegisterPreUpdateFunction(const std::function<void()>& func);
+		static void RegisterUpdateFunction(const std::function<void()>& func);
+		static void RegisterLateUpdateFunction(const std::function<void()>& func);
+		static void RegisterFixedUpdateFunction(const std::function<void()>& func);
+		static void RegisterPostAttachSceneFunction(const std::function<void(const std::shared_ptr<Scene>& newScene)>& func);
 
-		static void Initialize(const ApplicationCreateInfo& applicationCreateInfo);
+		static const ApplicationInfo& GetApplicationInfo();
+		template <typename T>
+		static std::shared_ptr<T> PushLayer();
+		template <typename T>
+		static std::shared_ptr<T> GetLayer();
+		template <typename T>
+		static void PopLayer();
+		static void Reset();
+		static void Initialize(const ApplicationInfo& applicationCreateInfo);
 		static void Start();
+		static void End();
 		static void Terminate();
 
+		static void Attach(const std::shared_ptr<Scene>& scene);
+		static std::shared_ptr<Scene> GetActiveScene();
 		static void Play();
 		static void Pause();
 		static void Step();
 
 		static void Stop();
 	};
+
+	template <typename T>
+	std::shared_ptr<T> Application::PushLayer()
+	{
+		auto& application = GetInstance();
+		if (application.m_applicationStatus != ApplicationStatus::Uninitialized) {
+			EVOENGINE_ERROR("Unable to push layer! Application already started!");
+			return nullptr;
+		}
+		auto test = GetLayer<T>();
+		if (!test) {
+			test = std::make_shared<T>();
+			if (!std::dynamic_pointer_cast<ILayer>(test)) {
+				EVOENGINE_ERROR("Not a layer!");
+				return nullptr;
+			}
+			application.m_layers.push_back(std::dynamic_pointer_cast<ILayer>(test));
+		}
+		return test;
+	}
+
+	template <typename T> std::shared_ptr<T> Application::GetLayer()
+	{
+		auto& application = GetInstance();
+		for (auto& i : application.m_layers) {
+			if (auto test = std::dynamic_pointer_cast<T>(i)) return test;
+		}
+		return nullptr;
+	}
+	template <typename T> void Application::PopLayer()
+	{
+		auto& application = GetInstance();
+		int index = 0;
+		for (auto& i : application.m_layers) {
+			if (auto test = std::dynamic_pointer_cast<T>(i)) {
+				std::dynamic_pointer_cast<ILayer>(i)->OnDestroy();
+				application.m_layers.erase(application.m_layers.begin() + index);
+			}
+			index++;
+		}
+	}
 }

@@ -1,5 +1,5 @@
 //
-// Created by lllll on 4/22/2022.
+// Created by Bosheng Li on 4/22/2022.
 //
 #include "ILayer.hpp"
 #include "Scene.hpp"
@@ -8,5 +8,5 @@ using namespace EvoEngine;
 
 std::shared_ptr<Scene> ILayer::GetScene() const
 {
-    return m_scene.lock();
+	return m_scene.lock();
 }

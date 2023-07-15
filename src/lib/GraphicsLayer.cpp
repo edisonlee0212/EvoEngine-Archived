@@ -1,70 +1,32 @@
-#include "Graphics.hpp"
+#include "GraphicsLayer.hpp"
 #include "Console.hpp"
 #include "Application.hpp"
 #include "Utilities.hpp"
+#include "WindowLayer.hpp"
 #define VOLK_IMPLEMENTATION
 
 using namespace EvoEngine;
+
+VkInstance GraphicsLayer::m_vkInstance = VK_NULL_HANDLE;
+std::vector<VkExtensionProperties> GraphicsLayer::m_vkExtensions;
+std::vector<VkLayerProperties> GraphicsLayer::m_vkLayers;
+VkDebugUtilsMessengerEXT GraphicsLayer::m_vkDebugMessenger = {};
+VkPhysicalDeviceFeatures GraphicsLayer::m_vkPhysicalDeviceFeatures = {};
+VkPhysicalDeviceProperties GraphicsLayer::m_vkPhysicalDeviceProperties = {};
+
+VkSurfaceKHR GraphicsLayer::m_vkSurface = VK_NULL_HANDLE;
+VkPhysicalDevice GraphicsLayer::m_vkPhysicalDevice = VK_NULL_HANDLE;
+VkDevice GraphicsLayer::m_vkDevice = VK_NULL_HANDLE;
+
 #pragma region Helpers
-void Graphics::WindowResizeCallback(GLFWwindow* window, int width, int height)
+VkPhysicalDevice GraphicsLayer::GetVkPhysicalDevice()
 {
-	auto& application = GetInstance();
-	if (application.m_window == window)
-	{
-		application.m_windowSize = { width, height };
-	}
-
+	return m_vkPhysicalDevice;
 }
 
-void Graphics::SetMonitorCallback(GLFWmonitor* monitor, int event)
+VkDevice GraphicsLayer::GetVkDevice()
 {
-	auto& application = GetInstance();
-	if (event == GLFW_CONNECTED)
-	{
-		// The monitor was connected
-		for (const auto& i : application.m_monitors)
-			if (i == monitor)
-				return;
-		application.m_monitors.push_back(monitor);
-	}
-	else if (event == GLFW_DISCONNECTED)
-	{
-		// The monitor was disconnected
-		for (auto i = 0; i < application.m_monitors.size(); i++)
-		{
-			if (monitor == application.m_monitors[i])
-			{
-				application.m_monitors.erase(application.m_monitors.begin() + i);
-			}
-		}
-	}
-	application.m_primaryMonitor = glfwGetPrimaryMonitor();
-
-}
-
-void Graphics::WindowFocusCallback(GLFWwindow* window, int focused)
-{
-	/*
-	if (focused)
-	{
-		ProjectManager::ScanProject();
-	}
-	 */
-}
-
-VkPhysicalDevice Graphics::GetVkPhysicalDevice()
-{
-	return GetInstance().m_vkPhysicalDevice;
-}
-
-VkDevice Graphics::GetVkDevice()
-{
-	return GetInstance().m_vkDevice;
-}
-
-GLFWwindow* Graphics::GetGlfwWindow()
-{
-	return GetInstance().m_window;
+	return m_vkDevice;
 }
 
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -162,9 +124,9 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 }
 
 
-void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void GraphicsLayer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
-	auto& graphics = GetInstance();
+	
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -174,10 +136,10 @@ void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = graphics.m_renderPass.GetVkRenderPass();
-	renderPassBeginInfo.framebuffer = graphics.m_framebuffers[imageIndex].GetVkFrameBuffer();
+	renderPassBeginInfo.renderPass = m_renderPass.GetVkRenderPass();
+	renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex].GetVkFrameBuffer();
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = graphics.m_swapChain.GetVkExtent2D();
+	renderPassBeginInfo.renderArea.extent = m_swapChain.GetVkExtent2D();
 
 	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 	renderPassBeginInfo.clearValueCount = 1;
@@ -185,20 +147,20 @@ void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics.m_graphicsPipeline.GetVkPipeline());
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline.GetVkPipeline());
 
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)graphics.m_swapChain.GetVkExtent2D().width;
-	viewport.height = (float)graphics.m_swapChain.GetVkExtent2D().height;
+	viewport.width = (float)m_swapChain.GetVkExtent2D().width;
+	viewport.height = (float)m_swapChain.GetVkExtent2D().height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = graphics.m_swapChain.GetVkExtent2D();
+	scissor.extent = m_swapChain.GetVkExtent2D();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -210,8 +172,8 @@ void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
 	}
 }
 
-QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
-	auto& graphics = GetInstance();
+QueueFamilyIndices GraphicsLayer::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
+	
 
 	QueueFamilyIndices indices;
 
@@ -227,7 +189,7 @@ QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) 
 			indices.m_graphicsFamily = i;
 		}
 		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, graphics.m_vkSurface, &presentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_vkSurface, &presentSupport);
 		if (presentSupport) {
 			indices.m_presentFamily = i;
 		}
@@ -240,31 +202,31 @@ QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) 
 	return indices;
 }
 
-SwapChainSupportDetails Graphics::QuerySwapChainSupport(VkPhysicalDevice physicalDevice) {
+SwapChainSupportDetails GraphicsLayer::QuerySwapChainSupport(VkPhysicalDevice physicalDevice) {
 	SwapChainSupportDetails details;
-	auto& graphics = GetInstance();
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, graphics.m_vkSurface, &details.m_capabilities);
+	
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_vkSurface, &details.m_capabilities);
 
 	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, graphics.m_vkSurface, &formatCount, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_vkSurface, &formatCount, nullptr);
 
 	if (formatCount != 0) {
 		details.m_formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, graphics.m_vkSurface, &formatCount, details.m_formats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_vkSurface, &formatCount, details.m_formats.data());
 	}
 
 	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, graphics.m_vkSurface, &presentModeCount, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_vkSurface, &presentModeCount, nullptr);
 
 	if (presentModeCount != 0) {
 		details.m_presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, graphics.m_vkSurface, &presentModeCount, details.m_presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_vkSurface, &presentModeCount, details.m_presentModes.data());
 	}
 
 	return details;
 }
 
-bool Graphics::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions)
+bool GraphicsLayer::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions)
 {
 	if (!FindQueueFamilies(physicalDevice).IsComplete()) return false;
 	if (!CheckDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions)) return false;
@@ -299,41 +261,17 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 
 #pragma endregion
 
-void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, const VkApplicationInfo& vkApplicationInfo)
+void GraphicsLayer::OnCreate()
 {
-	auto& graphics = GetInstance();
-#pragma region Windows
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-	int size;
-	const auto monitors = glfwGetMonitors(&size);
-	for (auto i = 0; i < size; i++)
-	{
-		graphics.m_monitors.push_back(monitors[i]);
-	}
-	graphics.m_primaryMonitor = glfwGetPrimaryMonitor();
-	glfwSetMonitorCallback(SetMonitorCallback);
-
-	graphics.m_windowSize = applicationCreateInfo.m_defaultWindowSize;
-	graphics.m_window = glfwCreateWindow(graphics.m_windowSize.x, graphics.m_windowSize.y, applicationCreateInfo.m_applicationName.c_str(), nullptr, nullptr);
-
-	if (applicationCreateInfo.m_fullScreen)
-		glfwMaximizeWindow(graphics.m_window);
-	glfwSetFramebufferSizeCallback(graphics.m_window, WindowResizeCallback);
-	glfwSetWindowFocusCallback(graphics.m_window, WindowFocusCallback);
-	if (graphics.m_window == nullptr)
-	{
-		EVOENGINE_ERROR("Failed to create a window");
-	}
-#pragma endregion
 #pragma region volk
 	if (volkInitialize() != VK_SUCCESS)
 	{
 		throw std::runtime_error("Volk failed to initialize!");
 	}
 #pragma endregion
+	auto applicationInfo = Application::GetApplicationInfo();
+	auto windowLayer = Application::GetLayer<WindowLayer>();
+
 #pragma region Vulkan
 	const std::vector<std::string> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	const std::vector<std::string> requiredLayers = { "VK_LAYER_KHRONOS_validation" };
@@ -341,6 +279,14 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	for (const auto& i : requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
 	std::vector<const char*> cRequiredLayers;
 	for (const auto& i : requiredLayers) cRequiredLayers.emplace_back(i.c_str());
+
+	VkApplicationInfo vkApplicationInfo{};
+	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	vkApplicationInfo.pApplicationName = Application::GetApplicationInfo().m_applicationName.c_str();
+	vkApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	vkApplicationInfo.pEngineName = "EvoEngine";
+	vkApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+	vkApplicationInfo.apiVersion = VK_API_VERSION_1_0;
 #pragma region Instance
 	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -350,16 +296,18 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 #pragma region Extensions
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-	graphics.m_vkExtensions.resize(extensionCount);
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, graphics.m_vkExtensions.data());
-
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	m_vkExtensions.resize(extensionCount);
+	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, m_vkExtensions.data());
 	std::vector<const char*> requiredExtensions;
-	for (uint32_t i = 0; i < glfwExtensionCount; i++) {
+	if (windowLayer) {
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensions;
+		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+		
+		for (uint32_t i = 0; i < glfwExtensionCount; i++) {
 
-		requiredExtensions.emplace_back(glfwExtensions[i]);
+			requiredExtensions.emplace_back(glfwExtensions[i]);
+		}
 	}
 	//For MacOS
 	instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
@@ -375,8 +323,8 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 #pragma region Layer
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-	graphics.m_vkLayers.resize(layerCount);
-	vkEnumerateInstanceLayerProperties(&layerCount, graphics.m_vkLayers.data());
+	m_vkLayers.resize(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, m_vkLayers.data());
 #ifndef NDEBUG
 	if (!CheckLayerSupport("VK_LAYER_KHRONOS_validation"))
 	{
@@ -394,37 +342,39 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 #endif
 
 #pragma endregion
-	if (vkCreateInstance(&instanceCreateInfo, nullptr, &graphics.m_vkInstance) != VK_SUCCESS) {
+	if (vkCreateInstance(&instanceCreateInfo, nullptr, &m_vkInstance) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create instance!");
 	}
 
 	//Let volk connect with vulkan
-	volkLoadInstance(graphics.m_vkInstance);
+	volkLoadInstance(m_vkInstance);
 #pragma endregion
 #pragma region Surface
-	if (glfwCreateWindowSurface(graphics.m_vkInstance, graphics.m_window, nullptr, &graphics.m_vkSurface) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create window surface!");
+	if (windowLayer) {
+		if (glfwCreateWindowSurface(m_vkInstance, windowLayer->m_window, nullptr, &m_vkSurface) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create window surface!");
+		}
 	}
 #pragma endregion
 #pragma region Debug Messenger
 #ifndef NDEBUG
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
 	PopulateDebugMessengerCreateInfo(debugUtilsMessengerCreateInfo);
-	if (CreateDebugUtilsMessengerEXT(graphics.m_vkInstance, &debugUtilsMessengerCreateInfo, nullptr, &graphics.m_vkDebugMessenger) != VK_SUCCESS) {
+	if (CreateDebugUtilsMessengerEXT(m_vkInstance, &debugUtilsMessengerCreateInfo, nullptr, &m_vkDebugMessenger) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to set up debug messenger!");
 	}
 #endif
 
 #pragma endregion
 #pragma region Physical Device
-	graphics.m_vkPhysicalDevice = VK_NULL_HANDLE;
+	m_vkPhysicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(graphics.m_vkInstance, &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
 	if (deviceCount == 0) {
 		throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 	}
 	std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-	vkEnumeratePhysicalDevices(graphics.m_vkInstance, &deviceCount, physicalDevices.data());
+	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, physicalDevices.data());
 	std::multimap<int, VkPhysicalDevice> candidates;
 
 	for (const auto& physicalDevice : physicalDevices) {
@@ -434,10 +384,10 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	}
 	// Check if the best candidate is suitable at all
 	if (candidates.rbegin()->first > 0) {
-		graphics.m_vkPhysicalDevice = candidates.rbegin()->second;
-		vkGetPhysicalDeviceFeatures(graphics.m_vkPhysicalDevice, &graphics.m_vkPhysicalDeviceFeatures);
-		vkGetPhysicalDeviceProperties(graphics.m_vkPhysicalDevice, &graphics.m_vkPhysicalDeviceProperties);
-		EVOENGINE_LOG("Chose \"" + std::string(graphics.m_vkPhysicalDeviceProperties.deviceName) + "\" as physical device.");
+		m_vkPhysicalDevice = candidates.rbegin()->second;
+		vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &m_vkPhysicalDeviceFeatures);
+		vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
+		EVOENGINE_LOG("Chose \"" + std::string(m_vkPhysicalDeviceProperties.deviceName) + "\" as physical device.");
 	}
 	else {
 		throw std::runtime_error("failed to find a suitable GPU!");
@@ -448,7 +398,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 #pragma region Queues requirement
-	QueueFamilyIndices indices = FindQueueFamilies(graphics.m_vkPhysicalDevice);
+	QueueFamilyIndices indices = FindQueueFamilies(m_vkPhysicalDevice);
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<uint32_t> uniqueQueueFamilies = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
 
@@ -474,16 +424,16 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 #else
 	deviceCreateInfo.enabledLayerCount = 0;
 #endif
-	if (vkCreateDevice(graphics.m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &graphics.m_vkDevice) != VK_SUCCESS) {
+	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
 	}
 
-	vkGetDeviceQueue(graphics.m_vkDevice, indices.m_graphicsFamily.value(), 0, &graphics.m_vkGraphicsQueue);
-	vkGetDeviceQueue(graphics.m_vkDevice, indices.m_presentFamily.value(), 0, &graphics.m_vkPresentQueue);
+	vkGetDeviceQueue(m_vkDevice, indices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
+	vkGetDeviceQueue(m_vkDevice, indices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 
 #pragma endregion
 #pragma region Swap Chain
-	SwapChainSupportDetails swapChainSupportDetails = QuerySwapChainSupport(graphics.m_vkPhysicalDevice);
+	SwapChainSupportDetails swapChainSupportDetails = QuerySwapChainSupport(m_vkPhysicalDevice);
 
 	VkSurfaceFormatKHR surfaceFormat = swapChainSupportDetails.m_formats[0];
 	for (const auto& availableFormat : swapChainSupportDetails.m_formats) {
@@ -506,8 +456,12 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	}
 	else {
 		int width, height;
-		glfwGetFramebufferSize(graphics.m_window, &width, &height);
-
+		if(windowLayer) glfwGetFramebufferSize(windowLayer->m_window, &width, &height);
+		else
+		{
+			width = applicationInfo.m_defaultWindowSize.x;
+			height = applicationInfo.m_defaultWindowSize.y;
+		}
 		VkExtent2D actualExtent = {
 			static_cast<uint32_t>(width),
 			static_cast<uint32_t>(height)
@@ -526,7 +480,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 
 	VkSwapchainCreateInfoKHR swapchainCreateInfo{};
 	swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapchainCreateInfo.surface = graphics.m_vkSurface;
+	swapchainCreateInfo.surface = m_vkSurface;
 
 	swapchainCreateInfo.minImageCount = imageCount;
 	swapchainCreateInfo.imageFormat = surfaceFormat.format;
@@ -557,20 +511,20 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 
 	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	graphics.m_swapChain.Create(swapchainCreateInfo);
+	m_swapChain.Create(swapchainCreateInfo);
 
 #pragma endregion
 #pragma region Image Views
-	const auto& swapChainImages = graphics.m_swapChain.GetVkImages();
+	const auto& swapChainImages = m_swapChain.GetVkImages();
 
-	graphics.m_swapChainImageViews.resize(swapChainImages.size());
+	m_swapChainImageViews.resize(swapChainImages.size());
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		VkImageViewCreateInfo imageViewCreateInfo{};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewCreateInfo.image = swapChainImages[i];
 		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = graphics.m_swapChain.GetVkFormat();
+		imageViewCreateInfo.format = m_swapChain.GetVkFormat();
 		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -581,12 +535,12 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		graphics.m_swapChainImageViews[i].Create(imageViewCreateInfo);
+		m_swapChainImageViews[i].Create(imageViewCreateInfo);
 	}
 #pragma endregion
 #pragma region RenderPass
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = graphics.m_swapChain.GetVkFormat();
+	colorAttachment.format = m_swapChain.GetVkFormat();
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -620,7 +574,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
-	graphics.m_renderPass.Create(renderPassInfo);
+	m_renderPass.Create(renderPassInfo);
 #pragma endregion
 #pragma region Pipeline layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -628,7 +582,7 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	pipelineLayoutInfo.setLayoutCount = 0;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-	graphics.m_pipelineLayout.Create(pipelineLayoutInfo);
+	m_pipelineLayout.Create(pipelineLayoutInfo);
 #pragma endregion
 #pragma region Graphics Pipeline
 	ShaderModule vertShader, fragShader;
@@ -719,33 +673,33 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = graphics.m_pipelineLayout.GetVkPipelineLayout();
-	pipelineInfo.renderPass = graphics.m_renderPass.GetVkRenderPass();
+	pipelineInfo.layout = m_pipelineLayout.GetVkPipelineLayout();
+	pipelineInfo.renderPass = m_renderPass.GetVkRenderPass();
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	graphics.m_graphicsPipeline.Create(pipelineInfo);
+	m_graphicsPipeline.Create(pipelineInfo);
 
 	vertShader.Destroy();
 	fragShader.Destroy();
 #pragma endregion
 #pragma region Framebuffer
-	graphics.m_framebuffers.resize(graphics.m_swapChainImageViews.size());
+	m_framebuffers.resize(m_swapChainImageViews.size());
 
-	for (size_t i = 0; i < graphics.m_swapChainImageViews.size(); i++) {
+	for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
 		VkImageView attachments[] = {
-			graphics.m_swapChainImageViews[i].GetVkImageView()
+			m_swapChainImageViews[i].GetVkImageView()
 		};
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = graphics.m_renderPass.GetVkRenderPass();
+		framebufferInfo.renderPass = m_renderPass.GetVkRenderPass();
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = graphics.m_swapChain.GetVkExtent2D().width;
-		framebufferInfo.height = graphics.m_swapChain.GetVkExtent2D().height;
+		framebufferInfo.width = m_swapChain.GetVkExtent2D().width;
+		framebufferInfo.height = m_swapChain.GetVkExtent2D().height;
 		framebufferInfo.layers = 1;
 
-		graphics.m_framebuffers[i].Create(framebufferInfo);
+		m_framebuffers[i].Create(framebufferInfo);
 	}
 #pragma endregion
 #pragma region Command pool
@@ -753,16 +707,16 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	poolInfo.queueFamilyIndex = indices.m_graphicsFamily.value();
-	graphics.m_commandPool.Create(poolInfo);
+	m_commandPool.Create(poolInfo);
 #pragma endregion
 #pragma region Command buffer
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = graphics.m_commandPool.GetVkCommandPool();
+	allocInfo.commandPool = m_commandPool.GetVkCommandPool();
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
 
-	if (vkAllocateCommandBuffers(graphics.m_vkDevice, &allocInfo, &graphics.m_vkCommandBuffer) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(m_vkDevice, &allocInfo, &m_vkCommandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 
@@ -774,109 +728,89 @@ void Graphics::Initialize(const ApplicationCreateInfo& applicationCreateInfo, co
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	graphics.m_imageAvailableSemaphore.Create(semaphoreCreateInfo);
-	graphics.m_renderFinishedSemaphore.Create(semaphoreCreateInfo);
-	graphics.m_inFlightFence.Create(fenceCreateInfo);
+	m_imageAvailableSemaphore.Create(semaphoreCreateInfo);
+	m_renderFinishedSemaphore.Create(semaphoreCreateInfo);
+	m_inFlightFence.Create(fenceCreateInfo);
 #pragma endregion
 #pragma endregion
 }
 
-void Graphics::Terminate()
+void GraphicsLayer::OnDestroy()
 {
-	auto& graphics = GetInstance();
-	vkDeviceWaitIdle(graphics.m_vkDevice);
+	
+	vkDeviceWaitIdle(m_vkDevice);
 #pragma region Vulkan
-	graphics.m_inFlightFence.Destroy();
-	graphics.m_renderFinishedSemaphore.Destroy();
-	graphics.m_imageAvailableSemaphore.Destroy();
+	m_inFlightFence.Destroy();
+	m_renderFinishedSemaphore.Destroy();
+	m_imageAvailableSemaphore.Destroy();
 
-	graphics.m_commandPool.Destroy();
+	m_commandPool.Destroy();
 
-	for (auto& framebuffer : graphics.m_framebuffers) {
+	for (auto& framebuffer : m_framebuffers) {
 		framebuffer.Destroy();
 	}
 
-	graphics.m_graphicsPipeline.Destroy();
-	graphics.m_pipelineLayout.Destroy();
-	graphics.m_renderPass.Destroy();
+	m_graphicsPipeline.Destroy();
+	m_pipelineLayout.Destroy();
+	m_renderPass.Destroy();
 #pragma region Image Views
-	for (auto& swapChainImageView : graphics.m_swapChainImageViews) {
+	for (auto& swapChainImageView : m_swapChainImageViews) {
 		swapChainImageView.Destroy();
 	}
 #pragma endregion
-	graphics.m_swapChain.Destroy();
-	vkDestroyDevice(graphics.m_vkDevice, nullptr);
+	m_swapChain.Destroy();
+	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
 #ifndef NDEBUG
-	DestroyDebugUtilsMessengerEXT(graphics.m_vkInstance, graphics.m_vkDebugMessenger, nullptr);
+	DestroyDebugUtilsMessengerEXT(m_vkInstance, m_vkDebugMessenger, nullptr);
 #endif
 #pragma endregion
 #pragma region Surface
-	vkDestroySurfaceKHR(graphics.m_vkInstance, graphics.m_vkSurface, nullptr);
+	vkDestroySurfaceKHR(m_vkInstance, m_vkSurface, nullptr);
 #pragma endregion
-	vkDestroyInstance(graphics.m_vkInstance, nullptr);
+	vkDestroyInstance(m_vkInstance, nullptr);
 #pragma endregion
-#pragma region Windows
-	glfwDestroyWindow(graphics.m_window);
-	glfwTerminate();
-#pragma endregion
+
 }
 
-bool Graphics::CheckExtensionSupport(const std::string& extensionName)
+void GraphicsLayer::PreUpdate()
 {
-	const auto& graphics = GetInstance();
-	for (const auto& layerProperties : graphics.m_vkLayers) {
-		if (strcmp(extensionName.c_str(), layerProperties.layerName) == 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool Graphics::CheckLayerSupport(const std::string& layerName)
-{
-	const auto& graphics = GetInstance();
-	for (const auto& layerProperties : graphics.m_vkLayers) {
-		if (strcmp(layerName.c_str(), layerProperties.layerName) == 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void Graphics::DrawFrame()
-{
-	auto& graphics = GetInstance();
-	VkFence inFlightFences[] = { graphics.m_inFlightFence.GetVkFence() };
-	vkWaitForFences(graphics.m_vkDevice, 1, inFlightFences,
+	VkFence inFlightFences[] = { m_inFlightFence.GetVkFence() };
+	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
-	vkResetFences(graphics.m_vkDevice, 1, inFlightFences);
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(graphics.m_vkDevice, 
-		graphics.m_swapChain.GetVkSwapchain(), UINT64_MAX,
-		graphics.m_imageAvailableSemaphore.GetVkSemaphore(), 
-		VK_NULL_HANDLE, &imageIndex);
+	vkResetFences(m_vkDevice, 1, inFlightFences);
+	vkAcquireNextImageKHR(m_vkDevice,
+		m_swapChain.GetVkSwapchain(), UINT64_MAX,
+		m_imageAvailableSemaphore.GetVkSemaphore(),
+		VK_NULL_HANDLE, &m_nextImageIndex);
 
-	vkResetCommandBuffer(graphics.m_vkCommandBuffer, 0);
+	vkResetCommandBuffer(m_vkCommandBuffer, 0);
+}
 
-	RecordCommandBuffer(graphics.m_vkCommandBuffer, imageIndex);
+void GraphicsLayer::Update()
+{
+	RecordCommandBuffer(m_vkCommandBuffer, m_nextImageIndex);
+}
+
+void GraphicsLayer::LateUpdate()
+{
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { graphics.m_imageAvailableSemaphore.GetVkSemaphore() };
+	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphore.GetVkSemaphore() };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &graphics.m_vkCommandBuffer;
+	submitInfo.pCommandBuffers = &m_vkCommandBuffer;
 
-	VkSemaphore signalSemaphores[] = { graphics.m_renderFinishedSemaphore.GetVkSemaphore() };
+	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphore.GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(graphics.m_vkGraphicsQueue, 1, &submitInfo, graphics.m_inFlightFence.GetVkFence()) != VK_SUCCESS) {
+	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFence.GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -886,13 +820,32 @@ void Graphics::DrawFrame()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { graphics.m_swapChain.GetVkSwapchain() };
+	VkSwapchainKHR swapChains[] = { m_swapChain.GetVkSwapchain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &m_nextImageIndex;
 
-	vkQueuePresentKHR(graphics.m_vkPresentQueue, &presentInfo);
+	vkQueuePresentKHR(m_vkPresentQueue, &presentInfo);
+}
 
+bool GraphicsLayer::CheckExtensionSupport(const std::string& extensionName) const
+{
+	for (const auto& layerProperties : m_vkLayers) {
+		if (strcmp(extensionName.c_str(), layerProperties.layerName) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool GraphicsLayer::CheckLayerSupport(const std::string& layerName) const
+{
+	for (const auto& layerProperties : m_vkLayers) {
+		if (strcmp(layerName.c_str(), layerProperties.layerName) == 0) {
+			return true;
+		}
+	}
+	return false;
 }
 
