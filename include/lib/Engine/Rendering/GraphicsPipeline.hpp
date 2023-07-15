@@ -21,25 +21,7 @@ namespace EvoEngine
 		VkSemaphore GetVkSemaphore() const;
 	};
 
-	class Swapchain
-	{
-		VkSwapchainKHR m_vkSwapchain = VK_NULL_HANDLE;
-		std::vector<VkImage> m_vkImages;
-
-		VkFormat m_vkFormat = {};
-		VkExtent2D m_vkExtent2D = {};
-	public:
-		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
-		void Destroy();
-
-		VkSwapchainKHR GetVkSwapchain() const;
-
-		const std::vector<VkImage>& GetVkImages() const;
-
-		VkFormat GetVkFormat() const;
-
-		VkExtent2D GetVkExtent2D() const;
-	};
+	
 
 	class Image
 	{
@@ -70,6 +52,30 @@ namespace EvoEngine
 		void Destroy();
 
 		VkFramebuffer GetVkFrameBuffer() const;
+	};
+
+	class Swapchain
+	{
+		VkSwapchainKHR m_vkSwapchain = VK_NULL_HANDLE;
+		std::vector<VkImage> m_vkImages;
+
+		VkFormat m_vkFormat = {};
+		VkExtent2D m_vkExtent2D = {};
+
+		std::vector<ImageView> m_imageViews;
+
+		
+	public:
+		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
+		void Destroy();
+
+		VkSwapchainKHR GetVkSwapchain() const;
+
+		const std::vector<VkImage>& GetVkImages() const;
+		const std::vector<ImageView>& GetImageViews() const;
+		VkFormat GetVkFormat() const;
+
+		VkExtent2D GetVkExtent2D() const;
 	};
 
 	class ShaderModule

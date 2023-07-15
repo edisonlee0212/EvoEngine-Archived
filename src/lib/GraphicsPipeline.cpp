@@ -51,24 +51,47 @@ VkSemaphore Semaphore::GetVkSemaphore() const
 	return m_vkSemaphore;
 }
 
-void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo)
+void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 {
 	Destroy();
-	m_vkFormat = swapchainCreateInfo.imageFormat;
-	m_vkExtent2D = swapchainCreateInfo.imageExtent;
-
 	const auto& device = GraphicsLayer::GetVkDevice();
-	if (vkCreateSwapchainKHR(GraphicsLayer::GetVkDevice(), &swapchainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(GraphicsLayer::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
 	uint32_t imageCount = 0;
 	vkGetSwapchainImagesKHR(device, m_vkSwapchain, &imageCount, nullptr);
 	m_vkImages.resize(imageCount);
 	vkGetSwapchainImagesKHR(device, m_vkSwapchain, &imageCount, m_vkImages.data());
+
+	m_vkFormat = swapChainCreateInfo.imageFormat;
+	m_vkExtent2D = swapChainCreateInfo.imageExtent;
+
+	m_imageViews.resize(m_vkImages.size());
+	for (size_t i = 0; i < m_vkImages.size(); i++) {
+		VkImageViewCreateInfo imageViewCreateInfo{};
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.image = m_vkImages[i];
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = m_vkFormat;
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+		m_imageViews[i].Create(imageViewCreateInfo);
+	}
 }
 
 void Swapchain::Destroy()
 {
+	for (auto& imageView : m_imageViews) {
+		imageView.Destroy();
+	}
+	m_imageViews.clear();
 	if (m_vkSwapchain != VK_NULL_HANDLE) {
 		vkDestroySwapchainKHR(GraphicsLayer::GetVkDevice(), m_vkSwapchain, nullptr);
 		m_vkSwapchain = VK_NULL_HANDLE;
@@ -83,6 +106,11 @@ VkSwapchainKHR Swapchain::GetVkSwapchain() const
 const std::vector<VkImage>& Swapchain::GetVkImages() const
 {
 	return m_vkImages;
+}
+
+const std::vector<ImageView>& Swapchain::GetImageViews() const
+{
+	return m_imageViews;
 }
 
 VkFormat Swapchain::GetVkFormat() const

@@ -12,7 +12,7 @@ namespace EvoEngine
 		glm::ivec2 m_windowSize = { 1 , 1 };
 #pragma endregion
 
-		static void WindowResizeCallback(GLFWwindow*, int, int);
+		static void FramebufferResizeCallback(GLFWwindow*, int, int);
 		static void SetMonitorCallback(GLFWmonitor* monitor, int event);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 

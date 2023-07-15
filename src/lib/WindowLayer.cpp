@@ -1,15 +1,19 @@
 #include "WindowLayer.hpp"
-
+#include "GraphicsLayer.hpp"
 #include "Application.hpp"
 
 using namespace EvoEngine;
 
-void WindowLayer::WindowResizeCallback(GLFWwindow* window, int width, int height)
+void WindowLayer::FramebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
-	auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer->m_window == window)
 	{
 		windowLayer->m_windowSize = { width, height };
+	}
+	if(const auto& graphicsLayer = Application::GetLayer<GraphicsLayer>())
+	{
+		graphicsLayer->NotifyRecreateSwapChain();
 	}
 
 }
@@ -56,8 +60,7 @@ void WindowLayer::OnCreate()
 #pragma region Windows
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
+	
 	int size;
 	const auto monitors = glfwGetMonitors(&size);
 	for (auto i = 0; i < size; i++)
@@ -72,7 +75,7 @@ void WindowLayer::OnCreate()
 
 	if (applicationInfo.m_fullScreen)
 		glfwMaximizeWindow(m_window);
-	glfwSetFramebufferSizeCallback(m_window, WindowResizeCallback);
+	glfwSetFramebufferSizeCallback(m_window, FramebufferResizeCallback);
 	glfwSetWindowFocusCallback(m_window, WindowFocusCallback);
 	if (m_window == nullptr)
 	{
