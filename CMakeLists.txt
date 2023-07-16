@@ -92,6 +92,7 @@ target_include_directories(evoengine
 target_link_libraries(evoengine
         volk
         yaml-cpp
+        GPUOpen::VulkanMemoryAllocator
         )
 
 

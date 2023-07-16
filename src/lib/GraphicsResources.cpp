@@ -329,3 +329,55 @@ VkCommandPool CommandPool::GetVkCommandPool() const
 {
 	return m_vkCommandPool;
 }
+
+void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo)
+{
+	Destroy();
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	if (vmaCreateBuffer(GraphicsLayer::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, nullptr) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create buffer!");
+	}
+}
+
+void Buffer::Destroy()
+{
+	if (m_vkBuffer != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE)
+	{
+		vmaDestroyBuffer(GraphicsLayer::GetVmaAllocator(), m_vkBuffer, m_vmaAllocation);
+		m_vkBuffer = VK_NULL_HANDLE;
+		m_vmaAllocation = VK_NULL_HANDLE;
+	}
+}
+
+VkBuffer Buffer::GetVkBuffer() const
+{
+	return m_vkBuffer;
+}
+
+VmaAllocation Buffer::GetVmaAllocation() const
+{
+	return m_vmaAllocation;
+}
+
+void DeviceMemory::Create(const VkMemoryAllocateInfo& memoryAllocateInfo)
+{
+	Destroy();
+	if (vkAllocateMemory(GraphicsLayer::GetVkDevice(), &memoryAllocateInfo, nullptr, &m_vkDeviceMemory) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate vertex buffer memory!");
+	}
+}
+
+void DeviceMemory::Destroy()
+{
+	if(m_vkDeviceMemory != VK_NULL_HANDLE)
+	{
+		vkFreeMemory(GraphicsLayer::GetVkDevice(), m_vkDeviceMemory, nullptr);
+		m_vkDeviceMemory = VK_NULL_HANDLE;
+	}
+}
+
+VkDeviceMemory DeviceMemory::GetVkDeviceMemory() const
+{
+	return m_vkDeviceMemory;
+}

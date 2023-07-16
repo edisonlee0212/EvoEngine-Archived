@@ -1,11 +1,5 @@
 #include "Bound.hpp"
 using namespace EvoEngine;
-Bound::Bound()
-{
-    m_min = glm::vec3(FLT_MIN);
-    m_min = glm::vec3(FLT_MIN);
-    m_max = glm::vec3(FLT_MAX);
-}
 
 glm::vec3 Bound::Size() const
 {

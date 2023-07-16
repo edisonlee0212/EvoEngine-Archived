@@ -4,7 +4,8 @@
 #include "Utilities.hpp"
 #include "WindowLayer.hpp"
 #define VOLK_IMPLEMENTATION
-
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 using namespace EvoEngine;
 
 VkInstance GraphicsLayer::m_vkInstance = VK_NULL_HANDLE;
@@ -18,9 +19,25 @@ VkSurfaceKHR GraphicsLayer::m_vkSurface = VK_NULL_HANDLE;
 VkPhysicalDevice GraphicsLayer::m_vkPhysicalDevice = VK_NULL_HANDLE;
 VkDevice GraphicsLayer::m_vkDevice = VK_NULL_HANDLE;
 
+VmaAllocator GraphicsLayer::m_vmaAllocator = VK_NULL_HANDLE;
+
 int GraphicsLayer::m_maxFrameInFlight = 2;
 
 #pragma region Helpers
+uint32_t GraphicsLayer::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type!");
+}
+
 void GraphicsLayer::NotifyRecreateSwapChain()
 {
 	m_recreateSwapChain = true;
@@ -36,9 +53,14 @@ VkDevice GraphicsLayer::GetVkDevice()
 	return m_vkDevice;
 }
 
+VmaAllocator GraphicsLayer::GetVmaAllocator()
+{
+	return m_vmaAllocator;
+}
+
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
+                       VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                       void* pUserData)
 {
 	//if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
@@ -595,7 +617,7 @@ void GraphicsLayer::OnCreate()
 	vkApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	vkApplicationInfo.pEngineName = "EvoEngine";
 	vkApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	vkApplicationInfo.apiVersion = VK_API_VERSION_1_0;
+	vkApplicationInfo.apiVersion = volkGetInstanceVersion();
 #pragma region Instance
 	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -658,6 +680,7 @@ void GraphicsLayer::OnCreate()
 	//Let volk connect with vulkan
 	volkLoadInstance(m_vkInstance);
 #pragma endregion
+
 #pragma region Surface
 	if (windowLayer) {
 		if (glfwCreateWindowSurface(m_vkInstance, windowLayer->m_window, nullptr, &m_vkSurface) != VK_SUCCESS) {
@@ -665,6 +688,7 @@ void GraphicsLayer::OnCreate()
 		}
 	}
 #pragma endregion
+
 #pragma region Debug Messenger
 #ifndef NDEBUG
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
@@ -742,6 +766,19 @@ void GraphicsLayer::OnCreate()
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 
 #pragma endregion
+#pragma region VMA
+	VmaVulkanFunctions vulkanFunctions{};
+	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+	VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
+	vmaAllocatorCreateInfo.physicalDevice = m_vkPhysicalDevice;
+	vmaAllocatorCreateInfo.device = m_vkDevice;
+	vmaAllocatorCreateInfo.instance = m_vkInstance;
+	vmaAllocatorCreateInfo.vulkanApiVersion = volkGetInstanceVersion();
+	vmaAllocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+	vmaCreateAllocator(&vmaAllocatorCreateInfo, &m_vmaAllocator);
+#pragma endregion
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) {
 		CreateSwapChain();
 		CreateRenderPass();
@@ -816,6 +853,7 @@ void GraphicsLayer::OnDestroy()
 #pragma region Surface
 	vkDestroySurfaceKHR(m_vkInstance, m_vkSurface, nullptr);
 #pragma endregion
+	vmaDestroyAllocator(m_vmaAllocator);
 	vkDestroyInstance(m_vkInstance, nullptr);
 #pragma endregion
 

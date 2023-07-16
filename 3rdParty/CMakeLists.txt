@@ -28,14 +28,6 @@ include_directories(${YAML_CPP_DIR}/include)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
-# shaderc
-# ------------------------------------------------------------------
-set(SHADERC_DIR 
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/
-    PARENT_SCOPE)
-
-
-# ------------------------------------------------------------------
 # glm
 # ------------------------------------------------------------------
 if (WIN32)
@@ -59,6 +51,19 @@ elseif (APPLE)
 endif ()
 set(VOLK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/volk/)
 add_subdirectory(${VOLK_DIR} EXCLUDE_FROM_ALL)
+
+# ------------------------------------------------------------------
+# shaderc
+# ------------------------------------------------------------------
+set(SHADERC_DIR 
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/
+    PARENT_SCOPE)
+
+# ------------------------------------------------------------------
+# VulkanMemoryAllocator
+# ------------------------------------------------------------------
+set(VULKAN_MEMORY_ALLOCATOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator/)
+add_subdirectory(${VULKAN_MEMORY_ALLOCATOR_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
 # stb

@@ -19,7 +19,7 @@ namespace EvoEngine
 		void Create(const VkFenceCreateInfo& vkFenceCreateInfo);
 		void Destroy() override;
 
-		VkFence GetVkFence() const;
+		[[nodiscard]] VkFence GetVkFence() const;
 	};
 
 	class Semaphore final : public IGraphicsResource
@@ -28,7 +28,7 @@ namespace EvoEngine
 	public:
 		void Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
 		void Destroy() override;
-		VkSemaphore GetVkSemaphore() const;
+		[[nodiscard]] VkSemaphore GetVkSemaphore() const;
 	};
 
 	
@@ -41,7 +41,7 @@ namespace EvoEngine
 		void Create(const VkImageCreateInfo& imageCreateInfo);
 		void Destroy() override;
 
-		VkImage GetVkImage() const;
+		[[nodiscard]] VkImage GetVkImage() const;
 	};
 
 	class ImageView final : public IGraphicsResource
@@ -51,7 +51,7 @@ namespace EvoEngine
 		void Create(const VkImageViewCreateInfo& imageViewCreateInfo);
 		void Destroy() override;
 
-		VkImageView GetVkImageView() const;
+		[[nodiscard]] VkImageView GetVkImageView() const;
 	};
 
 	class Framebuffer final : public IGraphicsResource
@@ -61,7 +61,7 @@ namespace EvoEngine
 		void Create(const VkFramebufferCreateInfo& framebufferCreateInfo);
 		void Destroy() override;
 
-		VkFramebuffer GetVkFrameBuffer() const;
+		[[nodiscard]] VkFramebuffer GetVkFrameBuffer() const;
 	};
 
 	class Swapchain final : public IGraphicsResource
@@ -79,13 +79,13 @@ namespace EvoEngine
 		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
 		void Destroy() override;
 
-		VkSwapchainKHR GetVkSwapchain() const;
+		[[nodiscard]] VkSwapchainKHR GetVkSwapchain() const;
 
-		const std::vector<VkImage>& GetVkImages() const;
-		const std::vector<VkImageView>& GetVkImageViews() const;
-		VkFormat GetVkFormat() const;
+		[[nodiscard]] const std::vector<VkImage>& GetVkImages() const;
+		[[nodiscard]] const std::vector<VkImageView>& GetVkImageViews() const;
+		[[nodiscard]] VkFormat GetVkFormat() const;
 
-		VkExtent2D GetVkExtent2D() const;
+		[[nodiscard]] VkExtent2D GetVkExtent2D() const;
 	};
 
 	class ShaderModule final : public IGraphicsResource
@@ -98,7 +98,7 @@ namespace EvoEngine
 
 		void Create(shaderc_shader_kind shaderKind, const std::string& code);
 
-		VkShaderModule GetVkShaderModule() const;
+		[[nodiscard]] VkShaderModule GetVkShaderModule() const;
 	};
 
 	class RenderPass final : public IGraphicsResource
@@ -108,7 +108,7 @@ namespace EvoEngine
 		void Create(const VkRenderPassCreateInfo& renderPassCreateInfo);
 		void Destroy() override;
 
-		VkRenderPass GetVkRenderPass() const;
+		[[nodiscard]] VkRenderPass GetVkRenderPass() const;
 	};
 
 	class PipelineLayout final : public IGraphicsResource
@@ -118,7 +118,7 @@ namespace EvoEngine
 		void Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo);
 		void Destroy() override;
 
-		VkPipelineLayout GetVkPipelineLayout() const;
+		[[nodiscard]] VkPipelineLayout GetVkPipelineLayout() const;
 	};
 
 	class GraphicsPipeline final : public IGraphicsResource
@@ -129,7 +129,7 @@ namespace EvoEngine
 
 		void Destroy() override;
 
-		VkPipeline GetVkPipeline() const;
+		[[nodiscard]] VkPipeline GetVkPipeline() const;
 	};
 
 	class CommandPool final : public IGraphicsResource
@@ -140,6 +140,32 @@ namespace EvoEngine
 
 		void Destroy() override;
 
-		VkCommandPool GetVkCommandPool() const;
+		[[nodiscard]] VkCommandPool GetVkCommandPool() const;
+	};
+
+	class Buffer final : public IGraphicsResource
+	{
+		VkBuffer m_vkBuffer = VK_NULL_HANDLE;
+		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
+	public:
+		void Create(const VkBufferCreateInfo& bufferCreateInfo);
+
+		void Destroy() override;
+
+		[[nodiscard]] VkBuffer GetVkBuffer() const;
+
+		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
+	};
+
+	class DeviceMemory final : public IGraphicsResource
+	{
+		VkDeviceMemory m_vkDeviceMemory = VK_NULL_HANDLE;
+	public:
+		void Create(const VkMemoryAllocateInfo& memoryAllocateInfo);
+
+		void Destroy() override;
+
+		[[nodiscard]] VkDeviceMemory GetVkDeviceMemory() const;
+
 	};
 }

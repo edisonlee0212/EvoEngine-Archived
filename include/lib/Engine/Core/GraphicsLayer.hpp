@@ -33,6 +33,8 @@ namespace EvoEngine
 		static VkPhysicalDevice m_vkPhysicalDevice;
 		static VkDevice m_vkDevice;
 
+		static VmaAllocator m_vmaAllocator;
+
 		QueueFamilyIndices m_queueFamilyIndices;
 
 		VkQueue m_vkGraphicsQueue = VK_NULL_HANDLE;
@@ -82,11 +84,14 @@ namespace EvoEngine
 		void LateUpdate() override;
 
 		bool m_recreateSwapChain = false;
+
+		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
 
 		void NotifyRecreateSwapChain();
 		static VkPhysicalDevice GetVkPhysicalDevice();
 		static VkDevice GetVkDevice();
+		static VmaAllocator GetVmaAllocator();
 		[[nodiscard]] bool CheckExtensionSupport(const std::string& extensionName) const;
 		[[nodiscard]] bool CheckLayerSupport(const std::string& layerName) const;
 	};
