@@ -1,7 +1,7 @@
 #pragma once
 #include "ISingleton.hpp"
 #include "Application.hpp"
-#include "GraphicsPipeline.hpp"
+#include "GraphicsResources.hpp"
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {
@@ -38,25 +38,25 @@ namespace EvoEngine
 		VkQueue m_vkGraphicsQueue = VK_NULL_HANDLE;
 		VkQueue m_vkPresentQueue = VK_NULL_HANDLE;
 
-		Swapchain m_swapChain;
-		std::vector<Framebuffer> m_framebuffers;
+		std::shared_ptr<Swapchain> m_swapChain;
+		std::vector<std::shared_ptr<Framebuffer>> m_framebuffers;
 		
 #pragma endregion
-		PipelineLayout m_pipelineLayout;
-		RenderPass m_renderPass;
-		GraphicsPipeline m_graphicsPipeline;
+		std::shared_ptr<PipelineLayout> m_pipelineLayout;
+		std::shared_ptr<RenderPass> m_renderPass;
+		std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
 		
 
-		CommandPool m_commandPool;
+		std::shared_ptr<CommandPool> m_commandPool;
 
 		static int m_maxFrameInFlight;
 
 		std::vector<VkCommandBuffer> m_vkCommandBuffers = {};
 
-		std::vector<Semaphore> m_imageAvailableSemaphores;
-		std::vector<Semaphore> m_renderFinishedSemaphores;
-		std::vector<Fence> m_inFlightFences;
+		std::vector<std::shared_ptr<Semaphore>> m_imageAvailableSemaphores;
+		std::vector<std::shared_ptr<Semaphore>> m_renderFinishedSemaphores;
+		std::vector<std::shared_ptr<Fence>> m_inFlightFences;
 		uint32_t m_currentFrameIndex = 0;
 
 		uint32_t m_nextImageIndex = 0;

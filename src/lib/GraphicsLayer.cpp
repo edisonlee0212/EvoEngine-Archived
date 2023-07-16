@@ -142,10 +142,10 @@ void GraphicsLayer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = m_renderPass.GetVkRenderPass();
-	renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex].GetVkFrameBuffer();
+	renderPassBeginInfo.renderPass = m_renderPass->GetVkRenderPass();
+	renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex]->GetVkFrameBuffer();
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = m_swapChain.GetVkExtent2D();
+	renderPassBeginInfo.renderArea.extent = m_swapChain->GetVkExtent2D();
 
 	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 	renderPassBeginInfo.clearValueCount = 1;
@@ -153,20 +153,20 @@ void GraphicsLayer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline.GetVkPipeline());
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->GetVkPipeline());
 
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_swapChain.GetVkExtent2D().width);
-	viewport.height = static_cast<float>(m_swapChain.GetVkExtent2D().height);
+	viewport.width = static_cast<float>(m_swapChain->GetVkExtent2D().width);
+	viewport.height = static_cast<float>(m_swapChain->GetVkExtent2D().height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = m_swapChain.GetVkExtent2D();
+	scissor.extent = m_swapChain->GetVkExtent2D();
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -247,6 +247,7 @@ bool GraphicsLayer::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std:
 
 void GraphicsLayer::CreateSwapChain()
 {
+	if (!m_swapChain) m_swapChain = std::make_shared<Swapchain>();
 	auto applicationInfo = Application::GetApplicationInfo();
 	auto windowLayer = Application::GetLayer<WindowLayer>();
 	SwapChainSupportDetails swapChainSupportDetails = QuerySwapChainSupport(m_vkPhysicalDevice);
@@ -266,7 +267,7 @@ void GraphicsLayer::CreateSwapChain()
 		}
 	}
 
-	VkExtent2D extent = m_swapChain.GetVkExtent2D();
+	VkExtent2D extent = m_swapChain->GetVkExtent2D();
 	if (swapChainSupportDetails.m_capabilities.currentExtent.width != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.height != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -333,40 +334,41 @@ void GraphicsLayer::CreateSwapChain()
 	{
 		EVOENGINE_ERROR("WRONG")
 	}
-	m_swapChain.Create(swapchainCreateInfo);
+	m_swapChain->Create(swapchainCreateInfo);
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	m_imageAvailableSemaphores.resize(m_maxFrameInFlight);
+	m_imageAvailableSemaphores.clear();
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_imageAvailableSemaphores[i].Create(semaphoreCreateInfo);
+		m_imageAvailableSemaphores.emplace_back(std::make_shared<Semaphore>());
+		m_imageAvailableSemaphores[i]->Create(semaphoreCreateInfo);
 	}
 }
 
 void GraphicsLayer::CleanupSwapChain()
 {
 	for (auto& framebuffer : m_framebuffers) {
-		framebuffer.Destroy();
+		framebuffer->Destroy();
 	}
-	m_swapChain.Destroy();
+	m_swapChain->Destroy();
 }
 
 void GraphicsLayer::CreateFramebuffers()
 {
-	const auto& swapChainImageViews = m_swapChain.GetImageViews();
-	m_framebuffers.resize(swapChainImageViews.size());
+	const auto& swapChainImageViews = m_swapChain->GetVkImageViews();
+	m_framebuffers.clear();
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		const VkImageView attachments[] = { swapChainImageViews[i].GetVkImageView() };
+		const VkImageView attachments[] = { swapChainImageViews[i] };
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_renderPass.GetVkRenderPass();
+		framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = m_swapChain.GetVkExtent2D().width;
-		framebufferInfo.height = m_swapChain.GetVkExtent2D().height;
+		framebufferInfo.width = m_swapChain->GetVkExtent2D().width;
+		framebufferInfo.height = m_swapChain->GetVkExtent2D().height;
 		framebufferInfo.layers = 1;
-
-		m_framebuffers[i].Create(framebufferInfo);
+		m_framebuffers.emplace_back(std::make_shared<Framebuffer>());
+		m_framebuffers[i]->Create(framebufferInfo);
 	}
 }
 
@@ -417,7 +419,9 @@ void GraphicsLayer::CreateRenderPass()
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
-	m_renderPass.Create(renderPassInfo);
+
+	if (!m_renderPass) m_renderPass = std::make_shared<RenderPass>();
+	m_renderPass->Create(renderPassInfo);
 #pragma endregion
 }
 
@@ -428,8 +432,8 @@ void GraphicsLayer::CreateGraphicsPipeline()
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-	m_pipelineLayout.Create(pipelineLayoutInfo);
+	if (!m_pipelineLayout) m_pipelineLayout = std::make_shared<PipelineLayout>();
+	m_pipelineLayout->Create(pipelineLayoutInfo);
 #pragma endregion
 #pragma region Graphics Pipeline
 	ShaderModule vertShader, fragShader;
@@ -520,11 +524,12 @@ void GraphicsLayer::CreateGraphicsPipeline()
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = m_pipelineLayout.GetVkPipelineLayout();
-	pipelineInfo.renderPass = m_renderPass.GetVkRenderPass();
+	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
+	pipelineInfo.renderPass = m_renderPass->GetVkRenderPass();
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	m_graphicsPipeline.Create(pipelineInfo);
+	if (!m_graphicsPipeline) m_graphicsPipeline = std::make_shared<GraphicsPipeline>();
+	m_graphicsPipeline->Create(pipelineInfo);
 
 	vertShader.Destroy();
 	fragShader.Destroy();
@@ -749,12 +754,13 @@ void GraphicsLayer::OnCreate()
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		poolInfo.queueFamilyIndex = m_queueFamilyIndices.m_graphicsFamily.value();
-		m_commandPool.Create(poolInfo);
+		if (!m_commandPool) m_commandPool = std::make_shared<CommandPool>();
+		m_commandPool->Create(poolInfo);
 #pragma endregion
 #pragma region Command buffers
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.commandPool = m_commandPool.GetVkCommandPool();
+		allocInfo.commandPool = m_commandPool->GetVkCommandPool();
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandBufferCount = static_cast<uint32_t>(m_maxFrameInFlight);
 		m_vkCommandBuffers.resize(m_maxFrameInFlight);
@@ -769,11 +775,13 @@ void GraphicsLayer::OnCreate()
 		VkFenceCreateInfo fenceCreateInfo{};
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		m_renderFinishedSemaphores.resize(m_maxFrameInFlight);
-		m_inFlightFences.resize(m_maxFrameInFlight);
+		m_renderFinishedSemaphores.clear();
+		m_inFlightFences.clear();
 		for (int i = 0; i < m_maxFrameInFlight; i++) {
-			m_renderFinishedSemaphores[i].Create(semaphoreCreateInfo);
-			m_inFlightFences[i].Create(fenceCreateInfo);
+			m_renderFinishedSemaphores.emplace_back(std::make_shared<Semaphore>());
+			m_inFlightFences.emplace_back(std::make_shared<Fence>());
+			m_renderFinishedSemaphores.back()->Create(semaphoreCreateInfo);
+			m_inFlightFences.back()->Create(fenceCreateInfo);
 		}
 #pragma endregion
 	}
@@ -786,17 +794,17 @@ void GraphicsLayer::OnDestroy()
 
 #pragma region Vulkan
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_inFlightFences[i].Destroy();
-		m_renderFinishedSemaphores[i].Destroy();
-		m_imageAvailableSemaphores[i].Destroy();
+		m_inFlightFences[i]->Destroy();
+		m_renderFinishedSemaphores[i]->Destroy();
+		m_imageAvailableSemaphores[i]->Destroy();
 	}
-	m_commandPool.Destroy();
+	m_commandPool->Destroy();
 
 
 
-	m_graphicsPipeline.Destroy();
-	m_pipelineLayout.Destroy();
-	m_renderPass.Destroy();
+	m_graphicsPipeline->Destroy();
+	m_pipelineLayout->Destroy();
+	m_renderPass->Destroy();
 
 	CleanupSwapChain();
 	vkDestroyDevice(m_vkDevice, nullptr);
@@ -818,18 +826,18 @@ void GraphicsLayer::PreUpdate()
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
 	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
-	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex].GetVkFence() };
+	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
-		m_swapChain.GetVkSwapchain(), UINT64_MAX,
-		m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
+		m_swapChain->GetVkSwapchain(), UINT64_MAX,
+		m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
 		VK_NULL_HANDLE, &m_nextImageIndex);
 	while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_recreateSwapChain) {
 		RecreateSwapChain();
 		result = vkAcquireNextImageKHR(m_vkDevice,
-			m_swapChain.GetVkSwapchain(), UINT64_MAX,
-			m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
+			m_swapChain->GetVkSwapchain(), UINT64_MAX,
+			m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
 			VK_NULL_HANDLE, &m_nextImageIndex);
 		m_recreateSwapChain = false;
 	}
@@ -856,7 +864,7 @@ void GraphicsLayer::LateUpdate()
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore() };
+	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -865,10 +873,10 @@ void GraphicsLayer::LateUpdate()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_vkCommandBuffers[m_currentFrameIndex];
 
-	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex].GetVkSemaphore() };
+	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
-	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex].GetVkFence()) != VK_SUCCESS) {
+	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -878,7 +886,7 @@ void GraphicsLayer::LateUpdate()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { m_swapChain.GetVkSwapchain() };
+	VkSwapchainKHR swapChains[] = { m_swapChain->GetVkSwapchain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 

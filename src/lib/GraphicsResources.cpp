@@ -1,9 +1,18 @@
-#include "GraphicsPipeline.hpp"
+#include "GraphicsResources.hpp"
 
 #include "GraphicsLayer.hpp"
 #include "Utilities.hpp"
 
 using namespace EvoEngine;
+
+void IGraphicsResource::Destroy()
+{
+}
+
+IGraphicsResource::~IGraphicsResource()
+{
+	Destroy();
+}
 
 void Fence::Create(const VkFenceCreateInfo& vkFenceCreateInfo)
 {
@@ -66,7 +75,7 @@ void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 	m_vkFormat = swapChainCreateInfo.imageFormat;
 	m_vkExtent2D = swapChainCreateInfo.imageExtent;
 
-	m_imageViews.resize(m_vkImages.size());
+	m_vkImageViews.resize(m_vkImages.size());
 	for (size_t i = 0; i < m_vkImages.size(); i++) {
 		VkImageViewCreateInfo imageViewCreateInfo{};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -82,16 +91,21 @@ void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
-		m_imageViews[i].Create(imageViewCreateInfo);
+
+		if (vkCreateImageView(GraphicsLayer::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create image views!");
+		}
 	}
 }
 
 void Swapchain::Destroy()
 {
-	for (auto& imageView : m_imageViews) {
-		imageView.Destroy();
+	for (const auto& imageView : m_vkImageViews) {
+		if (imageView != VK_NULL_HANDLE) {
+			vkDestroyImageView(GraphicsLayer::GetVkDevice(), imageView, nullptr);
+		}
 	}
-	m_imageViews.clear();
+	m_vkImageViews.clear();
 	if (m_vkSwapchain != VK_NULL_HANDLE) {
 		vkDestroySwapchainKHR(GraphicsLayer::GetVkDevice(), m_vkSwapchain, nullptr);
 		m_vkSwapchain = VK_NULL_HANDLE;
@@ -108,9 +122,9 @@ const std::vector<VkImage>& Swapchain::GetVkImages() const
 	return m_vkImages;
 }
 
-const std::vector<ImageView>& Swapchain::GetImageViews() const
+const std::vector<VkImageView>& Swapchain::GetVkImageViews() const
 {
-	return m_imageViews;
+	return m_vkImageViews;
 }
 
 VkFormat Swapchain::GetVkFormat() const
