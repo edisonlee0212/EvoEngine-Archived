@@ -147,14 +147,21 @@ namespace EvoEngine
 	{
 		VkBuffer m_vkBuffer = VK_NULL_HANDLE;
 		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
+		VmaAllocationInfo m_vmaAllocationInfo = {};
 	public:
 		void Create(const VkBufferCreateInfo& bufferCreateInfo);
 
+		void Create(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+
 		void Destroy() override;
+
+		void Copy(const Buffer& srcBuffer, VkDeviceSize size);
 
 		[[nodiscard]] VkBuffer GetVkBuffer() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
+
+		[[nodiscard]] const VmaAllocationInfo &GetVmaAllocationInfo() const;
 	};
 
 	class DeviceMemory final : public IGraphicsResource

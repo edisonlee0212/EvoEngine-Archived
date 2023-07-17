@@ -1,12 +1,75 @@
 #include "Mesh.hpp"
 
 #include "Console.hpp"
+#include "Graphics.hpp"
+#include "ClassRegistry.hpp"
 using namespace EvoEngine;
+AssetRegistration<Mesh> MeshRegistry("Mesh", { ".uemesh" });
+
+void Mesh::SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer)
+{
+	VkBuffer vertexBuffers[] = { m_verticesBuffer.GetVkBuffer() };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer.GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
+
+}
+
+void Mesh::UploadData()
+{
+	Buffer stagingBuffer;
+	const auto verticesDataSize = sizeof(Vertex) * m_vertices.size();
+
+	VkBufferCreateInfo stagingBufferCreateInfo{};
+	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	stagingBufferCreateInfo.size = verticesDataSize;
+	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
+	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	stagingBuffer.Create(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
+	void* data = nullptr;
+	auto stagingBufferAllocationInfo = stagingBuffer.GetVmaAllocationInfo();
+	vkMapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory, stagingBufferAllocationInfo.offset, verticesDataSize, 0, &data);
+	memcpy(data, m_vertices.data(), verticesDataSize);
+	vkUnmapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory);
+
+	VkBufferCreateInfo verticesBufferCreateInfo{};
+	verticesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	verticesBufferCreateInfo.size = verticesDataSize;
+	verticesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	verticesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
+	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_verticesBuffer.Create(verticesBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	m_verticesBuffer.Copy(stagingBuffer, verticesDataSize);
 
 
+	const auto triangleDataSize = sizeof(glm::uvec3) * m_triangles.size();
+	stagingBufferCreateInfo.size = triangleDataSize;
+	stagingBuffer.Create(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
+	stagingBufferAllocationInfo = stagingBuffer.GetVmaAllocationInfo();
+	vkMapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory, stagingBufferAllocationInfo.offset, triangleDataSize, 0, &data);
+	memcpy(data, m_triangles.data(), triangleDataSize);
+	vkUnmapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory);
+
+
+	VkBufferCreateInfo trianglesBufferCreateInfo{};
+	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	trianglesBufferCreateInfo.size = triangleDataSize;
+	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
+	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_trianglesBuffer.Create(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+	m_trianglesBuffer.Copy(stagingBuffer, triangleDataSize);
+}
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, std::vector<Vertex>& vertices,
-                       const std::vector<unsigned>& indices)
+	const std::vector<unsigned>& indices)
 {
 	if (indices.size() % 3 != 0)
 	{
@@ -34,6 +97,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	}
 	m_vertices = vertices;
 	m_triangles = triangles;
+	/*
 #pragma region Bound
 	glm::vec3 minBound = m_vertices.at(0).m_position;
 	glm::vec3 maxBound = m_vertices.at(0).m_position;
@@ -51,6 +115,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_bound.m_max = maxBound;
 	m_bound.m_min = minBound;
 #pragma endregion
+*/
 	if (!vertexAttributes.m_normal)
 		RecalculateNormal();
 	if (!vertexAttributes.m_tangent)
@@ -59,30 +124,23 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes = vertexAttributes;
 	m_vertexAttributes.m_normal = true;
 	m_vertexAttributes.m_tangent = true;
+
+	UploadData();
 }
 
 size_t Mesh::GetVerticesAmount() const
 {
-	return m_verticesSize;
+	return m_vertices.size();
 }
 
 size_t Mesh::GetTriangleAmount() const
 {
-	return m_triangleSize;
-}
-
-void Mesh::UnsafeSetVerticesAmount(const unsigned size)
-{
-	m_verticesSize = size;
-}
-
-void Mesh::UnsafeSetTrianglesAmount(const unsigned size)
-{
-	m_triangleSize = size;
+	return m_triangles.size();
 }
 
 void Mesh::RecalculateNormal()
 {
+	/*
 	auto normalLists = std::vector<std::vector<glm::vec3>>();
 	const auto size = m_vertices.size();
 	for (auto i = 0; i < size; i++)
@@ -111,10 +169,12 @@ void Mesh::RecalculateNormal()
 		}
 		m_vertices[i].m_normal = glm::normalize(normal);
 	}
+	*/
 }
 
 void Mesh::RecalculateTangent()
 {
+	/*
 	auto tangentLists = std::vector<std::vector<glm::vec3>>();
 	auto size = m_vertices.size();
 	for (auto i = 0; i < size; i++)
@@ -153,6 +213,7 @@ void Mesh::RecalculateTangent()
 		}
 		m_vertices[i].m_tangent = glm::normalize(tangent);
 	}
+	*/
 }
 
 size_t& Mesh::GetVersion()

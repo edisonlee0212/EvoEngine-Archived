@@ -1,5 +1,5 @@
 #include "WindowLayer.hpp"
-#include "GraphicsLayer.hpp"
+#include "Graphics.hpp"
 #include "Application.hpp"
 
 using namespace EvoEngine;
@@ -11,7 +11,7 @@ void WindowLayer::FramebufferResizeCallback(GLFWwindow* window, int width, int h
 	{
 		windowLayer->m_windowSize = { width, height };
 	}
-	if(const auto& graphicsLayer = Application::GetLayer<GraphicsLayer>())
+	if(const auto& graphicsLayer = Application::GetLayer<Graphics>())
 	{
 		graphicsLayer->NotifyRecreateSwapChain();
 	}
@@ -57,31 +57,7 @@ void WindowLayer::WindowFocusCallback(GLFWwindow* window, int focused)
 
 void WindowLayer::OnCreate()
 {
-#pragma region Windows
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	
-	int size;
-	const auto monitors = glfwGetMonitors(&size);
-	for (auto i = 0; i < size; i++)
-	{
-		m_monitors.push_back(monitors[i]);
-	}
-	m_primaryMonitor = glfwGetPrimaryMonitor();
-	glfwSetMonitorCallback(SetMonitorCallback);
-	const auto& applicationInfo = Application::GetApplicationInfo();
-	m_windowSize = applicationInfo.m_defaultWindowSize;
-	m_window = glfwCreateWindow(m_windowSize.x, m_windowSize.y, applicationInfo.m_applicationName.c_str(), nullptr, nullptr);
 
-	if (applicationInfo.m_fullScreen)
-		glfwMaximizeWindow(m_window);
-	glfwSetFramebufferSizeCallback(m_window, FramebufferResizeCallback);
-	glfwSetWindowFocusCallback(m_window, WindowFocusCallback);
-	if (m_window == nullptr)
-	{
-		EVOENGINE_ERROR("Failed to create a window");
-	}
-#pragma endregion
 }
 
 void WindowLayer::OnDestroy()

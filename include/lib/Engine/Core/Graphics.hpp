@@ -1,7 +1,8 @@
 #pragma once
 #include "ISingleton.hpp"
-#include "Application.hpp"
 #include "GraphicsResources.hpp"
+#include "Mesh.hpp"
+
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {
@@ -18,22 +19,24 @@ namespace EvoEngine
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
-	class GraphicsLayer final : public ILayer
+	class Graphics final : ISingleton<Graphics>
 	{
+		friend class Application;
 #pragma region Vulkan
-		static VkInstance m_vkInstance;
+		VkInstance m_vkInstance = VK_NULL_HANDLE;
+		std::vector<std::string> m_requiredDeviceExtensions = {};
+		std::vector<std::string> m_requiredLayers = {};
+		std::vector<VkExtensionProperties> m_vkExtensions;
+		std::vector<VkLayerProperties> m_vkLayers;
+		VkDebugUtilsMessengerEXT m_vkDebugMessenger = {};
+		VkPhysicalDeviceFeatures m_vkPhysicalDeviceFeatures = {};
+		VkPhysicalDeviceProperties m_vkPhysicalDeviceProperties = {};
 
-		static std::vector<VkExtensionProperties> m_vkExtensions;
-		static std::vector<VkLayerProperties> m_vkLayers;
-		static VkDebugUtilsMessengerEXT m_vkDebugMessenger;
-		static VkPhysicalDeviceFeatures m_vkPhysicalDeviceFeatures;
-		static VkPhysicalDeviceProperties m_vkPhysicalDeviceProperties;
+		VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
+		VkPhysicalDevice m_vkPhysicalDevice = VK_NULL_HANDLE;
+		VkDevice m_vkDevice = VK_NULL_HANDLE;
 
-		static VkSurfaceKHR m_vkSurface;
-		static VkPhysicalDevice m_vkPhysicalDevice;
-		static VkDevice m_vkDevice;
-
-		static VmaAllocator m_vmaAllocator;
+		VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
 
 		QueueFamilyIndices m_queueFamilyIndices;
 
@@ -48,11 +51,11 @@ namespace EvoEngine
 		std::shared_ptr<RenderPass> m_renderPass;
 		std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
-		
+		std::shared_ptr<Mesh> m_mesh;
 
-		std::shared_ptr<CommandPool> m_commandPool;
+		CommandPool m_commandPool;
 
-		static int m_maxFrameInFlight;
+		int m_maxFrameInFlight = 2;
 
 		std::vector<VkCommandBuffer> m_vkCommandBuffers = {};
 
@@ -63,11 +66,19 @@ namespace EvoEngine
 
 		uint32_t m_nextImageIndex = 0;
 
-		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
 		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
 
+		void CreateInstance();
+		void CreateSurface();
+		void CreateDebugMessenger();
+		void CreatePhysicalDevice();
+		void CreateLogicalDevice();
+		void SetupVmaAllocator();
+		void CreateCommandPool();
+		void CreateCommandBuffers();
+		void CreateSwapChainSyncObjects();
 		void CreateSwapChain();
 
 		void CleanupSwapChain();
@@ -77,22 +88,32 @@ namespace EvoEngine
 		void CreateGraphicsPipeline();
 		void RecreateSwapChain();
 
-		void OnCreate() override;
-		void OnDestroy() override;
-		void PreUpdate() override;
-		void Update() override;
-		void LateUpdate() override;
+		void OnDestroy();
+
+		void SwapChainSwapImage();
+		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+		void SubmitPresent();
+		static void Initialize();
+		static void Destroy();
+		static void PreUpdate();
+		static void Update();
+		static void LateUpdate();
 
 		bool m_recreateSwapChain = false;
 
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
 
-		void NotifyRecreateSwapChain();
+		static void NotifyRecreateSwapChain();
 		static VkPhysicalDevice GetVkPhysicalDevice();
 		static VkDevice GetVkDevice();
+
+		static VkCommandPool GetVkCommandPool();
+		static VkQueue GetGraphicsVkQueue();
+		static VkQueue GetPresentVkQueue();
 		static VmaAllocator GetVmaAllocator();
-		[[nodiscard]] bool CheckExtensionSupport(const std::string& extensionName) const;
-		[[nodiscard]] bool CheckLayerSupport(const std::string& layerName) const;
+		[[nodiscard]] static bool CheckExtensionSupport(const std::string& extensionName);
+		[[nodiscard]] static bool CheckLayerSupport(const std::string& layerName);
 	};
 }

@@ -1,5 +1,5 @@
 #include "Application.hpp"
-#include "GraphicsLayer.hpp"
+#include "Graphics.hpp"
 #include "Utilities.hpp"
 #include "Scene.hpp"
 #include "Time.hpp"
@@ -8,7 +8,7 @@ using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
 {
-	auto& application = GetInstance();
+	const auto& application = GetInstance();
 	Time::m_lastUpdateTime = std::chrono::system_clock::now();
 	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
 	{
@@ -19,7 +19,7 @@ void Application::PreUpdateInternal()
 
 	for (const auto& i : application.m_externalPreUpdateFunctions)
 		i();
-
+	Graphics::PreUpdate();
 	if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
 	{
 		application.m_activeScene->Start();
@@ -69,6 +69,7 @@ void Application::UpdateInternal()
 	for (const auto& i : application.m_externalUpdateFunctions)
 		i();
 
+	Graphics::Update();
 	for (auto& i : application.m_layers)
 	{
 		i->Update();
@@ -134,13 +135,11 @@ void Application::LateUpdateInternal()
 	// Post-processing happens here
 	// Manager settings
 	//OnInspect();
+	Graphics::LateUpdate();
 	if (application.m_applicationStatus == ApplicationStatus::Step)
 		application.m_applicationStatus = ApplicationStatus::Pause;
 	// ImGui drawing
 	//Editor::ImGuiLateUpdate();
-	// Swap Window's framebuffer
-	//Windows::LateUpdate();
-
 }
 
 const ApplicationInfo& Application::GetApplicationInfo()
@@ -170,7 +169,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 	application.m_applicationInfo = applicationCreateInfo;
 
-
+	Graphics::Initialize();
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();

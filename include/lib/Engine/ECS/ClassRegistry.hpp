@@ -2,7 +2,7 @@
 //#include "Editor.hpp"
 #include "Entity.hpp"
 #include "Serialization.hpp"
-//#include "ProjectManager.hpp"
+#include "ProjectManager.hpp"
 namespace EvoEngine
 {
 class ClassRegistry
@@ -28,7 +28,7 @@ template <typename T> void ClassRegistry::RegisterDataComponent(const std::strin
 template <typename T>
 void ClassRegistry::RegisterAsset(const std::string &name, const std::vector<std::string> &externalExtensions)
 {
-    //ProjectManager::RegisterAssetType<T>(name, externalExtensions);
+    ProjectManager::RegisterAssetType<T>(name, externalExtensions);
 }
 template <typename T> void ClassRegistry::RegisterSerializable(const std::string &name)
 {

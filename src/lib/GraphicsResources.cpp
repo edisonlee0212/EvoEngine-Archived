@@ -1,6 +1,6 @@
 #include "GraphicsResources.hpp"
 
-#include "GraphicsLayer.hpp"
+#include "Graphics.hpp"
 #include "Utilities.hpp"
 
 using namespace EvoEngine;
@@ -17,7 +17,7 @@ IGraphicsResource::~IGraphicsResource()
 void Fence::Create(const VkFenceCreateInfo& vkFenceCreateInfo)
 {
 	Destroy();
-	if (vkCreateFence(GraphicsLayer::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence) != VK_SUCCESS) {
+	if (vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create vkFence!");
 	}
 }
@@ -26,7 +26,7 @@ void Fence::Destroy()
 {
 	if(m_vkFence != VK_NULL_HANDLE)
 	{
-		vkDestroyFence(GraphicsLayer::GetVkDevice(), m_vkFence, nullptr);
+		vkDestroyFence(Graphics::GetVkDevice(), m_vkFence, nullptr);
 		m_vkFence = nullptr;
 	}
 }
@@ -39,7 +39,7 @@ VkFence Fence::GetVkFence() const
 void Semaphore::Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
 {
 	Destroy();
-	if(vkCreateSemaphore(GraphicsLayer::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
+	if(vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create vkSemaphore!");
 	}
 }
@@ -48,7 +48,7 @@ void Semaphore::Destroy()
 {
 	if(m_vkSemaphore != VK_NULL_HANDLE)
 	{
-		vkDestroySemaphore(GraphicsLayer::GetVkDevice(), m_vkSemaphore, nullptr);
+		vkDestroySemaphore(Graphics::GetVkDevice(), m_vkSemaphore, nullptr);
 		m_vkSemaphore = VK_NULL_HANDLE;
 	}
 }
@@ -63,8 +63,8 @@ VkSemaphore Semaphore::GetVkSemaphore() const
 void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 {
 	Destroy();
-	const auto& device = GraphicsLayer::GetVkDevice();
-	if (vkCreateSwapchainKHR(GraphicsLayer::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
+	const auto& device = Graphics::GetVkDevice();
+	if (vkCreateSwapchainKHR(Graphics::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
 	}
 	uint32_t imageCount = 0;
@@ -92,7 +92,7 @@ void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(GraphicsLayer::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]) != VK_SUCCESS) {
+		if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create image views!");
 		}
 	}
@@ -102,12 +102,12 @@ void Swapchain::Destroy()
 {
 	for (const auto& imageView : m_vkImageViews) {
 		if (imageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(GraphicsLayer::GetVkDevice(), imageView, nullptr);
+			vkDestroyImageView(Graphics::GetVkDevice(), imageView, nullptr);
 		}
 	}
 	m_vkImageViews.clear();
 	if (m_vkSwapchain != VK_NULL_HANDLE) {
-		vkDestroySwapchainKHR(GraphicsLayer::GetVkDevice(), m_vkSwapchain, nullptr);
+		vkDestroySwapchainKHR(Graphics::GetVkDevice(), m_vkSwapchain, nullptr);
 		m_vkSwapchain = VK_NULL_HANDLE;
 	}
 }
@@ -140,7 +140,7 @@ VkExtent2D Swapchain::GetVkExtent2D() const
 void Image::Create(const VkImageCreateInfo& imageCreateInfo)
 {
 	Destroy();
-	if (vkCreateImage(GraphicsLayer::GetVkDevice(), &imageCreateInfo, nullptr, &m_vkImage) != VK_SUCCESS) {
+	if (vkCreateImage(Graphics::GetVkDevice(), &imageCreateInfo, nullptr, &m_vkImage) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image!");
 	}
 }
@@ -148,7 +148,7 @@ void Image::Create(const VkImageCreateInfo& imageCreateInfo)
 void Image::Destroy()
 {
 	if (m_vkImage != VK_NULL_HANDLE) {
-		vkDestroyImage(GraphicsLayer::GetVkDevice(), m_vkImage, nullptr);
+		vkDestroyImage(Graphics::GetVkDevice(), m_vkImage, nullptr);
 		m_vkImage = VK_NULL_HANDLE;
 	}
 }
@@ -161,7 +161,7 @@ VkImage Image::GetVkImage() const
 void ImageView::Create(const VkImageViewCreateInfo& imageViewCreateInfo)
 {
 	Destroy();
-	if (vkCreateImageView(GraphicsLayer::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
+	if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image views!");
 	}
 }
@@ -169,7 +169,7 @@ void ImageView::Create(const VkImageViewCreateInfo& imageViewCreateInfo)
 void ImageView::Destroy()
 {
 	if (m_vkImageView != VK_NULL_HANDLE) {
-		vkDestroyImageView(GraphicsLayer::GetVkDevice(), m_vkImageView, nullptr);
+		vkDestroyImageView(Graphics::GetVkDevice(), m_vkImageView, nullptr);
 		m_vkImageView = VK_NULL_HANDLE;
 	}
 }
@@ -182,7 +182,7 @@ VkImageView ImageView::GetVkImageView() const
 void Framebuffer::Create(const VkFramebufferCreateInfo& framebufferCreateInfo)
 {
 	Destroy();
-	if (vkCreateFramebuffer(GraphicsLayer::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create framebuffer!");
 	}
 }
@@ -190,7 +190,7 @@ void Framebuffer::Create(const VkFramebufferCreateInfo& framebufferCreateInfo)
 void Framebuffer::Destroy()
 {
 	if (m_vkFramebuffer != VK_NULL_HANDLE) {
-		vkDestroyFramebuffer(GraphicsLayer::GetVkDevice(), m_vkFramebuffer, nullptr);
+		vkDestroyFramebuffer(Graphics::GetVkDevice(), m_vkFramebuffer, nullptr);
 		m_vkFramebuffer = VK_NULL_HANDLE;
 	}
 }
@@ -208,7 +208,7 @@ void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-	if (vkCreateShaderModule(GraphicsLayer::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
+	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create shader module!");
 	}
 }
@@ -216,7 +216,7 @@ void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char
 void ShaderModule::Destroy()
 {
 	if (m_vkShaderModule != VK_NULL_HANDLE) {
-		vkDestroyShaderModule(GraphicsLayer::GetVkDevice(), m_vkShaderModule, nullptr);
+		vkDestroyShaderModule(Graphics::GetVkDevice(), m_vkShaderModule, nullptr);
 		m_vkShaderModule = VK_NULL_HANDLE;
 	}
 }
@@ -230,7 +230,7 @@ void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::string& cod
 	const auto binary = ShaderUtils::CompileFile("Shader", m_shaderKind, code);
 	createInfo.pCode = binary.data();
 	createInfo.codeSize = binary.size() * sizeof(uint32_t);
-	if (vkCreateShaderModule(GraphicsLayer::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
+	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create shader module!");
 	}
 }
@@ -243,7 +243,7 @@ VkShaderModule ShaderModule::GetVkShaderModule() const
 void RenderPass::Create(const VkRenderPassCreateInfo& renderPassCreateInfo)
 {
 	Destroy();
-	if (vkCreateRenderPass(GraphicsLayer::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
+	if (vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create render pass!");
 	}
 }
@@ -251,7 +251,7 @@ void RenderPass::Create(const VkRenderPassCreateInfo& renderPassCreateInfo)
 void RenderPass::Destroy()
 {
 	if (m_vkRenderPass != VK_NULL_HANDLE) {
-		vkDestroyRenderPass(GraphicsLayer::GetVkDevice(), m_vkRenderPass, nullptr);
+		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
 		m_vkRenderPass = VK_NULL_HANDLE;
 	}
 }
@@ -264,7 +264,7 @@ VkRenderPass RenderPass::GetVkRenderPass() const
 void PipelineLayout::Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
 	Destroy();
-	if (vkCreatePipelineLayout(GraphicsLayer::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
 }
@@ -272,7 +272,7 @@ void PipelineLayout::Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCrea
 void PipelineLayout::Destroy()
 {
 	if (m_vkPipelineLayout != VK_NULL_HANDLE) {
-		vkDestroyPipelineLayout(GraphicsLayer::GetVkDevice(), m_vkPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(Graphics::GetVkDevice(), m_vkPipelineLayout, nullptr);
 		m_vkPipelineLayout = VK_NULL_HANDLE;
 	}
 }
@@ -286,7 +286,7 @@ VkPipelineLayout PipelineLayout::GetVkPipelineLayout() const
 void GraphicsPipeline::Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
 {
 	Destroy();
-	if (vkCreateGraphicsPipelines(GraphicsLayer::GetVkDevice(), VK_NULL_HANDLE, 1,
+	if (vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
@@ -295,7 +295,7 @@ void GraphicsPipeline::Create(const VkGraphicsPipelineCreateInfo& graphicsPipeli
 void GraphicsPipeline::Destroy()
 {
 	if (m_vkGraphicsPipeline != VK_NULL_HANDLE) {
-		vkDestroyPipeline(GraphicsLayer::GetVkDevice(), m_vkGraphicsPipeline, nullptr);
+		vkDestroyPipeline(Graphics::GetVkDevice(), m_vkGraphicsPipeline, nullptr);
 		m_vkGraphicsPipeline = VK_NULL_HANDLE;
 	}
 }
@@ -311,7 +311,7 @@ VkPipeline GraphicsPipeline::GetVkPipeline() const
 void CommandPool::Create(const VkCommandPoolCreateInfo& commandPoolCreateInfo)
 {
 	Destroy();
-	if (vkCreateCommandPool(GraphicsLayer::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool) != VK_SUCCESS) {
+	if (vkCreateCommandPool(Graphics::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create command pool!");
 	}
 }
@@ -320,7 +320,7 @@ void CommandPool::Destroy()
 {
 	if (m_vkCommandPool != VK_NULL_HANDLE)
 	{
-		vkDestroyCommandPool(GraphicsLayer::GetVkDevice(), m_vkCommandPool, nullptr);
+		vkDestroyCommandPool(Graphics::GetVkDevice(), m_vkCommandPool, nullptr);
 		m_vkCommandPool = VK_NULL_HANDLE;
 	}
 }
@@ -335,7 +335,15 @@ void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo)
 	Destroy();
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	if (vmaCreateBuffer(GraphicsLayer::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, nullptr) != VK_SUCCESS) {
+	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create buffer!");
+	}
+}
+
+void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+{
+	Destroy();
+	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 }
@@ -344,10 +352,44 @@ void Buffer::Destroy()
 {
 	if (m_vkBuffer != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE)
 	{
-		vmaDestroyBuffer(GraphicsLayer::GetVmaAllocator(), m_vkBuffer, m_vmaAllocation);
+		vmaDestroyBuffer(Graphics::GetVmaAllocator(), m_vkBuffer, m_vmaAllocation);
 		m_vkBuffer = VK_NULL_HANDLE;
 		m_vmaAllocation = VK_NULL_HANDLE;
 	}
+}
+
+void Buffer::Copy(const Buffer& srcBuffer, VkDeviceSize size)
+{
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = Graphics::GetVkCommandPool();
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(Graphics::GetVkDevice(), &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer.GetVkBuffer(), m_vkBuffer, 1, &copyRegion);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(Graphics::GetGraphicsVkQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(Graphics::GetGraphicsVkQueue());
+
+	vkFreeCommandBuffers(Graphics::GetVkDevice(), Graphics::GetVkCommandPool(), 1, &commandBuffer);
 }
 
 VkBuffer Buffer::GetVkBuffer() const
@@ -360,10 +402,15 @@ VmaAllocation Buffer::GetVmaAllocation() const
 	return m_vmaAllocation;
 }
 
+const VmaAllocationInfo& Buffer::GetVmaAllocationInfo() const
+{
+	return m_vmaAllocationInfo;
+}
+
 void DeviceMemory::Create(const VkMemoryAllocateInfo& memoryAllocateInfo)
 {
 	Destroy();
-	if (vkAllocateMemory(GraphicsLayer::GetVkDevice(), &memoryAllocateInfo, nullptr, &m_vkDeviceMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(Graphics::GetVkDevice(), &memoryAllocateInfo, nullptr, &m_vkDeviceMemory) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate vertex buffer memory!");
 	}
 }
@@ -372,7 +419,7 @@ void DeviceMemory::Destroy()
 {
 	if(m_vkDeviceMemory != VK_NULL_HANDLE)
 	{
-		vkFreeMemory(GraphicsLayer::GetVkDevice(), m_vkDeviceMemory, nullptr);
+		vkFreeMemory(Graphics::GetVkDevice(), m_vkDeviceMemory, nullptr);
 		m_vkDeviceMemory = VK_NULL_HANDLE;
 	}
 }

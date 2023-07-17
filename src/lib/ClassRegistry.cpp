@@ -1,19 +1,13 @@
 #include "ClassRegistry.hpp"
-/*
-#include "Entities.hpp"
-#include "Engine/Rendering/Graphics.hpp"
-#include <Camera.hpp>
 
-#include <MeshRenderer.hpp>
-#include <PhysicsLayer.hpp>
-#include <PlayerController.hpp>
-#include <PointCloud.hpp>
-#include <PostProcessing.hpp>
-#include <UnknownPrivateComponent.hpp>
-#include "Prefab.hpp"
-#include "StrandsRenderer.hpp"
+#include "Entities.hpp"
+#include "Graphics.hpp"
+#include "Mesh.hpp"
 using namespace EvoEngine;
 
+
+
+/*
 DataComponentRegistration<Ray> RayRegistry("Ray");
 
 PrivateComponentRegistration<Joint> JointRegistry("Joint");
@@ -31,7 +25,7 @@ SystemRegistration<PhysicsSystem> PhysicsSystemRegistry("PhysicsSystem");
 
 AssetRegistration<IAsset> IAssetRegistry("IAsset", {".ueasset"});
 AssetRegistration<Material> MaterialRegistry("Material", {".uemat"});
-AssetRegistration<Mesh> MeshRegistry("Mesh", {".uemesh"});
+
 AssetRegistration<Texture2D> Texture2DReg("Texture2D", {".png", ".jpg", ".jpeg", ".tga", ".hdr"});
 AssetRegistration<Cubemap> CubemapReg("Cubemap", {".uecubemap"});
 AssetRegistration<LightProbe> LightProbeReg("LightProbe", {".uelightprobe"});
