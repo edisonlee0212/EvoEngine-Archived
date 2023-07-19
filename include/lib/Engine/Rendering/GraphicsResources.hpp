@@ -5,12 +5,10 @@ namespace EvoEngine
 	class IGraphicsResource
 	{
 	public:
-		IGraphicsResource() = default;
 		virtual void Destroy();
 		virtual ~IGraphicsResource();
-
-		IGraphicsResource(const IGraphicsResource&) = delete;
 		IGraphicsResource& operator=(IGraphicsResource&) = delete;
+		IGraphicsResource& operator=(const IGraphicsResource&) = delete;
 	};
 	class Fence final : public IGraphicsResource
 	{
@@ -164,15 +162,21 @@ namespace EvoEngine
 		[[nodiscard]] const VmaAllocationInfo &GetVmaAllocationInfo() const;
 	};
 
-	class DeviceMemory final : public IGraphicsResource
+	class DescriptorSetLayout final : public IGraphicsResource
 	{
-		VkDeviceMemory m_vkDeviceMemory = VK_NULL_HANDLE;
+		VkDescriptorSetLayout m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	public:
-		void Create(const VkMemoryAllocateInfo& memoryAllocateInfo);
-
+		void Create(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo);
 		void Destroy() override;
+		[[nodiscard]] VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
+	};
 
-		[[nodiscard]] VkDeviceMemory GetVkDeviceMemory() const;
-
+	class DescriptorPool final : public IGraphicsResource
+	{
+		VkDescriptorPool m_vkDescriptorPool = VK_NULL_HANDLE;
+	public:
+		void Create(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo);
+		void Destroy() override;
+		[[nodiscard]] VkDescriptorPool GetVkDescriptorPool() const;
 	};
 }

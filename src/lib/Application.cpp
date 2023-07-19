@@ -69,7 +69,6 @@ void Application::UpdateInternal()
 	for (const auto& i : application.m_externalUpdateFunctions)
 		i();
 
-	Graphics::Update();
 	for (auto& i : application.m_layers)
 	{
 		i->Update();

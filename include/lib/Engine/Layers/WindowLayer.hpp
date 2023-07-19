@@ -5,6 +5,7 @@ namespace EvoEngine
 	class WindowLayer final : public ILayer
 	{
 		friend class Graphics;
+		friend class RenderLayer;
 #pragma region Presenters
 		std::vector<GLFWmonitor*> m_monitors;
 		GLFWmonitor* m_primaryMonitor = nullptr;

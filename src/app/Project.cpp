@@ -1,13 +1,11 @@
 #include "Application.hpp"
-#include <shaderc/shaderc.hpp>
-
 #include "WindowLayer.hpp"
-#include "Graphics.hpp"
+#include "RenderLayer.hpp"
 using namespace EvoEngine;
 int main() {
 
     Application::PushLayer<WindowLayer>();
-
+    Application::PushLayer<RenderLayer>();
 
     Application::Initialize({});
 

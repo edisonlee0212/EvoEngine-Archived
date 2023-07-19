@@ -19,7 +19,7 @@ namespace EvoEngine
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
-	class Graphics final : ISingleton<Graphics>
+	class Graphics final : public ISingleton<Graphics>
 	{
 		friend class Application;
 #pragma region Vulkan
@@ -38,30 +38,28 @@ namespace EvoEngine
 
 		VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
 
-		QueueFamilyIndices m_queueFamilyIndices;
+		QueueFamilyIndices m_queueFamilyIndices = {};
 
 		VkQueue m_vkGraphicsQueue = VK_NULL_HANDLE;
 		VkQueue m_vkPresentQueue = VK_NULL_HANDLE;
 
-		std::shared_ptr<Swapchain> m_swapChain;
-		std::vector<std::shared_ptr<Framebuffer>> m_framebuffers;
+		Swapchain m_swapchain = {};
 		
+		VkSurfaceFormatKHR m_vkSurfaceFormat = {};
 #pragma endregion
-		std::shared_ptr<PipelineLayout> m_pipelineLayout;
-		std::shared_ptr<RenderPass> m_renderPass;
-		std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
+		
 
-		std::shared_ptr<Mesh> m_mesh;
+		
 
-		CommandPool m_commandPool;
+		CommandPool m_commandPool = {};
 
 		int m_maxFrameInFlight = 2;
 
 		std::vector<VkCommandBuffer> m_vkCommandBuffers = {};
 
-		std::vector<std::shared_ptr<Semaphore>> m_imageAvailableSemaphores;
-		std::vector<std::shared_ptr<Semaphore>> m_renderFinishedSemaphores;
-		std::vector<std::shared_ptr<Fence>> m_inFlightFences;
+		std::vector<Semaphore> m_imageAvailableSemaphores = {};
+		std::vector<Semaphore> m_renderFinishedSemaphores = {};
+		std::vector<Fence> m_inFlightFences = {};
 		uint32_t m_currentFrameIndex = 0;
 
 		uint32_t m_nextImageIndex = 0;
@@ -82,37 +80,40 @@ namespace EvoEngine
 		void CreateSwapChain();
 
 		void CleanupSwapChain();
-		void CreateFramebuffers();
+		
 
-		void CreateRenderPass();
-		void CreateGraphicsPipeline();
+		
+		
 		void RecreateSwapChain();
 
 		void OnDestroy();
 
 		void SwapChainSwapImage();
-		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
+		
 		void SubmitPresent();
 		static void Initialize();
 		static void Destroy();
 		static void PreUpdate();
-		static void Update();
 		static void LateUpdate();
 
 		bool m_recreateSwapChain = false;
-
+		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
-
+		static int GetMaxFramesInFlight();
 		static void NotifyRecreateSwapChain();
 		static VkPhysicalDevice GetVkPhysicalDevice();
 		static VkDevice GetVkDevice();
-
+		static uint32_t GetCurrentFrameIndex();
+		static uint32_t GetNextImageIndex();
 		static VkCommandPool GetVkCommandPool();
 		static VkQueue GetGraphicsVkQueue();
 		static VkQueue GetPresentVkQueue();
 		static VmaAllocator GetVmaAllocator();
+		static VkCommandBuffer GetCurrentVkCommandBuffer();
+		static Swapchain GetSwapchain();
+		static unsigned GetSwapchainVersion();
+		static VkSurfaceFormatKHR GetVkSurfaceFormat();
 		[[nodiscard]] static bool CheckExtensionSupport(const std::string& extensionName);
 		[[nodiscard]] static bool CheckLayerSupport(const std::string& layerName);
 	};

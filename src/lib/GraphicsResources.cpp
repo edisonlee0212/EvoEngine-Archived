@@ -407,24 +407,46 @@ const VmaAllocationInfo& Buffer::GetVmaAllocationInfo() const
 	return m_vmaAllocationInfo;
 }
 
-void DeviceMemory::Create(const VkMemoryAllocateInfo& memoryAllocateInfo)
+void DescriptorSetLayout::Create(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo)
 {
 	Destroy();
-	if (vkAllocateMemory(Graphics::GetVkDevice(), &memoryAllocateInfo, nullptr, &m_vkDeviceMemory) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
+	if (vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 }
 
-void DeviceMemory::Destroy()
+void DescriptorSetLayout::Destroy()
 {
-	if(m_vkDeviceMemory != VK_NULL_HANDLE)
+	if (m_vkDescriptorSetLayout != VK_NULL_HANDLE)
 	{
-		vkFreeMemory(Graphics::GetVkDevice(), m_vkDeviceMemory, nullptr);
-		m_vkDeviceMemory = VK_NULL_HANDLE;
+		vkDestroyDescriptorSetLayout(Graphics::GetVkDevice(), m_vkDescriptorSetLayout, nullptr);
+		m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	}
 }
 
-VkDeviceMemory DeviceMemory::GetVkDeviceMemory() const
+VkDescriptorSetLayout DescriptorSetLayout::GetVkDescriptorSetLayout() const
 {
-	return m_vkDeviceMemory;
+	return m_vkDescriptorSetLayout;
+}
+
+void DescriptorPool::Create(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo)
+{
+	Destroy();
+	if (vkCreateDescriptorPool(Graphics::GetVkDevice(), &descriptorPoolCreateInfo, nullptr, &m_vkDescriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor pool!");
+	}
+}
+
+void DescriptorPool::Destroy()
+{
+	if (m_vkDescriptorPool != VK_NULL_HANDLE)
+	{
+		vkDestroyDescriptorPool(Graphics::GetVkDevice(), m_vkDescriptorPool, nullptr);
+		m_vkDescriptorPool = VK_NULL_HANDLE;
+	}
+}
+
+VkDescriptorPool DescriptorPool::GetVkDescriptorPool() const
+{
+	return m_vkDescriptorPool;
 }

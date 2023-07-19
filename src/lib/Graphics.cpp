@@ -28,6 +28,12 @@ uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPrope
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
+int Graphics::GetMaxFramesInFlight()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxFrameInFlight;
+}
+
 void Graphics::NotifyRecreateSwapChain()
 {
 	auto& graphics = GetInstance();
@@ -36,32 +42,74 @@ void Graphics::NotifyRecreateSwapChain()
 
 VkPhysicalDevice Graphics::GetVkPhysicalDevice()
 {
-	return GetInstance().m_vkPhysicalDevice;
+	const auto& graphics = GetInstance();
+	return graphics.m_vkPhysicalDevice;
 }
 
 VkDevice Graphics::GetVkDevice()
 {
-	return GetInstance().m_vkDevice;
+	const auto& graphics = GetInstance();
+	return graphics.m_vkDevice;
+}
+
+uint32_t Graphics::GetCurrentFrameIndex()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_currentFrameIndex;
+}
+
+uint32_t Graphics::GetNextImageIndex()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_nextImageIndex;
 }
 
 VkCommandPool Graphics::GetVkCommandPool()
 {
-	return GetInstance().m_commandPool.GetVkCommandPool();
+	const auto& graphics = GetInstance();
+	return graphics.m_commandPool.GetVkCommandPool();
 }
 
 VkQueue Graphics::GetGraphicsVkQueue()
 {
-	return GetInstance().m_vkGraphicsQueue;
+	const auto& graphics = GetInstance();
+	return graphics.m_vkGraphicsQueue;
 }
 
 VkQueue Graphics::GetPresentVkQueue()
 {
-	return GetInstance().m_vkPresentQueue;
+	const auto& graphics = GetInstance();
+	return graphics.m_vkPresentQueue;
 }
 
 VmaAllocator Graphics::GetVmaAllocator()
 {
-	return GetInstance().m_vmaAllocator;
+	const auto& graphics = GetInstance();
+	return graphics.m_vmaAllocator;
+}
+
+VkCommandBuffer Graphics::GetCurrentVkCommandBuffer()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
+}
+
+Swapchain Graphics::GetSwapchain()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_swapchain;
+}
+
+unsigned Graphics::GetSwapchainVersion()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_swapchainVersion;
+}
+
+VkSurfaceFormatKHR Graphics::GetVkSurfaceFormat()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_vkSurfaceFormat;
 }
 
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -159,52 +207,7 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 }
 
 
-void Graphics::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
-{
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
-
-	VkRenderPassBeginInfo renderPassBeginInfo{};
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = m_renderPass->GetVkRenderPass();
-	renderPassBeginInfo.framebuffer = m_framebuffers[imageIndex]->GetVkFrameBuffer();
-	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = m_swapChain->GetVkExtent2D();
-
-	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	renderPassBeginInfo.clearValueCount = 1;
-	renderPassBeginInfo.pClearValues = &clearColor;
-
-	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->GetVkPipeline());
-
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_swapChain->GetVkExtent2D().width);
-	viewport.height = static_cast<float>(m_swapChain->GetVkExtent2D().height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = m_swapChain->GetVkExtent2D();
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-	m_mesh->SubmitDrawIndexed(commandBuffer);
-
-	vkCmdEndRenderPass(commandBuffer);
-
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to record command buffer!");
-	}
-}
 
 QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
 
@@ -564,20 +567,17 @@ void Graphics::CreateSwapChainSyncObjects()
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	m_renderFinishedSemaphores.clear();
-	m_inFlightFences.clear();
+	m_renderFinishedSemaphores.resize(m_maxFrameInFlight);
+	m_inFlightFences.resize(m_maxFrameInFlight);
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_renderFinishedSemaphores.emplace_back(std::make_shared<Semaphore>());
-		m_inFlightFences.emplace_back(std::make_shared<Fence>());
-		m_renderFinishedSemaphores.back()->Create(semaphoreCreateInfo);
-		m_inFlightFences.back()->Create(fenceCreateInfo);
+		m_renderFinishedSemaphores[i].Create(semaphoreCreateInfo);
+		m_inFlightFences[i].Create(fenceCreateInfo);
 	}
 #pragma endregion
 }
 
 void Graphics::CreateSwapChain()
 {
-	if (!m_swapChain) m_swapChain = std::make_shared<Swapchain>();
 	auto applicationInfo = Application::GetApplicationInfo();
 	auto windowLayer = Application::GetLayer<WindowLayer>();
 	SwapChainSupportDetails swapChainSupportDetails = QuerySwapChainSupport(m_vkPhysicalDevice);
@@ -597,7 +597,7 @@ void Graphics::CreateSwapChain()
 		}
 	}
 
-	VkExtent2D extent = m_swapChain->GetVkExtent2D();
+	VkExtent2D extent = m_swapchain.GetVkExtent2D();
 	if (swapChainSupportDetails.m_capabilities.currentExtent.width != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.height != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -664,219 +664,26 @@ void Graphics::CreateSwapChain()
 	{
 		EVOENGINE_ERROR("WRONG")
 	}
-	m_swapChain->Create(swapchainCreateInfo);
+	m_swapchain.Create(swapchainCreateInfo);
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	m_imageAvailableSemaphores.clear();
+	m_imageAvailableSemaphores.resize(m_maxFrameInFlight);
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_imageAvailableSemaphores.emplace_back(std::make_shared<Semaphore>());
-		m_imageAvailableSemaphores[i]->Create(semaphoreCreateInfo);
+		m_imageAvailableSemaphores[i].Create(semaphoreCreateInfo);
 	}
 }
 
 void Graphics::CleanupSwapChain()
 {
-	for (auto& framebuffer : m_framebuffers) {
-		framebuffer->Destroy();
-	}
-	m_swapChain->Destroy();
-}
-
-void Graphics::CreateFramebuffers()
-{
-	const auto& swapChainImageViews = m_swapChain->GetVkImageViews();
-	m_framebuffers.clear();
-	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		const VkImageView attachments[] = { swapChainImageViews[i] };
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = m_swapChain->GetVkExtent2D().width;
-		framebufferInfo.height = m_swapChain->GetVkExtent2D().height;
-		framebufferInfo.layers = 1;
-		m_framebuffers.emplace_back(std::make_shared<Framebuffer>());
-		m_framebuffers[i]->Create(framebufferInfo);
-	}
-}
-
-void Graphics::CreateRenderPass()
-{
-#pragma region RenderPass
-	SwapChainSupportDetails swapChainSupportDetails = QuerySwapChainSupport(m_vkPhysicalDevice);
-
-	VkSurfaceFormatKHR surfaceFormat = swapChainSupportDetails.m_formats[0];
-	for (const auto& availableFormat : swapChainSupportDetails.m_formats) {
-		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-			surfaceFormat = availableFormat;
-			break;
-		}
-	}
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = surfaceFormat.format;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	if (!m_renderPass) m_renderPass = std::make_shared<RenderPass>();
-	m_renderPass->Create(renderPassInfo);
-#pragma endregion
-}
-
-void Graphics::CreateGraphicsPipeline()
-{
-#pragma region Pipeline layout
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	if (!m_pipelineLayout) m_pipelineLayout = std::make_shared<PipelineLayout>();
-	m_pipelineLayout->Create(pipelineLayoutInfo);
-#pragma endregion
-#pragma region Graphics Pipeline
-	ShaderModule vertShader, fragShader;
-
-	vertShader.Create(shaderc_vertex_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert"));
-	fragShader.Create(shaderc_fragment_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag"));
-
-	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vertShaderStageInfo.module = vertShader.GetVkShaderModule();
-	vertShaderStageInfo.pName = "main";
-
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShader.GetVkShaderModule();
-	fragShaderStageInfo.pName = "main";
-
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-	shaderStages.push_back(vertShaderStageInfo);
-	shaderStages.push_back(fragShaderStageInfo);
-
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-	auto bindingDescription = Vertex::GetBindingDescription();
-	auto attributeDescriptions = Vertex::GetAttributeDescriptions();
-
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-	VkPipelineViewportStateCreateInfo viewportState{};
-	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportState.viewportCount = 1;
-	viewportState.scissorCount = 1;
-
-	VkPipelineRasterizationStateCreateInfo rasterizer{};
-	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-	rasterizer.depthBiasEnable = VK_FALSE;
-
-	VkPipelineMultisampleStateCreateInfo multisampling{};
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_FALSE;
-
-	VkPipelineColorBlendStateCreateInfo colorBlending{};
-	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.logicOp = VK_LOGIC_OP_COPY;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
-	colorBlending.blendConstants[0] = 0.0f;
-	colorBlending.blendConstants[1] = 0.0f;
-	colorBlending.blendConstants[2] = 0.0f;
-	colorBlending.blendConstants[3] = 0.0f;
-
-	std::vector<VkDynamicState> dynamicStates = {
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR
-	};
-	VkPipelineDynamicStateCreateInfo dynamicState{};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-	dynamicState.pDynamicStates = dynamicStates.data();
-
-	VkGraphicsPipelineCreateInfo pipelineInfo{};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages.data();
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
-	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
-	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
-	pipelineInfo.renderPass = m_renderPass->GetVkRenderPass();
-	pipelineInfo.subpass = 0;
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	if (!m_graphicsPipeline) m_graphicsPipeline = std::make_shared<GraphicsPipeline>();
-	m_graphicsPipeline->Create(pipelineInfo);
-
-	vertShader.Destroy();
-	fragShader.Destroy();
-#pragma endregion
+	m_swapchain.Destroy();
 }
 
 void Graphics::RecreateSwapChain()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 	CreateSwapChain();
-	CreateFramebuffers();
+	m_swapchainVersion++;
 }
 
 void Graphics::OnDestroy()
@@ -885,18 +692,11 @@ void Graphics::OnDestroy()
 
 #pragma region Vulkan
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_inFlightFences[i]->Destroy();
-		m_renderFinishedSemaphores[i]->Destroy();
-		m_imageAvailableSemaphores[i]->Destroy();
+		m_inFlightFences[i].Destroy();
+		m_renderFinishedSemaphores[i].Destroy();
+		m_imageAvailableSemaphores[i].Destroy();
 	}
 	m_commandPool.Destroy();
-
-
-
-	m_graphicsPipeline->Destroy();
-	m_pipelineLayout->Destroy();
-	m_renderPass->Destroy();
-
 	CleanupSwapChain();
 	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
@@ -917,18 +717,18 @@ void Graphics::SwapChainSwapImage()
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
 	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
-	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
+	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex].GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
-		m_swapChain->GetVkSwapchain(), UINT64_MAX,
-		m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
+		m_swapchain.GetVkSwapchain(), UINT64_MAX,
+		m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
 		VK_NULL_HANDLE, &m_nextImageIndex);
 	while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_recreateSwapChain) {
 		RecreateSwapChain();
 		result = vkAcquireNextImageKHR(m_vkDevice,
-			m_swapChain->GetVkSwapchain(), UINT64_MAX,
-			m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
+			m_swapchain.GetVkSwapchain(), UINT64_MAX,
+			m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
 			VK_NULL_HANDLE, &m_nextImageIndex);
 		m_recreateSwapChain = false;
 	}
@@ -947,7 +747,7 @@ void Graphics::SubmitPresent()
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
+	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore() };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -956,10 +756,10 @@ void Graphics::SubmitPresent()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_vkCommandBuffers[m_currentFrameIndex];
 
-	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
+	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex].GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
-	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
+	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex].GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -969,7 +769,7 @@ void Graphics::SubmitPresent()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { m_swapChain->GetVkSwapchain() };
+	VkSwapchainKHR swapChains[] = { m_swapchain.GetVkSwapchain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
@@ -983,16 +783,7 @@ void Graphics::SubmitPresent()
 
 #pragma endregion
 
-const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-};
 
-const std::vector<glm::uvec3> indices = {
-	{0, 1, 2}, {2, 3, 0}
-};
 
 
 void Graphics::Initialize()
@@ -1014,9 +805,14 @@ void Graphics::Initialize()
 
 	if (graphics.m_queueFamilyIndices.m_presentFamily.has_value()) {
 		graphics.CreateSwapChain();
-		graphics.CreateRenderPass();
-		graphics.CreateGraphicsPipeline();
-		graphics.CreateFramebuffers();
+		const auto swapChainSupportDetails = graphics.QuerySwapChainSupport(graphics.m_vkPhysicalDevice);
+		graphics.m_vkSurfaceFormat = swapChainSupportDetails.m_formats[0];
+		for (const auto& availableFormat : swapChainSupportDetails.m_formats) {
+			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+				graphics.m_vkSurfaceFormat = availableFormat;
+				break;
+			}
+		}
 	}
 	if (graphics.m_queueFamilyIndices.m_graphicsFamily.has_value()) {
 		graphics.CreateCommandPool();
@@ -1025,8 +821,7 @@ void Graphics::Initialize()
 	}
 #pragma endregion
 
-	graphics.m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
-	graphics.m_mesh->SetVertices({}, vertices, indices);
+	
 }
 
 void Graphics::Destroy()
@@ -1042,25 +837,16 @@ void Graphics::PreUpdate()
 	graphics.SwapChainSwapImage();
 }
 
-void Graphics::Update()
-{
-	auto& graphics = GetInstance();
-	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
-	if (!graphics.m_queueFamilyIndices.m_presentFamily.has_value()) return;
-	graphics.RecordCommandBuffer(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex], graphics.m_nextImageIndex);
-}
-
 void Graphics::LateUpdate()
 {
 	auto& graphics = GetInstance();
 	graphics.SubmitPresent();
-	
 }
 
 bool Graphics::CheckExtensionSupport(const std::string& extensionName)
 {
-	for (const auto& layerProperties : GetInstance().m_vkLayers) {
+	const auto& graphics = GetInstance();
+	for (const auto& layerProperties : graphics.m_vkLayers) {
 		if (strcmp(extensionName.c_str(), layerProperties.layerName) == 0) {
 			return true;
 		}
@@ -1070,7 +856,8 @@ bool Graphics::CheckExtensionSupport(const std::string& extensionName)
 
 bool Graphics::CheckLayerSupport(const std::string& layerName)
 {
-	for (const auto& layerProperties : GetInstance().m_vkLayers) {
+	const auto& graphics = GetInstance();
+	for (const auto& layerProperties : graphics.m_vkLayers) {
 		if (strcmp(layerName.c_str(), layerProperties.layerName) == 0) {
 			return true;
 		}

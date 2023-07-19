@@ -29,13 +29,12 @@ void Mesh::UploadData()
 	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
 	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 	stagingBuffer.Create(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
 	void* data = nullptr;
-	auto stagingBufferAllocationInfo = stagingBuffer.GetVmaAllocationInfo();
-	vkMapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory, stagingBufferAllocationInfo.offset, verticesDataSize, 0, &data);
+	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &data);
 	memcpy(data, m_vertices.data(), verticesDataSize);
-	vkUnmapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory);
+	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
 	VkBufferCreateInfo verticesBufferCreateInfo{};
 	verticesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -51,10 +50,9 @@ void Mesh::UploadData()
 	const auto triangleDataSize = sizeof(glm::uvec3) * m_triangles.size();
 	stagingBufferCreateInfo.size = triangleDataSize;
 	stagingBuffer.Create(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
-	stagingBufferAllocationInfo = stagingBuffer.GetVmaAllocationInfo();
-	vkMapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory, stagingBufferAllocationInfo.offset, triangleDataSize, 0, &data);
+	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &data);
 	memcpy(data, m_triangles.data(), triangleDataSize);
-	vkUnmapMemory(Graphics::GetVkDevice(), stagingBufferAllocationInfo.deviceMemory);
+	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
 
 	VkBufferCreateInfo trianglesBufferCreateInfo{};
