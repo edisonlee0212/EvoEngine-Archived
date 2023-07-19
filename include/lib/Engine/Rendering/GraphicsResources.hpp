@@ -29,18 +29,9 @@ namespace EvoEngine
 		[[nodiscard]] VkSemaphore GetVkSemaphore() const;
 	};
 
+
+
 	
-
-	class Image final : public IGraphicsResource
-	{
-		VkImage m_vkImage = VK_NULL_HANDLE;
-
-	public:
-		void Create(const VkImageCreateInfo& imageCreateInfo);
-		void Destroy() override;
-
-		[[nodiscard]] VkImage GetVkImage() const;
-	};
 
 	class ImageView final : public IGraphicsResource
 	{
@@ -72,7 +63,7 @@ namespace EvoEngine
 
 		std::vector<VkImageView> m_vkImageViews;
 
-		
+
 	public:
 		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
 		void Destroy() override;
@@ -148,18 +139,37 @@ namespace EvoEngine
 		VmaAllocationInfo m_vmaAllocationInfo = {};
 	public:
 		void Create(const VkBufferCreateInfo& bufferCreateInfo);
-
+		void Destroy() override;
 		void Create(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 
-		void Destroy() override;
-
-		void Copy(const Buffer& srcBuffer, VkDeviceSize size);
+		void Copy(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
 
 		[[nodiscard]] VkBuffer GetVkBuffer() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
 
-		[[nodiscard]] const VmaAllocationInfo &GetVmaAllocationInfo() const;
+		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
+	};
+
+	class Image final : public IGraphicsResource
+	{
+		VkImage m_vkImage = VK_NULL_HANDLE;
+		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
+		VmaAllocationInfo m_vmaAllocationInfo = {};
+		VkImageLayout m_vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkExtent3D m_extent = {0, 0, 0};
+	public:
+		void Create(const VkImageCreateInfo& imageCreateInfo);
+		void Destroy() override;
+		void TransitionImageLayout(VkImageLayout newLayout);
+		void Create(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+		void Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
+
+		[[nodiscard]] VkImage GetVkImage() const;
+
+		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
+
+		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 	};
 
 	class DescriptorSetLayout final : public IGraphicsResource

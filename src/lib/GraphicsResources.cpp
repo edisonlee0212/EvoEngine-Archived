@@ -24,7 +24,7 @@ void Fence::Create(const VkFenceCreateInfo& vkFenceCreateInfo)
 
 void Fence::Destroy()
 {
-	if(m_vkFence != VK_NULL_HANDLE)
+	if (m_vkFence != VK_NULL_HANDLE)
 	{
 		vkDestroyFence(Graphics::GetVkDevice(), m_vkFence, nullptr);
 		m_vkFence = nullptr;
@@ -39,14 +39,14 @@ VkFence Fence::GetVkFence() const
 void Semaphore::Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
 {
 	Destroy();
-	if(vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
+	if (vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create vkSemaphore!");
 	}
 }
 
 void Semaphore::Destroy()
 {
-	if(m_vkSemaphore != VK_NULL_HANDLE)
+	if (m_vkSemaphore != VK_NULL_HANDLE)
 	{
 		vkDestroySemaphore(Graphics::GetVkDevice(), m_vkSemaphore, nullptr);
 		m_vkSemaphore = VK_NULL_HANDLE;
@@ -137,26 +137,7 @@ VkExtent2D Swapchain::GetVkExtent2D() const
 	return m_vkExtent2D;
 }
 
-void Image::Create(const VkImageCreateInfo& imageCreateInfo)
-{
-	Destroy();
-	if (vkCreateImage(Graphics::GetVkDevice(), &imageCreateInfo, nullptr, &m_vkImage) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image!");
-	}
-}
 
-void Image::Destroy()
-{
-	if (m_vkImage != VK_NULL_HANDLE) {
-		vkDestroyImage(Graphics::GetVkDevice(), m_vkImage, nullptr);
-		m_vkImage = VK_NULL_HANDLE;
-	}
-}
-
-VkImage Image::GetVkImage() const
-{
-	return m_vkImage;
-}
 
 void ImageView::Create(const VkImageViewCreateInfo& imageViewCreateInfo)
 {
@@ -330,6 +311,125 @@ VkCommandPool CommandPool::GetVkCommandPool() const
 	return m_vkCommandPool;
 }
 
+void Image::Create(const VkImageCreateInfo& imageCreateInfo)
+{
+	Destroy();
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &allocInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image!");
+	}
+	m_vkImageLayout = imageCreateInfo.initialLayout;
+	m_extent = imageCreateInfo.extent;
+
+}
+
+
+
+void Image::Create(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+{
+	Destroy();
+	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image!");
+	}
+	m_vkImageLayout = imageCreateInfo.initialLayout;
+	m_extent = imageCreateInfo.extent;
+}
+
+void Image::Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset) const
+{
+	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+		{
+			VkBufferImageCopy region{};
+			region.bufferOffset = srcOffset;
+			region.bufferRowLength = 0;
+			region.bufferImageHeight = 0;
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.imageOffset = { 0, 0, 0 };
+			region.imageExtent = m_extent;
+			vkCmdCopyBufferToImage(commandBuffer, srcBuffer.GetVkBuffer(), m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		});
+}
+
+VkImage Image::GetVkImage() const
+{
+	return m_vkImage;
+}
+
+VmaAllocation Image::GetVmaAllocation() const
+{
+	return m_vmaAllocation;
+}
+
+
+void Image::Destroy()
+{
+	if (m_vkImage != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE) {
+		vmaDestroyImage(Graphics::GetVmaAllocator(), m_vkImage, m_vmaAllocation);
+		m_vkImage = VK_NULL_HANDLE;
+		m_vmaAllocation = VK_NULL_HANDLE;
+		m_vmaAllocationInfo = {};
+	}
+}
+
+void Image::TransitionImageLayout(VkImageLayout newLayout)
+{
+	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+		{
+			VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = m_vkImageLayout;
+			barrier.newLayout = newLayout;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = m_vkImage;
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+
+			VkPipelineStageFlags sourceStage;
+			VkPipelineStageFlags destinationStage;
+
+			if (m_vkImageLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			else if (m_vkImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+			else {
+				throw std::invalid_argument("unsupported layout transition!");
+			}
+
+			vkCmdPipelineBarrier(
+				commandBuffer,
+				sourceStage, destinationStage,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier
+			);
+			m_vkImageLayout = newLayout;
+		});
+}
+
+const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
+{
+	return m_vmaAllocationInfo;
+}
+
 void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo)
 {
 	Destroy();
@@ -355,41 +455,20 @@ void Buffer::Destroy()
 		vmaDestroyBuffer(Graphics::GetVmaAllocator(), m_vkBuffer, m_vmaAllocation);
 		m_vkBuffer = VK_NULL_HANDLE;
 		m_vmaAllocation = VK_NULL_HANDLE;
+		m_vmaAllocationInfo = {};
 	}
 }
 
-void Buffer::Copy(const Buffer& srcBuffer, VkDeviceSize size)
+void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
 {
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = Graphics::GetVkCommandPool();
-	allocInfo.commandBufferCount = 1;
-
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(Graphics::GetVkDevice(), &allocInfo, &commandBuffer);
-
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-	VkBufferCopy copyRegion{};
-	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer, srcBuffer.GetVkBuffer(), m_vkBuffer, 1, &copyRegion);
-
-	vkEndCommandBuffer(commandBuffer);
-
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	vkQueueSubmit(Graphics::GetGraphicsVkQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(Graphics::GetGraphicsVkQueue());
-
-	vkFreeCommandBuffers(Graphics::GetVkDevice(), Graphics::GetVkCommandPool(), 1, &commandBuffer);
+	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+		{
+			VkBufferCopy copyRegion{};
+			copyRegion.size = size;
+			copyRegion.srcOffset = srcOffset;
+			copyRegion.dstOffset = dstOffset;
+			vkCmdCopyBuffer(commandBuffer, srcBuffer.GetVkBuffer(), m_vkBuffer, 1, &copyRegion);
+		});
 }
 
 VkBuffer Buffer::GetVkBuffer() const

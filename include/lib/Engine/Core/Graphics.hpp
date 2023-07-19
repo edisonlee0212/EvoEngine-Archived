@@ -47,9 +47,6 @@ namespace EvoEngine
 		
 		VkSurfaceFormatKHR m_vkSurfaceFormat = {};
 #pragma endregion
-		
-
-		
 
 		CommandPool m_commandPool = {};
 
@@ -79,17 +76,10 @@ namespace EvoEngine
 		void CreateSwapChainSyncObjects();
 		void CreateSwapChain();
 
-		void CleanupSwapChain();
-		
-
-		
-		
 		void RecreateSwapChain();
 
 		void OnDestroy();
-
 		void SwapChainSwapImage();
-		
 		void SubmitPresent();
 		static void Initialize();
 		static void Destroy();
@@ -100,6 +90,8 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+		static void SingleTimeCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
+
 		static int GetMaxFramesInFlight();
 		static void NotifyRecreateSwapChain();
 		static VkPhysicalDevice GetVkPhysicalDevice();

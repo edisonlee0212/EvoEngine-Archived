@@ -87,7 +87,7 @@ namespace EvoEngine
 
 		void CreateRenderPass();
 		void CreateGraphicsPipeline();
-		void CreateFramebuffers();
+		void UpdateFramebuffers();
 
 
 		void OnCreate() override;
@@ -96,7 +96,7 @@ namespace EvoEngine
 		void Update() override;
 		void LateUpdate() override;
 
-		unsigned m_storedSwapchainVersion = 0;
+		unsigned m_storedSwapchainVersion = UINT_MAX;
 	public:
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
 		RenderInfoBlock m_renderInfoBlock = {};

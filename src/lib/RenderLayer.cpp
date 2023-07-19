@@ -17,8 +17,6 @@ const std::vector<glm::uvec3> indices = {
 };
 void RenderLayer::OnCreate()
 {
-
-
 #pragma region Descrioptor Layout
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
 
@@ -201,10 +199,9 @@ void RenderLayer::OnCreate()
 		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 4, writeInfos.data(), 0, nullptr);
 	}
 #pragma endregion
-
 	CreateRenderPass();
 	CreateGraphicsPipeline();
-	CreateFramebuffers();
+	UpdateFramebuffers();
 
 	m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
 	m_mesh->SetVertices({}, vertices, indices);
@@ -225,12 +222,7 @@ void RenderLayer::OnDestroy()
 
 void RenderLayer::PreUpdate()
 {
-	const auto currentSwapchainVersion = Graphics::GetSwapchainVersion();
-	if(currentSwapchainVersion != m_storedSwapchainVersion)
-	{
-		CreateFramebuffers();
-		m_storedSwapchainVersion = currentSwapchainVersion;
-	}
+	UpdateFramebuffers();
 }
 
 void RenderLayer::Update()
@@ -394,15 +386,15 @@ void RenderLayer::CreateGraphicsPipeline()
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
-	VkPipelineRasterizationStateCreateInfo rasterizer{};
-	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-	rasterizer.depthBiasEnable = VK_FALSE;
+	VkPipelineRasterizationStateCreateInfo rasterizationState{};
+	rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizationState.depthClampEnable = VK_FALSE;
+	rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+	rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizationState.lineWidth = 1.0f;
+	rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationState.depthBiasEnable = VK_FALSE;
 
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -440,7 +432,7 @@ void RenderLayer::CreateGraphicsPipeline()
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pRasterizationState = &rasterizationState;
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
@@ -455,8 +447,12 @@ void RenderLayer::CreateGraphicsPipeline()
 #pragma endregion
 }
 
-void RenderLayer::CreateFramebuffers()
+void RenderLayer::UpdateFramebuffers()
 {
+	const auto currentSwapchainVersion = Graphics::GetSwapchainVersion();
+	if (currentSwapchainVersion == m_storedSwapchainVersion) return;
+
+	m_storedSwapchainVersion = currentSwapchainVersion;
 	const auto& swapChain = Graphics::GetSwapchain();
 	const auto& swapChainImageViews = swapChain.GetVkImageViews();
 	m_framebuffers.resize(swapChainImageViews.size());

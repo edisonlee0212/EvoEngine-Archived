@@ -28,6 +28,37 @@ uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPrope
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
+void Graphics::SingleTimeCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action)
+{
+	const auto& graphics = GetInstance();
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = graphics.m_commandPool.GetVkCommandPool();
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(graphics.m_vkDevice, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	action(commandBuffer);
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(graphics.m_vkGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphics.m_vkGraphicsQueue);
+
+	vkFreeCommandBuffers(graphics.m_vkDevice, graphics.m_commandPool.GetVkCommandPool(), 1, &commandBuffer);
+}
+
 int Graphics::GetMaxFramesInFlight()
 {
 	const auto& graphics = GetInstance();
@@ -672,18 +703,15 @@ void Graphics::CreateSwapChain()
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
 		m_imageAvailableSemaphores[i].Create(semaphoreCreateInfo);
 	}
-}
 
-void Graphics::CleanupSwapChain()
-{
-	m_swapchain.Destroy();
+	m_swapchainVersion++;
 }
 
 void Graphics::RecreateSwapChain()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 	CreateSwapChain();
-	m_swapchainVersion++;
+	
 }
 
 void Graphics::OnDestroy()
@@ -697,7 +725,7 @@ void Graphics::OnDestroy()
 		m_imageAvailableSemaphores[i].Destroy();
 	}
 	m_commandPool.Destroy();
-	CleanupSwapChain();
+	m_swapchain.Destroy();
 	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
 #ifndef NDEBUG

@@ -25,10 +25,10 @@ namespace EvoEngine
 		std::vector<Vertex> m_vertices;
 		std::vector<glm::uvec3> m_triangles;
 
-		VertexAttributes m_vertexAttributes;
+		VertexAttributes m_vertexAttributes = {};
 
-		Buffer m_verticesBuffer;
-		Buffer m_trianglesBuffer;
+		Buffer m_verticesBuffer = {};
+		Buffer m_trianglesBuffer = {};
 	public:
 		void SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer);
 
