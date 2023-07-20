@@ -21,11 +21,11 @@ namespace EvoEngine
 		void OnDestroy() override;
 
 	public:
-		GLFWwindow* GetGlfwWindow() const;
+		[[nodiscard]] GLFWwindow* GetGlfwWindow() const;
 		void ResizeWindow(int x, int y) const;
-		bool GetKey(int key) const;
+		[[nodiscard]] bool GetKey(int key) const;
 
-		bool GetMouseButton(int button) const;
+		[[nodiscard]] bool GetMouseButton(int button) const;
 		[[nodiscard]] glm::vec2 GetMousePosition() const;
 	};
 }

@@ -124,15 +124,9 @@ void EditorLayer::OnCreate()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+    //io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 	ImGui::StyleColorsDark();
-	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	// Setup Dear ImGui style
-	//ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
 
 	//1: create descriptor pool for IMGUI
 	// the size of the pool is very oversize, but it's copied from imgui demo itself.
@@ -181,10 +175,12 @@ void EditorLayer::OnCreate()
 	init_info.MinImageCount = Graphics::GetSwapchain().GetVkImageViews().size();
 	init_info.ImageCount = Graphics::GetSwapchain().GetVkImageViews().size();
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-
+    
 	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
 	ImGui_ImplVulkan_Init(&init_info, m_renderPass.GetVkRenderPass());
-
+    ImGui::StyleColorsDark();
+    //ImGui::GetStyle().ScaleAllSizes(2.0);
+    
 	//execute a gpu command to upload imgui font textures
 	Graphics::ImmediateSubmit([&](VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
