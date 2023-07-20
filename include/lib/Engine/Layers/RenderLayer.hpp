@@ -7,24 +7,24 @@
 namespace EvoEngine
 {
 	struct RenderInfoBlock {
-		float m_splitDistance[4] = {};
-		int m_pcfSampleAmount = 64;
-		int m_blockerSearchAmount = 1;
-		float m_seamFixRatio = 0.05f;
-		float m_gamma = 2.2f;
+		glm::vec4 m_splitDistances = {};
+		alignas(4) int m_pcfSampleAmount = 64;
+		alignas(4) int m_blockerSearchAmount = 1;
+		alignas(4) float m_seamFixRatio = 0.05f;
+		alignas(4) float m_gamma = 2.2f;
 
-		float m_strandsSubdivisionXFactor = 50.0f;
-		float m_strandsSubdivisionYFactor = 50.0f;
-		int m_strandsSubdivisionMaxX = 15;
-		int m_strandsSubdivisionMaxY = 8;
+		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
+		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
+		alignas(4) int m_strandsSubdivisionMaxX = 15;
+		alignas(4) int m_strandsSubdivisionMaxY = 8;
 	};
 
 	struct EnvironmentInfoBlock {
 		glm::vec4 m_backgroundColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		float m_environmentalMapGamma = 1.0f;
-		float m_environmentalLightingIntensity = 1.0f;
-		float m_backgroundIntensity = 1.0f;
-		float m_environmentalPadding2 = 0.0f;
+		alignas(4) float m_environmentalMapGamma = 1.0f;
+		alignas(4) float m_environmentalLightingIntensity = 1.0f;
+		alignas(4) float m_backgroundIntensity = 1.0f;
+		alignas(4) float m_environmentalPadding2 = 0.0f;
 	};
 
 	struct CameraInfoBlock
@@ -41,23 +41,24 @@ namespace EvoEngine
 	};
 
 	struct MaterialInfoBlock {
-		int m_albedoEnabled = 0;
-		int m_normalEnabled = 0;
-		int m_metallicEnabled = 0;
-		int m_roughnessEnabled = 0;
+		alignas(4) bool m_albedoEnabled = false;
+		alignas(4) bool m_normalEnabled = false;
+		alignas(4) bool m_metallicEnabled = false;
+		alignas(4) bool m_roughnessEnabled = false;
 
-		int m_aoEnabled = 0;
-		int m_castShadow = true;
-		int m_receiveShadow = true;
-		int m_enableShadow = true;
+		alignas(4) bool m_aoEnabled = false;
+		alignas(4) bool m_castShadow = true;
+		alignas(4) bool m_receiveShadow = true;
+		alignas(4) bool m_enableShadow = true;
 
 		glm::vec4 m_albedoColorVal = glm::vec4(1.0f);
 		glm::vec4 m_subsurfaceColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
 		glm::vec4 m_subsurfaceRadius = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
-		float m_metallicVal = 0.5f;
-		float m_roughnessVal = 0.5f;
-		float m_aoVal = 1.0f;
-		float m_emissionVal = 0.0f;
+
+		alignas(4) float m_metallicVal = 0.5f;
+		alignas(4) float m_roughnessVal = 0.5f;
+		alignas(4) float m_aoVal = 1.0f;
+		alignas(4) float m_emissionVal = 0.0f;
 	};
 
 	class RenderLayer : public ILayer {
@@ -78,24 +79,22 @@ namespace EvoEngine
 		std::vector<Buffer> m_descriptorBuffers = {};
 
 		PipelineLayout m_pipelineLayout = {};
-		RenderPass m_renderPass = {};
+		
 		GraphicsPipeline m_graphicsPipeline = {};
 
 		std::vector<Framebuffer> m_framebuffers = {};
 
-		void RecordCommandBuffer();
 
-		void CreateRenderPass();
 		void CreateGraphicsPipeline();
-		void UpdateFramebuffers();
+		bool UpdateFramebuffers();
 
 
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-		void Update() override;
 		void LateUpdate() override;
-
+		void CreateRenderPass();
+		RenderPass m_renderPass = {};
 		unsigned m_storedSwapchainVersion = UINT_MAX;
 	public:
 		EnvironmentInfoBlock m_environmentInfoBlock = {};

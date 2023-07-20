@@ -183,7 +183,7 @@ void Scene::FixedUpdate()
     */
 }
 static const char* EnvironmentTypes[]{ "Environmental Map", "Color" };
-void Scene::OnInspect()
+void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
     /*
     if (this == Application::GetActiveScene().get())

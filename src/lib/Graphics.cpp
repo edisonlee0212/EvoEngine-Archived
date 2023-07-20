@@ -9,6 +9,7 @@
 #include "ProjectManager.hpp"
 #include "Vertex.hpp"
 #include "vk_mem_alloc.h"
+#include "EditorLayer.hpp"
 using namespace EvoEngine;
 
 
@@ -28,7 +29,7 @@ uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPrope
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void Graphics::SingleTimeCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action)
+void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action)
 {
 	const auto& graphics = GetInstance();
 	VkCommandBufferAllocateInfo allocInfo{};
@@ -59,6 +60,12 @@ void Graphics::SingleTimeCommands(const std::function<void(VkCommandBuffer comma
 	vkFreeCommandBuffers(graphics.m_vkDevice, graphics.m_commandPool.GetVkCommandPool(), 1, &commandBuffer);
 }
 
+QueueFamilyIndices Graphics::GetQueueFamilyIndices()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_queueFamilyIndices;
+}
+
 int Graphics::GetMaxFramesInFlight()
 {
 	const auto& graphics = GetInstance();
@@ -69,6 +76,12 @@ void Graphics::NotifyRecreateSwapChain()
 {
 	auto& graphics = GetInstance();
 	graphics.m_recreateSwapChain = true;
+}
+
+VkInstance Graphics::GetVkInstance()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_vkInstance;
 }
 
 VkPhysicalDevice Graphics::GetVkPhysicalDevice()
@@ -311,6 +324,7 @@ void Graphics::CreateInstance()
 {
 	auto applicationInfo = Application::GetApplicationInfo();
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
+	const auto editorLayer = Application::GetLayer<EditorLayer>();
 	if (windowLayer) {
 #pragma region Windows
 		glfwInit();
@@ -326,6 +340,7 @@ void Graphics::CreateInstance()
 		glfwSetMonitorCallback(windowLayer->SetMonitorCallback);
 		const auto& applicationInfo = Application::GetApplicationInfo();
 		windowLayer->m_windowSize = applicationInfo.m_defaultWindowSize;
+		if (editorLayer) windowLayer->m_windowSize = { 250, 50 };
 		windowLayer->m_window = glfwCreateWindow(windowLayer->m_windowSize.x, windowLayer->m_windowSize.y, applicationInfo.m_applicationName.c_str(), nullptr, nullptr);
 
 		if (applicationInfo.m_fullScreen)
@@ -563,31 +578,49 @@ void Graphics::SetupVmaAllocator()
 #pragma endregion
 }
 
-void Graphics::CreateCommandPool()
+void Graphics::CreateCommandPool(CommandPool& target)
 {
+	const auto& graphics = GetInstance();
 #pragma region Command pool
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = m_queueFamilyIndices.m_graphicsFamily.value();
-	m_commandPool.Create(poolInfo);
+	poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
+	target.Create(poolInfo);
 #pragma endregion
 }
 
-void Graphics::CreateCommandBuffers()
+void Graphics::CreateCommandBuffers(const CommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers)
 {
+	const auto& graphics = GetInstance();
 #pragma region Command buffers
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool.GetVkCommandPool();
+	allocInfo.commandPool = commandPool.GetVkCommandPool();
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = static_cast<uint32_t>(m_maxFrameInFlight);
-	m_vkCommandBuffers.resize(m_maxFrameInFlight);
+	allocInfo.commandBufferCount = static_cast<uint32_t>(graphics.m_maxFrameInFlight);
+	commandBuffers.resize(graphics.m_maxFrameInFlight);
 
-	if (vkAllocateCommandBuffers(m_vkDevice, &allocInfo, m_vkCommandBuffers.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(graphics.m_vkDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 #pragma endregion
+}
+
+void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action)
+{
+	const auto& graphics = GetInstance();
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	if (vkBeginCommandBuffer(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex], &beginInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to begin recording command buffer!");
+	}
+
+	action(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex]);
+	if (vkEndCommandBuffer(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex]) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to record command buffer!");
+	}
 }
 
 void Graphics::CreateSwapChainSyncObjects()
@@ -707,11 +740,12 @@ void Graphics::CreateSwapChain()
 	m_swapchainVersion++;
 }
 
+
+
 void Graphics::RecreateSwapChain()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 	CreateSwapChain();
-	
 }
 
 void Graphics::OnDestroy()
@@ -725,6 +759,8 @@ void Graphics::OnDestroy()
 		m_imageAvailableSemaphores[i].Destroy();
 	}
 	m_commandPool.Destroy();
+
+	
 	m_swapchain.Destroy();
 	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
@@ -843,8 +879,8 @@ void Graphics::Initialize()
 		}
 	}
 	if (graphics.m_queueFamilyIndices.m_graphicsFamily.has_value()) {
-		graphics.CreateCommandPool();
-		graphics.CreateCommandBuffers();
+		CreateCommandPool(graphics.m_commandPool);
+		CreateCommandBuffers(graphics.m_commandPool, graphics.m_vkCommandBuffers);
 		graphics.CreateSwapChainSyncObjects();
 	}
 #pragma endregion
@@ -855,7 +891,7 @@ void Graphics::Initialize()
 void Graphics::Destroy()
 {
 	auto& graphics = GetInstance();
-	graphics.Destroy();
+	graphics.OnDestroy();
 
 }
 
@@ -863,11 +899,23 @@ void Graphics::PreUpdate()
 {
 	auto& graphics = GetInstance();
 	graphics.SwapChainSwapImage();
+	if(const auto windowLayer = Application::GetLayer<WindowLayer>())
+	{
+		glfwPollEvents();
+		if (glfwWindowShouldClose(windowLayer->m_window))
+		{
+			Application::End();
+		}
+	}
+	
 }
 
 void Graphics::LateUpdate()
 {
 	auto& graphics = GetInstance();
+
+	
+
 	graphics.SubmitPresent();
 }
 

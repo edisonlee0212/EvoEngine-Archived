@@ -4,6 +4,7 @@
 #include "Utilities.hpp"
 #include "WindowLayer.hpp"
 #include "ProjectManager.hpp"
+#include "EditorLayer.hpp"
 using namespace EvoEngine;
 const std::vector<Vertex> vertices = {
 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -214,7 +215,7 @@ void RenderLayer::OnDestroy()
 	m_perPassLayout.Destroy();
 	m_perFrameLayout.Destroy();
 
-
+	
 	m_graphicsPipeline.Destroy();
 	m_pipelineLayout.Destroy();
 	m_renderPass.Destroy();
@@ -225,111 +226,48 @@ void RenderLayer::PreUpdate()
 	UpdateFramebuffers();
 }
 
-void RenderLayer::Update()
-{
-}
-
 void RenderLayer::LateUpdate()
 {
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	memcpy(m_renderInfoBlockMemory[currentFrameIndex], &m_renderInfoBlock, sizeof(EnvironmentInfoBlock));
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+		{
+			const auto extent2D = Graphics::GetSwapchain().GetVkExtent2D();
+			VkRenderPassBeginInfo renderPassBeginInfo{};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.renderPass = m_renderPass.GetVkRenderPass();
+			renderPassBeginInfo.framebuffer = m_framebuffers[Graphics::GetNextImageIndex()].GetVkFrameBuffer();
+			renderPassBeginInfo.renderArea.offset = { 0, 0 };
+			renderPassBeginInfo.renderArea.extent = extent2D;
 
-	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
-	RecordCommandBuffer();
-}
+			VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+			renderPassBeginInfo.clearValueCount = 1;
+			renderPassBeginInfo.pClearValues = &clearColor;
 
-void RenderLayer::RecordCommandBuffer()
-{
-	auto commandBuffer = Graphics::GetCurrentVkCommandBuffer();
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+			memcpy(m_renderInfoBlockMemory[currentFrameIndex], &m_renderInfoBlock, sizeof(RenderInfoBlock));
 
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
-	const auto extent2D = Graphics::GetSwapchain().GetVkExtent2D();
-	VkRenderPassBeginInfo renderPassBeginInfo{};
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = m_renderPass.GetVkRenderPass();
-	renderPassBeginInfo.framebuffer = m_framebuffers[Graphics::GetNextImageIndex()].GetVkFrameBuffer();
-	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = extent2D;
+			const auto& windowLayer = Application::GetLayer<WindowLayer>();
+			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline.GetVkPipeline());
 
-	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	renderPassBeginInfo.clearValueCount = 1;
-	renderPassBeginInfo.pClearValues = &clearColor;
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = static_cast<float>(extent2D.width);
+			viewport.height = static_cast<float>(extent2D.height);
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = extent2D;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline.GetVkPipeline());
+			//m_mesh->SubmitDrawIndexed(commandBuffer);
 
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(extent2D.width);
-	viewport.height = static_cast<float>(extent2D.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = extent2D;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-	m_mesh->SubmitDrawIndexed(commandBuffer);
-
-	vkCmdEndRenderPass(commandBuffer);
-
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to record command buffer!");
-	}
-}
-
-
-void RenderLayer::CreateRenderPass()
-{
-#pragma region RenderPass
-	
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = Graphics::GetVkSurfaceFormat().format;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	m_renderPass.Create(renderPassInfo);
-#pragma endregion
+			vkCmdEndRenderPass(commandBuffer);
+		});
 }
 
 void RenderLayer::CreateGraphicsPipeline()
@@ -447,10 +385,10 @@ void RenderLayer::CreateGraphicsPipeline()
 #pragma endregion
 }
 
-void RenderLayer::UpdateFramebuffers()
+bool RenderLayer::UpdateFramebuffers()
 {
 	const auto currentSwapchainVersion = Graphics::GetSwapchainVersion();
-	if (currentSwapchainVersion == m_storedSwapchainVersion) return;
+	if (currentSwapchainVersion == m_storedSwapchainVersion) return false;
 
 	m_storedSwapchainVersion = currentSwapchainVersion;
 	const auto& swapChain = Graphics::GetSwapchain();
@@ -467,5 +405,55 @@ void RenderLayer::UpdateFramebuffers()
 		framebufferInfo.height = swapChain.GetVkExtent2D().height;
 		framebufferInfo.layers = 1;
 		m_framebuffers[i].Create(framebufferInfo);
+	}
+
+	return true;
+}
+
+void RenderLayer::CreateRenderPass()
+{
+	auto editorLayer = Application::GetLayer<EditorLayer>();
+	if(editorLayer)
+	{
+
+	}
+	else {
+		VkAttachmentDescription colorAttachment{};
+		colorAttachment.format = Graphics::GetSwapchain().GetVkFormat();
+		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorAttachmentRef{};
+		colorAttachmentRef.attachment = 0;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorAttachmentRef;
+
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = 1;
+		renderPassInfo.pAttachments = &colorAttachment;
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
+
+		m_renderPass.Create(renderPassInfo);
 	}
 }

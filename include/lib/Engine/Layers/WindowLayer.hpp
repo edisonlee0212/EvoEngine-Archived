@@ -19,12 +19,13 @@ namespace EvoEngine
 
 		void OnCreate() override;
 		void OnDestroy() override;
-		void PreUpdate() override;
-		void LateUpdate() override;
-		void OnInspect() override;
+
 	public:
 		GLFWwindow* GetGlfwWindow() const;
+		void ResizeWindow(int x, int y) const;
+		bool GetKey(int key) const;
 
-		
+		bool GetMouseButton(int button) const;
+		[[nodiscard]] glm::vec2 GetMousePosition() const;
 	};
 }

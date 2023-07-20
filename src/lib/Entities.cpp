@@ -100,7 +100,7 @@ void Entities::SetEntityArchetypeName(const EntityArchetype &entityArchetype, co
     entityManager.m_entityArchetypeInfos[entityArchetype.m_index].m_name = name;
 }
 
-void Entities::Init()
+void Entities::Initialize()
 {
     auto &entityManager = GetInstance();
     entityManager.m_entityArchetypeInfos.emplace_back();

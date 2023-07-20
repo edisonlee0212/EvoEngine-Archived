@@ -4,6 +4,10 @@
 #include "Scene.hpp"
 #include "Time.hpp"
 #include "ProjectManager.hpp"
+#include "WindowLayer.hpp"
+#include "EditorLayer.hpp"
+#include "Jobs.hpp"
+#include "TransformGraph.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -16,10 +20,12 @@ void Application::PreUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	Graphics::PreUpdate();
 
+	if (application.m_applicationStatus == ApplicationStatus::NoProject) return;
+	TransformGraph::CalculateTransformGraphs(application.m_activeScene);
 	for (const auto& i : application.m_externalPreUpdateFunctions)
 		i();
-	Graphics::PreUpdate();
 	if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
 	{
 		application.m_activeScene->Start();
@@ -65,6 +71,7 @@ void Application::UpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	if (application.m_applicationStatus == ApplicationStatus::NoProject) return;
 
 	for (const auto& i : application.m_externalUpdateFunctions)
 		i();
@@ -88,31 +95,59 @@ void Application::LateUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
-
 	if (application.m_applicationStatus == ApplicationStatus::NoProject)
 	{
-		/*
-		if (ImGui::BeginMainMenuBar())
-		{
-			FileUtils::SaveFile(
-				"Create or load New Project",
-				"Project",
-				{ ".ueproj" },
-				[&](const std::filesystem::path& path) {
-					ProjectManager::GetOrCreateProject(path);
-					if (ProjectManager::GetInstance().m_projectFolder)
-					{
-						Windows::ResizeWindow(
-							application.m_applicationConfigs.m_defaultWindowSize.x,
-							application.m_applicationConfigs.m_defaultWindowSize.y);
-						application.m_applicationStatus = ApplicationStatus::Initialized;
-					}
-				},
-				false);
-			ImGui::EndMainMenuBar();
-		}
-		*/
+		auto editorLayer = GetLayer<EditorLayer>();
+		if (editorLayer) {
+			editorLayer->UpdateFrameBuffers();
 
+			ImGui_ImplVulkan_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
+			const auto windowLayer = GetLayer<WindowLayer>();
+			if (windowLayer && ImGui::BeginMainMenuBar())
+			{
+				FileUtils::SaveFile(
+					"Create or load New Project",
+					"Project",
+					{ ".ueproj" },
+					[&](const std::filesystem::path& path) {
+						ProjectManager::GetOrCreateProject(path);
+						if (ProjectManager::GetInstance().m_projectFolder)
+						{
+							windowLayer->ResizeWindow(
+								application.m_applicationInfo.m_defaultWindowSize.x,
+								application.m_applicationInfo.m_defaultWindowSize.y);
+							application.m_applicationStatus = ApplicationStatus::Stop;
+						}
+					},
+					false);
+				ImGui::EndMainMenuBar();
+			}
+
+			Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+				{
+					const auto extent2D = Graphics::GetSwapchain().GetVkExtent2D();
+					VkRenderPassBeginInfo renderPassBeginInfo{};
+					renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+					renderPassBeginInfo.renderPass = editorLayer->m_renderPass.GetVkRenderPass();
+					renderPassBeginInfo.framebuffer = editorLayer->m_framebuffers[Graphics::GetNextImageIndex()].GetVkFrameBuffer();
+					renderPassBeginInfo.renderArea.offset = { 0, 0 };
+					renderPassBeginInfo.renderArea.extent = extent2D;
+
+					VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+					renderPassBeginInfo.clearValueCount = 1;
+					renderPassBeginInfo.pClearValues = &clearColor;
+
+					vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+					ImGui::Render();
+					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
+					vkCmdEndRenderPass(commandBuffer);
+				});
+		}
 	}
 	else {
 		for (const auto& i : application.m_externalLateUpdateFunctions)
@@ -122,28 +157,26 @@ void Application::LateUpdateInternal()
 		{
 			application.m_activeScene->LateUpdate();
 		}
+		for (const auto& i : application.m_layers)
+		{
+			i->LateUpdate();
+		}
+		if (application.m_applicationStatus == ApplicationStatus::Step)
+			application.m_applicationStatus = ApplicationStatus::Pause;
 	}
-	for (const auto& i : application.m_layers)
-	{
-		i->LateUpdate();
-	}
-	for (const auto& i : application.m_layers)
-	{
-		i->OnInspect();
-	}
-	// Post-processing happens here
-	// Manager settings
-	//OnInspect();
 	Graphics::LateUpdate();
-	if (application.m_applicationStatus == ApplicationStatus::Step)
-		application.m_applicationStatus = ApplicationStatus::Pause;
-	// ImGui drawing
-	//Editor::ImGuiLateUpdate();
 }
 
 const ApplicationInfo& Application::GetApplicationInfo()
 {
-	return GetInstance().m_applicationInfo;
+	auto& application = GetInstance();
+	return application.m_applicationInfo;
+}
+
+const ApplicationStatus& Application::GetApplicationStatus()
+{
+	auto& application = GetInstance();
+	return application.m_applicationStatus;
 }
 
 std::shared_ptr<Scene> Application::GetActiveScene()
@@ -168,7 +201,11 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 	application.m_applicationInfo = applicationCreateInfo;
 
+	Jobs::Initialize();
+	Entities::Initialize();
+	TransformGraph::Initialize();
 	Graphics::Initialize();
+	
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
@@ -179,19 +216,24 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 void Application::Start()
 {
 	auto& application = GetInstance();
-	/*
-	if (!application.m_applicationConfigs.m_projectPath.empty())
+	const auto windowLayer = GetLayer<WindowLayer>();
+	if (!application.m_applicationInfo.m_projectPath.empty())
 	{
-		ProjectManager::GetOrCreateProject(application.m_applicationConfigs.m_projectPath);
+		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath);
 		if (ProjectManager::GetInstance().m_projectFolder)
 		{
-			Windows::ResizeWindow(
-				application.m_applicationConfigs.m_defaultWindowSize.x,
-				application.m_applicationConfigs.m_defaultWindowSize.y);
-			application.m_applicationStatus = ApplicationStatus::Initialized;
+			if (windowLayer) {
+				windowLayer->ResizeWindow(
+					application.m_applicationInfo.m_defaultWindowSize.x,
+					application.m_applicationInfo.m_defaultWindowSize.y);
+			}
+			application.m_applicationStatus = ApplicationStatus::Stop;
 		}
 	}
-	*/
+	if(!windowLayer && application.m_applicationStatus == ApplicationStatus::NoProject)
+	{
+		throw std::runtime_error("No WindowLayer and no project!");
+	}
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
 	while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
@@ -214,6 +256,12 @@ void Application::Terminate()
 	{
 		(*i)->OnDestroy();
 	}
+}
+
+const std::vector<std::shared_ptr<ILayer>>& Application::GetLayers()
+{
+	const auto& application = GetInstance();
+	return application.m_layers;
 }
 
 void Application::Attach(const std::shared_ptr<Scene>& scene)
@@ -289,4 +337,10 @@ void Application::RegisterPostAttachSceneFunction(
 	const std::function<void(const std::shared_ptr<Scene>& newScene)>& func)
 {
 	GetInstance().m_postAttachSceneFunctions.push_back(func);
+}
+
+bool Application::IsPlaying()
+{
+	const auto& application = GetInstance();
+	return application.m_applicationStatus == ApplicationStatus::Playing;
 }

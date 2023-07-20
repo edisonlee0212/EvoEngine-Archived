@@ -46,6 +46,8 @@ namespace EvoEngine
 		Swapchain m_swapchain = {};
 		
 		VkSurfaceFormatKHR m_vkSurfaceFormat = {};
+		
+
 #pragma endregion
 
 		CommandPool m_commandPool = {};
@@ -71,10 +73,11 @@ namespace EvoEngine
 		void CreatePhysicalDevice();
 		void CreateLogicalDevice();
 		void SetupVmaAllocator();
-		void CreateCommandPool();
-		void CreateCommandBuffers();
+		
 		void CreateSwapChainSyncObjects();
 		void CreateSwapChain();
+
+		
 
 		void RecreateSwapChain();
 
@@ -90,10 +93,14 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
-		static void SingleTimeCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
-
+		static void CreateCommandPool(CommandPool& target);
+		static void CreateCommandBuffers(const CommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
+		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
+		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
+		static QueueFamilyIndices GetQueueFamilyIndices();
 		static int GetMaxFramesInFlight();
 		static void NotifyRecreateSwapChain();
+		static VkInstance GetVkInstance();
 		static VkPhysicalDevice GetVkPhysicalDevice();
 		static VkDevice GetVkDevice();
 		static uint32_t GetCurrentFrameIndex();

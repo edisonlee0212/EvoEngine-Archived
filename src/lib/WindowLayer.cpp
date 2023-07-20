@@ -68,24 +68,30 @@ void WindowLayer::OnDestroy()
 #pragma endregion
 }
 
-void WindowLayer::PreUpdate()
-{
-	glfwPollEvents();
-	if (glfwWindowShouldClose(m_window))
-	{
-		Application::End();
-	}
-}
-
-void WindowLayer::LateUpdate()
-{
-}
-
-void WindowLayer::OnInspect()
-{
-}
-
 GLFWwindow* WindowLayer::GetGlfwWindow() const
 {
 	return m_window;
+}
+
+void WindowLayer::ResizeWindow(int x, int y) const
+{
+	glfwSetWindowSize(m_window, x, y);
+}
+
+bool WindowLayer::GetKey(int key) const
+{
+	return glfwGetKey(m_window, key) == GLFW_PRESS;
+}
+
+bool WindowLayer::GetMouseButton(int button) const
+{
+	return glfwGetMouseButton(m_window, button) == GLFW_PRESS;
+}
+
+glm::vec2 WindowLayer::GetMousePosition() const
+{
+	double x = FLT_MIN;
+	double y = FLT_MIN;
+	glfwGetCursorPos(m_window, &x, &y);
+	return glm::vec2(x, y);
 }

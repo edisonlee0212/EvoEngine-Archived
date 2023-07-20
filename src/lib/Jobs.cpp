@@ -12,7 +12,7 @@ ThreadPool &Jobs::Workers()
     return GetInstance().m_workers;
 }
 
-void Jobs::Init()
+void Jobs::Initialize()
 {
     Workers().Resize(std::thread::hardware_concurrency() - 1);
 }

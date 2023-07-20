@@ -2,7 +2,7 @@
 #include "Entities.hpp"
 #include "Application.hpp"
 #include "Scene.hpp"
-#include "Editor.hpp"
+#include "EditorLayer.hpp"
 using namespace EvoEngine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
@@ -791,7 +791,9 @@ std::vector<std::string> ProjectManager::GetExtension(const std::string& typeNam
 }
 void ProjectManager::DisplayDefaultResources()
 {
-	auto& projectManager = GetInstance();
+	const auto& projectManager = GetInstance();
+	const auto editorLayer = Application::GetLayer<EditorLayer>();
+
 	if (projectManager.m_showDefaultResourcesWindow)
 	{
 		ImGui::Begin("Default Resources");
@@ -807,7 +809,7 @@ void ProjectManager::DisplayDefaultResources()
 						for (auto& i : collection.second)
 						{
 							ImGui::Button(i.second.m_name.c_str());
-							Editor::DraggableAsset(i.second.m_value);
+							editorLayer->DraggableAsset(i.second.m_value);
 						}
 					}
 				}

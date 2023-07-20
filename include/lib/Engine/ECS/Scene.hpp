@@ -61,7 +61,7 @@ namespace EvoEngine
         friend class SystemRef;
         friend struct Entity;
         friend class Prefab;
-        friend class TransformLayer;
+        friend class TransformGraph;
         friend class PrivateComponentStorage;
         SceneDataStorage m_sceneDataStorage;
         std::multimap<float, std::shared_ptr<ISystem>> m_systems;
@@ -241,7 +241,7 @@ namespace EvoEngine
         void Start();
         void Update();
         void LateUpdate();
-        void OnInspect() override;
+        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
         void Serialize(YAML::Emitter& out) override;
         void Deserialize(const YAML::Node& in) override;
 

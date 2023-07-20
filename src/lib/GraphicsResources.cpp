@@ -338,7 +338,7 @@ void Image::Create(const VkImageCreateInfo& imageCreateInfo, const VmaAllocation
 
 void Image::Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset) const
 {
-	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			VkBufferImageCopy region{};
 			region.bufferOffset = srcOffset;
@@ -377,7 +377,7 @@ void Image::Destroy()
 
 void Image::TransitionImageLayout(VkImageLayout newLayout)
 {
-	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			VkImageMemoryBarrier barrier{};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -461,7 +461,7 @@ void Buffer::Destroy()
 
 void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
 {
-	Graphics::SingleTimeCommands([&](VkCommandBuffer commandBuffer)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			VkBufferCopy copyRegion{};
 			copyRegion.size = size;

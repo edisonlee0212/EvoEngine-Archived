@@ -52,8 +52,9 @@ namespace EvoEngine {
 		static void RegisterLateUpdateFunction(const std::function<void()>& func);
 		static void RegisterFixedUpdateFunction(const std::function<void()>& func);
 		static void RegisterPostAttachSceneFunction(const std::function<void(const std::shared_ptr<Scene>& newScene)>& func);
-
+		static bool IsPlaying();
 		static const ApplicationInfo& GetApplicationInfo();
+		static const ApplicationStatus& GetApplicationStatus();
 		template <typename T>
 		static std::shared_ptr<T> PushLayer();
 		template <typename T>
@@ -65,7 +66,7 @@ namespace EvoEngine {
 		static void Start();
 		static void End();
 		static void Terminate();
-
+		static const std::vector<std::shared_ptr<ILayer>>& GetLayers();
 		static void Attach(const std::shared_ptr<Scene>& scene);
 		static std::shared_ptr<Scene> GetActiveScene();
 		static void Play();

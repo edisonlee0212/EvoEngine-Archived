@@ -28,7 +28,7 @@ class Entities final : ISingleton<Entities>
     friend class EditorLayer;
     friend class PrefabHolder;
     friend class PrivateComponentStorage;
-    friend class TransformLayer;
+    friend class TransformGraph;
     friend class Editor;
     friend class Scene;
     friend class Serialization;
@@ -83,7 +83,7 @@ class Entities final : ISingleton<Entities>
     static EntityArchetype CreateEntityArchetype(const std::string &name, T arg, Ts... args);
     static EntityQuery CreateEntityQuery();
 
-    static void Init();
+    static void Initialize();
 };
 
 
