@@ -62,9 +62,9 @@ namespace EvoEngine
 	};
 
 	class RenderLayer : public ILayer {
-		DescriptorSetLayout m_perFrameLayout = {};
-		DescriptorSetLayout m_perPassLayout = {};
-		DescriptorSetLayout m_perObjectGroupLayout = {};
+		std::unique_ptr<DescriptorSetLayout> m_perFrameLayout = {};
+		std::unique_ptr<DescriptorSetLayout> m_perPassLayout = {};
+		std::unique_ptr<DescriptorSetLayout> m_perObjectGroupLayout = {};
 
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
 		std::vector<VkDescriptorSet> m_perPassDescriptorSets = {};
@@ -75,14 +75,14 @@ namespace EvoEngine
 		std::vector<void*> m_cameraInfoBlockMemory;
 		std::vector<void*> m_materialInfoBlockMemory;
 
-		DescriptorPool m_descriptorPool = {};
-		std::vector<Buffer> m_descriptorBuffers = {};
+		std::unique_ptr<DescriptorPool> m_descriptorPool = {};
+		std::vector<std::unique_ptr<Buffer>> m_descriptorBuffers = {};
 
-		PipelineLayout m_pipelineLayout = {};
+		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
 		
-		GraphicsPipeline m_graphicsPipeline = {};
+		std::unique_ptr<GraphicsPipeline> m_graphicsPipeline = {};
 
-		std::vector<Framebuffer> m_framebuffers = {};
+		std::vector<std::unique_ptr<Framebuffer>> m_framebuffers = {};
 
 
 		void CreateGraphicsPipeline();
@@ -94,7 +94,7 @@ namespace EvoEngine
 		void PreUpdate() override;
 		void LateUpdate() override;
 		void CreateRenderPass();
-		RenderPass m_renderPass = {};
+		std::unique_ptr<RenderPass> m_renderPass = {};
 		unsigned m_storedSwapchainVersion = UINT_MAX;
 	public:
 		EnvironmentInfoBlock m_environmentInfoBlock = {};

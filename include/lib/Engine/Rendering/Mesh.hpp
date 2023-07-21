@@ -27,8 +27,8 @@ namespace EvoEngine
 
 		VertexAttributes m_vertexAttributes = {};
 
-		Buffer m_verticesBuffer = {};
-		Buffer m_trianglesBuffer = {};
+		std::unique_ptr<Buffer> m_verticesBuffer = {};
+		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
 		void SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer);
 

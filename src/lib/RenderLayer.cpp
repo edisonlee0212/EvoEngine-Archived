@@ -58,21 +58,21 @@ void RenderLayer::OnCreate()
 	perFrameLayoutInfo.bindingCount = static_cast<uint32_t>(perFrameBindings.size());
 	perFrameLayoutInfo.pBindings = perFrameBindings.data();
 
-	m_perFrameLayout.Create(perFrameLayoutInfo);
+	m_perFrameLayout = std::make_unique<DescriptorSetLayout>(perFrameLayoutInfo);
 
 	VkDescriptorSetLayoutCreateInfo perPassLayoutInfo{};
 	perPassLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perPassLayoutInfo.bindingCount = static_cast<uint32_t>(perPassBindings.size());
 	perPassLayoutInfo.pBindings = perPassBindings.data();
 
-	m_perPassLayout.Create(perPassLayoutInfo);
+	m_perPassLayout = std::make_unique<DescriptorSetLayout>(perPassLayoutInfo);
 
 	VkDescriptorSetLayoutCreateInfo perObjectGroupLayoutInfo{};
 	perObjectGroupLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perObjectGroupLayoutInfo.bindingCount = static_cast<uint32_t>(perObjectGroupBindings.size());
 	perObjectGroupLayoutInfo.pBindings = perObjectGroupBindings.data();
 
-	m_perObjectGroupLayout.Create(perObjectGroupLayoutInfo);
+	m_perObjectGroupLayout = std::make_unique<DescriptorSetLayout>(perObjectGroupLayoutInfo);
 
 	size_t bindingsSize = perFrameBindings.size() + perPassBindings.size() + perObjectGroupBindings.size();
 	VkDescriptorPoolSize renderLayerDescriptorPoolSize{};
@@ -85,12 +85,12 @@ void RenderLayer::OnCreate()
 	renderLayerDescriptorPoolInfo.poolSizeCount = 1;
 	renderLayerDescriptorPoolInfo.pPoolSizes = &renderLayerDescriptorPoolSize;
 	renderLayerDescriptorPoolInfo.maxSets = static_cast<uint32_t>(maxFramesInFlight * 3);
-	m_descriptorPool.Create(renderLayerDescriptorPoolInfo);
+	m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
 
-	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout.GetVkDescriptorSetLayout());
+	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool.GetVkDescriptorPool();
+	allocInfo.descriptorPool = m_descriptorPool->GetVkDescriptorPool();
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
 	allocInfo.pSetLayouts = perFrameLayouts.data();
 	m_perFrameDescriptorSets.resize(maxFramesInFlight);
@@ -98,7 +98,7 @@ void RenderLayer::OnCreate()
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 
-	std::vector perPassLayout(maxFramesInFlight, m_perPassLayout.GetVkDescriptorSetLayout());
+	std::vector perPassLayout(maxFramesInFlight, m_perPassLayout->GetVkDescriptorSetLayout());
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
 	allocInfo.pSetLayouts = perPassLayout.data();
 	m_perPassDescriptorSets.resize(maxFramesInFlight);
@@ -106,7 +106,7 @@ void RenderLayer::OnCreate()
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 
-	std::vector perObjectGroupLayout(maxFramesInFlight, m_perObjectGroupLayout.GetVkDescriptorSetLayout());
+	std::vector perObjectGroupLayout(maxFramesInFlight, m_perObjectGroupLayout->GetVkDescriptorSetLayout());
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
 	allocInfo.pSetLayouts = perObjectGroupLayout.data();
 	m_perObjectGroupDescriptorSets.resize(maxFramesInFlight);
@@ -133,31 +133,31 @@ void RenderLayer::OnCreate()
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	bufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-	m_renderInfoBlockMemory.resize(maxFramesInFlight);
-	m_environmentalInfoBlockMemory.resize(maxFramesInFlight);
-	m_cameraInfoBlockMemory.resize(maxFramesInFlight);
-	m_materialInfoBlockMemory.resize(maxFramesInFlight);
+	m_renderInfoBlockMemory.clear();
+	m_environmentalInfoBlockMemory.clear();
+	m_cameraInfoBlockMemory.clear();
+	m_materialInfoBlockMemory.clear();
 	for (size_t i = 0; i < maxFramesInFlight; i++) {
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
-		m_descriptorBuffers[i * 4 + 0].Create(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
-		m_descriptorBuffers[i * 4 + 1].Create(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(CameraInfoBlock);
-		m_descriptorBuffers[i * 4 + 2].Create(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(MaterialInfoBlock);
-		m_descriptorBuffers[i * 4 + 3].Create(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
-		bufferInfos[0].buffer = m_descriptorBuffers[i * 4 + 0].GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0].GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
+		bufferInfos[0].buffer = m_descriptorBuffers[i * 4 + 0]->GetVkBuffer();
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
 
-		bufferInfos[1].buffer = m_descriptorBuffers[i * 4 + 1].GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0].GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
+		bufferInfos[1].buffer = m_descriptorBuffers[i * 4 + 1]->GetVkBuffer();
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
 
-		bufferInfos[2].buffer = m_descriptorBuffers[i * 4 + 2].GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0].GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
+		bufferInfos[2].buffer = m_descriptorBuffers[i * 4 + 2]->GetVkBuffer();
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
 
-		bufferInfos[3].buffer = m_descriptorBuffers[i * 4 + 3].GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0].GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
+		bufferInfos[3].buffer = m_descriptorBuffers[i * 4 + 3]->GetVkBuffer();
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
 
 
 		VkWriteDescriptorSet renderInfo{};
@@ -210,15 +210,17 @@ void RenderLayer::OnCreate()
 
 void RenderLayer::OnDestroy()
 {
-	m_descriptorPool.Destroy();
-	m_perObjectGroupLayout.Destroy();
-	m_perPassLayout.Destroy();
-	m_perFrameLayout.Destroy();
+	m_descriptorBuffers.clear();
+
+	m_descriptorPool.reset();
+	m_perObjectGroupLayout.reset();
+	m_perPassLayout.reset();
+	m_perFrameLayout.reset();
 
 	
-	m_graphicsPipeline.Destroy();
-	m_pipelineLayout.Destroy();
-	m_renderPass.Destroy();
+	m_graphicsPipeline.reset();
+	m_pipelineLayout.reset();
+	m_renderPass.reset();
 }
 
 void RenderLayer::PreUpdate()
@@ -230,11 +232,11 @@ void RenderLayer::LateUpdate()
 {
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
-			const auto extent2D = Graphics::GetSwapchain().GetVkExtent2D();
+			const auto extent2D = Graphics::GetSwapchain()->GetVkExtent2D();
 			VkRenderPassBeginInfo renderPassBeginInfo{};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.renderPass = m_renderPass.GetVkRenderPass();
-			renderPassBeginInfo.framebuffer = m_framebuffers[Graphics::GetNextImageIndex()].GetVkFrameBuffer();
+			renderPassBeginInfo.renderPass = m_renderPass->GetVkRenderPass();
+			renderPassBeginInfo.framebuffer = m_framebuffers[Graphics::GetNextImageIndex()]->GetVkFrameBuffer();
 			renderPassBeginInfo.renderArea.offset = { 0, 0 };
 			renderPassBeginInfo.renderArea.extent = extent2D;
 
@@ -248,7 +250,7 @@ void RenderLayer::LateUpdate()
 
 			const auto& windowLayer = Application::GetLayer<WindowLayer>();
 			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline.GetVkPipeline());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->GetVkPipeline());
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
@@ -277,15 +279,14 @@ void RenderLayer::CreateGraphicsPipeline()
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	m_pipelineLayout.Create(pipelineLayoutInfo);
+	m_pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutInfo);
 #pragma endregion
 #pragma region Graphics Pipeline
-	ShaderModule vertShader, fragShader;
 
-	vertShader.Create(shaderc_vertex_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert"));
-	fragShader.Create(shaderc_fragment_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag"));
+	ShaderModule vertShader{ shaderc_vertex_shader,
+		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert") };
+	ShaderModule fragShader{ shaderc_fragment_shader,
+		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag") };
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -374,14 +375,11 @@ void RenderLayer::CreateGraphicsPipeline()
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = m_pipelineLayout.GetVkPipelineLayout();
-	pipelineInfo.renderPass = m_renderPass.GetVkRenderPass();
+	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
+	pipelineInfo.renderPass = m_renderPass->GetVkRenderPass();
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	m_graphicsPipeline.Create(pipelineInfo);
-
-	vertShader.Destroy();
-	fragShader.Destroy();
+	m_graphicsPipeline = std::make_unique<GraphicsPipeline>(pipelineInfo);
 #pragma endregion
 }
 
@@ -392,19 +390,19 @@ bool RenderLayer::UpdateFramebuffers()
 
 	m_storedSwapchainVersion = currentSwapchainVersion;
 	const auto& swapChain = Graphics::GetSwapchain();
-	const auto& swapChainImageViews = swapChain.GetVkImageViews();
-	m_framebuffers.resize(swapChainImageViews.size());
+	const auto& swapChainImageViews = swapChain->GetVkImageViews();
+	m_framebuffers.clear();
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
 		const VkImageView attachments[] = { swapChainImageViews[i] };
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_renderPass.GetVkRenderPass();
+		framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swapChain.GetVkExtent2D().width;
-		framebufferInfo.height = swapChain.GetVkExtent2D().height;
+		framebufferInfo.width = swapChain->GetVkExtent2D().width;
+		framebufferInfo.height = swapChain->GetVkExtent2D().height;
 		framebufferInfo.layers = 1;
-		m_framebuffers[i].Create(framebufferInfo);
+		m_framebuffers.emplace_back(std::make_unique<Framebuffer>(framebufferInfo));
 	}
 
 	return true;
@@ -419,7 +417,7 @@ void RenderLayer::CreateRenderPass()
 	}
 	else {
 		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = Graphics::GetSwapchain().GetVkFormat();
+		colorAttachment.format = Graphics::GetSwapchain()->GetVkFormat();
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -454,6 +452,6 @@ void RenderLayer::CreateRenderPass()
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
-		m_renderPass.Create(renderPassInfo);
+		m_renderPass = std::make_unique<RenderPass>(renderPassInfo);
 	}
 }

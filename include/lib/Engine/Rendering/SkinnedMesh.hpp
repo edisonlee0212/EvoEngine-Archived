@@ -7,8 +7,8 @@ namespace EvoEngine
 {
 class SkinnedMesh : public IAsset
 {
-    Buffer m_verticesBuffer = {};
-    Buffer m_trianglesBuffer = {};
+    std::unique_ptr<Buffer> m_verticesBuffer = {};
+    std::unique_ptr<Buffer> m_trianglesBuffer = {};
 
     size_t m_offset = 0;
 

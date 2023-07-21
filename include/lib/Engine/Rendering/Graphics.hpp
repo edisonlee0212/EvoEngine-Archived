@@ -43,22 +43,22 @@ namespace EvoEngine
 		VkQueue m_vkGraphicsQueue = VK_NULL_HANDLE;
 		VkQueue m_vkPresentQueue = VK_NULL_HANDLE;
 
-		Swapchain m_swapchain = {};
+		std::unique_ptr<Swapchain> m_swapchain = {};
 		
 		VkSurfaceFormatKHR m_vkSurfaceFormat = {};
 		
 
 #pragma endregion
 
-		CommandPool m_commandPool = {};
+		std::unique_ptr<CommandPool> m_commandPool = {};
 
 		int m_maxFrameInFlight = 2;
 
 		std::vector<VkCommandBuffer> m_vkCommandBuffers = {};
 
-		std::vector<Semaphore> m_imageAvailableSemaphores = {};
-		std::vector<Semaphore> m_renderFinishedSemaphores = {};
-		std::vector<Fence> m_inFlightFences = {};
+		std::vector<std::unique_ptr<Semaphore>> m_imageAvailableSemaphores = {};
+		std::vector<std::unique_ptr<Semaphore>> m_renderFinishedSemaphores = {};
+		std::vector<std::unique_ptr<Fence>> m_inFlightFences = {};
 		uint32_t m_currentFrameIndex = 0;
 
 		uint32_t m_nextImageIndex = 0;
@@ -93,8 +93,8 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
-		static void CreateCommandPool(CommandPool& target);
-		static void CreateCommandBuffers(const CommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
+		static std::unique_ptr<CommandPool> CreateCommandPool();
+		static void CreateCommandBuffers(const std::unique_ptr <CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static QueueFamilyIndices GetQueueFamilyIndices();
@@ -110,7 +110,7 @@ namespace EvoEngine
 		static VkQueue GetPresentVkQueue();
 		static VmaAllocator GetVmaAllocator();
 		static VkCommandBuffer GetCurrentVkCommandBuffer();
-		static Swapchain GetSwapchain();
+		static const std::unique_ptr<Swapchain>& GetSwapchain();
 		static unsigned GetSwapchainVersion();
 		static VkSurfaceFormatKHR GetVkSurfaceFormat();
 		[[nodiscard]] static bool CheckExtensionSupport(const std::string& extensionName);

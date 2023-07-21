@@ -4,18 +4,19 @@ namespace EvoEngine
 {
 	class IGraphicsResource
 	{
+	protected:
+		IGraphicsResource() = default;
 	public:
-		virtual void Destroy();
-		virtual ~IGraphicsResource();
 		IGraphicsResource& operator=(IGraphicsResource&) = delete;
 		IGraphicsResource& operator=(const IGraphicsResource&) = delete;
+		virtual ~IGraphicsResource() = default;
 	};
 	class Fence final : public IGraphicsResource
 	{
 		VkFence m_vkFence = VK_NULL_HANDLE;
 	public:
-		void Create(const VkFenceCreateInfo& vkFenceCreateInfo);
-		void Destroy() override;
+		explicit Fence(const VkFenceCreateInfo& vkFenceCreateInfo);
+		~Fence() override;
 
 		[[nodiscard]] VkFence GetVkFence() const;
 	};
@@ -24,21 +25,17 @@ namespace EvoEngine
 	{
 		VkSemaphore m_vkSemaphore = VK_NULL_HANDLE;
 	public:
-		void Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
-		void Destroy() override;
+		explicit Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
+		~Semaphore() override;
 		[[nodiscard]] VkSemaphore GetVkSemaphore() const;
 	};
-
-
-
-	
 
 	class ImageView final : public IGraphicsResource
 	{
 		VkImageView m_vkImageView = VK_NULL_HANDLE;
 	public:
-		void Create(const VkImageViewCreateInfo& imageViewCreateInfo);
-		void Destroy() override;
+		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo);
+		~ImageView() override;
 
 		[[nodiscard]] VkImageView GetVkImageView() const;
 	};
@@ -47,8 +44,8 @@ namespace EvoEngine
 	{
 		VkFramebuffer m_vkFramebuffer = VK_NULL_HANDLE;
 	public:
-		void Create(const VkFramebufferCreateInfo& framebufferCreateInfo);
-		void Destroy() override;
+		explicit Framebuffer(const VkFramebufferCreateInfo& framebufferCreateInfo);
+		~Framebuffer() override;
 
 		[[nodiscard]] VkFramebuffer GetVkFrameBuffer() const;
 	};
@@ -65,8 +62,8 @@ namespace EvoEngine
 
 
 	public:
-		void Create(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
-		void Destroy() override;
+		explicit Swapchain(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
+		~Swapchain() override;
 
 		[[nodiscard]] VkSwapchainKHR GetVkSwapchain() const;
 
@@ -82,10 +79,10 @@ namespace EvoEngine
 		shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source;
 		VkShaderModule m_vkShaderModule = VK_NULL_HANDLE;
 	public:
-		void Create(shaderc_shader_kind shaderKind, const std::vector<char>& code);
-		void Destroy() override;
+		ShaderModule(shaderc_shader_kind shaderKind, const std::vector<char>& code);
+		~ShaderModule() override;
 
-		void Create(shaderc_shader_kind shaderKind, const std::string& code);
+		ShaderModule(shaderc_shader_kind shaderKind, const std::string& code);
 
 		[[nodiscard]] VkShaderModule GetVkShaderModule() const;
 	};
@@ -94,8 +91,8 @@ namespace EvoEngine
 	{
 		VkRenderPass m_vkRenderPass = VK_NULL_HANDLE;
 	public:
-		void Create(const VkRenderPassCreateInfo& renderPassCreateInfo);
-		void Destroy() override;
+		RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo);
+		~RenderPass() override;
 
 		[[nodiscard]] VkRenderPass GetVkRenderPass() const;
 	};
@@ -104,8 +101,8 @@ namespace EvoEngine
 	{
 		VkPipelineLayout m_vkPipelineLayout = VK_NULL_HANDLE;
 	public:
-		void Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo);
-		void Destroy() override;
+		PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo);
+		~PipelineLayout() override;
 
 		[[nodiscard]] VkPipelineLayout GetVkPipelineLayout() const;
 	};
@@ -114,9 +111,9 @@ namespace EvoEngine
 	{
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
 	public:
-		void Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo);
+		explicit GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo);
 
-		void Destroy() override;
+		~GraphicsPipeline() override;
 
 		[[nodiscard]] VkPipeline GetVkPipeline() const;
 	};
@@ -125,9 +122,9 @@ namespace EvoEngine
 	{
 		VkCommandPool m_vkCommandPool = VK_NULL_HANDLE;
 	public:
-		void Create(const VkCommandPoolCreateInfo& commandPoolCreateInfo);
+		explicit CommandPool(const VkCommandPoolCreateInfo& commandPoolCreateInfo);
 
-		void Destroy() override;
+		~CommandPool() override;
 
 		[[nodiscard]] VkCommandPool GetVkCommandPool() const;
 	};
@@ -138,9 +135,9 @@ namespace EvoEngine
 		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
 		VmaAllocationInfo m_vmaAllocationInfo = {};
 	public:
-		void Create(const VkBufferCreateInfo& bufferCreateInfo);
-		void Destroy() override;
-		void Create(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+		explicit Buffer(const VkBufferCreateInfo& bufferCreateInfo);
+		~Buffer() override;
+		Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 
 		void Copy(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
 
@@ -159,16 +156,17 @@ namespace EvoEngine
 		VkImageLayout m_vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		VkExtent3D m_extent = {0, 0, 0};
 	public:
-		void Create(const VkImageCreateInfo& imageCreateInfo);
-		void Destroy() override;
+		explicit Image(const VkImageCreateInfo& imageCreateInfo);
+		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+
+		~Image() override;
 		void TransitionImageLayout(VkImageLayout newLayout);
-		void Create(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 		void Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		[[nodiscard]] VkImage GetVkImage() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
-
+		[[nodiscard]] VkExtent3D GetVkExtent3D() const;
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 	};
 
@@ -176,8 +174,8 @@ namespace EvoEngine
 	{
 		VkDescriptorSetLayout m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	public:
-		void Create(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo);
-		void Destroy() override;
+		explicit DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo);
+		~DescriptorSetLayout() override;
 		[[nodiscard]] VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
 	};
 
@@ -185,8 +183,8 @@ namespace EvoEngine
 	{
 		VkDescriptorPool m_vkDescriptorPool = VK_NULL_HANDLE;
 	public:
-		void Create(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo);
-		void Destroy() override;
+		explicit DescriptorPool(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo);
+		~DescriptorPool() override;
 		[[nodiscard]] VkDescriptorPool GetVkDescriptorPool() const;
 	};
 }

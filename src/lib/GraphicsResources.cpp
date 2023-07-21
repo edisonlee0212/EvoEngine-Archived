@@ -4,25 +4,14 @@
 #include "Utilities.hpp"
 
 using namespace EvoEngine;
-
-void IGraphicsResource::Destroy()
+Fence::Fence(const VkFenceCreateInfo& vkFenceCreateInfo)
 {
-}
-
-IGraphicsResource::~IGraphicsResource()
-{
-	Destroy();
-}
-
-void Fence::Create(const VkFenceCreateInfo& vkFenceCreateInfo)
-{
-	Destroy();
 	if (vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create vkFence!");
 	}
 }
 
-void Fence::Destroy()
+Fence::~Fence()
 {
 	if (m_vkFence != VK_NULL_HANDLE)
 	{
@@ -36,15 +25,14 @@ VkFence Fence::GetVkFence() const
 	return m_vkFence;
 }
 
-void Semaphore::Create(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
+Semaphore::Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
 {
-	Destroy();
 	if (vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create vkSemaphore!");
 	}
 }
 
-void Semaphore::Destroy()
+Semaphore::~Semaphore()
 {
 	if (m_vkSemaphore != VK_NULL_HANDLE)
 	{
@@ -60,9 +48,8 @@ VkSemaphore Semaphore::GetVkSemaphore() const
 	return m_vkSemaphore;
 }
 
-void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
+Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 {
-	Destroy();
 	const auto& device = Graphics::GetVkDevice();
 	if (vkCreateSwapchainKHR(Graphics::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain!");
@@ -98,7 +85,7 @@ void Swapchain::Create(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 	}
 }
 
-void Swapchain::Destroy()
+Swapchain::~Swapchain()
 {
 	for (const auto& imageView : m_vkImageViews) {
 		if (imageView != VK_NULL_HANDLE) {
@@ -139,15 +126,14 @@ VkExtent2D Swapchain::GetVkExtent2D() const
 
 
 
-void ImageView::Create(const VkImageViewCreateInfo& imageViewCreateInfo)
+ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo)
 {
-	Destroy();
 	if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image views!");
 	}
 }
 
-void ImageView::Destroy()
+ImageView::~ImageView()
 {
 	if (m_vkImageView != VK_NULL_HANDLE) {
 		vkDestroyImageView(Graphics::GetVkDevice(), m_vkImageView, nullptr);
@@ -160,15 +146,14 @@ VkImageView ImageView::GetVkImageView() const
 	return m_vkImageView;
 }
 
-void Framebuffer::Create(const VkFramebufferCreateInfo& framebufferCreateInfo)
+Framebuffer::Framebuffer(const VkFramebufferCreateInfo& framebufferCreateInfo)
 {
-	Destroy();
 	if (vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create framebuffer!");
 	}
 }
 
-void Framebuffer::Destroy()
+Framebuffer::~Framebuffer()
 {
 	if (m_vkFramebuffer != VK_NULL_HANDLE) {
 		vkDestroyFramebuffer(Graphics::GetVkDevice(), m_vkFramebuffer, nullptr);
@@ -181,9 +166,8 @@ VkFramebuffer Framebuffer::GetVkFrameBuffer() const
 	return m_vkFramebuffer;
 }
 
-void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char>& code)
+ShaderModule::ShaderModule(shaderc_shader_kind shaderKind, const std::vector<char>& code)
 {
-	Destroy();
 	m_shaderKind = shaderKind;
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -194,7 +178,7 @@ void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::vector<char
 	}
 }
 
-void ShaderModule::Destroy()
+ShaderModule::~ShaderModule()
 {
 	if (m_vkShaderModule != VK_NULL_HANDLE) {
 		vkDestroyShaderModule(Graphics::GetVkDevice(), m_vkShaderModule, nullptr);
@@ -202,9 +186,8 @@ void ShaderModule::Destroy()
 	}
 }
 
-void ShaderModule::Create(shaderc_shader_kind shaderKind, const std::string& code)
+ShaderModule::ShaderModule(shaderc_shader_kind shaderKind, const std::string& code)
 {
-	Destroy();
 	m_shaderKind = shaderKind;
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -221,15 +204,14 @@ VkShaderModule ShaderModule::GetVkShaderModule() const
 	return m_vkShaderModule;
 }
 
-void RenderPass::Create(const VkRenderPassCreateInfo& renderPassCreateInfo)
+RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
 {
-	Destroy();
 	if (vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create render pass!");
 	}
 }
 
-void RenderPass::Destroy()
+RenderPass::~RenderPass()
 {
 	if (m_vkRenderPass != VK_NULL_HANDLE) {
 		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
@@ -242,15 +224,14 @@ VkRenderPass RenderPass::GetVkRenderPass() const
 	return m_vkRenderPass;
 }
 
-void PipelineLayout::Create(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
+PipelineLayout::PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
-	Destroy();
 	if (vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
 }
 
-void PipelineLayout::Destroy()
+PipelineLayout::~PipelineLayout()
 {
 	if (m_vkPipelineLayout != VK_NULL_HANDLE) {
 		vkDestroyPipelineLayout(Graphics::GetVkDevice(), m_vkPipelineLayout, nullptr);
@@ -264,16 +245,15 @@ VkPipelineLayout PipelineLayout::GetVkPipelineLayout() const
 }
 
 
-void GraphicsPipeline::Create(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
+GraphicsPipeline::GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
 {
-	Destroy();
 	if (vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 }
 
-void GraphicsPipeline::Destroy()
+GraphicsPipeline::~GraphicsPipeline()
 {
 	if (m_vkGraphicsPipeline != VK_NULL_HANDLE) {
 		vkDestroyPipeline(Graphics::GetVkDevice(), m_vkGraphicsPipeline, nullptr);
@@ -289,15 +269,14 @@ VkPipeline GraphicsPipeline::GetVkPipeline() const
 
 
 
-void CommandPool::Create(const VkCommandPoolCreateInfo& commandPoolCreateInfo)
+CommandPool::CommandPool(const VkCommandPoolCreateInfo& commandPoolCreateInfo)
 {
-	Destroy();
 	if (vkCreateCommandPool(Graphics::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create command pool!");
 	}
 }
 
-void CommandPool::Destroy()
+CommandPool::~CommandPool()
 {
 	if (m_vkCommandPool != VK_NULL_HANDLE)
 	{
@@ -311,9 +290,8 @@ VkCommandPool CommandPool::GetVkCommandPool() const
 	return m_vkCommandPool;
 }
 
-void Image::Create(const VkImageCreateInfo& imageCreateInfo)
+Image::Image(const VkImageCreateInfo& imageCreateInfo)
 {
-	Destroy();
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &allocInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
@@ -326,9 +304,8 @@ void Image::Create(const VkImageCreateInfo& imageCreateInfo)
 
 
 
-void Image::Create(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+Image::Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
-	Destroy();
 	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image!");
 	}
@@ -364,8 +341,13 @@ VmaAllocation Image::GetVmaAllocation() const
 	return m_vmaAllocation;
 }
 
+VkExtent3D Image::GetVkExtent3D() const
+{
+	return m_extent;
+}
 
-void Image::Destroy()
+
+Image::~Image()
 {
 	if (m_vkImage != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE) {
 		vmaDestroyImage(Graphics::GetVmaAllocator(), m_vkImage, m_vmaAllocation);
@@ -430,9 +412,8 @@ const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 	return m_vmaAllocationInfo;
 }
 
-void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo)
+Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo)
 {
-	Destroy();
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
@@ -440,15 +421,14 @@ void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo)
 	}
 }
 
-void Buffer::Create(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
-	Destroy();
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 }
 
-void Buffer::Destroy()
+Buffer::~Buffer()
 {
 	if (m_vkBuffer != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE)
 	{
@@ -486,15 +466,14 @@ const VmaAllocationInfo& Buffer::GetVmaAllocationInfo() const
 	return m_vmaAllocationInfo;
 }
 
-void DescriptorSetLayout::Create(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo)
+DescriptorSetLayout::DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo)
 {
-	Destroy();
 	if (vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 }
 
-void DescriptorSetLayout::Destroy()
+DescriptorSetLayout::~DescriptorSetLayout()
 {
 	if (m_vkDescriptorSetLayout != VK_NULL_HANDLE)
 	{
@@ -508,15 +487,14 @@ VkDescriptorSetLayout DescriptorSetLayout::GetVkDescriptorSetLayout() const
 	return m_vkDescriptorSetLayout;
 }
 
-void DescriptorPool::Create(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo)
+DescriptorPool::DescriptorPool(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo)
 {
-	Destroy();
 	if (vkCreateDescriptorPool(Graphics::GetVkDevice(), &descriptorPoolCreateInfo, nullptr, &m_vkDescriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor pool!");
 	}
 }
 
-void DescriptorPool::Destroy()
+DescriptorPool::~DescriptorPool()
 {
 	if (m_vkDescriptorPool != VK_NULL_HANDLE)
 	{

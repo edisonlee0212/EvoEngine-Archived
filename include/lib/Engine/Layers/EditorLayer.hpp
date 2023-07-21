@@ -74,7 +74,7 @@ namespace EvoEngine
 
 		glm::vec2 m_mouseScreenPosition;
 
-		DescriptorPool m_imguiDescriptorPool = {};
+		std::unique_ptr<DescriptorPool> m_imguiDescriptorPool = {};
 
 		void OnCreate() override;
 		void OnDestroy() override;
@@ -82,8 +82,8 @@ namespace EvoEngine
 		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-		RenderPass m_renderPass = {};
-		std::vector<Framebuffer> m_framebuffers = {};
+		std::unique_ptr<RenderPass> m_renderPass = {};
+		std::vector<std::unique_ptr<Framebuffer>> m_framebuffers = {};
 
 		bool DrawEntityMenu(const bool& enabled, const Entity& entity);
 

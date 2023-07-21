@@ -36,7 +36,7 @@ void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandB
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = graphics.m_commandPool.GetVkCommandPool();
+	allocInfo.commandPool = graphics.m_commandPool->GetVkCommandPool();
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
@@ -58,7 +58,7 @@ void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandB
 	vkQueueSubmit(graphics.m_vkGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(graphics.m_vkGraphicsQueue);
 
-	vkFreeCommandBuffers(graphics.m_vkDevice, graphics.m_commandPool.GetVkCommandPool(), 1, &commandBuffer);
+	vkFreeCommandBuffers(graphics.m_vkDevice, graphics.m_commandPool->GetVkCommandPool(), 1, &commandBuffer);
 }
 
 QueueFamilyIndices Graphics::GetQueueFamilyIndices()
@@ -112,7 +112,7 @@ uint32_t Graphics::GetNextImageIndex()
 VkCommandPool Graphics::GetVkCommandPool()
 {
 	const auto& graphics = GetInstance();
-	return graphics.m_commandPool.GetVkCommandPool();
+	return graphics.m_commandPool->GetVkCommandPool();
 }
 
 VkQueue Graphics::GetGraphicsVkQueue()
@@ -139,7 +139,7 @@ VkCommandBuffer Graphics::GetCurrentVkCommandBuffer()
 	return graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
 }
 
-Swapchain Graphics::GetSwapchain()
+const std::unique_ptr<Swapchain>& Graphics::GetSwapchain()
 {
 	const auto& graphics = GetInstance();
 	return graphics.m_swapchain;
@@ -579,7 +579,7 @@ void Graphics::SetupVmaAllocator()
 #pragma endregion
 }
 
-void Graphics::CreateCommandPool(CommandPool& target)
+std::unique_ptr<CommandPool> Graphics::CreateCommandPool()
 {
 	const auto& graphics = GetInstance();
 #pragma region Command pool
@@ -587,17 +587,18 @@ void Graphics::CreateCommandPool(CommandPool& target)
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
-	target.Create(poolInfo);
+	auto retVal = std::make_unique<CommandPool>(poolInfo);
 #pragma endregion
+	return retVal;
 }
 
-void Graphics::CreateCommandBuffers(const CommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers)
+void Graphics::CreateCommandBuffers(const std::unique_ptr<CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers)
 {
 	const auto& graphics = GetInstance();
 #pragma region Command buffers
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = commandPool.GetVkCommandPool();
+	allocInfo.commandPool = commandPool->GetVkCommandPool();
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = static_cast<uint32_t>(graphics.m_maxFrameInFlight);
 	commandBuffers.resize(graphics.m_maxFrameInFlight);
@@ -632,11 +633,11 @@ void Graphics::CreateSwapChainSyncObjects()
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	m_renderFinishedSemaphores.resize(m_maxFrameInFlight);
-	m_inFlightFences.resize(m_maxFrameInFlight);
+	m_renderFinishedSemaphores.clear();
+	m_inFlightFences.clear();
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_renderFinishedSemaphores[i].Create(semaphoreCreateInfo);
-		m_inFlightFences[i].Create(fenceCreateInfo);
+		m_renderFinishedSemaphores.emplace_back(std::make_unique<Semaphore>(semaphoreCreateInfo));
+		m_inFlightFences.emplace_back(std::make_unique<Fence>(fenceCreateInfo));
 	}
 #pragma endregion
 }
@@ -662,7 +663,8 @@ void Graphics::CreateSwapChain()
 		}
 	}
 
-	VkExtent2D extent = m_swapchain.GetVkExtent2D();
+	VkExtent2D extent = {};
+	if(m_swapchain) extent = m_swapchain->GetVkExtent2D();
 	if (swapChainSupportDetails.m_capabilities.currentExtent.width != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.height != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -724,18 +726,25 @@ void Graphics::CreateSwapChain()
 	swapchainCreateInfo.presentMode = presentMode;
 	swapchainCreateInfo.clipped = VK_TRUE;
 
-	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+	if(m_swapchain)
+	{
+		swapchainCreateInfo.oldSwapchain = m_swapchain->GetVkSwapchain();
+	}else
+	{
+		swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+	}
+
 	if (extent.width == 0)
 	{
 		EVOENGINE_ERROR("WRONG")
 	}
-	m_swapchain.Create(swapchainCreateInfo);
+	m_swapchain = std::make_unique<Swapchain>(swapchainCreateInfo);
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	m_imageAvailableSemaphores.resize(m_maxFrameInFlight);
+	m_imageAvailableSemaphores.clear();
 	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_imageAvailableSemaphores[i].Create(semaphoreCreateInfo);
+		m_imageAvailableSemaphores.emplace_back(std::make_unique<Semaphore>(semaphoreCreateInfo));
 	}
 
 	m_swapchainVersion++;
@@ -754,15 +763,12 @@ void Graphics::OnDestroy()
 	vkDeviceWaitIdle(m_vkDevice);
 
 #pragma region Vulkan
-	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_inFlightFences[i].Destroy();
-		m_renderFinishedSemaphores[i].Destroy();
-		m_imageAvailableSemaphores[i].Destroy();
-	}
-	m_commandPool.Destroy();
+	m_inFlightFences.clear();
+	m_renderFinishedSemaphores.clear();
+	m_imageAvailableSemaphores.clear();
+	m_commandPool.reset();
+	m_swapchain.reset();
 
-	
-	m_swapchain.Destroy();
 	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
 #ifndef NDEBUG
@@ -782,18 +788,18 @@ void Graphics::SwapChainSwapImage()
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
 	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
-	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex].GetVkFence() };
+	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
-		m_swapchain.GetVkSwapchain(), UINT64_MAX,
-		m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
+		m_swapchain->GetVkSwapchain(), UINT64_MAX,
+		m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
 		VK_NULL_HANDLE, &m_nextImageIndex);
 	while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_recreateSwapChain) {
 		RecreateSwapChain();
 		result = vkAcquireNextImageKHR(m_vkDevice,
-			m_swapchain.GetVkSwapchain(), UINT64_MAX,
-			m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore(),
+			m_swapchain->GetVkSwapchain(), UINT64_MAX,
+			m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
 			VK_NULL_HANDLE, &m_nextImageIndex);
 		m_recreateSwapChain = false;
 	}
@@ -812,7 +818,7 @@ void Graphics::SubmitPresent()
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex].GetVkSemaphore() };
+	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -821,10 +827,10 @@ void Graphics::SubmitPresent()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_vkCommandBuffers[m_currentFrameIndex];
 
-	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex].GetVkSemaphore() };
+	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
-	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex].GetVkFence()) != VK_SUCCESS) {
+	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -834,7 +840,7 @@ void Graphics::SubmitPresent()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { m_swapchain.GetVkSwapchain() };
+	VkSwapchainKHR swapChains[] = { m_swapchain->GetVkSwapchain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
@@ -880,7 +886,7 @@ void Graphics::Initialize()
 		}
 	}
 	if (graphics.m_queueFamilyIndices.m_graphicsFamily.has_value()) {
-		CreateCommandPool(graphics.m_commandPool);
+		graphics.m_commandPool = CreateCommandPool();
 		CreateCommandBuffers(graphics.m_commandPool, graphics.m_vkCommandBuffers);
 		graphics.CreateSwapChainSyncObjects();
 	}
