@@ -367,9 +367,8 @@ void Graphics::CreateInstance()
 #pragma endregion
 		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	}
+	
 	m_requiredLayers = { "VK_LAYER_KHRONOS_validation" };
-	std::vector<const char*> cRequiredDeviceExtensions;
-	for (const auto& i : m_requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
 	std::vector<const char*> cRequiredLayers;
 	for (const auto& i : m_requiredLayers) cRequiredLayers.emplace_back(i.c_str());
 
@@ -495,6 +494,8 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 void Graphics::CreatePhysicalDevice()
 {
 #pragma region Physical Device
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+
 	m_vkPhysicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
@@ -662,7 +663,7 @@ void Graphics::CreateSwapChain()
 	}
 
 	VkExtent2D extent = {};
-	if (m_swapchain) extent = m_swapchain->GetVkExtent2D();
+	if (m_swapchain) extent = m_swapchain->GetImageExtent();
 	if (swapChainSupportDetails.m_capabilities.currentExtent.width != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.height != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {

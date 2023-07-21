@@ -14,6 +14,7 @@ namespace EvoEngine
 	class Fence final : public IGraphicsResource
 	{
 		VkFence m_vkFence = VK_NULL_HANDLE;
+		VkFenceCreateFlags m_flags = {};
 	public:
 		explicit Fence(const VkFenceCreateInfo& vkFenceCreateInfo);
 		~Fence() override;
@@ -24,6 +25,7 @@ namespace EvoEngine
 	class Semaphore final : public IGraphicsResource
 	{
 		VkSemaphore m_vkSemaphore = VK_NULL_HANDLE;
+		VkSemaphoreCreateFlags m_flags = {};
 	public:
 		explicit Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
 		~Semaphore() override;
@@ -33,6 +35,13 @@ namespace EvoEngine
 	class ImageView final : public IGraphicsResource
 	{
 		VkImageView m_vkImageView = VK_NULL_HANDLE;
+
+		VkImageViewCreateFlags     m_flags;
+		VkImage                    m_image;
+		VkImageViewType            m_viewType;
+		VkFormat                   m_format;
+		VkComponentMapping         m_components;
+		VkImageSubresourceRange    m_subresourceRange;
 	public:
 		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo);
 		~ImageView() override;
@@ -43,6 +52,14 @@ namespace EvoEngine
 	class Framebuffer final : public IGraphicsResource
 	{
 		VkFramebuffer m_vkFramebuffer = VK_NULL_HANDLE;
+
+		VkFramebufferCreateFlags m_flags;
+		VkRenderPass m_renderPass;
+		std::vector<VkImageView> m_attachments;
+		uint32_t m_width;
+		uint32_t m_height;
+		uint32_t m_layers;
+
 	public:
 		explicit Framebuffer(const VkFramebufferCreateInfo& framebufferCreateInfo);
 		~Framebuffer() override;
@@ -55,12 +72,22 @@ namespace EvoEngine
 		VkSwapchainKHR m_vkSwapchain = VK_NULL_HANDLE;
 		std::vector<VkImage> m_vkImages;
 
-		VkFormat m_vkFormat = {};
-		VkExtent2D m_vkExtent2D = {};
+		VkSwapchainCreateFlagsKHR m_flags;
+		VkSurfaceKHR m_surface;
+		uint32_t m_minImageCount;
+		VkFormat                         m_imageFormat;
+		VkColorSpaceKHR                  m_imageColorSpace;
+		VkExtent2D                       m_imageExtent;
+		uint32_t                         m_imageArrayLayers;
+		VkImageUsageFlags                m_imageUsage;
+		VkSharingMode                    m_imageSharingMode;
+		std::vector<uint32_t>			m_queueFamilyIndices;
+		VkSurfaceTransformFlagBitsKHR    m_preTransform;
+		VkCompositeAlphaFlagBitsKHR      m_compositeAlpha;
+		VkPresentModeKHR                 m_presentMode;
+		VkBool32                         m_clipped;
 
 		std::vector<VkImageView> m_vkImageViews;
-
-
 	public:
 		explicit Swapchain(const VkSwapchainCreateInfoKHR& swapchainCreateInfo);
 		~Swapchain() override;
@@ -69,15 +96,17 @@ namespace EvoEngine
 
 		[[nodiscard]] const std::vector<VkImage>& GetVkImages() const;
 		[[nodiscard]] const std::vector<VkImageView>& GetVkImageViews() const;
-		[[nodiscard]] VkFormat GetVkFormat() const;
+		[[nodiscard]] VkFormat GetImageFormat() const;
 
-		[[nodiscard]] VkExtent2D GetVkExtent2D() const;
+		[[nodiscard]] VkExtent2D GetImageExtent() const;
 	};
 
 	class ShaderModule final : public IGraphicsResource
 	{
 		shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source;
 		VkShaderModule m_vkShaderModule = VK_NULL_HANDLE;
+
+		std::string m_code;
 	public:
 		ShaderModule(shaderc_shader_kind shaderKind, const std::vector<char>& code);
 		~ShaderModule() override;
@@ -86,10 +115,25 @@ namespace EvoEngine
 
 		[[nodiscard]] VkShaderModule GetVkShaderModule() const;
 	};
+	struct SubpassDescription
+	{
+		VkSubpassDescriptionFlags m_flags;
+		VkPipelineBindPoint m_pipelineBindPoint;
+		std::vector<VkAttachmentReference> m_inputAttachments;
+		std::vector<VkAttachmentReference> m_colorAttachments;
+		std::vector<VkAttachmentReference> m_resolveAttachments;
+		std::optional<VkAttachmentReference> m_depthStencilAttachment;
+		std::vector<uint32_t> m_preserveAttachment;
+	};
 
 	class RenderPass final : public IGraphicsResource
 	{
 		VkRenderPass m_vkRenderPass = VK_NULL_HANDLE;
+
+		VkRenderPassCreateFlags m_flags;
+		std::vector<VkAttachmentDescription> m_attachments;
+		std::vector<SubpassDescription> m_subpasses;
+		std::vector<VkSubpassDependency> m_dependencies;
 	public:
 		RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo);
 		~RenderPass() override;
@@ -100,6 +144,10 @@ namespace EvoEngine
 	class PipelineLayout final : public IGraphicsResource
 	{
 		VkPipelineLayout m_vkPipelineLayout = VK_NULL_HANDLE;
+
+		VkPipelineLayoutCreateFlags     m_flags;
+		std::vector<VkDescriptorSetLayout> m_setLayouts;
+		std::vector<VkPushConstantRange> m_pushConstantRanges;
 	public:
 		PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo);
 		~PipelineLayout() override;
@@ -107,10 +155,129 @@ namespace EvoEngine
 		[[nodiscard]] VkPipelineLayout GetVkPipelineLayout() const;
 	};
 
+	struct PipelineShaderStage
+	{
+		VkPipelineShaderStageCreateFlags    m_flags;
+		VkShaderStageFlagBits               m_stage;
+		VkShaderModule                      m_module;
+		std::string							m_name;
+		std::optional<VkSpecializationInfo> m_specializationInfo;
+		void Apply(const VkPipelineShaderStageCreateInfo& vkPipelineShaderStageCreateInfo);
+	};
+
+	struct PipelineVertexInputState
+	{
+		VkPipelineVertexInputStateCreateFlags m_flags;
+		std::vector<VkVertexInputBindingDescription> m_vertexBindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> m_vertexAttributeDescriptions;
+		void Apply(const VkPipelineVertexInputStateCreateInfo& vkPipelineShaderStageCreateInfo);
+	};
+	struct PipelineInputAssemblyState
+	{
+		VkPipelineInputAssemblyStateCreateFlags    m_flags;
+		VkPrimitiveTopology                        m_topology;
+		VkBool32                                   m_primitiveRestartEnable;
+		void Apply(const VkPipelineInputAssemblyStateCreateInfo& vkPipelineInputAssemblyStateCreateInfo);
+
+	};
+
+	struct PipelineTessellationState
+	{
+		VkPipelineTessellationStateCreateFlags    m_flags;
+		uint32_t                                  m_patchControlPoints;
+		void Apply(const VkPipelineTessellationStateCreateInfo& vkPipelineTessellationStateCreateInfo);
+
+	};
+
+	struct PipelineViewportState
+	{
+		VkPipelineViewportStateCreateFlags    m_flags;
+		std::vector<VkViewport> m_viewports;
+		std::vector<VkRect2D> m_scissors;
+		void Apply(const VkPipelineViewportStateCreateInfo& vkPipelineViewportStateCreateInfo);
+	};
+
+	struct PipelineRasterizationState
+	{
+		VkPipelineRasterizationStateCreateFlags    m_flags;
+		VkBool32                                   m_depthClampEnable;
+		VkBool32                                   m_rasterizerDiscardEnable;
+		VkPolygonMode                              m_polygonMode;
+		VkCullModeFlags                            m_cullMode;
+		VkFrontFace                                m_frontFace;
+		VkBool32                                   m_depthBiasEnable;
+		float                                      m_depthBiasConstantFactor;
+		float                                      m_depthBiasClamp;
+		float                                      m_depthBiasSlopeFactor;
+		float                                      m_lineWidth;
+		void Apply(const VkPipelineRasterizationStateCreateInfo& vkPipelineRasterizationStateCreateInfo);
+	};
+
+	struct PipelineMultisampleState
+	{
+		VkPipelineMultisampleStateCreateFlags    m_flags;
+		VkSampleCountFlagBits                    m_rasterizationSamples;
+		VkBool32                                 m_sampleShadingEnable;
+		float                                    m_minSampleShading;
+		std::optional<VkSampleMask>	m_sampleMask;
+		VkBool32                                 m_alphaToCoverageEnable;
+		VkBool32                                 m_alphaToOneEnable;
+		void Apply(const VkPipelineMultisampleStateCreateInfo& vkPipelineMultisampleStateCreateInfo);
+	};
+	struct PipelineDepthStencilState
+	{
+		VkPipelineDepthStencilStateCreateFlags    m_flags;
+		VkBool32                                  m_depthTestEnable;
+		VkBool32                                  m_depthWriteEnable;
+		VkCompareOp                               m_depthCompareOp;
+		VkBool32                                  m_depthBoundsTestEnable;
+		VkBool32                                  m_stencilTestEnable;
+		VkStencilOpState                          m_front;
+		VkStencilOpState                          m_back;
+		float                                     m_minDepthBounds;
+		float                                     m_maxDepthBounds;
+		void Apply(const VkPipelineDepthStencilStateCreateInfo& vkPipelineDepthStencilStateCreateInfo);
+	};
+	struct PipelineColorBlendState
+	{
+		VkPipelineColorBlendStateCreateFlags          m_flags;
+		VkBool32                                      m_logicOpEnable;
+		VkLogicOp                                     m_logicOp;
+		std::vector<VkPipelineColorBlendAttachmentState> m_attachments;
+		float                                         m_blendConstants[4];
+		void Apply(const VkPipelineColorBlendStateCreateInfo& vkPipelineColorBlendStateCreateInfo);
+	};
+
+	struct PipelineDynamicState
+	{
+		VkPipelineDynamicStateCreateFlags    m_flags;
+		std::vector<VkDynamicState> m_dynamicStates;
+		void Apply(const VkPipelineDynamicStateCreateInfo& vkPipelineDynamicStateCreateInfo);
+	};
+
 	class GraphicsPipeline final : public IGraphicsResource
 	{
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
+
+		VkPipelineCreateFlags                            m_flags;
+		std::vector<PipelineShaderStage> m_stages;
+		std::optional<PipelineVertexInputState> m_vertexInputState;
+		std::optional<PipelineInputAssemblyState> m_inputAssemblyState;
+		std::optional<PipelineTessellationState> m_tessellationState;
+		std::optional<PipelineViewportState> m_viewportState;
+		std::optional<PipelineRasterizationState> m_rasterizationState;
+		std::optional<PipelineMultisampleState> m_multisampleState;
+		std::optional<PipelineDepthStencilState> m_depthStencilState;
+		std::optional<PipelineColorBlendState> m_colorBlendState;
+		std::optional<PipelineDynamicState> m_dynamicState;
+
+		VkPipelineLayout                                 m_layout;
+		VkRenderPass                                     m_renderPass;
+		uint32_t                                         m_subpass;
+		VkPipeline                                       m_basePipelineHandle;
+		int32_t                                          m_basePipelineIndex;
 	public:
+
 		explicit GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo);
 
 		~GraphicsPipeline() override;
@@ -154,7 +321,7 @@ namespace EvoEngine
 		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
 		VmaAllocationInfo m_vmaAllocationInfo = {};
 		VkImageLayout m_vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VkExtent3D m_extent = {0, 0, 0};
+		VkExtent3D m_extent = { 0, 0, 0 };
 	public:
 		explicit Image(const VkImageCreateInfo& imageCreateInfo);
 		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);

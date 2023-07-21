@@ -113,7 +113,7 @@ void RenderLayer::OnCreate()
 	bufferInfos[2].range = sizeof(CameraInfoBlock);
 	bufferInfos[3].offset = 0;
 	bufferInfos[3].range = sizeof(MaterialInfoBlock);
-	m_descriptorBuffers.resize(maxFramesInFlight * bindingsSize);
+	m_descriptorBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -123,10 +123,10 @@ void RenderLayer::OnCreate()
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	bufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-	m_renderInfoBlockMemory.clear();
-	m_environmentalInfoBlockMemory.clear();
-	m_cameraInfoBlockMemory.clear();
-	m_materialInfoBlockMemory.clear();
+	m_renderInfoBlockMemory.resize(maxFramesInFlight);
+	m_environmentalInfoBlockMemory.resize(maxFramesInFlight);
+	m_cameraInfoBlockMemory.resize(maxFramesInFlight);
+	m_materialInfoBlockMemory.resize(maxFramesInFlight);
 	for (size_t i = 0; i < maxFramesInFlight; i++) {
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
 		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
@@ -221,7 +221,7 @@ void RenderLayer::LateUpdate()
 {
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
-			const auto extent2D = Graphics::GetSwapchain()->GetVkExtent2D();
+			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassBeginInfo.renderPass = m_renderPass->GetVkRenderPass();
@@ -388,8 +388,8 @@ bool RenderLayer::UpdateFramebuffers()
 		framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swapChain->GetVkExtent2D().width;
-		framebufferInfo.height = swapChain->GetVkExtent2D().height;
+		framebufferInfo.width = swapChain->GetImageExtent().width;
+		framebufferInfo.height = swapChain->GetImageExtent().height;
 		framebufferInfo.layers = 1;
 		m_framebuffers.emplace_back(std::make_unique<Framebuffer>(framebufferInfo));
 	}
@@ -406,7 +406,7 @@ void RenderLayer::CreateRenderPass()
 	}
 	else {
 		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = Graphics::GetSwapchain()->GetVkFormat();
+		colorAttachment.format = Graphics::GetSwapchain()->GetImageFormat();
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

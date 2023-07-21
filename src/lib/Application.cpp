@@ -128,7 +128,7 @@ void Application::LateUpdateInternal()
 
 			Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 				{
-					const auto extent2D = Graphics::GetSwapchain()->GetVkExtent2D();
+					const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 					VkRenderPassBeginInfo renderPassBeginInfo{};
 					renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 					renderPassBeginInfo.renderPass = editorLayer->m_renderPass->GetVkRenderPass();
