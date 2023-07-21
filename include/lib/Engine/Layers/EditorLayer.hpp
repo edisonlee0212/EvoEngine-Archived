@@ -74,8 +74,8 @@ namespace EvoEngine
 
 		glm::vec2 m_mouseScreenPosition;
 
-		std::unique_ptr<DescriptorPool> m_imguiDescriptorPool = {};
 
+		void LoadIcons();
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;

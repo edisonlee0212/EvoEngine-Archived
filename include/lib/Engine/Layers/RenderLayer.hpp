@@ -75,7 +75,7 @@ namespace EvoEngine
 		std::vector<void*> m_cameraInfoBlockMemory;
 		std::vector<void*> m_materialInfoBlockMemory;
 
-		std::unique_ptr<DescriptorPool> m_descriptorPool = {};
+		
 		std::vector<std::unique_ptr<Buffer>> m_descriptorBuffers = {};
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};

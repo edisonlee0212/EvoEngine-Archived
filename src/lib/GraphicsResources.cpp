@@ -313,7 +313,7 @@ Image::Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreate
 	m_extent = imageCreateInfo.extent;
 }
 
-void Image::Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset) const
+void Image::Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
 {
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
@@ -327,7 +327,7 @@ void Image::Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset) const
 			region.imageSubresource.layerCount = 1;
 			region.imageOffset = { 0, 0, 0 };
 			region.imageExtent = m_extent;
-			vkCmdCopyBufferToImage(commandBuffer, srcBuffer.GetVkBuffer(), m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+			vkCmdCopyBufferToImage(commandBuffer, srcBuffer, m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 		});
 }
 
@@ -410,6 +410,26 @@ void Image::TransitionImageLayout(VkImageLayout newLayout)
 const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 {
 	return m_vmaAllocationInfo;
+}
+
+Sampler::Sampler(const VkSamplerCreateInfo& samplerCreateInfo)
+{
+	if (vkCreateSampler(Graphics::GetVkDevice(), &samplerCreateInfo, nullptr, &m_vkSampler) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create sampler!");
+	}
+}
+
+Sampler::~Sampler()
+{
+	if (m_vkSampler != VK_NULL_HANDLE) {
+		vkDestroySampler(Graphics::GetVkDevice(), m_vkSampler, nullptr);
+		m_vkSampler = VK_NULL_HANDLE;
+	}
+}
+
+VkSampler Sampler::GetVkSampler() const
+{
+	return m_vkSampler;
 }
 
 Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo)

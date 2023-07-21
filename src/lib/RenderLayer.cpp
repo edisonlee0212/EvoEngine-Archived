@@ -74,23 +74,11 @@ void RenderLayer::OnCreate()
 
 	m_perObjectGroupLayout = std::make_unique<DescriptorSetLayout>(perObjectGroupLayoutInfo);
 
-	size_t bindingsSize = perFrameBindings.size() + perPassBindings.size() + perObjectGroupBindings.size();
-	VkDescriptorPoolSize renderLayerDescriptorPoolSize{};
-	renderLayerDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	renderLayerDescriptorPoolSize.descriptorCount =
-		static_cast<uint32_t>(maxFramesInFlight * bindingsSize);
-
-	VkDescriptorPoolCreateInfo renderLayerDescriptorPoolInfo{};
-	renderLayerDescriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	renderLayerDescriptorPoolInfo.poolSizeCount = 1;
-	renderLayerDescriptorPoolInfo.pPoolSizes = &renderLayerDescriptorPoolSize;
-	renderLayerDescriptorPoolInfo.maxSets = static_cast<uint32_t>(maxFramesInFlight * 3);
-	m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
-
+	
 	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool->GetVkDescriptorPool();
+	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
 	allocInfo.pSetLayouts = perFrameLayouts.data();
 	m_perFrameDescriptorSets.resize(maxFramesInFlight);
@@ -113,6 +101,8 @@ void RenderLayer::OnCreate()
 	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, m_perObjectGroupDescriptorSets.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
+
+	size_t bindingsSize = perFrameBindings.size() + perPassBindings.size() + perObjectGroupBindings.size();
 
 	VkDescriptorBufferInfo bufferInfos[4] = {};
 	bufferInfos[0].offset = 0;
@@ -212,7 +202,6 @@ void RenderLayer::OnDestroy()
 {
 	m_descriptorBuffers.clear();
 
-	m_descriptorPool.reset();
 	m_perObjectGroupLayout.reset();
 	m_perPassLayout.reset();
 	m_perFrameLayout.reset();

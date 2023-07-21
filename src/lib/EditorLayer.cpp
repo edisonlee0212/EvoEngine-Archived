@@ -8,6 +8,85 @@
 #include "Scene.hpp"
 using namespace EvoEngine;
 
+void EditorLayer::LoadIcons()
+{
+	auto texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/project.png");
+	m_assetsIcons["Project"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/scene.png");
+	m_assetsIcons["Scene"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/binary.png");
+	m_assetsIcons["Binary"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/folder.png");
+	m_assetsIcons["Folder"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/material.png");
+	m_assetsIcons["Material"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/mesh.png");
+	m_assetsIcons["Mesh"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/prefab.png");
+	m_assetsIcons["Prefab"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/texture2d.png");
+	m_assetsIcons["Texture2D"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PlayButton.png");
+	m_assetsIcons["PlayButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PauseButton.png");
+	m_assetsIcons["PauseButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StopButton.png");
+	m_assetsIcons["StopButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StepButton.png");
+	m_assetsIcons["StepButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/back.png");
+	m_assetsIcons["BackButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/left.png");
+	m_assetsIcons["LeftButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/right.png");
+	m_assetsIcons["RightButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/refresh.png");
+	m_assetsIcons["RefreshButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/InfoButton.png");
+	m_assetsIcons["InfoButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/ErrorButton.png");
+	m_assetsIcons["ErrorButton"] = texture2D;
+
+	texture2D = std::make_shared<Texture2D>();
+	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/WarningButton.png");
+	m_assetsIcons["WarningButton"] = texture2D;
+}
+
 void EditorLayer::OnCreate()
 {
 	m_basicEntityArchetype = Entities::CreateEntityArchetype("General", GlobalTransform(), Transform());
@@ -128,32 +207,6 @@ void EditorLayer::OnCreate()
 	//io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 	ImGui::StyleColorsDark();
 
-	//1: create descriptor pool for IMGUI
-	// the size of the pool is very oversize, but it's copied from imgui demo itself.
-	VkDescriptorPoolSize pool_sizes[] =
-	{
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-	};
-
-	VkDescriptorPoolCreateInfo pool_info = {};
-	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	pool_info.maxSets = 1000;
-	pool_info.poolSizeCount = std::size(pool_sizes);
-	pool_info.pPoolSizes = pool_sizes;
-
-	m_imguiDescriptorPool = std::make_unique<DescriptorPool>(pool_info);
-
 
 	// 2: initialize imgui library
 
@@ -171,7 +224,7 @@ void EditorLayer::OnCreate()
 	init_info.QueueFamily = Graphics::GetQueueFamilyIndices().m_graphicsFamily.value();
 	init_info.Queue = Graphics::GetGraphicsVkQueue();
 	init_info.PipelineCache = VK_NULL_HANDLE;
-	init_info.DescriptorPool = m_imguiDescriptorPool->GetVkDescriptorPool();
+	init_info.DescriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
 	init_info.MinImageCount = Graphics::GetSwapchain()->GetVkImageViews().size();
 	init_info.ImageCount = Graphics::GetSwapchain()->GetVkImageViews().size();
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -188,6 +241,8 @@ void EditorLayer::OnCreate()
 
 	//clear font textures from cpu data
 	//ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+	LoadIcons();
 }
 
 void EditorLayer::OnDestroy()
@@ -195,7 +250,6 @@ void EditorLayer::OnDestroy()
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-	m_imguiDescriptorPool.reset();
 }
 
 void EditorLayer::PreUpdate()
@@ -253,18 +307,18 @@ void EditorLayer::PreUpdate()
 	m_mainCameraFocusOverride = false;
 	m_sceneCameraFocusOverride = false;
 	if (ImGui::BeginMainMenuBar()) {
-		/*
+
 		switch (Application::GetApplicationStatus()) {
 		case ApplicationStatus::Stop: {
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["PlayButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["PlayButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
 				Application::Play();
 			}
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["StepButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["StepButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
@@ -274,14 +328,14 @@ void EditorLayer::PreUpdate()
 		}
 		case ApplicationStatus::Playing: {
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["PauseButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["PauseButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
 				Application::Pause();
 			}
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["StopButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["StopButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
@@ -291,21 +345,21 @@ void EditorLayer::PreUpdate()
 		}
 		case ApplicationStatus::Pause: {
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["PlayButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["PlayButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
 				Application::Play();
 			}
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["StepButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["StepButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
 				Application::Step();
 			}
 			if (ImGui::ImageButton(
-				(ImTextureID)m_assetsIcons["StopButton"]->UnsafeGetGLTexture()->Id(),
+				m_assetsIcons["StopButton"]->GetImTextureId(),
 				{ 15, 15 },
 				{ 0, 1 },
 				{ 1, 0 })) {
@@ -314,8 +368,8 @@ void EditorLayer::PreUpdate()
 			break;
 		}
 		}
-		*/
-		ImGui::Separator();
+		
+			ImGui::Separator();
 		if (ImGui::BeginMenu("Project")) {
 			ImGui::EndMenu();
 		}
@@ -387,8 +441,8 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		std::string title = scene->GetTitle();
 		if (ImGui::CollapsingHeader(title.c_str(),
 			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow)) {
-			EditorLayer::DraggableAsset(scene);
-			EditorLayer::RenameAsset(scene);
+			DraggableAsset(scene);
+			RenameAsset(scene);
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
 				ProjectManager::GetInstance().m_inspectingAsset = scene;
 			}

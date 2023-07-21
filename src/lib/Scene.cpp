@@ -7,6 +7,7 @@
 #include "Jobs.hpp"
 using namespace EvoEngine;
 AssetRegistration<Scene> SceneReg("Scene", { ".uescene" });
+
 void Scene::Purge()
 {
     m_sceneDataStorage.m_entityPrivateComponentStorage = PrivateComponentStorage();

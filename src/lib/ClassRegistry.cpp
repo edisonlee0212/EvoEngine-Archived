@@ -26,7 +26,7 @@ SystemRegistration<PhysicsSystem> PhysicsSystemRegistry("PhysicsSystem");
 AssetRegistration<IAsset> IAssetRegistry("IAsset", {".ueasset"});
 AssetRegistration<Material> MaterialRegistry("Material", {".uemat"});
 
-AssetRegistration<Texture2D> Texture2DReg("Texture2D", {".png", ".jpg", ".jpeg", ".tga", ".hdr"});
+
 AssetRegistration<Cubemap> CubemapReg("Cubemap", {".uecubemap"});
 AssetRegistration<LightProbe> LightProbeReg("LightProbe", {".uelightprobe"});
 AssetRegistration<ReflectionProbe> ReflectionProbeReg("ReflectionProbe", {".uereflecprobe"});

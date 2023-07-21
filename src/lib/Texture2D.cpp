@@ -1,9 +1,11 @@
 #include "Texture2D.hpp"
 
+#include "ClassRegistry.hpp"
 #include "Console.hpp"
 #include "Graphics.hpp"
 
 using namespace EvoEngine;
+AssetRegistration<Texture2D> Texture2DReg("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 
 bool Texture2D::SaveInternal(const std::filesystem::path& path)
 {
@@ -85,26 +87,50 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
 		stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 		stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-		const Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
-		void* data = nullptr;
-		vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &data);
-		memcpy(data, data, imageSize);
+		Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
+		void* deviceData = nullptr;
+		vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
+		memcpy(deviceData, data, imageSize);
 		vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
 		m_image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		m_image->Copy(stagingBuffer);
+		m_image->Copy(stagingBuffer.GetVkBuffer());
 		m_image->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		/*
-		GLsizei mipmap = static_cast<GLsizei>(log2((glm::max)(width, height))) + 1;
-		m_texture = std::make_shared<OpenGLUtils::GLTexture2D>(mipmap, GL_RGBA32F, width, height, true);
-		m_texture->SetData(0, format, GL_FLOAT, data);
-		m_texture->SetInt(GL_TEXTURE_WRAP_S, GL_REPEAT);
-		m_texture->SetInt(GL_TEXTURE_WRAP_T, GL_REPEAT);
-		m_texture->SetInt(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		m_texture->SetInt(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		m_texture->GenerateMipMap();
-		*/
 		stbi_image_free(data);
+
+
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_image->GetVkImage();
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = m_imageFormat;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		m_imageView = std::make_unique<ImageView>(viewInfo);
+
+		
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_sampler = std::make_unique<Sampler>(samplerInfo);
+		m_imTextureId = ImGui_ImplVulkan_AddTexture(
+			m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 	else
 	{
@@ -229,4 +255,9 @@ void Texture2D::StoreToHdr(const std::string& path, int resizeX, int resizeY, bo
 	{
 		stbi_write_hdr(path.c_str(), resolutionX, resolutionY, channels, dst.data());
 	}
+}
+
+ImTextureID Texture2D::GetImTextureId() const
+{
+	return m_imTextureId;
 }

@@ -161,13 +161,22 @@ namespace EvoEngine
 
 		~Image() override;
 		void TransitionImageLayout(VkImageLayout newLayout);
-		void Copy(const Buffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
+		void Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		[[nodiscard]] VkImage GetVkImage() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
 		[[nodiscard]] VkExtent3D GetVkExtent3D() const;
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
+	};
+
+	class Sampler final : public IGraphicsResource
+	{
+		VkSampler m_vkSampler;
+	public:
+		explicit Sampler(const VkSamplerCreateInfo& samplerCreateInfo);
+		~Sampler() override;
+		[[nodiscard]] VkSampler GetVkSampler() const;
 	};
 
 	class DescriptorSetLayout final : public IGraphicsResource

@@ -9,7 +9,6 @@ namespace EvoEngine
 	{
 	protected:
 		friend class DefaultResources;
-		friend class Editor;
 		friend class EditorLayer;
 		friend class AssetRegistry;
 		friend class ProjectManager;

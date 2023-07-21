@@ -51,6 +51,7 @@ namespace EvoEngine
 #pragma endregion
 
 		std::unique_ptr<CommandPool> m_commandPool = {};
+		std::unique_ptr<DescriptorPool> m_descriptorPool = {};
 
 		int m_maxFrameInFlight = 2;
 
@@ -93,7 +94,6 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
-		static std::unique_ptr<CommandPool> CreateCommandPool();
 		static void CreateCommandBuffers(const std::unique_ptr <CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
@@ -111,8 +111,10 @@ namespace EvoEngine
 		static VmaAllocator GetVmaAllocator();
 		static VkCommandBuffer GetCurrentVkCommandBuffer();
 		static const std::unique_ptr<Swapchain>& GetSwapchain();
+		static const std::unique_ptr<DescriptorPool>& GetDescriptorPool();
 		static unsigned GetSwapchainVersion();
 		static VkSurfaceFormatKHR GetVkSurfaceFormat();
+		static const VkPhysicalDeviceProperties& GetVkPhysicalDeviceProperties();
 		[[nodiscard]] static bool CheckExtensionSupport(const std::string& extensionName);
 		[[nodiscard]] static bool CheckLayerSupport(const std::string& layerName);
 	};

@@ -15,6 +15,7 @@ int main() {
     const std::filesystem::path resourceFolderPath("../../../Resources");
     applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Test/1.ueproj";
     Application::Initialize(applicationInfo);
+    std::shared_ptr<Texture2D> texture2D = std::dynamic_pointer_cast<Texture2D>(ProjectManager::GetOrCreateAsset("border.png"));
 
     Application::Start();
     

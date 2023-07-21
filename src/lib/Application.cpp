@@ -318,6 +318,20 @@ void Application::Pause()
 	application.m_applicationStatus = ApplicationStatus::Pause;
 }
 
+void Application::Step()
+{
+	auto& application = GetInstance();
+	if (application.m_applicationStatus != ApplicationStatus::Pause && application.m_applicationStatus != ApplicationStatus::Stop)
+		return;
+	if (application.m_applicationStatus == ApplicationStatus::Stop)
+	{
+		const auto copiedScene = ProjectManager::CreateTemporaryAsset<Scene>();
+		Scene::Clone(ProjectManager::GetStartScene().lock(), copiedScene);
+		Attach(copiedScene);
+	}
+	application.m_applicationStatus = ApplicationStatus::Step;
+}
+
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)
 {
 	GetInstance().m_externalPreUpdateFunctions.push_back(func);

@@ -3,8 +3,7 @@
 #include "Application.hpp"
 #include "Utilities.hpp"
 #include "WindowLayer.hpp"
-#define VOLK_IMPLEMENTATION
-#define VMA_IMPLEMENTATION
+
 #include "Mesh.hpp"
 #include "ProjectManager.hpp"
 #include "Vertex.hpp"
@@ -145,6 +144,12 @@ const std::unique_ptr<Swapchain>& Graphics::GetSwapchain()
 	return graphics.m_swapchain;
 }
 
+const std::unique_ptr<DescriptorPool>& Graphics::GetDescriptorPool()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_descriptorPool;
+}
+
 unsigned Graphics::GetSwapchainVersion()
 {
 	const auto& graphics = GetInstance();
@@ -157,9 +162,15 @@ VkSurfaceFormatKHR Graphics::GetVkSurfaceFormat()
 	return graphics.m_vkSurfaceFormat;
 }
 
+const VkPhysicalDeviceProperties& Graphics::GetVkPhysicalDeviceProperties()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_vkPhysicalDeviceProperties;
+}
+
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                       VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                       void* pUserData)
+	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
 {
 	//if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
@@ -318,6 +329,7 @@ bool Graphics::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vect
 		const auto swapChainSupportDetails = QuerySwapChainSupport(physicalDevice);
 		if (swapChainSupportDetails.m_formats.empty() || swapChainSupportDetails.m_presentModes.empty()) return false;
 	}
+
 	return true;
 }
 
@@ -475,10 +487,8 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 	score += deviceProperties.limits.maxImageDimension2D;
 
 	// Application can't function without geometry shaders
-	if (!deviceFeatures.geometryShader) {
-		return 0;
-	}
-
+	if (!deviceFeatures.geometryShader) return 0;
+	if (!deviceFeatures.samplerAnisotropy) return 0;
 
 	return score;
 }
@@ -522,6 +532,8 @@ void Graphics::CreateLogicalDevice()
 
 #pragma region Logical Device
 	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 #pragma region Queues requirement
@@ -578,20 +590,6 @@ void Graphics::SetupVmaAllocator()
 	vmaCreateAllocator(&vmaAllocatorCreateInfo, &m_vmaAllocator);
 #pragma endregion
 }
-
-std::unique_ptr<CommandPool> Graphics::CreateCommandPool()
-{
-	const auto& graphics = GetInstance();
-#pragma region Command pool
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
-	auto retVal = std::make_unique<CommandPool>(poolInfo);
-#pragma endregion
-	return retVal;
-}
-
 void Graphics::CreateCommandBuffers(const std::unique_ptr<CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers)
 {
 	const auto& graphics = GetInstance();
@@ -664,7 +662,7 @@ void Graphics::CreateSwapChain()
 	}
 
 	VkExtent2D extent = {};
-	if(m_swapchain) extent = m_swapchain->GetVkExtent2D();
+	if (m_swapchain) extent = m_swapchain->GetVkExtent2D();
 	if (swapChainSupportDetails.m_capabilities.currentExtent.width != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.height != 0
 		&& swapChainSupportDetails.m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -726,10 +724,11 @@ void Graphics::CreateSwapChain()
 	swapchainCreateInfo.presentMode = presentMode;
 	swapchainCreateInfo.clipped = VK_TRUE;
 
-	if(m_swapchain)
+	if (m_swapchain)
 	{
 		swapchainCreateInfo.oldSwapchain = m_swapchain->GetVkSwapchain();
-	}else
+	}
+	else
 	{
 		swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 	}
@@ -761,6 +760,7 @@ void Graphics::RecreateSwapChain()
 void Graphics::OnDestroy()
 {
 	vkDeviceWaitIdle(m_vkDevice);
+	m_descriptorPool.reset();
 
 #pragma region Vulkan
 	m_inFlightFences.clear();
@@ -886,13 +886,42 @@ void Graphics::Initialize()
 		}
 	}
 	if (graphics.m_queueFamilyIndices.m_graphicsFamily.has_value()) {
-		graphics.m_commandPool = CreateCommandPool();
+#pragma region Command pool
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
+		graphics.m_commandPool = std::make_unique<CommandPool>(poolInfo);
+#pragma endregion
 		CreateCommandBuffers(graphics.m_commandPool, graphics.m_vkCommandBuffers);
 		graphics.CreateSwapChainSyncObjects();
+
+		const VkDescriptorPoolSize renderLayerDescriptorPoolSizes[] =
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1024 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1024 }
+		};
+
+		VkDescriptorPoolCreateInfo renderLayerDescriptorPoolInfo{};
+		renderLayerDescriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		renderLayerDescriptorPoolInfo.poolSizeCount = std::size(renderLayerDescriptorPoolSizes);
+		renderLayerDescriptorPoolInfo.pPoolSizes = renderLayerDescriptorPoolSizes;
+		renderLayerDescriptorPoolInfo.maxSets = 1024;
+		graphics.m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
+
 	}
 #pragma endregion
 
-	
+
 }
 
 void Graphics::Destroy()
@@ -905,7 +934,7 @@ void Graphics::Destroy()
 void Graphics::PreUpdate()
 {
 	auto& graphics = GetInstance();
-	if(const auto windowLayer = Application::GetLayer<WindowLayer>())
+	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
 		glfwPollEvents();
 		if (glfwWindowShouldClose(windowLayer->m_window))
@@ -917,7 +946,7 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	
+
 }
 
 void Graphics::LateUpdate()
