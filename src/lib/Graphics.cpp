@@ -494,8 +494,7 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 void Graphics::CreatePhysicalDevice()
 {
 #pragma region Physical Device
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
-
+	
 	m_vkPhysicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
@@ -526,6 +525,11 @@ void Graphics::CreatePhysicalDevice()
 
 void Graphics::CreateLogicalDevice()
 {
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+
 	std::vector<const char*> cRequiredDeviceExtensions;
 	for (const auto& i : m_requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
 	std::vector<const char*> cRequiredLayers;
@@ -534,6 +538,29 @@ void Graphics::CreateLogicalDevice()
 #pragma region Logical Device
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3Features{};
+	extendedDynamicState3Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+	extendedDynamicState3Features.extendedDynamicState3PolygonMode = VK_TRUE;
+	extendedDynamicState3Features.extendedDynamicState3DepthClampEnable = VK_TRUE;
+	extendedDynamicState3Features.pNext = nullptr;
+
+	VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features{};
+	extendedDynamicState2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+	extendedDynamicState2Features.extendedDynamicState2 = VK_TRUE;
+	extendedDynamicState2Features.extendedDynamicState2PatchControlPoints = VK_TRUE;
+	extendedDynamicState2Features.extendedDynamicState2LogicOp = VK_TRUE;
+	extendedDynamicState2Features.pNext = &extendedDynamicState3Features;
+
+	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
+	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
+	extendedDynamicStateFeatures.pNext = &extendedDynamicState2Features;
+
+	VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{};
+	shaderObjectFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+	shaderObjectFeatures.shaderObject = VK_TRUE;
+	shaderObjectFeatures.pNext = &extendedDynamicStateFeatures;
 
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -556,6 +583,8 @@ void Graphics::CreateLogicalDevice()
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 #pragma endregion
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+	deviceCreateInfo.pNext = &shaderObjectFeatures;
+
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = cRequiredDeviceExtensions.data();
 
@@ -568,7 +597,7 @@ void Graphics::CreateLogicalDevice()
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
 	}
-
+	
 	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 

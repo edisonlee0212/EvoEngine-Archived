@@ -65,7 +65,7 @@ void Mesh::UploadData()
 	m_trianglesBuffer->Copy(triangleStagingBuffer, triangleDataSize);
 }
 
-void Mesh::SetVertices(const VertexAttributes& vertexAttributes, std::vector<Vertex>& vertices,
+void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
 	const std::vector<unsigned>& indices)
 {
 	if (indices.size() % 3 != 0)

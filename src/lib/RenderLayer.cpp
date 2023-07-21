@@ -7,14 +7,20 @@
 #include "EditorLayer.hpp"
 using namespace EvoEngine;
 const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+
+	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
-const std::vector<glm::uvec3> indices = {
-	{0, 1, 2}, {2, 3, 0}
+const std::vector<unsigned> indices = {
+	0, 1, 2, 2, 3, 0,
+	4, 5, 6, 6, 7, 4
 };
 void RenderLayer::OnCreate()
 {
@@ -241,6 +247,7 @@ void RenderLayer::LateUpdate()
 			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->GetVkPipeline());
 
+
 			VkViewport viewport{};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
@@ -248,14 +255,37 @@ void RenderLayer::LateUpdate()
 			viewport.height = static_cast<float>(extent2D.height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			
 
 			VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
 			scissor.extent = extent2D;
+			vkCmdSetPatchControlPointsEXT(commandBuffer, 1);
+
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			m_mesh->SubmitDrawIndexed(commandBuffer);
+			vkCmdSetDepthClampEnableEXT(commandBuffer, false);
+			vkCmdSetRasterizerDiscardEnable(commandBuffer, false);
+			vkCmdSetPolygonModeEXT(commandBuffer, VK_POLYGON_MODE_FILL);
+			vkCmdSetCullModeEXT(commandBuffer, VK_CULL_MODE_BACK_BIT);
+			vkCmdSetFrontFace(commandBuffer, VK_FRONT_FACE_CLOCKWISE);
+			vkCmdSetDepthBiasEnable(commandBuffer, false);
+			vkCmdSetDepthBias(commandBuffer, 0.0f, 0.0f, 0.0f);
+			vkCmdSetLineWidth(commandBuffer, 1.0f);
+
+
+			vkCmdSetDepthTestEnableEXT(commandBuffer, true);
+			vkCmdSetDepthWriteEnableEXT(commandBuffer, true);
+			vkCmdSetDepthCompareOpEXT(commandBuffer, VK_COMPARE_OP_LESS);
+			vkCmdSetDepthBoundsTestEnableEXT(commandBuffer, VK_FALSE);
+			vkCmdSetDepthBounds(commandBuffer, 0.0f, 1.0f);
+			vkCmdSetStencilTestEnableEXT(commandBuffer, VK_FALSE);
+			vkCmdSetStencilOpEXT(commandBuffer, VK_STENCIL_FACE_FRONT_BIT, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_COMPARE_OP_LESS);
+
+
+
+		m_mesh->SubmitDrawIndexed(commandBuffer);
 
 			vkCmdEndRenderPass(commandBuffer);
 		});
@@ -314,16 +344,6 @@ void RenderLayer::CreateGraphicsPipeline()
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
-	VkPipelineRasterizationStateCreateInfo rasterizationState{};
-	rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizationState.depthClampEnable = VK_FALSE;
-	rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-	rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationState.lineWidth = 1.0f;
-	rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-	rasterizationState.depthBiasEnable = VK_FALSE;
-
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
@@ -343,10 +363,38 @@ void RenderLayer::CreateGraphicsPipeline()
 	colorBlending.blendConstants[1] = 0.0f;
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
-
+	
 	std::vector<VkDynamicState> dynamicStates = {
+		VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
+
 		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR
+		VK_DYNAMIC_STATE_SCISSOR,
+
+		VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT,
+		VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE,
+		VK_DYNAMIC_STATE_POLYGON_MODE_EXT,
+		VK_DYNAMIC_STATE_CULL_MODE,
+		VK_DYNAMIC_STATE_FRONT_FACE,
+		VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE,
+		VK_DYNAMIC_STATE_DEPTH_BIAS,
+		VK_DYNAMIC_STATE_LINE_WIDTH,
+		
+		VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE,
+		VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE,
+		VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,
+		VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE,
+		VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE,
+		VK_DYNAMIC_STATE_STENCIL_OP,
+		VK_DYNAMIC_STATE_DEPTH_BOUNDS,
+		
+		/*
+		VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT,
+		VK_DYNAMIC_STATE_LOGIC_OP_EXT,
+		VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
+		VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
+		VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
+		VK_DYNAMIC_STATE_BLEND_CONSTANTS
+		*/
 	};
 	VkPipelineDynamicStateCreateInfo dynamicState{};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -360,7 +408,6 @@ void RenderLayer::CreateGraphicsPipeline()
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizationState;
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;

@@ -33,7 +33,7 @@ namespace EvoEngine
 		void SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer);
 
 		void UploadData();
-		void SetVertices(const VertexAttributes& vertexAttributes, std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);
+		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles);
 		[[nodiscard]] size_t GetVerticesAmount() const;
 		[[nodiscard]] size_t GetTriangleAmount() const;
