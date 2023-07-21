@@ -205,18 +205,13 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();
-	
+
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
 	}
-	application.m_applicationStatus = ApplicationStatus::NoProject;
-}
-
-void Application::Start()
-{
-	auto& application = GetInstance();
 	const auto windowLayer = GetLayer<WindowLayer>();
+	const auto editorLayer = GetLayer<EditorLayer>();
 	if (!application.m_applicationInfo.m_projectPath.empty())
 	{
 		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath);
@@ -230,10 +225,19 @@ void Application::Start()
 			application.m_applicationStatus = ApplicationStatus::Stop;
 		}
 	}
-	if(!windowLayer && application.m_applicationStatus == ApplicationStatus::NoProject)
-	{
-		throw std::runtime_error("No WindowLayer and no project!");
+	else if (!windowLayer || !editorLayer) {
+		throw std::runtime_error("Project must present when there's no EditorLayer or WindowLayer!");
 	}
+	else
+	{
+		application.m_applicationStatus = ApplicationStatus::NoProject;
+	}
+}
+
+void Application::Start()
+{
+	auto& application = GetInstance();
+
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
 	while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
@@ -271,7 +275,7 @@ void Application::Attach(const std::shared_ptr<Scene>& scene)
 	{
 		EVOENGINE_ERROR("Stop Application to attach scene");
 	}
-	
+
 	application.m_activeScene = scene;
 	for (auto& func : application.m_postAttachSceneFunctions)
 	{

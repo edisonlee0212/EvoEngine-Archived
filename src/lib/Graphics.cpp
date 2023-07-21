@@ -10,6 +10,7 @@
 #include "Vertex.hpp"
 #include "vk_mem_alloc.h"
 #include "EditorLayer.hpp"
+#include "RenderLayer.hpp"
 using namespace EvoEngine;
 
 
@@ -898,13 +899,16 @@ void Graphics::Destroy()
 void Graphics::PreUpdate()
 {
 	auto& graphics = GetInstance();
-	graphics.SwapChainSwapImage();
 	if(const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
 		glfwPollEvents();
 		if (glfwWindowShouldClose(windowLayer->m_window))
 		{
 			Application::End();
+		}
+		if (Application::GetLayer<RenderLayer>() || Application::GetLayer<EditorLayer>())
+		{
+			graphics.SwapChainSwapImage();
 		}
 	}
 	
@@ -913,15 +917,19 @@ void Graphics::PreUpdate()
 void Graphics::LateUpdate()
 {
 	auto& graphics = GetInstance();
-
-	
-
-	graphics.SubmitPresent();
+	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
+	{
+		if (Application::GetLayer<RenderLayer>() || Application::GetLayer<EditorLayer>())
+		{
+			graphics.SubmitPresent();
+		}
+	}
 }
 
 bool Graphics::CheckExtensionSupport(const std::string& extensionName)
 {
 	const auto& graphics = GetInstance();
+
 	for (const auto& layerProperties : graphics.m_vkLayers) {
 		if (strcmp(extensionName.c_str(), layerProperties.layerName) == 0) {
 			return true;

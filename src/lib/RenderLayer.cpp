@@ -264,7 +264,7 @@ void RenderLayer::LateUpdate()
 			scissor.extent = extent2D;
 			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			//m_mesh->SubmitDrawIndexed(commandBuffer);
+			m_mesh->SubmitDrawIndexed(commandBuffer);
 
 			vkCmdEndRenderPass(commandBuffer);
 		});
