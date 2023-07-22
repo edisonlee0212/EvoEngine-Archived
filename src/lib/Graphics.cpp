@@ -538,12 +538,16 @@ void Graphics::CreateLogicalDevice()
 #pragma region Logical Device
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT extendedVertexInputDynamicStateFeatures{};
+	extendedVertexInputDynamicStateFeatures.vertexInputDynamicState = VK_TRUE;
+	extendedVertexInputDynamicStateFeatures.pNext = nullptr;
+	extendedVertexInputDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
 
 	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3Features{};
 	extendedDynamicState3Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
 	extendedDynamicState3Features.extendedDynamicState3PolygonMode = VK_TRUE;
 	extendedDynamicState3Features.extendedDynamicState3DepthClampEnable = VK_TRUE;
-	extendedDynamicState3Features.pNext = nullptr;
+	extendedDynamicState3Features.pNext = &extendedVertexInputDynamicStateFeatures;
 
 	VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features{};
 	extendedDynamicState2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;

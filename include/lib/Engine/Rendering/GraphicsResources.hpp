@@ -108,7 +108,6 @@ namespace EvoEngine
 
 		std::string m_code;
 	public:
-		ShaderModule(shaderc_shader_kind shaderKind, const std::vector<char>& code);
 		~ShaderModule() override;
 
 		ShaderModule(shaderc_shader_kind shaderKind, const std::string& code);
@@ -362,5 +361,23 @@ namespace EvoEngine
 		explicit DescriptorPool(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo);
 		~DescriptorPool() override;
 		[[nodiscard]] VkDescriptorPool GetVkDescriptorPool() const;
+	};
+
+	class ShaderEXT final : public IGraphicsResource
+	{
+		VkShaderEXT m_shaderExt = VK_NULL_HANDLE;
+
+		VkShaderCreateFlagsEXT          m_flags;
+		VkShaderStageFlagBits           m_stage;
+		VkShaderStageFlags              m_nextStage;
+		VkShaderCodeTypeEXT             m_codeType;
+		std::string						m_name;
+		std::vector<VkDescriptorSetLayout> m_setLayouts;
+		std::vector<VkPushConstantRange>	m_pushConstantRanges;
+		std::optional<VkSpecializationInfo> m_specializationInfo;
+	public:
+		explicit ShaderEXT(const VkShaderCreateInfoEXT& shaderCreateInfoExt);
+		~ShaderEXT() override;
+		[[nodiscard]] const VkShaderEXT &GetVkShaderEXT() const;
 	};
 }

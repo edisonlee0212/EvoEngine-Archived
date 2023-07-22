@@ -80,7 +80,7 @@ void RenderLayer::OnCreate()
 
 	m_perObjectGroupLayout = std::make_unique<DescriptorSetLayout>(perObjectGroupLayoutInfo);
 
-	
+
 	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -197,11 +197,44 @@ void RenderLayer::OnCreate()
 	}
 #pragma endregion
 	CreateRenderPass();
-	CreateGraphicsPipeline();
 	UpdateFramebuffers();
 
 	m_mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
 	m_mesh->SetVertices({}, vertices, indices);
+	const auto vertShaderBinary = ShaderUtils::CompileFile("Shader", shaderc_vertex_shader, FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert"));
+	VkShaderCreateInfoEXT vertShaderCreateInfo{};
+	vertShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+	vertShaderCreateInfo.pNext = nullptr;
+	vertShaderCreateInfo.flags = 0;
+	vertShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertShaderCreateInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	vertShaderCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+	vertShaderCreateInfo.codeSize = vertShaderBinary.size() * sizeof(uint32_t);
+	vertShaderCreateInfo.pCode = vertShaderBinary.data();
+	vertShaderCreateInfo.pName = "main";
+	vertShaderCreateInfo.setLayoutCount = 0;
+	vertShaderCreateInfo.pSetLayouts = nullptr;
+	vertShaderCreateInfo.pushConstantRangeCount = 0;
+	vertShaderCreateInfo.pPushConstantRanges = nullptr;
+	vertShaderCreateInfo.pSpecializationInfo = nullptr;
+	m_vertShader = std::make_unique<ShaderEXT>(vertShaderCreateInfo);
+	const auto fragShaderBinary = ShaderUtils::CompileFile("Shader", shaderc_fragment_shader, FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag"));
+	VkShaderCreateInfoEXT fragShaderCreateInfo{};
+	fragShaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+	fragShaderCreateInfo.pNext = nullptr;
+	fragShaderCreateInfo.flags = 0;
+	fragShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragShaderCreateInfo.nextStage = 0;
+	fragShaderCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+	fragShaderCreateInfo.codeSize = fragShaderBinary.size() * sizeof(uint32_t);
+	fragShaderCreateInfo.pCode = fragShaderBinary.data();
+	fragShaderCreateInfo.pName = "main";
+	fragShaderCreateInfo.setLayoutCount = 0;
+	fragShaderCreateInfo.pSetLayouts = nullptr;
+	fragShaderCreateInfo.pushConstantRangeCount = 0;
+	fragShaderCreateInfo.pPushConstantRanges = nullptr;
+	fragShaderCreateInfo.pSpecializationInfo = nullptr;
+	m_fragShader = std::make_unique<ShaderEXT>(fragShaderCreateInfo);
 }
 
 void RenderLayer::OnDestroy()
@@ -212,8 +245,7 @@ void RenderLayer::OnDestroy()
 	m_perPassLayout.reset();
 	m_perFrameLayout.reset();
 
-	
-	m_graphicsPipeline.reset();
+
 	m_pipelineLayout.reset();
 	m_renderPass.reset();
 }
@@ -227,6 +259,10 @@ void RenderLayer::LateUpdate()
 {
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
+			const auto& windowLayer = Application::GetLayer<WindowLayer>();
+			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
+
+			
 			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -243,11 +279,23 @@ void RenderLayer::LateUpdate()
 			const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 			memcpy(m_renderInfoBlockMemory[currentFrameIndex], &m_renderInfoBlock, sizeof(RenderInfoBlock));
 
-			const auto& windowLayer = Application::GetLayer<WindowLayer>();
-			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->GetVkPipeline());
-
-
+			
+			m_mesh->Bind(commandBuffer);
+			const VkShaderStageFlagBits stages[6] =
+			{
+				VK_SHADER_STAGE_VERTEX_BIT,
+				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+				VK_SHADER_STAGE_GEOMETRY_BIT,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				VK_SHADER_STAGE_COMPUTE_BIT
+			};
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[0], &m_vertShader->GetVkShaderEXT());
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[1], nullptr);
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[2], nullptr);
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[3], nullptr);
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[4], &m_fragShader->GetVkShaderEXT());
+			vkCmdBindShadersEXT(commandBuffer, 1, &stages[5], nullptr);
 			VkViewport viewport{};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
@@ -255,7 +303,7 @@ void RenderLayer::LateUpdate()
 			viewport.height = static_cast<float>(extent2D.height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			
+
 
 			VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
@@ -283,140 +331,13 @@ void RenderLayer::LateUpdate()
 			vkCmdSetStencilTestEnableEXT(commandBuffer, VK_FALSE);
 			vkCmdSetStencilOpEXT(commandBuffer, VK_STENCIL_FACE_FRONT_BIT, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_COMPARE_OP_LESS);
 
+			//vkCmdSetLogicOpEnableEXT(commandBuffer, false);
+			//vkCmdSetLogicOpEXT(commandBuffer, VK_LOGIC_OP_COPY);
 
-
-		m_mesh->SubmitDrawIndexed(commandBuffer);
+			m_mesh->DrawIndexed(commandBuffer);
 
 			vkCmdEndRenderPass(commandBuffer);
 		});
-}
-
-void RenderLayer::CreateGraphicsPipeline()
-{
-#pragma region Pipeline layout
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	m_pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutInfo);
-#pragma endregion
-#pragma region Graphics Pipeline
-
-	ShaderModule vertShader{ shaderc_vertex_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.vert") };
-	ShaderModule fragShader{ shaderc_fragment_shader,
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/shader.frag") };
-
-	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vertShaderStageInfo.module = vertShader.GetVkShaderModule();
-	vertShaderStageInfo.pName = "main";
-
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShader.GetVkShaderModule();
-	fragShaderStageInfo.pName = "main";
-
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-	shaderStages.push_back(vertShaderStageInfo);
-	shaderStages.push_back(fragShaderStageInfo);
-
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-	auto bindingDescription = Vertex::GetBindingDescription();
-	auto attributeDescriptions = Vertex::GetAttributeDescriptions();
-
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-	VkPipelineViewportStateCreateInfo viewportState{};
-	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportState.viewportCount = 1;
-	viewportState.scissorCount = 1;
-
-	VkPipelineMultisampleStateCreateInfo multisampling{};
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_FALSE;
-
-	VkPipelineColorBlendStateCreateInfo colorBlending{};
-	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.logicOp = VK_LOGIC_OP_COPY;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
-	colorBlending.blendConstants[0] = 0.0f;
-	colorBlending.blendConstants[1] = 0.0f;
-	colorBlending.blendConstants[2] = 0.0f;
-	colorBlending.blendConstants[3] = 0.0f;
-	
-	std::vector<VkDynamicState> dynamicStates = {
-		VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
-
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR,
-
-		VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT,
-		VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE,
-		VK_DYNAMIC_STATE_POLYGON_MODE_EXT,
-		VK_DYNAMIC_STATE_CULL_MODE,
-		VK_DYNAMIC_STATE_FRONT_FACE,
-		VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE,
-		VK_DYNAMIC_STATE_DEPTH_BIAS,
-		VK_DYNAMIC_STATE_LINE_WIDTH,
-		
-		VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE,
-		VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE,
-		VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,
-		VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE,
-		VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE,
-		VK_DYNAMIC_STATE_STENCIL_OP,
-		VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-		
-		/*
-		VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT,
-		VK_DYNAMIC_STATE_LOGIC_OP_EXT,
-		VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
-		VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
-		VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
-		VK_DYNAMIC_STATE_BLEND_CONSTANTS
-		*/
-	};
-	VkPipelineDynamicStateCreateInfo dynamicState{};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-	dynamicState.pDynamicStates = dynamicStates.data();
-
-	VkGraphicsPipelineCreateInfo pipelineInfo{};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages.data();
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
-	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
-	pipelineInfo.renderPass = m_renderPass->GetVkRenderPass();
-	pipelineInfo.subpass = 0;
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	m_graphicsPipeline = std::make_unique<GraphicsPipeline>(pipelineInfo);
-#pragma endregion
 }
 
 bool RenderLayer::UpdateFramebuffers()
@@ -447,7 +368,7 @@ bool RenderLayer::UpdateFramebuffers()
 void RenderLayer::CreateRenderPass()
 {
 	auto editorLayer = Application::GetLayer<EditorLayer>();
-	if(editorLayer)
+	if (editorLayer)
 	{
 
 	}

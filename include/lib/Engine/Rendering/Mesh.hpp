@@ -30,7 +30,8 @@ namespace EvoEngine
 		std::unique_ptr<Buffer> m_verticesBuffer = {};
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
-		void SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer);
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer) const;
+		void Bind(VkCommandBuffer vkCommandBuffer) const;
 
 		void UploadData();
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);
@@ -45,6 +46,7 @@ namespace EvoEngine
 		[[nodiscard]] std::vector<Vertex>& UnsafeGetVertices();
 		[[nodiscard]] std::vector<glm::uvec3>& UnsafeGetTriangles();
 
+		
 		void Serialize(YAML::Emitter& out) override;
 		void Deserialize(const YAML::Node& in) override;
 	};

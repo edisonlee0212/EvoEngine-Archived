@@ -6,15 +6,19 @@
 using namespace EvoEngine;
 AssetRegistration<Mesh> MeshRegistry("Mesh", { ".uemesh" });
 
-void Mesh::SubmitDrawIndexed(VkCommandBuffer vkCommandBuffer)
+void Mesh::Bind(VkCommandBuffer vkCommandBuffer) const
 {
 	VkBuffer vertexBuffers[] = { m_verticesBuffer->GetVkBuffer() };
 	VkDeviceSize offsets[] = { 0 };
+
 	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
+}
 
+void Mesh::DrawIndexed(VkCommandBuffer vkCommandBuffer) const
+{
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
 }
 
 void Mesh::UploadData()
@@ -227,6 +231,8 @@ std::vector<glm::uvec3>& Mesh::UnsafeGetTriangles()
 {
 	return m_triangles;
 }
+
+
 
 void Mesh::Serialize(YAML::Emitter& out)
 {

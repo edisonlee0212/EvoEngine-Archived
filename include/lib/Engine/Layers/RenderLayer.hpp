@@ -79,13 +79,13 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Buffer>> m_descriptorBuffers = {};
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
-		
-		std::unique_ptr<GraphicsPipeline> m_graphicsPipeline = {};
 
+		std::shared_ptr<ShaderEXT> m_vertShader;
+		std::shared_ptr<ShaderEXT> m_fragShader;
+		
 		std::vector<std::unique_ptr<Framebuffer>> m_framebuffers = {};
 
 
-		void CreateGraphicsPipeline();
 		bool UpdateFramebuffers();
 
 

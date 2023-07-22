@@ -200,20 +200,6 @@ VkFramebuffer Framebuffer::GetVkFrameBuffer() const
 	return m_vkFramebuffer;
 }
 
-ShaderModule::ShaderModule(shaderc_shader_kind shaderKind, const std::vector<char>& code)
-{
-	m_shaderKind = shaderKind;
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create shader module!");
-	}
-
-	m_code = std::string(code.data());
-}
-
 ShaderModule::~ShaderModule()
 {
 	if (m_vkShaderModule != VK_NULL_HANDLE) {
@@ -738,4 +724,33 @@ DescriptorPool::~DescriptorPool()
 VkDescriptorPool DescriptorPool::GetVkDescriptorPool() const
 {
 	return m_vkDescriptorPool;
+}
+
+ShaderEXT::ShaderEXT(const VkShaderCreateInfoEXT& shaderCreateInfoExt)
+{
+	if (vkCreateShadersEXT(Graphics::GetVkDevice(), 1, &shaderCreateInfoExt, nullptr, &m_shaderExt) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create shaderEXT!");
+	}
+	m_flags = shaderCreateInfoExt.flags;
+	m_stage = shaderCreateInfoExt.stage;
+	m_nextStage = shaderCreateInfoExt.nextStage;
+	m_codeType = shaderCreateInfoExt.codeType;
+	m_name = shaderCreateInfoExt.pName;
+	ApplyVector(m_setLayouts, shaderCreateInfoExt.setLayoutCount, shaderCreateInfoExt.pSetLayouts);
+	ApplyVector(m_pushConstantRanges, shaderCreateInfoExt.pushConstantRangeCount, shaderCreateInfoExt.pPushConstantRanges);
+	if (shaderCreateInfoExt.pSpecializationInfo) m_specializationInfo = *shaderCreateInfoExt.pSpecializationInfo;
+}
+
+ShaderEXT::~ShaderEXT()
+{
+	if (m_shaderExt != VK_NULL_HANDLE)
+	{
+		vkDestroyShaderEXT(Graphics::GetVkDevice(), m_shaderExt, nullptr);
+		m_shaderExt = VK_NULL_HANDLE;
+	}
+}
+
+const VkShaderEXT& ShaderEXT::GetVkShaderEXT() const
+{
+	return m_shaderExt;
 }
