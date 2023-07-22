@@ -1,5 +1,6 @@
 #pragma once
 #include "Bound.hpp"
+#include "Graphics.hpp"
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
 #include "Vertex.hpp"
@@ -30,7 +31,7 @@ namespace EvoEngine
 		std::unique_ptr<Buffer> m_verticesBuffer = {};
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer) const;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const;
 		void Bind(VkCommandBuffer vkCommandBuffer) const;
 
 		void UploadData();

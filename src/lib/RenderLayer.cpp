@@ -257,12 +257,14 @@ void RenderLayer::PreUpdate()
 
 void RenderLayer::LateUpdate()
 {
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	memcpy(m_renderInfoBlockMemory[currentFrameIndex], &m_renderInfoBlock, sizeof(RenderInfoBlock));
+
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
 		{
 			const auto& windowLayer = Application::GetLayer<WindowLayer>();
 			if (!windowLayer || windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
 
-			
 			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -276,27 +278,10 @@ void RenderLayer::LateUpdate()
 			renderPassBeginInfo.pClearValues = &clearColor;
 
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-			memcpy(m_renderInfoBlockMemory[currentFrameIndex], &m_renderInfoBlock, sizeof(RenderInfoBlock));
-
-			
 			m_mesh->Bind(commandBuffer);
-			const VkShaderStageFlagBits stages[6] =
-			{
-				VK_SHADER_STAGE_VERTEX_BIT,
-				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-				VK_SHADER_STAGE_GEOMETRY_BIT,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				VK_SHADER_STAGE_COMPUTE_BIT
-			};
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[0], &m_vertShader->GetVkShaderEXT());
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[1], nullptr);
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[2], nullptr);
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[3], nullptr);
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[4], &m_fragShader->GetVkShaderEXT());
-			vkCmdBindShadersEXT(commandBuffer, 1, &stages[5], nullptr);
-			VkViewport viewport{};
+
+
+			VkViewport viewport;
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
 			viewport.width = static_cast<float>(extent2D.width);
@@ -305,36 +290,20 @@ void RenderLayer::LateUpdate()
 			viewport.maxDepth = 1.0f;
 
 
-			VkRect2D scissor{};
+			VkRect2D scissor;
 			scissor.offset = { 0, 0 };
 			scissor.extent = extent2D;
-			vkCmdSetPatchControlPointsEXT(commandBuffer, 1);
-
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-			vkCmdSetDepthClampEnableEXT(commandBuffer, false);
-			vkCmdSetRasterizerDiscardEnable(commandBuffer, false);
-			vkCmdSetPolygonModeEXT(commandBuffer, VK_POLYGON_MODE_FILL);
-			vkCmdSetCullModeEXT(commandBuffer, VK_CULL_MODE_BACK_BIT);
-			vkCmdSetFrontFace(commandBuffer, VK_FRONT_FACE_CLOCKWISE);
-			vkCmdSetDepthBiasEnable(commandBuffer, false);
-			vkCmdSetDepthBias(commandBuffer, 0.0f, 0.0f, 0.0f);
-			vkCmdSetLineWidth(commandBuffer, 1.0f);
 
 
-			vkCmdSetDepthTestEnableEXT(commandBuffer, true);
-			vkCmdSetDepthWriteEnableEXT(commandBuffer, true);
-			vkCmdSetDepthCompareOpEXT(commandBuffer, VK_COMPARE_OP_LESS);
-			vkCmdSetDepthBoundsTestEnableEXT(commandBuffer, VK_FALSE);
-			vkCmdSetDepthBounds(commandBuffer, 0.0f, 1.0f);
-			vkCmdSetStencilTestEnableEXT(commandBuffer, VK_FALSE);
-			vkCmdSetStencilOpEXT(commandBuffer, VK_STENCIL_FACE_FRONT_BIT, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_STENCIL_OP_ZERO, VK_COMPARE_OP_LESS);
+			globalPipelineState.m_viewPort = viewport;
+			globalPipelineState.m_scissor = scissor;
 
-			//vkCmdSetLogicOpEnableEXT(commandBuffer, false);
-			//vkCmdSetLogicOpEXT(commandBuffer, VK_LOGIC_OP_COPY);
+			globalPipelineState.ClearShaders();
+			globalPipelineState.m_vertexShader = m_vertShader;
+			globalPipelineState.m_fragShader = m_fragShader;
 
-			m_mesh->DrawIndexed(commandBuffer);
+
+			m_mesh->DrawIndexed(commandBuffer, globalPipelineState);
 
 			vkCmdEndRenderPass(commandBuffer);
 		});

@@ -126,7 +126,7 @@ void Application::LateUpdateInternal()
 				ImGui::EndMainMenuBar();
 			}
 
-			Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+			Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
 				{
 					const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 					VkRenderPassBeginInfo renderPassBeginInfo{};

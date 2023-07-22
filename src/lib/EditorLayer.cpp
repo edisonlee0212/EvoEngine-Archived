@@ -650,7 +650,7 @@ void EditorLayer::LateUpdate()
 	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
 
 
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
 		{
 			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};

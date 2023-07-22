@@ -16,8 +16,9 @@ void Mesh::Bind(VkCommandBuffer vkCommandBuffer) const
 
 }
 
-void Mesh::DrawIndexed(VkCommandBuffer vkCommandBuffer) const
+void Mesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const
 {
+	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
 }
 
