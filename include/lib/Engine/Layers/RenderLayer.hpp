@@ -83,19 +83,12 @@ namespace EvoEngine
 		std::shared_ptr<ShaderEXT> m_vertShader;
 		std::shared_ptr<ShaderEXT> m_fragShader;
 		
-		std::vector<std::unique_ptr<Framebuffer>> m_framebuffers = {};
-
-
-		bool UpdateFramebuffers();
-
-
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
 		void LateUpdate() override;
 		void CreateRenderPass();
 		std::unique_ptr<RenderPass> m_renderPass = {};
-		unsigned m_storedSwapchainVersion = UINT_MAX;
 	public:
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
 		RenderInfoBlock m_renderInfoBlock = {};

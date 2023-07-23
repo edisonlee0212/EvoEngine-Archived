@@ -36,7 +36,7 @@ namespace EvoEngine
 		bool m_depthWriteApplied = true;
 		VkCompareOp m_depthCompareApplied = VK_COMPARE_OP_LESS;
 		bool m_depthBoundTestApplied = false;
-		glm::vec2 m_minMaxDepthBoundApplied = glm::vec2(0.0f, 1.0f);
+		glm::vec2 m_minMaxDepthBoundApplied = glm::vec2(-1.0f, 1.0f);
 		bool m_stencilTestApplied = false;
 		VkStencilFaceFlags m_stencilFaceMaskApplied = VK_STENCIL_FACE_FRONT_BIT;
 		VkStencilOp m_stencilFailOpApplied = VK_STENCIL_OP_ZERO;
@@ -134,6 +134,9 @@ namespace EvoEngine
 
 		GlobalPipelineState m_globalPipelineState = {};
 
+		std::unique_ptr<RenderPass> m_swapChainRenderPass = {};
+		std::vector<std::unique_ptr<Framebuffer>> m_swapChainFramebuffers = {};
+
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
 		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
@@ -147,7 +150,8 @@ namespace EvoEngine
 		
 		void CreateSwapChainSyncObjects();
 		void CreateSwapChain();
-
+		void CreateRenderPass();
+		bool UpdateFrameBuffers();
 		
 
 		void RecreateSwapChain();
@@ -164,6 +168,8 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+		static const std::unique_ptr<RenderPass>& GetSwapchainRenderPass();
+		static const std::unique_ptr<Framebuffer>& GetSwapchainFramebuffer();
 		static GlobalPipelineState& GlobalState();
 		static void CreateCommandBuffers(const std::unique_ptr <CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action);

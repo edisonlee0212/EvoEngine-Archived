@@ -319,12 +319,25 @@ namespace EvoEngine
 		VkImage m_vkImage = VK_NULL_HANDLE;
 		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
 		VmaAllocationInfo m_vmaAllocationInfo = {};
-		VkImageLayout m_vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VkExtent3D m_extent = { 0, 0, 0 };
+
+		VkImageCreateFlags       m_flags;
+		VkImageType              m_imageType;
+		VkFormat                 m_format;
+		VkExtent3D               m_extent;
+		uint32_t                 m_mipLevels;
+		uint32_t                 m_arrayLayers;
+		VkSampleCountFlagBits    m_samples;
+		VkImageTiling            m_tiling;
+		VkImageUsageFlags        m_usage;
+		VkSharingMode            m_sharingMode;
+		std::vector<uint32_t>	 m_queueFamilyIndices;
+		VkImageLayout            m_initialLayout;
+
+		VkImageLayout			 m_layout;
 	public:
 		explicit Image(const VkImageCreateInfo& imageCreateInfo);
 		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
-
+		bool HasStencilComponent() const;
 		~Image() override;
 		void TransitionImageLayout(VkImageLayout newLayout);
 		void Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
@@ -332,7 +345,8 @@ namespace EvoEngine
 		[[nodiscard]] VkImage GetVkImage() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
-		[[nodiscard]] VkExtent3D GetVkExtent3D() const;
+		[[nodiscard]] VkExtent3D GetExtent() const;
+		[[nodiscard]] VkImageLayout GetLayout() const;
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 	};
 

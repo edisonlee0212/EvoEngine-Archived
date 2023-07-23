@@ -196,8 +196,6 @@ void EditorLayer::OnCreate()
 		throw;
 	}
 
-	CreateRenderPass();
-	UpdateFrameBuffers();
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -230,7 +228,7 @@ void EditorLayer::OnCreate()
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
-	ImGui_ImplVulkan_Init(&init_info, m_renderPass->GetVkRenderPass());
+	ImGui_ImplVulkan_Init(&init_info, Graphics::GetSwapchainRenderPass()->GetVkRenderPass());
 	ImGui::StyleColorsDark();
 	//ImGui::GetStyle().ScaleAllSizes(2.0);
 
@@ -254,8 +252,6 @@ void EditorLayer::OnDestroy()
 
 void EditorLayer::PreUpdate()
 {
-	UpdateFrameBuffers();
-
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -655,8 +651,8 @@ void EditorLayer::LateUpdate()
 			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.renderPass = m_renderPass->GetVkRenderPass();
-			renderPassBeginInfo.framebuffer = m_framebuffers[Graphics::GetNextImageIndex()]->GetVkFrameBuffer();
+			renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
+			renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();
 			renderPassBeginInfo.renderArea.offset = { 0, 0 };
 			renderPassBeginInfo.renderArea.extent = extent2D;
 
@@ -764,72 +760,6 @@ void EditorLayer::InspectComponentData(Entity entity, IDataComponent* data, Data
 			scene->SetUnsaved();
 		}
 	}
-}
-
-void EditorLayer::CreateRenderPass()
-{
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = Graphics::GetSwapchain()->GetImageFormat();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	m_renderPass = std::make_unique<RenderPass>(renderPassInfo);
-}
-
-bool EditorLayer::UpdateFrameBuffers()
-{
-	const auto currentSwapchainVersion = Graphics::GetSwapchainVersion();
-	if (currentSwapchainVersion == m_storedSwapchainVersion) return false;
-
-	m_storedSwapchainVersion = currentSwapchainVersion;
-	const auto& swapChain = Graphics::GetSwapchain();
-	const auto& swapChainImageViews = swapChain->GetVkImageViews();
-	m_framebuffers.clear();
-	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		const VkImageView attachments[] = { swapChainImageViews[i] };
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_renderPass->GetVkRenderPass();
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swapChain->GetImageExtent().width;
-		framebufferInfo.height = swapChain->GetImageExtent().height;
-		framebufferInfo.layers = 1;
-		m_framebuffers.emplace_back(std::make_unique<Framebuffer>(framebufferInfo));
-	}
-
-	return true;
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)

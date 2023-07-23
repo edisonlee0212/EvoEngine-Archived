@@ -82,8 +82,7 @@ namespace EvoEngine
 		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-		std::unique_ptr<RenderPass> m_renderPass = {};
-		std::vector<std::unique_ptr<Framebuffer>> m_framebuffers = {};
+		
 
 		bool DrawEntityMenu(const bool& enabled, const Entity& entity);
 
@@ -91,10 +90,6 @@ namespace EvoEngine
 
 		void InspectComponentData(Entity entity, IDataComponent* data, DataComponentType type, bool isRoot);
 
-
-		void CreateRenderPass();
-		bool UpdateFrameBuffers();
-		unsigned m_storedSwapchainVersion = UINT_MAX;
 	public:
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;

@@ -1,7 +1,7 @@
 #pragma once
 #include "IPrivateComponent.hpp"
 #include "Texture2D.hpp"
-
+#include "RenderTexture.hpp"
 namespace EvoEngine
 {
     class Camera final : public IPrivateComponent
@@ -15,8 +15,7 @@ namespace EvoEngine
         friend class SSAO;
         friend class SSR;
         
-        std::shared_ptr<Texture2D> m_colorTexture;
-        std::shared_ptr<Texture2D> m_depthStencilTexture;
+        std::shared_ptr<RenderTexture> m_renderTexture;
         /*
         //Deferred shading GBuffer
         std::unique_ptr<RenderTarget> m_gBuffer;
@@ -29,9 +28,13 @@ namespace EvoEngine
         size_t m_frameCount = 0;
         bool m_rendered = false;
         bool m_requireRendering = false;
+
+        glm::uvec2 m_size = glm::uvec2(1, 1);
     public:
-        [[nodiscard]] std::shared_ptr<Texture2D> GetTexture() const;
-        [[nodiscard]] std::shared_ptr<Texture2D> GetDepthStencil() const;
+        [[nodiscard]] std::shared_ptr<RenderTexture> GetRenderTexture() const;
+        [[nodiscard]] glm::vec2 GetSize() const;
+        void Resize(const glm::uvec2& size);
+        void OnCreate() override;
         /*
         [[nodiscard]] bool Rendered() const;
         void SetRequireRendering(bool value);
@@ -67,7 +70,7 @@ namespace EvoEngine
         Ray ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mousePosition) const;
 
         void ResizeResolution(int x, int y);
-        void OnCreate() override;
+        
         void Start() override;
         void Serialize(YAML::Emitter& out) override;
         void Deserialize(const YAML::Node& in) override;

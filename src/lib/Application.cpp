@@ -99,8 +99,6 @@ void Application::LateUpdateInternal()
 	{
 		auto editorLayer = GetLayer<EditorLayer>();
 		if (editorLayer) {
-			editorLayer->UpdateFrameBuffers();
-
 			ImGui_ImplVulkan_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
@@ -131,8 +129,8 @@ void Application::LateUpdateInternal()
 					const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 					VkRenderPassBeginInfo renderPassBeginInfo{};
 					renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-					renderPassBeginInfo.renderPass = editorLayer->m_renderPass->GetVkRenderPass();
-					renderPassBeginInfo.framebuffer = editorLayer->m_framebuffers[Graphics::GetNextImageIndex()]->GetVkFrameBuffer();
+					renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
+					renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();;
 					renderPassBeginInfo.renderArea.offset = { 0, 0 };
 					renderPassBeginInfo.renderArea.extent = extent2D;
 

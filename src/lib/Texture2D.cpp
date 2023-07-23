@@ -144,15 +144,15 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 glm::vec2 Texture2D::GetResolution() const
 {
-	return { m_image->GetVkExtent3D().width, m_image->GetVkExtent3D().height };
+	return { m_image->GetExtent().width, m_image->GetExtent().height };
 }
 
 void Texture2D::StoreToPng(const std::string& path, int resizeX, int resizeY, bool alphaChannel,
 	unsigned compressionLevel) const
 {
 	stbi_write_png_compression_level = static_cast<int>(compressionLevel);
-	const auto resolutionX = m_image->GetVkExtent3D().width;
-	const auto resolutionY = m_image->GetVkExtent3D().height;
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
 	float channels = 3;
 	if (alphaChannel)
 		channels = 4;
@@ -195,8 +195,8 @@ void Texture2D::StoreToPng(const std::string& path, int resizeX, int resizeY, bo
 
 void Texture2D::StoreToJpg(const std::string& path, int resizeX, int resizeY, unsigned quality) const
 {
-	const auto resolutionX = m_image->GetVkExtent3D().width;
-	const auto resolutionY = m_image->GetVkExtent3D().height;
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
 	std::vector<float> dst;
 	dst.resize(resolutionX * resolutionY * 3);
 	//Retrieve image data here.
@@ -233,8 +233,8 @@ void Texture2D::StoreToJpg(const std::string& path, int resizeX, int resizeY, un
 
 void Texture2D::StoreToHdr(const std::string& path, int resizeX, int resizeY, bool alphaChannel, unsigned quality) const
 {
-	const auto resolutionX = m_image->GetVkExtent3D().width;
-	const auto resolutionY = m_image->GetVkExtent3D().height;
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
 
 	float channels = 3;
 	if (alphaChannel)
