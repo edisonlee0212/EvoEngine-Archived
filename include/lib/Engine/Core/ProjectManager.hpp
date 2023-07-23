@@ -140,7 +140,7 @@ namespace EvoEngine
 		bool m_showDefaultResourcesWindow = false;
 		static std::weak_ptr<Scene> GetStartScene();
 		static void SetStartScene(const std::shared_ptr<Scene>& scene);
-		static void OnInspect();
+		static void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer);
 		static void SaveProject();
 		static void SetScenePostLoadActions(const std::function<void()>& actions);
 		[[nodiscard]] static std::filesystem::path GenerateNewPath(const std::string& prefix, const std::string& postfix);

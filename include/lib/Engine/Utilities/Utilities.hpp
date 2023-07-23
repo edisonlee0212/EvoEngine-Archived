@@ -65,3 +65,18 @@ namespace EvoEngine
 		                                  bool optimize = false);
 	};
 }
+
+namespace ImGui
+{
+	IMGUI_API bool Splitter(
+		bool split_vertically,
+		float thickness,
+		float& size1,
+		float& size2,
+		float min_size1,
+		float min_size2,
+		float splitter_long_axis_size = -1.0f);
+
+	IMGUI_API bool Combo(const std::string& label, const std::vector<std::string>& items, unsigned& currentSelection, ImGuiComboFlags flags = 0);
+	IMGUI_API bool Combo(const std::string& label, const std::vector<std::string>& items, int& currentSelection, ImGuiComboFlags flags = 0);
+}

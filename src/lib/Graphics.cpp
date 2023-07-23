@@ -536,6 +536,7 @@ void Graphics::CreateInstance()
 		}
 		windowLayer->m_primaryMonitor = glfwGetPrimaryMonitor();
 		glfwSetMonitorCallback(windowLayer->SetMonitorCallback);
+		
 		const auto& applicationInfo = Application::GetApplicationInfo();
 		windowLayer->m_windowSize = applicationInfo.m_defaultWindowSize;
 		if (editorLayer) windowLayer->m_windowSize = { 250, 50 };
@@ -543,8 +544,12 @@ void Graphics::CreateInstance()
 
 		if (applicationInfo.m_fullScreen)
 			glfwMaximizeWindow(windowLayer->m_window);
-		glfwSetFramebufferSizeCallback(windowLayer->m_window, windowLayer->FramebufferResizeCallback);
+
+		glfwSetFramebufferSizeCallback(windowLayer->m_window, windowLayer->FramebufferSizeCallback);
 		glfwSetWindowFocusCallback(windowLayer->m_window, windowLayer->WindowFocusCallback);
+		glfwSetKeyCallback(windowLayer->m_window, Input::KeyCallBack);
+		glfwSetMouseButtonCallback(windowLayer->m_window, Input::MouseButtonCallBack);
+
 		if (windowLayer->m_window == nullptr)
 		{
 			EVOENGINE_ERROR("Failed to create a window");
@@ -1218,7 +1223,6 @@ void Graphics::PreUpdate()
 	auto& graphics = GetInstance();
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
-		glfwPollEvents();
 		if (glfwWindowShouldClose(windowLayer->m_window))
 		{
 			Application::End();

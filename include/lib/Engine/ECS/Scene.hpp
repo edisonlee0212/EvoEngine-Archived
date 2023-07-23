@@ -9,6 +9,8 @@
 #include "PrivateComponentStorage.hpp"
 #include "Utilities.hpp"
 #include "Bound.hpp"
+#include "Input.hpp"
+
 namespace EvoEngine
 {
 
@@ -63,6 +65,10 @@ namespace EvoEngine
         friend class Prefab;
         friend class TransformGraph;
         friend class PrivateComponentStorage;
+        friend class EditorLayer;
+        friend class Input;
+        std::unordered_map<int, KeyActionType> m_pressedKeys = {};
+        KeyActionType GetKey(int key);
         SceneDataStorage m_sceneDataStorage;
         std::multimap<float, std::shared_ptr<ISystem>> m_systems;
         std::map<size_t, std::shared_ptr<ISystem>> m_indexedSystems;
@@ -70,8 +76,6 @@ namespace EvoEngine
         Bound m_worldBound;
         void SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out);
         void SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitter& out);
-
-    private:
 #pragma region Entity Management
         void DeleteEntityInternal(unsigned entityIndex);
 
@@ -236,7 +240,7 @@ namespace EvoEngine
         [[nodiscard]] Bound GetBound() const;
         void SetBound(const Bound& value);
         template <typename T = ISystem> void DestroySystem();
-        ~Scene();
+        ~Scene() override;
         void FixedUpdate();
         void Start();
         void Update();
@@ -297,7 +301,7 @@ namespace EvoEngine
         template <typename T> std::vector<Entity> GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene);
         void ForEachPrivateComponent(const Entity& entity, const std::function<void(PrivateComponentElement& data)>& func);
         void GetAllEntities(std::vector<Entity>& target);
-        void ForAllEntities(const std::function<void(int i, Entity entity)>& func);
+        void ForAllEntities(const std::function<void(int i, Entity entity)>& func) const;
 #pragma endregion
         std::vector<std::reference_wrapper<DataComponentStorage>> QueryDataComponentStorages(
             const EntityQuery& entityQuery);

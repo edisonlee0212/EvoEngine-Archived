@@ -8,6 +8,8 @@
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "Scene.hpp"
+#include "Time.hpp"
+#include "RenderLayer.hpp"
 using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
@@ -323,7 +325,46 @@ void EditorLayer::PreUpdate()
 		*/
 		ImGui::EndMainMenuBar();
 	}
+
+
 	m_mouseScreenPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	if (m_showSceneWindow) {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+		if (ImGui::Begin("Scene")) {
+			if (ImGui::BeginChild("SceneCameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar)) {
+				// Using a Child allow to fill all the space of the window.
+				// It also allows customization
+				if (m_sceneCameraWindowFocused) {
+					auto mp = ImGui::GetMousePos();
+					auto wp = ImGui::GetWindowPos();
+					m_mouseScreenPosition = glm::vec2(mp.x - wp.x, mp.y - wp.y - 20);
+				}
+			}
+			ImGui::EndChild();
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+	if (m_showSceneWindow) RenderToSceneCamera();
+
+	if(!m_mainCameraWindowFocused)
+	{
+		const auto activeScene = Application::GetActiveScene();
+		auto& pressedKeys = activeScene->m_pressedKeys;
+		pressedKeys.clear();
+	}
+
+	if (m_applyTransformToMainCamera && !Application::IsPlaying())
+	{
+		const auto scene = Application::GetActiveScene();
+		if (const auto camera = scene->m_mainCamera.Get<Camera>(); camera && scene->IsEntityValid(camera->GetOwner()))
+		{
+			GlobalTransform globalTransform;
+			globalTransform.SetPosition(m_sceneCameraPosition);
+			globalTransform.SetRotation(m_sceneCameraRotation);
+			scene->SetDataComponent(camera->GetOwner(), globalTransform);
+		}
+	}
 }
 
 void EditorLayer::Update()
@@ -345,14 +386,6 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
-	}
-
-	if (m_leftMouseButtonHold && !windowLayer->GetKey(GLFW_MOUSE_BUTTON_LEFT)) {
-		m_leftMouseButtonHold = false;
-	}
-	if (m_rightMouseButtonHold && !windowLayer->GetKey(GLFW_MOUSE_BUTTON_RIGHT)) {
-		m_rightMouseButtonHold = false;
-		m_startMouse = false;
 	}
 
 	auto scene = GetScene();
@@ -561,7 +594,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::End();
 	}
 
-	if (scene && m_sceneCameraWindowFocused && windowLayer->GetKey(GLFW_KEY_DELETE))
+	if (scene && m_sceneCameraWindowFocused && Input::GetKey(GLFW_KEY_DELETE) == KeyActionType::Press)
 	{
 		if (scene->IsEntityValid(m_selectedEntity))
 		{
@@ -569,15 +602,36 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 	}
 
-	//if (m_showSceneWindow) SceneCameraWindow();
+	if (m_showSceneWindow) SceneCameraWindow();
 	//if (m_showCameraWindow) MainCameraWindow();
+
+	ProjectManager::OnInspect(editorLayer);
 }
 
 void EditorLayer::LateUpdate()
 {
-	const auto& layers = Application::GetLayers();
-	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
+	if (m_lockCamera) {
+		const float elapsedTime = Time::CurrentTime() - m_transitionTimer;
+		float a = 1.0f - glm::pow(1.0 - elapsedTime / m_transitionTime, 4.0f);
+		if (elapsedTime >= m_transitionTime)
+			a = 1.0f;
+		m_sceneCameraRotation = glm::mix(m_previousRotation, m_targetRotation, a);
+		m_sceneCameraPosition = glm::mix(m_previousPosition, m_targetPosition, a);
+		if (a >= 1.0f) {
+			m_lockCamera = false;
+			m_sceneCameraRotation = m_targetRotation;
+			m_sceneCameraPosition = m_targetPosition;
+			Camera::ReverseAngle(m_targetRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
+		}
+	}
 
+	//Handle render to scene camera here.
+
+
+	const auto& layers = Application::GetLayers();
+
+	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
+	
 
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
 		{
@@ -732,7 +786,7 @@ void EditorLayer::SceneCameraWindow()
 			ImVec2 window_pos = ImVec2(
 				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
 				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
-			/*
+			
 			if (m_showSceneInfo) {
 				ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
 				ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
@@ -746,9 +800,7 @@ void EditorLayer::SceneCameraWindow()
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					std::string trisstr = "";
 					if (ImGui::IsMousePosValid()) {
-						glm::vec2 pos;
-
-						Inputs::GetMousePosition(pos);
+						glm::vec2 pos = Input::GetMousePosition();
 						ImGui::Text("Mouse Pos: (%.1f,%.1f)", pos.x, pos.y);
 					}
 					else {
@@ -771,72 +823,72 @@ void EditorLayer::SceneCameraWindow()
 					ImGui::DragFloat("Sensitivity", &m_sensitivity, 0.1f, 0, 0, "%.1f");
 					ImGui::Checkbox("Apply transform to main camera", &m_applyTransformToMainCamera);
 					ImGui::DragFloat("Resolution multiplier", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
-					Editor::DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
+					//Editor::DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
 					ImGui::PopItemWidth();
 				}
 				ImGui::EndChild();
 			}
 			if (m_sceneCameraWindowFocused) {
 #pragma region Scene Camera Controller
-				float xOffset = 0;
-				float yOffset = 0;
-				if (!m_startMouse) {
-					m_lastX = m_mouseScreenPosition.x;
-					m_lastY = m_mouseScreenPosition.y;
-					m_startMouse = true;
-				}
-				xOffset = m_mouseScreenPosition.x - m_lastX;
-				yOffset = -m_mouseScreenPosition.y + m_lastY;
-				m_lastX = m_mouseScreenPosition.x;
-				m_lastY = m_mouseScreenPosition.y;
-
-				if (!m_rightMouseButtonHold &&
-					!(m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
+				static bool isDraggingPreviously = false;
+				bool mouseDrag = true;
+				if (m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
 						m_mouseScreenPosition.x > viewPortSize.x ||
-						m_mouseScreenPosition.y > viewPortSize.y) &&
-					Inputs::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT, Windows::GetWindow())) {
-					m_rightMouseButtonHold = true;
+						m_mouseScreenPosition.y > viewPortSize.y ||
+					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) != KeyActionType::Hold) {
+					mouseDrag = false;
 				}
-				if (m_rightMouseButtonHold && !m_lockCamera) {
-					glm::vec3 front = m_sceneCameraRotation * glm::vec3(0, 0, -1);
-					glm::vec3 right = m_sceneCameraRotation * glm::vec3(1, 0, 0);
-					if (Inputs::GetKeyInternal(GLFW_KEY_W, Windows::GetWindow())) {
+				static float prevX = 0;
+				static float prevY = 0;
+				if (mouseDrag && !isDraggingPreviously) {
+					prevX = m_mouseScreenPosition.x;
+					prevY = m_mouseScreenPosition.y;
+				}
+				const float xOffset = m_mouseScreenPosition.x - prevX;
+				const float yOffset = m_mouseScreenPosition.y - prevY;
+				prevX = m_mouseScreenPosition.x;
+				prevY = m_mouseScreenPosition.y;
+				isDraggingPreviously = mouseDrag;
+
+				if (mouseDrag && !m_lockCamera) {
+					const glm::vec3 front = m_sceneCameraRotation * glm::vec3(0, 0, -1);
+					const glm::vec3 right = m_sceneCameraRotation * glm::vec3(1, 0, 0);
+					if (Input::GetKey(GLFW_KEY_W) != KeyActionType::Release) {
 						m_sceneCameraPosition +=
-							front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Inputs::GetKeyInternal(GLFW_KEY_S, Windows::GetWindow())) {
+					if (Input::GetKey(GLFW_KEY_S) != KeyActionType::Release) {
 						m_sceneCameraPosition -=
-							front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Inputs::GetKeyInternal(GLFW_KEY_A, Windows::GetWindow())) {
+					if (Input::GetKey(GLFW_KEY_A) != KeyActionType::Release) {
 						m_sceneCameraPosition -=
-							right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Inputs::GetKeyInternal(GLFW_KEY_D, Windows::GetWindow())) {
+					if (Input::GetKey(GLFW_KEY_D) != KeyActionType::Release) {
 						m_sceneCameraPosition +=
-							right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Inputs::GetKeyInternal(GLFW_KEY_LEFT_SHIFT, Windows::GetWindow())) {
-						m_sceneCameraPosition.y += m_velocity * static_cast<float>(Application::Time().DeltaTime());
+					if (Input::GetKey(GLFW_KEY_LEFT_SHIFT) != KeyActionType::Release) {
+						m_sceneCameraPosition.y += m_velocity * static_cast<float>(Time::DeltaTime());
 					}
-					if (Inputs::GetKeyInternal(GLFW_KEY_LEFT_CONTROL, Windows::GetWindow())) {
-						m_sceneCameraPosition.y -= m_velocity * static_cast<float>(Application::Time().DeltaTime());
+					if (Input::GetKey(GLFW_KEY_LEFT_CONTROL) != KeyActionType::Release) {
+						m_sceneCameraPosition.y -= m_velocity * static_cast<float>(Time::DeltaTime());
 					}
 					if (xOffset != 0.0f || yOffset != 0.0f) {
 						m_sceneCameraYawAngle += xOffset * m_sensitivity;
-						m_sceneCameraPitchAngle += yOffset * m_sensitivity;
+						m_sceneCameraPitchAngle -= yOffset * m_sensitivity;
 						if (m_sceneCameraPitchAngle > 89.0f)
 							m_sceneCameraPitchAngle = 89.0f;
 						if (m_sceneCameraPitchAngle < -89.0f)
 							m_sceneCameraPitchAngle = -89.0f;
-
 						m_sceneCameraRotation =
 							Camera::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false);
 					}
 #pragma endregion
 				}
 			}
-			*/
+			
 		}
 #pragma region Gizmos and Entity Selection
 		bool mouseSelectEntity = true;
@@ -916,10 +968,6 @@ void EditorLayer::SceneCameraWindow()
 		*/
 #pragma endregion
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-			if (!m_sceneCameraWindowFocused) {
-				m_rightMouseButtonHold = true;
-				m_leftMouseButtonHold = true;
-			}
 			m_sceneCameraWindowFocused = true;
 		}
 		else {
@@ -938,6 +986,50 @@ void EditorLayer::SceneCameraWindow()
 	ImGui::PopStyleVar();
 
 #pragma endregion
+}
+
+void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
+{
+	//If main camera is focused, we pass the event to the scene.
+	if(m_mainCameraWindowFocused)
+	{
+		const auto activeScene = Application::GetActiveScene();
+		auto& pressedKeys = activeScene->m_pressedKeys;
+		if (inputEvent.m_keyAction == KeyActionType::Press)
+		{
+			if (const auto search = pressedKeys.find(inputEvent.m_key); search != activeScene->m_pressedKeys.end())
+			{
+				//Dispatch hold if the key is already pressed.
+				search->second = KeyActionType::Hold;
+			}
+			else
+			{
+				//Dispatch press if the key is previously released.
+				pressedKeys.insert({ inputEvent.m_key, KeyActionType::Press });
+			}
+		}
+		else if (inputEvent.m_keyAction == KeyActionType::Release)
+		{
+			if (pressedKeys.find(inputEvent.m_key) != pressedKeys.end())
+			{
+				//Dispatch hold if the key is already pressed.
+				pressedKeys.erase(inputEvent.m_key);
+			}
+		}
+	}
+}
+
+void EditorLayer::RenderToSceneCamera()
+{
+	auto renderLayer = Application::GetLayer<RenderLayer>();
+	if (!renderLayer)
+		return;
+	m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
+
+	if(m_sceneCamera->m_requireRendering)
+	{
+		
+	}
 }
 
 ImTextureID EditorLayer::GetTextureId(const VkImageView imageView) const
@@ -1342,4 +1434,15 @@ void EditorLayer::CameraWindowDragAndDrop() {
 		}
 		*/
 	}
+}
+
+void EditorLayer::MoveCamera(
+	const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime) {
+	m_previousRotation = m_sceneCameraRotation;
+	m_previousPosition = m_sceneCameraPosition;
+	m_transitionTime = transitionTime;
+	m_transitionTimer = Time::CurrentTime();
+	m_targetRotation = targetRotation;
+	m_targetPosition = targetPosition;
+	m_lockCamera = true;
 }

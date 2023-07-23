@@ -10,6 +10,7 @@ AssetRegistration<Scene> SceneReg("Scene", { ".uescene" });
 
 void Scene::Purge()
 {
+    m_pressedKeys.clear();
     m_sceneDataStorage.m_entityPrivateComponentStorage = PrivateComponentStorage();
     m_sceneDataStorage.m_entities.clear();
     m_sceneDataStorage.m_entityMetadataList.clear();
@@ -669,6 +670,7 @@ void Scene::SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitte
     }
     out << YAML::EndMap;
 }
+
 void Scene::OnCreate()
 {
     m_sceneDataStorage.m_entities.emplace_back();
@@ -759,6 +761,13 @@ void SceneDataStorage::Clone(
     m_entityMap = source.m_entityMap;
     m_entityPrivateComponentStorage = source.m_entityPrivateComponentStorage;
     m_entityPrivateComponentStorage.m_scene = newScene;
+}
+
+KeyActionType Scene::GetKey(int key)
+{
+    const auto search = m_pressedKeys.find(key);
+    if (search != m_pressedKeys.end()) return search->second;
+    return KeyActionType::Release;
 }
 
 #pragma region Entity Management
@@ -1659,7 +1668,7 @@ void Scene::SetEnableSingle(const Entity& entity, const bool& value)
     }
 }
 
-void Scene::ForAllEntities(const std::function<void(int i, Entity entity)>& func)
+void Scene::ForAllEntities(const std::function<void(int i, Entity entity)>& func) const
 {
     for (int index = 0; index < m_sceneDataStorage.m_entities.size(); index++)
     {

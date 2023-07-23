@@ -8,6 +8,7 @@
 #include "EditorLayer.hpp"
 #include "Jobs.hpp"
 #include "TransformGraph.hpp"
+#include "Input.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -20,6 +21,7 @@ void Application::PreUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	Input::PreUpdate();
 	Graphics::PreUpdate();
 
 	if (application.m_applicationStatus == ApplicationStatus::NoProject) return;
@@ -133,7 +135,7 @@ void Application::LateUpdateInternal()
 				renderPassBeginInfo.renderArea.offset = { 0, 0 };
 				renderPassBeginInfo.renderArea.extent = extent2D;
 
-				VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+				constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 				renderPassBeginInfo.clearValueCount = 1;
 				renderPassBeginInfo.pClearValues = &clearColor;
 
@@ -154,9 +156,9 @@ void Application::LateUpdateInternal()
 		{
 			application.m_activeScene->LateUpdate();
 		}
-		for (const auto& i : application.m_layers)
+		for (auto i = application.m_layers.rbegin(); i != application.m_layers.rend(); ++i)
 		{
-			i->LateUpdate();
+			(*i)->LateUpdate();
 		}
 		if (application.m_applicationStatus == ApplicationStatus::Step)
 			application.m_applicationStatus = ApplicationStatus::Pause;
@@ -172,7 +174,7 @@ const ApplicationInfo& Application::GetApplicationInfo()
 
 const ApplicationStatus& Application::GetApplicationStatus()
 {
-	auto& application = GetInstance();
+	const auto& application = GetInstance();
 	return application.m_applicationStatus;
 }
 
@@ -233,7 +235,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 
 void Application::Start()
 {
-	auto& application = GetInstance();
+	const auto& application = GetInstance();
 
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
@@ -278,7 +280,7 @@ void Application::Attach(const std::shared_ptr<Scene>& scene)
 	{
 		func(scene);
 	}
-	for (auto& layer : application.m_layers)
+	for (const auto& layer : application.m_layers)
 	{
 		layer->m_scene = scene;
 	}
@@ -292,7 +294,7 @@ void Application::Play()
 		return;
 	if (application.m_applicationStatus == ApplicationStatus::Stop)
 	{
-		auto copiedScene = ProjectManager::CreateTemporaryAsset<Scene>();
+		const auto copiedScene = ProjectManager::CreateTemporaryAsset<Scene>();
 		Scene::Clone(ProjectManager::GetStartScene().lock(), copiedScene);
 		Attach(copiedScene);
 	}

@@ -1,10 +1,11 @@
 #include "WindowLayer.hpp"
 #include "Graphics.hpp"
 #include "Application.hpp"
+#include "ProjectManager.hpp"
 
 using namespace EvoEngine;
 
-void WindowLayer::FramebufferResizeCallback(GLFWwindow* window, int width, int height)
+void WindowLayer::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer->m_window == window)
@@ -47,12 +48,11 @@ void WindowLayer::SetMonitorCallback(GLFWmonitor* monitor, int event)
 void WindowLayer::WindowFocusCallback(GLFWwindow* window, int focused)
 {
 	auto& windowLayer = Application::GetLayer<WindowLayer>();
-	/*
+	
 	if (focused)
 	{
 		ProjectManager::ScanProject();
 	}
-	 */
 }
 
 void WindowLayer::OnCreate()
@@ -76,22 +76,4 @@ GLFWwindow* WindowLayer::GetGlfwWindow() const
 void WindowLayer::ResizeWindow(int x, int y) const
 {
 	glfwSetWindowSize(m_window, x, y);
-}
-
-bool WindowLayer::GetKey(int key) const
-{
-	return glfwGetKey(m_window, key) == GLFW_PRESS;
-}
-
-bool WindowLayer::GetMouseButton(int button) const
-{
-	return glfwGetMouseButton(m_window, button) == GLFW_PRESS;
-}
-
-glm::vec2 WindowLayer::GetMousePosition() const
-{
-	double x = FLT_MIN;
-	double y = FLT_MIN;
-	glfwGetCursorPos(m_window, &x, &y);
-	return glm::vec2(x, y);
 }

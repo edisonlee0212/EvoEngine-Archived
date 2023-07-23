@@ -6,6 +6,14 @@
 
 using namespace EvoEngine;
 
+void ILayer::OnInputEvent(const InputEvent& inputEvent)
+{
+	if(!m_subsequentLayer.expired())
+	{
+		m_subsequentLayer.lock()->OnInputEvent(inputEvent);
+	}
+}
+
 std::shared_ptr<Scene> ILayer::GetScene() const
 {
 	return m_scene.lock();

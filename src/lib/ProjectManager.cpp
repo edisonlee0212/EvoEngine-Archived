@@ -924,7 +924,7 @@ void ProjectManager::OnDestroy()
 	projectManager.m_inspectingAsset.reset();
 }
 
-void ProjectManager::OnInspect() /*
+void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	auto& projectManager = GetInstance();
 	if (ImGui::BeginMainMenuBar())
@@ -1027,10 +1027,11 @@ void ProjectManager::OnInspect() /*
 							}
 						}
 					}
+					/*
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Entity"))
 					{
 						IM_ASSERT(payload->DataSize == sizeof(Handle));
-						auto prefab = std::dynamic_pointer_cast<Prefab>(ProjectManager::CreateTemporaryAsset<Prefab>());
+						auto prefab = std::dynamic_pointer_cast<Prefab>(CreateTemporaryAsset<Prefab>());
 						auto entityHandle = *static_cast<Handle*>(payload->Data);
 						auto scene = Application::GetActiveScene();
 						auto entity = scene->GetEntity(entityHandle);
@@ -1045,7 +1046,9 @@ void ProjectManager::OnInspect() /*
 							prefab->SetPathAndSave(filePath);
 						}
 					}
+					*/
 					ImGui::EndDragDropTarget();
+					
 				}
 				static glm::vec2 thumbnailSizePadding = { 96.0f, 8.0f };
 				float cellSize = thumbnailSizePadding.x + thumbnailSizePadding.y;
@@ -1064,8 +1067,7 @@ void ProjectManager::OnInspect() /*
 				ImGui::SameLine();
 
 				ImGui::BeginChild("2", ImVec2(size2 - 5.0f, h), true);
-				if (ImGui::ImageButton(
-					(ImTextureID)Editor::AssetIcons()["RefreshButton"]->UnsafeGetGLTexture()->Id(),
+				if (ImGui::ImageButton(editorLayer->AssetIcons()["RefreshButton"]->GetImTextureId(),
 					{ 16, 16 },
 					{ 0, 1 },
 					{ 1, 0 }))
@@ -1076,8 +1078,7 @@ void ProjectManager::OnInspect() /*
 				if (currentFocusedFolder != projectManager.m_projectFolder)
 				{
 					ImGui::SameLine();
-					if (ImGui::ImageButton(
-						(ImTextureID)Editor::AssetIcons()["BackButton"]->UnsafeGetGLTexture()->Id(),
+					if (ImGui::ImageButton(editorLayer->AssetIcons()["BackButton"]->GetImTextureId(),
 						{ 16, 16 },
 						{ 0, 1 },
 						{ 1, 0 }))
@@ -1094,9 +1095,9 @@ void ProjectManager::OnInspect() /*
 				{
 					if (ImGui::Button("New folder..."))
 					{
-						auto newPath = ProjectManager::GenerateNewPath(
+						auto newPath = GenerateNewPath(
 							(currentFocusedFolder->GetProjectRelativePath() / "New Folder").string(), "");
-						ProjectManager::GetOrCreateFolder(newPath);
+						GetOrCreateFolder(newPath);
 					}
 					if (ImGui::BeginMenu("New asset..."))
 					{
@@ -1105,7 +1106,7 @@ void ProjectManager::OnInspect() /*
 							if (ImGui::Button(i.first.c_str()))
 							{
 								std::string newFileName = "New " + i.first;
-								std::filesystem::path newPath = ProjectManager::GenerateNewPath(
+								std::filesystem::path newPath = GenerateNewPath(
 									(currentFocusedFolder->GetProjectRelativePath() / newFileName).string(),
 									i.second.front());
 								currentFocusedFolder->GetOrCreateAsset(
@@ -1124,8 +1125,7 @@ void ProjectManager::OnInspect() /*
 				{
 					for (auto& i : currentFocusedFolder->m_children)
 					{
-						ImGui::Image(
-							(ImTextureID)Editor::AssetIcons()["Folder"]->UnsafeGetGLTexture()->Id(),
+						ImGui::Image(editorLayer->AssetIcons()["Folder"]->GetImTextureId(),
 							{ thumbnailSizePadding.x, thumbnailSizePadding.x },
 							{ 0, 1 },
 							{ 1, 0 });
@@ -1201,7 +1201,7 @@ void ProjectManager::OnInspect() /*
 												projectManager.m_assetExtensions[asset->GetTypeName()].front();
 											auto fileName = "New " + asset->GetTypeName();
 											int index = 0;
-											auto filePath = ProjectManager::GenerateNewPath(
+											auto filePath = GenerateNewPath(
 												(i.second->GetProjectRelativePath() / fileName).string(), fileExtension);
 											asset->SetPathAndSave(filePath);
 										}
@@ -1212,7 +1212,7 @@ void ProjectManager::OnInspect() /*
 											{
 												auto fileExtension = assetRecord->GetAssetExtension();
 												auto fileName = assetRecord->GetAssetFileName();
-												auto filePath = ProjectManager::GenerateNewPath(
+												auto filePath = GenerateNewPath(
 													(i.second->GetProjectRelativePath() / fileName).string(),
 													fileExtension);
 												asset->SetPathAndSave(filePath);
@@ -1243,12 +1243,12 @@ void ProjectManager::OnInspect() /*
 								if (!record.expired())
 									record.lock()->GetFolder().lock()->MoveAsset(payload_n, i.second);
 							}
-
+							/*
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Entity"))
 							{
 								IM_ASSERT(payload->DataSize == sizeof(Entity));
 								auto prefab =
-									std::dynamic_pointer_cast<Prefab>(ProjectManager::CreateTemporaryAsset<Prefab>());
+									std::dynamic_pointer_cast<Prefab>(CreateTemporaryAsset<Prefab>());
 								auto entity = *static_cast<Entity*>(payload->Data);
 								prefab->FromEntity(entity);
 								// If current folder doesn't contain file with same name
@@ -1259,6 +1259,7 @@ void ProjectManager::OnInspect() /*
 									ProjectManager::GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
 								prefab->SetPathAndSave(filePath);
 							}
+							*/
 							ImGui::EndDragDropTarget();
 						}
 						bool itemHovered = false;
@@ -1291,18 +1292,18 @@ void ProjectManager::OnInspect() /*
 							continue;
 						if (fileName.extension().string() == ".ueproj")
 						{
-							textureId = (ImTextureID)Editor::AssetIcons()["Project"]->UnsafeGetGLTexture()->Id();
+							textureId = editorLayer->AssetIcons()["Project"]->GetImTextureId();
 						}
 						else
 						{
-							auto iconSearch = Editor::AssetIcons().find(i.second->GetAssetTypeName());
-							if (iconSearch != Editor::AssetIcons().end())
+							auto iconSearch = editorLayer->AssetIcons().find(i.second->GetAssetTypeName());
+							if (iconSearch != editorLayer->AssetIcons().end())
 							{
-								textureId = (ImTextureID)iconSearch->second->UnsafeGetGLTexture()->Id();
+								textureId = iconSearch->second->GetImTextureId();
 							}
 							else
 							{
-								textureId = (ImTextureID)Editor::AssetIcons()["Binary"]->UnsafeGetGLTexture()->Id();
+								textureId = editorLayer->AssetIcons()["Binary"]->GetImTextureId();
 							}
 						}
 						static Handle focusedAssetHandle;
@@ -1397,7 +1398,7 @@ void ProjectManager::OnInspect() /*
 				ImGui::Text("Name:");
 				ImGui::SameLine();
 				ImGui::Button(asset->GetTitle().c_str());
-				Editor::DraggableAsset(asset);
+				editorLayer->DraggableAsset(asset);
 				if (!asset->IsTemporary())
 				{
 					if (ImGui::Button("Save"))
@@ -1432,7 +1433,7 @@ void ProjectManager::OnInspect() /*
 					false);
 
 				ImGui::Separator();
-				asset->OnInspect();
+				asset->OnInspect(editorLayer);
 			}
 			else
 			{
@@ -1442,8 +1443,7 @@ void ProjectManager::OnInspect() /*
 		ImGui::End();
 	}
 }
-*/
-{}
+
 void ProjectManager::FolderHierarchyHelper(const std::shared_ptr<Folder>& folder)
 {
 	auto& projectManager = GetInstance();

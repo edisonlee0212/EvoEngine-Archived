@@ -156,6 +156,9 @@ glm::vec2 Camera::GetSize() const
 
 void Camera::Resize(const glm::uvec2& size)
 {
+    if (size.x == 0 || size.y == 0) return;
+    if (size.x > 16384 || size.y >= 16384) return;
+    if(m_size == size) return;
 	m_size = size;
 	m_renderTexture->Resize({ m_size.x, m_size.y, 1 });
     UpdateGBuffer();

@@ -60,16 +60,9 @@ namespace EvoEngine
 #pragma endregion
 		std::vector<Entity> m_selectedEntityHierarchyList;
 
-
 		int m_sceneCameraResolutionX = 1;
 		int m_sceneCameraResolutionY = 1;
-		float m_lastX = 0;
-		float m_lastY = 0;
-		float m_lastScrollY = 0;
-		bool m_startMouse = false;
-		bool m_startScroll = false;
-		bool m_leftMouseButtonHold = false;
-		bool m_rightMouseButtonHold = false;
+		
 		bool m_lockEntitySelection = false;
 
 		bool m_highlightSelection = true;
@@ -97,7 +90,14 @@ namespace EvoEngine
 
 		void SceneCameraWindow();
 
+		void OnInputEvent(const InputEvent& inputEvent) override;
+		void RenderToSceneCamera();
 	public:
+
+		void MoveCamera(
+			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
+
+
 		void CameraWindowDragAndDrop();
 
 		[[nodiscard]] ImTextureID GetTextureId(VkImageView imageView) const;

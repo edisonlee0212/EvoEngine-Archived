@@ -13,7 +13,7 @@ namespace EvoEngine
 		glm::ivec2 m_windowSize = { 1 , 1 };
 #pragma endregion
 
-		static void FramebufferResizeCallback(GLFWwindow*, int, int);
+		static void FramebufferSizeCallback(GLFWwindow*, int, int);
 		static void SetMonitorCallback(GLFWmonitor* monitor, int event);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 
@@ -23,9 +23,5 @@ namespace EvoEngine
 	public:
 		[[nodiscard]] GLFWwindow* GetGlfwWindow() const;
 		void ResizeWindow(int x, int y) const;
-		[[nodiscard]] bool GetKey(int key) const;
-
-		[[nodiscard]] bool GetMouseButton(int button) const;
-		[[nodiscard]] glm::vec2 GetMousePosition() const;
 	};
 }
