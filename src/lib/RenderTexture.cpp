@@ -1,6 +1,7 @@
 #include "RenderTexture.hpp"
 
 #include "Console.hpp"
+#include "EditorLayer.hpp"
 #include "Graphics.hpp"
 
 using namespace EvoEngine;
@@ -110,17 +111,18 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType,
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.anisotropyEnable = VK_TRUE;
 	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;
 	samplerInfo.compareEnable = VK_FALSE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-	m_sampler = std::make_unique<Sampler>(samplerInfo);
-	m_colorImTextureId = ImGui_ImplVulkan_AddTexture(
-		m_sampler->GetVkSampler(), m_colorImageView->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	m_depthStencilImTextureId = ImGui_ImplVulkan_AddTexture(
-		m_sampler->GetVkSampler(), m_depthStencilImageView->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_colorSampler = std::make_unique<Sampler>(samplerInfo);
+
+	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
+		m_colorImTextureId = editorLayer->GetTextureId(m_colorImageView->GetVkImageView());
+		m_depthStencilImTextureId = editorLayer->GetTextureId(m_depthStencilImageView->GetVkImageView());
+	}
 
 }
 
@@ -129,7 +131,6 @@ RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imag
 {
 	Initialize(extent, imageViewType, colorFormat, depthStencilFormat);
 }
-
 void RenderTexture::Resize(const VkExtent3D extent)
 {
 	Initialize(extent, m_imageViewType, m_colorFormat, m_depthStencilFormat);
@@ -155,6 +156,11 @@ VkFormat RenderTexture::GetDepthStencilFormat() const
 	return m_depthStencilFormat;
 }
 
+const std::unique_ptr<Sampler>& RenderTexture::GetSampler() const
+{
+	return m_colorSampler;
+}
+
 const std::unique_ptr<Image>& RenderTexture::GetColorImage()
 {
 	return m_colorImage;
@@ -175,12 +181,12 @@ const std::unique_ptr<ImageView>& RenderTexture::GetDepthStencilImageView()
 	return m_depthStencilImageView;
 }
 
-VkDescriptorSet RenderTexture::GetColorImTextureId() const
+ImTextureID RenderTexture::GetColorImTextureId() const
 {
 	return m_colorImTextureId;
 }
 
-VkDescriptorSet RenderTexture::GetDepthStencilImTextureId() const
+ImTextureID RenderTexture::GetDepthStencilImTextureId() const
 {
 	return m_depthStencilImTextureId;
 }

@@ -1,7 +1,9 @@
 #include "Texture2D.hpp"
 
+#include "Application.hpp"
 #include "ClassRegistry.hpp"
 #include "Console.hpp"
+#include "EditorLayer.hpp"
 #include "Graphics.hpp"
 
 using namespace EvoEngine;
@@ -129,8 +131,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
-		m_imTextureId = ImGui_ImplVulkan_AddTexture(
-			m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
+			m_imTextureId = editorLayer->GetTextureId(m_imageView->GetVkImageView());
+		}
 	}
 	else
 	{

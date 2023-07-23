@@ -19,7 +19,7 @@ namespace EvoEngine
 
 		VkFormat m_imageFormat = VK_FORMAT_UNDEFINED;
 
-		VkDescriptorSet m_imTextureId = VK_NULL_HANDLE;
+		ImTextureID m_imTextureId = VK_NULL_HANDLE;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 		bool LoadInternal(const std::filesystem::path& path) override;

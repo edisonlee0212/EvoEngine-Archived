@@ -1,4 +1,6 @@
 #include "Bound.hpp"
+
+#include "Transform.hpp"
 using namespace EvoEngine;
 
 glm::vec3 Bound::Size() const
@@ -52,4 +54,173 @@ void Bound::PopulateCorners(std::vector<glm::vec3>& corners) const
     corners[5] = glm::vec3(m_max.x, m_min.y, m_max.z);
     corners[6] = glm::vec3(m_max.x, m_max.y, m_min.z);
     corners[7] = m_max;
+}
+
+Ray::Ray(glm::vec3 start, glm::vec3 end)
+{
+    m_start = start;
+    m_direction = glm::normalize(end - start);
+    m_length = glm::distance(start, end);
+}
+
+Ray::Ray(glm::vec3 start, glm::vec3 direction, float length)
+{
+    m_start = start;
+    m_direction = direction;
+    m_length = length;
+}
+
+bool Ray::Intersect(const glm::vec3& position, float radius) const
+{
+    const glm::vec3 rayEnd = m_start + m_direction * m_length;
+    const auto cp = glm::closestPointOnLine(position, m_start, rayEnd);
+    if (cp == m_start || cp == rayEnd)
+        return false;
+    return glm::distance(cp, position) <= radius;
+}
+
+bool Ray::Intersect(const glm::mat4& transform, const Bound& bound) const
+{
+    float tMin = 0.0f;
+    float tMax = 100000.0f;
+    GlobalTransform temp;
+    temp.m_value = transform;
+    glm::vec3 scale = temp.GetScale();
+    temp.SetScale(glm::vec3(1.0f));
+    glm::mat4 model = temp.m_value;
+
+    glm::vec3 OBBWorldSpace(model[3].x, model[3].y, model[3].z);
+
+    glm::vec3 delta = OBBWorldSpace - m_start;
+    glm::vec3 AABBMin = scale * (bound.m_min);
+    glm::vec3 AABBMax = scale * (bound.m_max);
+    // Test intersection with the 2 planes perpendicular to the OBB's X axis
+    {
+        glm::vec3 xAxis(model[0].x, model[0].y, model[0].z);
+
+        float e = glm::dot(xAxis, delta);
+        float f = glm::dot(m_direction, xAxis);
+
+        if (fabs(f) > 0.001f)
+        { // Standard case
+
+            float t1 = (e + AABBMin.x) / f; // Intersection with the "left" plane
+            float t2 = (e + AABBMax.x) / f; // Intersection with the "right" plane
+            // t1 and t2 now contain distances betwen ray origin and ray-plane intersections
+
+            // We want t1 to represent the nearest intersection,
+            // so if it's not the case, invert t1 and t2
+            if (t1 > t2)
+            {
+                float w = t1;
+                t1 = t2;
+                t2 = w; // swap t1 and t2
+            }
+
+            // tMax is the nearest "far" intersection (amongst the X,Y and Z planes pairs)
+            if (t2 < tMax)
+                tMax = t2;
+            // tMin is the farthest "near" intersection (amongst the X,Y and Z planes pairs)
+            if (t1 > tMin)
+                tMin = t1;
+
+            // And here's the trick :
+            // If "far" is closer than "near", then there is NO intersection.
+            // See the images in the tutorials for the visual explanation.
+            if (tMax < tMin)
+                return false;
+        }
+        else
+        { // Rare case : the ray is almost parallel to the planes, so they don't have any "intersection"
+            if (-e + AABBMin.x > 0.0f || -e + AABBMax.x < 0.0f)
+                return false;
+        }
+    }
+
+    // Test intersection with the 2 planes perpendicular to the OBB's Y axis
+    // Exactly the same thing than above.
+    {
+        glm::vec3 yAxis(model[1].x, model[1].y, model[1].z);
+        float e = glm::dot(yAxis, delta);
+        float f = glm::dot(m_direction, yAxis);
+
+        if (fabs(f) > 0.001f)
+        {
+
+            float t1 = (e + AABBMin.y) / f;
+            float t2 = (e + AABBMax.y) / f;
+
+            if (t1 > t2)
+            {
+                float w = t1;
+                t1 = t2;
+                t2 = w;
+            }
+
+            if (t2 < tMax)
+                tMax = t2;
+            if (t1 > tMin)
+                tMin = t1;
+            if (tMin > tMax)
+                return false;
+        }
+        else
+        {
+            if (-e + AABBMin.y > 0.0f || -e + AABBMax.y < 0.0f)
+                return false;
+        }
+    }
+
+    // Test intersection with the 2 planes perpendicular to the OBB's Z axis
+    // Exactly the same thing than above.
+    {
+        glm::vec3 zAxis(model[2].x, model[2].y, model[2].z);
+        float e = glm::dot(zAxis, delta);
+        float f = glm::dot(m_direction, zAxis);
+
+        if (fabs(f) > 0.001f)
+        {
+
+            float t1 = (e + AABBMin.z) / f;
+            float t2 = (e + AABBMax.z) / f;
+
+            if (t1 > t2)
+            {
+                float w = t1;
+                t1 = t2;
+                t2 = w;
+            }
+
+            if (t2 < tMax)
+                tMax = t2;
+            if (t1 > tMin)
+                tMin = t1;
+            if (tMin > tMax)
+                return false;
+        }
+        else
+        {
+            if (-e + AABBMin.z > 0.0f || -e + AABBMax.z < 0.0f)
+                return false;
+        }
+    }
+    return true;
+}
+
+glm::vec3 Ray::GetEnd() const
+{
+    return m_start + m_direction * m_length;
+}
+
+Plane::Plane() : m_a(0), m_b(0), m_c(0), m_d(0)
+{
+}
+
+void Plane::Normalize()
+{
+    const float mag = glm::sqrt(m_a * m_a + m_b * m_b + m_c * m_c);
+    m_a /= mag;
+    m_b /= mag;
+    m_c /= mag;
+    m_d /= mag;
 }

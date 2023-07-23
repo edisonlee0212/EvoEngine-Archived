@@ -3,89 +3,12 @@
 #include "Application.hpp"
 #include "Console.hpp"
 #include "Graphics.hpp"
+#include "Material.hpp"
+#include "Mesh.hpp"
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "Scene.hpp"
 using namespace EvoEngine;
-
-void EditorLayer::LoadIcons()
-{
-	auto texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/project.png");
-	m_assetsIcons["Project"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/scene.png");
-	m_assetsIcons["Scene"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/binary.png");
-	m_assetsIcons["Binary"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/folder.png");
-	m_assetsIcons["Folder"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/material.png");
-	m_assetsIcons["Material"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/mesh.png");
-	m_assetsIcons["Mesh"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/prefab.png");
-	m_assetsIcons["Prefab"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/texture2d.png");
-	m_assetsIcons["Texture2D"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PlayButton.png");
-	m_assetsIcons["PlayButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PauseButton.png");
-	m_assetsIcons["PauseButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StopButton.png");
-	m_assetsIcons["StopButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StepButton.png");
-	m_assetsIcons["StepButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/back.png");
-	m_assetsIcons["BackButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/left.png");
-	m_assetsIcons["LeftButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/right.png");
-	m_assetsIcons["RightButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/refresh.png");
-	m_assetsIcons["RefreshButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/InfoButton.png");
-	m_assetsIcons["InfoButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/ErrorButton.png");
-	m_assetsIcons["ErrorButton"] = texture2D;
-
-	texture2D = std::make_shared<Texture2D>();
-	texture2D->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/WarningButton.png");
-	m_assetsIcons["WarningButton"] = texture2D;
-}
 
 void EditorLayer::OnCreate()
 {
@@ -175,7 +98,7 @@ void EditorLayer::OnCreate()
 		}
 		return edited;
 		});
-	/*
+	
 	RegisterComponentDataInspector<Ray>([&](Entity entity, IDataComponent* data, bool isRoot) {
 		auto* ray = static_cast<Ray*>(static_cast<void*>(data));
 		bool changed = false;
@@ -187,7 +110,7 @@ void EditorLayer::OnCreate()
 			changed = true;
 		return changed;
 		});
-		*/
+
 
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (!windowLayer)
@@ -204,17 +127,8 @@ void EditorLayer::OnCreate()
 	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 	//io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 	ImGui::StyleColorsDark();
-
-
-	// 2: initialize imgui library
-
-	//this initializes the core structures of imgui
 	ImGui::CreateContext();
-
-	//this initializes imgui for SDL
 	ImGui_ImplGlfw_InitForVulkan(windowLayer->GetGlfwWindow(), true);
-
-	//this initializes imgui for Vulkan
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance = Graphics::GetVkInstance();
 	init_info.PhysicalDevice = Graphics::GetVkPhysicalDevice();
@@ -230,17 +144,36 @@ void EditorLayer::OnCreate()
 	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
 	ImGui_ImplVulkan_Init(&init_info, Graphics::GetSwapchainRenderPass()->GetVkRenderPass());
 	ImGui::StyleColorsDark();
-	//ImGui::GetStyle().ScaleAllSizes(2.0);
-
-	//execute a gpu command to upload imgui font textures
-	Graphics::ImmediateSubmit([&](VkCommandBuffer cmd) {
+	Graphics::ImmediateSubmit([&](const VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
 		});
-
 	//clear font textures from cpu data
-	//ImGui_ImplVulkan_DestroyFontUploadObjects();
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
+	
+
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+	m_defaultImageSampler = std::make_unique<Sampler>(samplerInfo);
 
 	LoadIcons();
+
+	m_sceneCamera = Serialization::ProduceSerializable<Camera>();
+	m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
+	m_sceneCamera->m_useClearColor = false;
+	m_sceneCamera->OnCreate();
 }
 
 void EditorLayer::OnDestroy()
@@ -364,8 +297,8 @@ void EditorLayer::PreUpdate()
 			break;
 		}
 		}
-		
-			ImGui::Separator();
+
+		ImGui::Separator();
 		if (ImGui::BeginMenu("Project")) {
 			ImGui::EndMenu();
 		}
@@ -656,7 +589,7 @@ void EditorLayer::LateUpdate()
 			renderPassBeginInfo.renderArea.offset = { 0, 0 };
 			renderPassBeginInfo.renderArea.extent = extent2D;
 
-			VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = &clearColor;
 
@@ -669,7 +602,7 @@ void EditorLayer::LateUpdate()
 		});
 }
 
-bool EditorLayer::DrawEntityMenu(const bool& enabled, const Entity& entity)
+bool EditorLayer::DrawEntityMenu(const bool& enabled, const Entity& entity) const
 {
 	bool deleted = false;
 	if (ImGui::BeginPopupContextItem(std::to_string(entity.GetIndex()).c_str())) {
@@ -760,6 +693,256 @@ void EditorLayer::InspectComponentData(Entity entity, IDataComponent* data, Data
 			scene->SetUnsaved();
 		}
 	}
+}
+
+void EditorLayer::SceneCameraWindow()
+{
+	auto scene = GetScene();
+	auto windowLayer = Application::GetLayer<WindowLayer>();
+#pragma region Scene Window
+	ImVec2 viewPortSize;
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	if (ImGui::Begin("Scene")) {
+		// Using a Child allow to fill all the space of the window.
+		// It also allows customization
+		static int corner = 1;
+		if (ImGui::BeginChild("SceneCameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar)) {
+			if (ImGui::BeginMenuBar()) {
+				if (ImGui::BeginMenu("Settings")) {
+					ImGui::Checkbox("Display info", &m_showSceneInfo);
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+			viewPortSize = ImGui::GetWindowSize();
+			m_sceneCameraResolutionX = viewPortSize.x * m_sceneCameraResolutionMultiplier;
+			m_sceneCameraResolutionY = (viewPortSize.y - 20) * m_sceneCameraResolutionMultiplier;
+			ImVec2 overlayPos = ImGui::GetWindowPos();
+			if (m_sceneCamera && m_sceneCamera->m_rendered) {
+				// Because I use the texture from OpenGL, I need to invert the V from the UV.
+				ImGui::Image(m_sceneCamera->GetRenderTexture()->GetColorImTextureId(),
+					ImVec2(viewPortSize.x, viewPortSize.y - 20),
+					ImVec2(0, 1),
+					ImVec2(1, 0));
+				CameraWindowDragAndDrop();
+			}
+			else {
+				ImGui::Text("No active scene camera!");
+			}
+			ImVec2 window_pos = ImVec2(
+				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
+				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
+			/*
+			if (m_showSceneInfo) {
+				ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+				ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+				ImGui::SetNextWindowBgAlpha(0.35f);
+				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
+					ImGuiWindowFlags_AlwaysAutoResize |
+					ImGuiWindowFlags_NoSavedSettings |
+					ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+				if (ImGui::BeginChild("Info", ImVec2(200, 300), true, window_flags)) {
+					ImGui::Text("_");
+					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+					std::string trisstr = "";
+					if (ImGui::IsMousePosValid()) {
+						glm::vec2 pos;
+
+						Inputs::GetMousePosition(pos);
+						ImGui::Text("Mouse Pos: (%.1f,%.1f)", pos.x, pos.y);
+					}
+					else {
+						ImGui::Text("Mouse Pos: <invalid>");
+					}
+
+					if (ImGui::Button("Reset camera")) {
+						MoveCamera(m_defaultSceneCameraRotation, m_defaultSceneCameraPosition);
+					}
+					if (ImGui::Button("Set default")) {
+						m_defaultSceneCameraPosition = m_sceneCameraPosition;
+						m_defaultSceneCameraRotation = m_sceneCameraRotation;
+					}
+					ImGui::PushItemWidth(100);
+					ImGui::Checkbox("Use background color", &m_sceneCamera->m_useClearColor);
+					ImGui::ColorEdit3("Bg color", &m_sceneCamera->m_clearColor.x);
+					ImGui::SliderFloat("Fov", &m_sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
+					ImGui::DragFloat3("Position", &m_sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
+					ImGui::DragFloat("Speed", &m_velocity, 0.1f, 0, 0, "%.1f");
+					ImGui::DragFloat("Sensitivity", &m_sensitivity, 0.1f, 0, 0, "%.1f");
+					ImGui::Checkbox("Apply transform to main camera", &m_applyTransformToMainCamera);
+					ImGui::DragFloat("Resolution multiplier", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
+					Editor::DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
+					ImGui::PopItemWidth();
+				}
+				ImGui::EndChild();
+			}
+			if (m_sceneCameraWindowFocused) {
+#pragma region Scene Camera Controller
+				float xOffset = 0;
+				float yOffset = 0;
+				if (!m_startMouse) {
+					m_lastX = m_mouseScreenPosition.x;
+					m_lastY = m_mouseScreenPosition.y;
+					m_startMouse = true;
+				}
+				xOffset = m_mouseScreenPosition.x - m_lastX;
+				yOffset = -m_mouseScreenPosition.y + m_lastY;
+				m_lastX = m_mouseScreenPosition.x;
+				m_lastY = m_mouseScreenPosition.y;
+
+				if (!m_rightMouseButtonHold &&
+					!(m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
+						m_mouseScreenPosition.x > viewPortSize.x ||
+						m_mouseScreenPosition.y > viewPortSize.y) &&
+					Inputs::GetMouseInternal(GLFW_MOUSE_BUTTON_RIGHT, Windows::GetWindow())) {
+					m_rightMouseButtonHold = true;
+				}
+				if (m_rightMouseButtonHold && !m_lockCamera) {
+					glm::vec3 front = m_sceneCameraRotation * glm::vec3(0, 0, -1);
+					glm::vec3 right = m_sceneCameraRotation * glm::vec3(1, 0, 0);
+					if (Inputs::GetKeyInternal(GLFW_KEY_W, Windows::GetWindow())) {
+						m_sceneCameraPosition +=
+							front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+					}
+					if (Inputs::GetKeyInternal(GLFW_KEY_S, Windows::GetWindow())) {
+						m_sceneCameraPosition -=
+							front * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+					}
+					if (Inputs::GetKeyInternal(GLFW_KEY_A, Windows::GetWindow())) {
+						m_sceneCameraPosition -=
+							right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+					}
+					if (Inputs::GetKeyInternal(GLFW_KEY_D, Windows::GetWindow())) {
+						m_sceneCameraPosition +=
+							right * static_cast<float>(Application::Time().DeltaTime()) * m_velocity;
+					}
+					if (Inputs::GetKeyInternal(GLFW_KEY_LEFT_SHIFT, Windows::GetWindow())) {
+						m_sceneCameraPosition.y += m_velocity * static_cast<float>(Application::Time().DeltaTime());
+					}
+					if (Inputs::GetKeyInternal(GLFW_KEY_LEFT_CONTROL, Windows::GetWindow())) {
+						m_sceneCameraPosition.y -= m_velocity * static_cast<float>(Application::Time().DeltaTime());
+					}
+					if (xOffset != 0.0f || yOffset != 0.0f) {
+						m_sceneCameraYawAngle += xOffset * m_sensitivity;
+						m_sceneCameraPitchAngle += yOffset * m_sensitivity;
+						if (m_sceneCameraPitchAngle > 89.0f)
+							m_sceneCameraPitchAngle = 89.0f;
+						if (m_sceneCameraPitchAngle < -89.0f)
+							m_sceneCameraPitchAngle = -89.0f;
+
+						m_sceneCameraRotation =
+							Camera::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false);
+					}
+#pragma endregion
+				}
+			}
+			*/
+		}
+#pragma region Gizmos and Entity Selection
+		bool mouseSelectEntity = true;
+		if (scene->IsEntityValid(m_selectedEntity)) {
+			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, viewPortSize.x,
+				viewPortSize.y - 20);
+			glm::mat4 cameraView =
+				glm::inverse(glm::translate(m_sceneCameraPosition) * glm::mat4_cast(m_sceneCameraRotation));
+			glm::mat4 cameraProjection = m_sceneCamera->GetProjection();
+			const auto op = m_localPositionSelected ? ImGuizmo::OPERATION::TRANSLATE
+				: m_localRotationSelected ? ImGuizmo::OPERATION::ROTATE
+				: ImGuizmo::OPERATION::SCALE;
+
+			auto transform = scene->GetDataComponent<Transform>(m_selectedEntity);
+			GlobalTransform parentGlobalTransform;
+			Entity parentEntity = scene->GetParent(m_selectedEntity);
+			if (parentEntity.GetIndex() != 0) {
+				parentGlobalTransform = scene->GetDataComponent<GlobalTransform>(
+					scene->GetParent(m_selectedEntity));
+			}
+			auto globalTransform = scene->GetDataComponent<GlobalTransform>(m_selectedEntity);
+			ImGuizmo::Manipulate(
+				glm::value_ptr(cameraView),
+				glm::value_ptr(cameraProjection),
+				op,
+				ImGuizmo::LOCAL,
+				glm::value_ptr(globalTransform.m_value));
+			if (ImGuizmo::IsUsing()) {
+				transform.m_value = glm::inverse(parentGlobalTransform.m_value) * globalTransform.m_value;
+				scene->SetDataComponent(m_selectedEntity, transform);
+				transform.Decompose(
+					m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
+				mouseSelectEntity = false;
+			}
+		}
+		/*
+		if (!m_lockEntitySelection && m_sceneCameraWindowFocused && mouseSelectEntity) {
+			if (!m_leftMouseButtonHold &&
+				!(m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
+					m_mouseScreenPosition.x > viewPortSize.x ||
+					m_mouseScreenPosition.y > viewPortSize.y) &&
+				Inputs::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT, Windows::GetWindow())) {
+				Entity focusedEntity = MouseEntitySelection(m_mouseScreenPosition);
+				if (focusedEntity == Entity()) {
+					SetSelectedEntity(Entity());
+				}
+				else {
+					Entity walker = focusedEntity;
+					bool found = false;
+					while (walker.GetIndex() != 0) {
+						if (walker == m_selectedEntity) {
+							found = true;
+							break;
+						}
+						walker = scene->GetParent(walker);
+					}
+					if (found) {
+						walker = scene->GetParent(walker);
+						if (walker.GetIndex() == 0) {
+							SetSelectedEntity(focusedEntity);
+						}
+						else {
+							SetSelectedEntity(walker);
+						}
+					}
+					else {
+						SetSelectedEntity(focusedEntity);
+					}
+				}
+				m_leftMouseButtonHold = true;
+			}
+			if (m_highlightSelection) HighLightEntity(m_selectedEntity, glm::vec4(1.0, 0.5, 0.0, 0.8));
+
+		}
+		*/
+#pragma endregion
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+			if (!m_sceneCameraWindowFocused) {
+				m_rightMouseButtonHold = true;
+				m_leftMouseButtonHold = true;
+			}
+			m_sceneCameraWindowFocused = true;
+		}
+		else {
+			m_sceneCameraWindowFocused = false;
+		}
+		ImGui::EndChild();
+	}
+	else {
+		m_sceneCameraWindowFocused = false;
+	}
+	m_sceneCamera->SetRequireRendering(
+		!(ImGui::GetCurrentWindowRead()->Hidden && !ImGui::GetCurrentWindowRead()->Collapsed));
+
+	ImGui::End();
+
+	ImGui::PopStyleVar();
+
+#pragma endregion
+}
+
+ImTextureID EditorLayer::GetTextureId(const VkImageView imageView) const
+{
+	return ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
@@ -1041,4 +1224,122 @@ bool EditorLayer::DragAndDropButton(
 	}
 	statusChanged = UnsafeDroppablePrivateComponent(target, acceptableTypeNames) || statusChanged;
 	return statusChanged;
+}
+
+void EditorLayer::LoadIcons()
+{
+	m_assetsIcons["Project"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Project"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/project.png");
+
+	m_assetsIcons["Scene"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Scene"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/scene.png");
+
+	m_assetsIcons["Binary"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Binary"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/binary.png");
+
+	m_assetsIcons["Folder"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Folder"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/folder.png");
+
+	m_assetsIcons["Material"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Material"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/material.png");
+
+
+	m_assetsIcons["Mesh"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Mesh"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/mesh.png");
+
+
+	m_assetsIcons["Prefab"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Prefab"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/prefab.png");
+
+	m_assetsIcons["Texture2D"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Texture2D"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/texture2d.png");
+
+
+	m_assetsIcons["PlayButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["PlayButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PlayButton.png");
+
+
+	m_assetsIcons["PauseButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["PauseButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PauseButton.png");
+
+
+	m_assetsIcons["StopButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["StopButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StopButton.png");
+
+
+	m_assetsIcons["StepButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["StepButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StepButton.png");
+
+
+	m_assetsIcons["BackButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["BackButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/back.png");
+
+
+	m_assetsIcons["LeftButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["LeftButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/left.png");
+
+
+	m_assetsIcons["RightButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["RightButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/right.png");
+
+
+	m_assetsIcons["RefreshButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["RefreshButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/refresh.png");
+
+
+	m_assetsIcons["InfoButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["InfoButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/InfoButton.png");
+
+
+	m_assetsIcons["ErrorButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["ErrorButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/ErrorButton.png");
+
+	m_assetsIcons["WarningButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["WarningButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/WarningButton.png");
+
+}
+
+void EditorLayer::CameraWindowDragAndDrop() {
+	AssetRef assetRef;
+	if (UnsafeDroppableAsset(assetRef,
+		{ "Scene", "Prefab", "Mesh", "Strands", "Cubemap", "EnvironmentalMap" })) {
+		auto scene = GetScene();
+		auto asset = assetRef.Get<IAsset>();
+		if (!Application::IsPlaying() && asset->GetTypeName() == "Scene") {
+			auto scene = std::dynamic_pointer_cast<Scene>(asset);
+			ProjectManager::SetStartScene(scene);
+			Application::Attach(scene);
+		}
+		/*
+		else if (asset->GetTypeName() == "Prefab") {
+			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene);
+			scene->SetEntityName(entity, asset->GetTitle());
+		}
+		else if (asset->GetTypeName() == "Mesh") {
+			Entity entity = scene->CreateEntity(asset->GetTitle());
+			auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
+			meshRenderer->m_mesh.Set<Mesh>(std::dynamic_pointer_cast<Mesh>(asset));
+			auto material = ProjectManager::CreateTemporaryAsset<Material>();
+			material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
+			meshRenderer->m_material.Set<Material>(material);
+		}
+		
+		else if (asset->GetTypeName() == "Strands") {
+			Entity entity = scene->CreateEntity(asset->GetTitle());
+			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(entity).lock();
+			strandsRenderer->m_strands.Set<Strands>(std::dynamic_pointer_cast<Strands>(asset));
+			auto material = ProjectManager::CreateTemporaryAsset<Material>();
+			material->SetProgram(DefaultResources::GLPrograms::StandardStrandsProgram);
+			strandsRenderer->m_material.Set<Material>(material);
+		}
+		else if (asset->GetTypeName() == "EnvironmentalMap") {
+			scene->m_environmentSettings.m_environmentalMap =
+				std::dynamic_pointer_cast<EnvironmentalMap>(asset);
+		}
+		else if (asset->GetTypeName() == "Cubemap") {
+			auto mainCamera = scene->m_mainCamera.Get<Camera>();
+			mainCamera->m_skybox = std::dynamic_pointer_cast<Cubemap>(asset);
+		}
+		*/
+	}
 }

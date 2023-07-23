@@ -1,4 +1,6 @@
 #pragma once
+#include "IDataComponent.hpp"
+
 namespace EvoEngine
 {
 	struct Bound
@@ -10,5 +12,23 @@ namespace EvoEngine
 		[[nodiscard]] bool InBound(const glm::vec3& position) const;
 		void ApplyTransform(const glm::mat4& transform);
 		void PopulateCorners(std::vector<glm::vec3>& corners) const;
+	};
+	struct Ray : IDataComponent
+	{
+		glm::vec3 m_start;
+		glm::vec3 m_direction;
+		float m_length;
+		Ray() = default;
+		Ray(glm::vec3 start, glm::vec3 end);
+		Ray(glm::vec3 start, glm::vec3 direction, float length);
+		[[nodiscard]] bool Intersect(const glm::vec3& position, float radius) const;
+		[[nodiscard]] bool Intersect(const glm::mat4& transform, const Bound& bound) const;
+		[[nodiscard]] glm::vec3 GetEnd() const;
+	};
+	struct Plane
+	{
+		float m_a, m_b, m_c, m_d;
+		Plane();
+		void Normalize();
 	};
 }

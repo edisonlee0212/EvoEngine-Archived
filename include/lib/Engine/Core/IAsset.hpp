@@ -81,7 +81,7 @@ namespace EvoEngine
 		 */
 		void SetUnsaved();
 		[[nodiscard]] bool Saved() const;
-		~IAsset();
+		~IAsset() override;
 	};
 
 } // namespace EvoEngine

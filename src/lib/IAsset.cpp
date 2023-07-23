@@ -1,11 +1,12 @@
 #include <IAsset.hpp>
 #include "Console.hpp"
+#include "ProjectManager.hpp"
 using namespace EvoEngine;
 bool IAsset::Save()
 {
     if (IsTemporary())
         return false;
-    auto path = GetAbsolutePath();
+    const auto path = GetAbsolutePath();
     if (SaveInternal(path))
     {
         m_saved = true;
@@ -17,7 +18,7 @@ bool IAsset::Load()
 {
     if (IsTemporary())
         return false;
-    auto path = GetAbsolutePath();
+    const auto path = GetAbsolutePath();
     if (LoadInternal(path))
     {
         m_saved = true;
@@ -33,9 +34,9 @@ bool IAsset::SaveInternal(const std::filesystem::path &path)
         out << YAML::BeginMap;
         Serialize(out);
         out << YAML::EndMap;
-        std::ofstream fout(path.string());
-        fout << out.c_str();
-        fout.close();
+        std::ofstream fileOutput(path.string());
+        fileOutput << out.c_str();
+        fileOutput.close();
     }
     catch (std::exception e)
     {
@@ -53,10 +54,10 @@ bool IAsset::LoadInternal(const std::filesystem::path &path)
     }
     try
     {
-        std::ifstream stream(path.string());
+	    const std::ifstream stream(path.string());
         std::stringstream stringStream;
         stringStream << stream.rdbuf();
-        YAML::Node in = YAML::Load(stringStream.str());
+	    const YAML::Node in = YAML::Load(stringStream.str());
         Deserialize(in);
     }
     catch (std::exception e)
@@ -73,24 +74,20 @@ void IAsset::OnCreate()
 
 bool IAsset::Export(const std::filesystem::path &path)
 {
-    /*
     if (ProjectManager::IsInProjectFolder(path))
     {
         EVOENGINE_ERROR("Path is in project folder!");
         return false;
     }
-    */
     return SaveInternal(path);
 }
 bool IAsset::Import(const std::filesystem::path &path)
 {
-    /*
     if (!ProjectManager::GetProjectPath().empty() && ProjectManager::IsInProjectFolder(path))
     {
         EVOENGINE_ERROR("Path is in project folder!");
         return false;
     }
-    */
     return LoadInternal(path);
 }
 
@@ -114,13 +111,13 @@ std::filesystem::path IAsset::GetProjectRelativePath() const
 {
     if (m_assetRecord.expired())
         return {};
-    //return m_assetRecord.lock()->GetProjectRelativePath();
+    return m_assetRecord.lock()->GetProjectRelativePath();
 }
 std::filesystem::path IAsset::GetAbsolutePath() const
 {
     if (m_assetRecord.expired())
         return {};
-    //return m_assetRecord.lock()->GetAbsolutePath();
+    return m_assetRecord.lock()->GetAbsolutePath();
 }
 bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
 {
@@ -129,7 +126,7 @@ bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
         EVOENGINE_ERROR("Not relative path!");
         return false;
     }
-    /*
+    
     if (std::filesystem::exists(ProjectManager::GetProjectPath().parent_path() / projectRelativePath))
     {
         return false;
@@ -139,11 +136,11 @@ bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
         EVOENGINE_ERROR("Asset path invalid!");
         return false;
     }
-    auto newFolder = ProjectManager::GetOrCreateFolder(projectRelativePath.parent_path()).lock();
+    const auto newFolder = ProjectManager::GetOrCreateFolder(projectRelativePath.parent_path()).lock();
     if (!IsTemporary())
     {
-        auto assetRecord = m_assetRecord.lock();
-        auto folder = assetRecord->GetFolder().lock();
+	    const auto assetRecord = m_assetRecord.lock();
+	    const auto folder = assetRecord->GetFolder().lock();
         if (newFolder == folder)
         {
             assetRecord->SetAssetFileName(projectRelativePath.stem().string());
@@ -156,7 +153,7 @@ bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
     else
     {
         auto stem = projectRelativePath.stem().string();
-        auto fileName = projectRelativePath.filename().string();
+        const auto fileName = projectRelativePath.filename().string();
         auto extension = projectRelativePath.extension().string();
         if (fileName == stem)
         {
@@ -165,7 +162,7 @@ bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
         }
         newFolder->RegisterAsset(m_self.lock(), stem, extension);
     }
-    */
+    
     Save();
     return true;
 }
@@ -176,8 +173,6 @@ std::string IAsset::GetTitle() const
 }
 IAsset::~IAsset()
 {
-    /*
     auto &projectManager = ProjectManager::GetInstance();
     projectManager.m_assetRegistry.erase(m_handle);
-	*/
 }

@@ -38,6 +38,9 @@ namespace EvoEngine
 		glm::vec4 m_clearColor = {};
 		glm::vec4 m_reservedParameters1 = {};
 		glm::vec4 m_reservedParameters2 = {};
+
+		[[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
+		[[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
 	};
 
 	struct MaterialInfoBlock {
@@ -80,8 +83,8 @@ namespace EvoEngine
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
 
-		std::shared_ptr<ShaderEXT> m_vertShader;
-		std::shared_ptr<ShaderEXT> m_fragShader;
+		std::shared_ptr<ShaderEXT> m_vertShader = {};
+		std::shared_ptr<ShaderEXT> m_fragShader = {};
 		
 		void OnCreate() override;
 		void OnDestroy() override;
@@ -90,11 +93,13 @@ namespace EvoEngine
 		void CreateRenderPass();
 		std::unique_ptr<RenderPass> m_renderPass = {};
 	public:
+		bool m_allowAutoResize = true;
+
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
 		RenderInfoBlock m_renderInfoBlock = {};
 		MaterialInfoBlock m_materialInfoBlock = {};
 		CameraInfoBlock m_cameraInfoBlock = {};
 
-		std::shared_ptr<Mesh> m_mesh;
+		std::shared_ptr<Mesh> m_mesh = {};
 	};
 }

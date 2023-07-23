@@ -6,6 +6,7 @@
 #include "PrivateComponentRef.hpp"
 #include "Texture2D.hpp"
 #include "Application.hpp"
+#include "Camera.hpp"
 #include "ProjectManager.hpp"
 #include "Scene.hpp"
 namespace EvoEngine
@@ -34,6 +35,8 @@ namespace EvoEngine
 		std::map<std::string, std::vector<PrivateComponentRef>> m_privateComponentRefBus;
 		std::map<std::string, std::vector<EntityRef>> m_entityRefBus;
 #pragma endregion
+
+		std::unique_ptr<Sampler> m_defaultImageSampler;
 
 		EntityArchetype m_basicEntityArchetype;
 
@@ -82,15 +85,23 @@ namespace EvoEngine
 		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-		
 
-		bool DrawEntityMenu(const bool& enabled, const Entity& entity);
+
+		[[nodiscard]] bool DrawEntityMenu(const bool& enabled, const Entity& entity) const;
 
 		void DrawEntityNode(const Entity& entity, const unsigned& hierarchyLevel);
 
 		void InspectComponentData(Entity entity, IDataComponent* data, DataComponentType type, bool isRoot);
 
+		std::shared_ptr<Camera> m_sceneCamera;
+
+		void SceneCameraWindow();
+
 	public:
+		void CameraWindowDragAndDrop();
+
+		[[nodiscard]] ImTextureID GetTextureId(VkImageView imageView) const;
+
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;
 

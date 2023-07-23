@@ -97,55 +97,54 @@ void Application::LateUpdateInternal()
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
 	if (application.m_applicationStatus == ApplicationStatus::NoProject)
 	{
-		auto editorLayer = GetLayer<EditorLayer>();
-		if (editorLayer) {
-			ImGui_ImplVulkan_NewFrame();
-			ImGui_ImplGlfw_NewFrame();
-			ImGui::NewFrame();
-			ImGuizmo::BeginFrame();
-			const auto windowLayer = GetLayer<WindowLayer>();
-			if (windowLayer && ImGui::BeginMainMenuBar())
-			{
-				FileUtils::SaveFile(
-					"Create or load New Project",
-					"Project",
-					{ ".ueproj" },
-					[&](const std::filesystem::path& path) {
-						ProjectManager::GetOrCreateProject(path);
-						if (ProjectManager::GetInstance().m_projectFolder)
-						{
-							windowLayer->ResizeWindow(
-								application.m_applicationInfo.m_defaultWindowSize.x,
-								application.m_applicationInfo.m_defaultWindowSize.y);
-							application.m_applicationStatus = ApplicationStatus::Stop;
-						}
-					},
-					false);
-				ImGui::EndMainMenuBar();
-			}
-
-			Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
-				{
-					const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
-					VkRenderPassBeginInfo renderPassBeginInfo{};
-					renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-					renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
-					renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();;
-					renderPassBeginInfo.renderArea.offset = { 0, 0 };
-					renderPassBeginInfo.renderArea.extent = extent2D;
-
-					VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-					renderPassBeginInfo.clearValueCount = 1;
-					renderPassBeginInfo.pClearValues = &clearColor;
-
-					vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-					ImGui::Render();
-					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-
-					vkCmdEndRenderPass(commandBuffer);
-				});
+		const auto editorLayer = GetLayer<EditorLayer>();
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
+		const auto windowLayer = GetLayer<WindowLayer>();
+		if (windowLayer && ImGui::BeginMainMenuBar())
+		{
+			FileUtils::SaveFile(
+				"Create or load New Project",
+				"Project",
+				{ ".ueproj" },
+				[&](const std::filesystem::path& path) {
+					ProjectManager::GetOrCreateProject(path);
+					if (ProjectManager::GetInstance().m_projectFolder)
+					{
+						windowLayer->ResizeWindow(
+							application.m_applicationInfo.m_defaultWindowSize.x,
+							application.m_applicationInfo.m_defaultWindowSize.y);
+						application.m_applicationStatus = ApplicationStatus::Stop;
+					}
+				},
+				false);
+			ImGui::EndMainMenuBar();
 		}
+
+		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
+			{
+				const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
+				VkRenderPassBeginInfo renderPassBeginInfo{};
+				renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
+				renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();;
+				renderPassBeginInfo.renderArea.offset = { 0, 0 };
+				renderPassBeginInfo.renderArea.extent = extent2D;
+
+				VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+				renderPassBeginInfo.clearValueCount = 1;
+				renderPassBeginInfo.pClearValues = &clearColor;
+
+				vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				ImGui::Render();
+				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
+				vkCmdEndRenderPass(commandBuffer);
+			});
+
 	}
 	else {
 		for (const auto& i : application.m_externalLateUpdateFunctions)

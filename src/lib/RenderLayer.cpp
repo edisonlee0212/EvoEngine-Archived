@@ -22,6 +22,20 @@ const std::vector<unsigned> indices = {
 	0, 1, 2, 2, 3, 0,
 	4, 5, 6, 6, 7, 4
 };
+
+glm::vec3 CameraInfoBlock::Project(const glm::vec3& position) const
+{
+	return m_projection * m_view * glm::vec4(position, 1.0f);
+}
+
+glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
+{
+	const glm::mat4 inverse = glm::inverse(m_projection * m_view);
+	auto start = glm::vec4(position, 1.0f);
+	start = inverse * start;
+	return start / start.w;
+}
+
 void RenderLayer::OnCreate()
 {
 #pragma region Descrioptor Layout
