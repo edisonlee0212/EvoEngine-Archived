@@ -46,6 +46,30 @@ struct SpotLight {
 	int viewPortYSize;
 };
 
+layout(set = 0, binding = 5) uniform EE_DIRECTIONAL_LIGHT_BLOCK
+{
+	int EE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
+	DirectionalLight EE_DIRECTIONAL_LIGHTS[DIRECTIONAL_LIGHTS_AMOUNT];
+};
+
+layout(set = 0, binding = 6) uniform EE_POINT_LIGHT_BLOCK
+{
+	int EE_POINT_LIGHT_AMOUNT;
+	PointLight EE_POINT_LIGHTS[POINT_LIGHTS_AMOUNT];
+};
+
+layout(set = 0, binding = 7) uniform EE_SPOT_LIGHT_BLOCK
+{
+	int EE_SPOT_LIGHT_AMOUNT;
+	SpotLight EE_SPOT_LIGHTS[SPOT_LIGHTS_AMOUNT];
+};
+
+
+layout(set = 0, binding = 8) uniform EE_KERNEL_BLOCK
+{
+	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
+	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
+};
 
 layout(set = 0, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
 {
@@ -110,33 +134,6 @@ layout(set = 2, binding = 3) uniform EE_MATERIAL_BLOCK
 	float EE_PBR_AO;
 	float EE_PBR_EMISSION;
 };
-
-
-layout(std140, binding = 4) uniform EE_DIRECTIONAL_LIGHT_BLOCK
-{
-	int EE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
-	DirectionalLight EE_DIRECTIONAL_LIGHTS[DIRECTIONAL_LIGHTS_AMOUNT];
-};
-
-layout(std140, binding = 5) uniform EE_POINT_LIGHT_BLOCK
-{
-	int EE_POINT_LIGHT_AMOUNT;
-	PointLight EE_POINT_LIGHTS[POINT_LIGHTS_AMOUNT];
-};
-
-layout(std140, binding = 6) uniform EE_SPOT_LIGHT_BLOCK
-{
-	int EE_SPOT_LIGHT_AMOUNT;
-	SpotLight EE_SPOT_LIGHTS[SPOT_LIGHTS_AMOUNT];
-};
-
-
-layout(std140, binding = 7) uniform EE_KERNEL_BLOCK
-{
-	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
-	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
-};
-
 
 
 layout(binding = 3) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;

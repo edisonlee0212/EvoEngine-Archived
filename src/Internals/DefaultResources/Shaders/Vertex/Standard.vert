@@ -13,7 +13,10 @@ layout(location = 0) out VS_OUT {
 } vs_out;
 
 
-uniform mat4 model;
+layout(set = 3, binding = 4) uniform EE_OBJECT_BLOCK
+{
+	mat4 model;
+};
 
 void main()
 {

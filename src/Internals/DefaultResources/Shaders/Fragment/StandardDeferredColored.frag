@@ -2,11 +2,12 @@ layout (location = 0) out vec4 gNormal;
 layout (location = 1) out vec3 gAlbedo;
 layout (location = 2) out vec4 gMetallicRoughnessEmissionAmbient;
 
-layout (location = 0) in VS_OUT {
+in VS_OUT {
     vec3 FragPos;
     vec3 Normal;
     vec3 Tangent;
     vec2 TexCoord;
+    vec4 Color;
 } fs_in;
 
 void main()
@@ -37,6 +38,6 @@ void main()
 
     // also store the per-fragment normals into the gbuffer
     gNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
-    gAlbedo = vec3(albedo);
+    gAlbedo = albedo.xyz * (1.0 - fs_in.Color.w) + fs_in.Color.xyz * fs_in.Color.w;
     gMetallicRoughnessEmissionAmbient = vec4(metallic, roughness, emission, ao);
 }

@@ -173,11 +173,11 @@ namespace EvoEngine
 		bool Rename(EntityRef& entityRef);
 
 		template <typename T = IAsset>  bool RenameAsset(const std::shared_ptr<T>& target);
-		bool RenameEntity(const Entity& entity) const;
+		[[nodiscard]] bool RenameEntity(const Entity& entity) const;
 
-		template <typename T = IAsset>  bool Remove(AssetRef& target);
-		template <typename T = IPrivateComponent>  bool Remove(PrivateComponentRef& target);
-		bool Remove(EntityRef& entityRef);
+		template <typename T = IAsset>  bool Remove(AssetRef& target) const;
+		template <typename T = IPrivateComponent>  bool Remove(PrivateComponentRef& target) const;
+		[[nodiscard]] bool Remove(EntityRef& entityRef);
 
 #pragma endregion
 	};
@@ -193,8 +193,7 @@ namespace EvoEngine
 
 	template <typename T> void EditorLayer::RegisterSystem()
 	{
-		
-		auto scene = Application::GetActiveScene();
+		const auto scene = Application::GetActiveScene();
 		auto func = [&](float rank) {
 			if (scene->GetSystem<T>())
 				return;
@@ -218,8 +217,8 @@ namespace EvoEngine
 	template <typename T> void EditorLayer::RegisterPrivateComponent()
 	{
 		
-		auto func = [&](Entity owner) {
-			auto scene = Application::GetActiveScene();
+		auto func = [&](const Entity owner) {
+			const auto scene = Application::GetActiveScene();
 			if (scene->HasPrivateComponent<T>(owner))
 				return;
 			if (ImGui::Button(Serialization::GetSerializableTypeName<T>().c_str()))
@@ -240,12 +239,11 @@ namespace EvoEngine
 
 	template <typename T> void EditorLayer::RegisterDataComponent()
 	{
-		auto id = typeid(T).hash_code();
-		if (id == typeid(Transform).hash_code() || id == typeid(GlobalTransform).hash_code() ||
+		if (const auto id = typeid(T).hash_code(); id == typeid(Transform).hash_code() || id == typeid(GlobalTransform).hash_code() ||
 			id == typeid(GlobalTransformUpdateFlag).hash_code())
 			return;
-		auto func = [](Entity owner) {
-			auto scene = Application::GetActiveScene();
+		auto func = [](const Entity owner) {
+			const auto scene = Application::GetActiveScene();
 			if (scene->HasPrivateComponent<T>(owner))
 				return;
 			if (ImGui::Button(Serialization::GetDataComponentTypeName<T>().c_str()))
@@ -298,10 +296,9 @@ namespace EvoEngine
 		ImGui::Text(name.c_str());
 		ImGui::SameLine();
 		bool statusChanged = false;
-		const auto ptr = target.Get<IPrivateComponent>();
-		if (ptr)
+		if (const auto ptr = target.Get<IPrivateComponent>())
 		{
-			auto scene = Application::GetActiveScene();
+			const auto scene = Application::GetActiveScene();
 			if (!scene->IsEntityValid(ptr->GetOwner()))
 			{
 				target.Clear();
@@ -324,13 +321,11 @@ namespace EvoEngine
 	}
 	template <typename T> void EditorLayer::DraggablePrivateComponent(const std::shared_ptr<T>& target)
 	{
-		const auto ptr = std::dynamic_pointer_cast<IPrivateComponent>(target);
-		if (ptr)
+		if (const auto ptr = std::dynamic_pointer_cast<IPrivateComponent>(target))
 		{
 			const auto type = ptr->GetTypeName();
 			auto entity = ptr->GetOwner();
-			auto scene = Application::GetActiveScene();
-			if (scene->IsEntityValid(entity))
+			if (const auto scene = Application::GetActiveScene(); scene->IsEntityValid(entity))
 			{
 				if (ImGui::BeginDragDropSource())
 				{
@@ -369,11 +364,10 @@ namespace EvoEngine
 	{
 		return RenameAsset(target.Get<IAsset>());
 	}
-	template <typename T> bool EditorLayer::Remove(AssetRef& target)
+	template <typename T> bool EditorLayer::Remove(AssetRef& target) const
 	{
 		bool statusChanged = false;
-		auto ptr = target.Get<IAsset>();
-		if (ptr)
+		if (const auto ptr = target.Get<IAsset>())
 		{
 			const std::string type = ptr->GetTypeName();
 			const std::string tag = "##" + type + std::to_string(ptr->GetHandle());
@@ -389,11 +383,10 @@ namespace EvoEngine
 		}
 		return statusChanged;
 	}
-	template <typename T> bool EditorLayer::Remove(PrivateComponentRef& target)
+	template <typename T> bool EditorLayer::Remove(PrivateComponentRef& target) const
 	{
 		bool statusChanged = false;
-		auto ptr = target.Get<IPrivateComponent>();
-		if (ptr)
+		if (const auto ptr = target.Get<IPrivateComponent>())
 		{
 			const std::string type = ptr->GetTypeName();
 			const std::string tag = "##" + type + std::to_string(ptr->GetHandle());
@@ -412,7 +405,7 @@ namespace EvoEngine
 
 	template <typename T> bool EditorLayer::RenameAsset(const std::shared_ptr<T>& target)
 	{
-		bool statusChanged = false;
+		const bool statusChanged = false;
 		auto ptr = std::dynamic_pointer_cast<IAsset>(target);
 		const std::string type = ptr->GetTypeName();
 		const std::string tag = "##" + type + std::to_string(ptr->GetHandle());
@@ -426,9 +419,8 @@ namespace EvoEngine
 					ImGui::InputText(("New name" + tag).c_str(), newName, 256);
 					if (ImGui::Button(("Confirm" + tag).c_str()))
 					{
-						bool succeed = ptr->SetPathAndSave(ptr->GetProjectRelativePath().replace_filename(
-							std::string(newName) + ptr->GetAssetRecord().lock()->GetAssetExtension()));
-						if (succeed)
+						if (bool succeed = ptr->SetPathAndSave(ptr->GetProjectRelativePath().replace_filename(
+							std::string(newName) + ptr->GetAssetRecord().lock()->GetAssetExtension())))
 							memset(newName, 0, 256);
 					}
 					ImGui::EndMenu();

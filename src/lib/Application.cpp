@@ -65,10 +65,8 @@ void Application::PreUpdateInternal()
 		if (step > 10)
 		{
 			EVOENGINE_WARNING("Fixed update timeout!");
-			break;
-		}
+		} break;
 	}
-
 }
 
 void Application::UpdateInternal()
@@ -341,7 +339,7 @@ void Application::Step()
 void Application::InitializeRegistry()
 {
 	ClassRegistry::RegisterDataComponent<Ray>("Ray");
-	
+
 
 	//ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
 	//ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
@@ -359,7 +357,7 @@ void Application::InitializeRegistry()
 
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".ueasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".uemat" });
-	
+
 
 
 	//ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".uecubemap" });

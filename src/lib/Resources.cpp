@@ -34,15 +34,11 @@ void Resources::LoadShaders()
 		auto fragShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForward.frag");
-		auto fragColoredShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForwardColored.frag");
 
 		auto standardVert = CreateResource<Shader>("STANDARD_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
 		auto standardFrag = CreateResource<Shader>("STANDARD_FORWARD_FRAG");
 		standardFrag->Set(ShaderType::Fragment, fragShaderCode);
-
 
 		auto standardProgram = CreateResource<ShaderProgram>("STANDARD_PROGRAM");
 		standardProgram->m_vertexShader = standardVert;
@@ -73,6 +69,10 @@ void Resources::LoadShaders()
 
 		auto standardInstancedColoredVert= CreateResource<Shader>("STANDARD_INSTANCED_COLORED_VERT");
 		standardInstancedColoredVert->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto fragColoredShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForwardColored.frag");
 
 		auto standardColoredFrag = CreateResource<Shader>("STANDARD_FORWARD_COLORED_FRAG");
 		standardColoredFrag->Set(ShaderType::Fragment, fragColoredShaderCode);
@@ -128,12 +128,76 @@ void Resources::LoadShaders()
 
 
 #pragma endregion
-	/*
 	auto texPassVertCode = std::string("#version 450 core\n") +
 		FileUtils::LoadFileAsString(
 			std::filesystem::path("./DefaultResources") / "Shaders/Vertex/TexturePassThrough.vert");
-	auto texPassVert = CreateResource<Shader>("TEXTURE_PASSTHROUGH_VERT");
+	auto texPassVert = CreateResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 	texPassVert->Set(ShaderType::Vertex, texPassVertCode);
+#pragma region GBuffer
+	{
+		auto fragShaderCode =
+			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
+		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
+		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
+
+		auto gBufferLightingPass = CreateResource<ShaderProgram>("GBUFFER_LIGHTING_PROGRAM");
+		gBufferLightingPass->m_vertexShader = texPassVert;
+		gBufferLightingPass->m_fragmentShader = standardDeferredLightingFrag;
+
+		
+		fragShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferred.frag");
+
+		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
+		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
+		auto gBufferPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_PREPASS_PROGRAM");
+		gBufferPrepassProgram->m_vertexShader = GetResource("STANDARD_VERT");
+		gBufferPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
+		/*
+		auto gBufferSkinnedPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_SKINNED_PREPASS_PROGRAM");
+		gBufferSkinnedPrepassProgram->m_vertexShader = GetResource("STANDARD_SKINNED_VERT");
+		gBufferSkinnedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
+
+		auto gBufferInstancedPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_INSTANCED_PREPASS_PROGRAM");
+		gBufferInstancedPrepassProgram->m_vertexShader = GetResource("STANDARD_INSTANCED_VERT");
+		gBufferInstancedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
+
+		auto tessContShaderCode =
+			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/StandardStrands.tesc");
+
+		auto tessEvalShaderCode =
+			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/StandardStrands.tese");
+
+		auto geomShaderCode = std::string("#version 450 core\n") + std::string("#extension GL_EXT_geometry_shader4 : enable\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/StandardStrands.geom");
+
+
+		auto standardTessCont = CreateResource<Shader>("StandardStrands.tesc");
+		standardTessCont->Set(ShaderType::TessellationControl, tessContShaderCode);
+
+		auto standardTessEval = CreateResource<Shader>("StandardStrands.tese");
+		standardTessEval->Set(ShaderType::TessellationEvaluation, tessEvalShaderCode);
+
+		auto standardGeometry = CreateResource<Shader>("StandardStrands.geom");
+		standardGeometry->Set(ShaderType::Geometry, geomShaderCode);
+
+		auto gBufferStrandsPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_STRANDS_PREPASS_PROGRAM");
+		gBufferStrandsPrepassProgram->m_vertexShader = GetResource("STANDARD_STRANDS_VERT");
+		gBufferStrandsPrepassProgram->m_tessellationControlShader = standardTessCont;
+		gBufferStrandsPrepassProgram->m_tessellationEvaluationShader = standardTessEval;
+		gBufferStrandsPrepassProgram->m_geometryShader = standardGeometry;
+		gBufferStrandsPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
+		*/
+	}
+#pragma endregion
+
+	/*
+	
 	
 #pragma region Post - Processing
 
@@ -276,7 +340,7 @@ void Resources::Initialize()
 
 	resources.m_currentMaxHandle = Handle(1);
 
-	//resources.LoadShaders();
+	resources.LoadShaders();
 	resources.LoadPrimitives();
 }
 

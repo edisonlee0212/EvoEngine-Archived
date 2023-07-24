@@ -64,6 +64,11 @@ namespace EvoEngine
 		alignas(4) float m_emissionVal = 0.0f;
 	};
 
+	struct ObjectInfoBlock
+	{
+		glm::mat4 m_model;
+	};
+
 	class RenderLayer : public ILayer {
 		friend class Resources;
 		class ShaderIncludes
@@ -83,16 +88,18 @@ namespace EvoEngine
 		std::unique_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::unique_ptr<DescriptorSetLayout> m_perPassLayout = {};
 		std::unique_ptr<DescriptorSetLayout> m_perObjectGroupLayout = {};
+		std::unique_ptr<DescriptorSetLayout> m_perObjectLayout = {};
 
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
 		std::vector<VkDescriptorSet> m_perPassDescriptorSets = {};
 		std::vector<VkDescriptorSet> m_perObjectGroupDescriptorSets = {};
+		std::vector<VkDescriptorSet> m_perObjectDescriptorSets = {};
 
 		std::vector<void*> m_renderInfoBlockMemory;
 		std::vector<void*> m_environmentalInfoBlockMemory;
 		std::vector<void*> m_cameraInfoBlockMemory;
 		std::vector<void*> m_materialInfoBlockMemory;
-
+		std::vector<void*> m_objectInfoBlockMemory;
 		
 		std::vector<std::unique_ptr<Buffer>> m_descriptorBuffers = {};
 

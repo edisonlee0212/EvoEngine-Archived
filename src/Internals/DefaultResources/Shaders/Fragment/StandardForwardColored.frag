@@ -1,10 +1,11 @@
-layout (location = 0) out vec4 FragColor;
+out vec4 FragColor;
 
-layout (location = 0) in VS_OUT {
+in VS_OUT {
     vec3 FragPos;
     vec3 Normal;
     vec3 Tangent;
     vec2 TexCoord;
+    vec4 Color;
 } fs_in;
 
 
@@ -19,6 +20,8 @@ void main()
     }
     if (albedo.a < 0.05)
         discard;
+
+    albedo.xyz = vec3(albedo.xyz * (1.0 - fs_in.Color.w) + fs_in.Color.xyz * fs_in.Color.w);
     
     vec3 B = cross(fs_in.Normal, fs_in.Tangent);
     mat3 TBN = mat3(fs_in.Tangent, B, fs_in.Normal);

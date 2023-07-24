@@ -55,36 +55,47 @@ void RenderLayer::OnCreate()
 	materialInfoLayoutBinding.pImmutableSamplers = nullptr;
 	materialInfoLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
 
+	VkDescriptorSetLayoutBinding objectInfoLayoutBinding{};
+	objectInfoLayoutBinding.binding = 4;
+	objectInfoLayoutBinding.descriptorCount = 1;
+	objectInfoLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	objectInfoLayoutBinding.pImmutableSamplers = nullptr;
+	objectInfoLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+
 	const std::vector perFrameBindings = { renderInfoLayoutBinding, environmentInfoLayoutBinding };
 	const std::vector perPassBindings = { cameraInfoLayoutBinding };
 	const std::vector perObjectGroupBindings = { materialInfoLayoutBinding };
+	const std::vector perObjectBindings = { objectInfoLayoutBinding };
 
 	VkDescriptorSetLayoutCreateInfo perFrameLayoutInfo{};
 	perFrameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perFrameLayoutInfo.bindingCount = static_cast<uint32_t>(perFrameBindings.size());
 	perFrameLayoutInfo.pBindings = perFrameBindings.data();
-
 	m_perFrameLayout = std::make_unique<DescriptorSetLayout>(perFrameLayoutInfo);
 
 	VkDescriptorSetLayoutCreateInfo perPassLayoutInfo{};
 	perPassLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perPassLayoutInfo.bindingCount = static_cast<uint32_t>(perPassBindings.size());
 	perPassLayoutInfo.pBindings = perPassBindings.data();
-
 	m_perPassLayout = std::make_unique<DescriptorSetLayout>(perPassLayoutInfo);
 
 	VkDescriptorSetLayoutCreateInfo perObjectGroupLayoutInfo{};
 	perObjectGroupLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perObjectGroupLayoutInfo.bindingCount = static_cast<uint32_t>(perObjectGroupBindings.size());
 	perObjectGroupLayoutInfo.pBindings = perObjectGroupBindings.data();
-
 	m_perObjectGroupLayout = std::make_unique<DescriptorSetLayout>(perObjectGroupLayoutInfo);
 
+	VkDescriptorSetLayoutCreateInfo perObjectLayoutInfo{};
+	perObjectLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	perObjectLayoutInfo.bindingCount = static_cast<uint32_t>(perObjectBindings.size());
+	perObjectLayoutInfo.pBindings = perObjectBindings.data();
+	m_perObjectLayout = std::make_unique<DescriptorSetLayout>(perObjectLayoutInfo);
 
-	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
+
+	std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
 	allocInfo.pSetLayouts = perFrameLayouts.data();
 	m_perFrameDescriptorSets.resize(maxFramesInFlight);
@@ -108,9 +119,17 @@ void RenderLayer::OnCreate()
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 
-	size_t bindingsSize = perFrameBindings.size() + perPassBindings.size() + perObjectGroupBindings.size();
+	std::vector perObjectLayout(maxFramesInFlight, m_perObjectLayout->GetVkDescriptorSetLayout());
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
+	allocInfo.pSetLayouts = perObjectLayout.data();
+	m_perObjectDescriptorSets.resize(maxFramesInFlight);
+	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, m_perObjectDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
 
-	VkDescriptorBufferInfo bufferInfos[4] = {};
+	size_t bindingsSize = perFrameBindings.size() + perPassBindings.size() + perObjectGroupBindings.size() + perObjectBindings.size();
+
+	VkDescriptorBufferInfo bufferInfos[5] = {};
 	bufferInfos[0].offset = 0;
 	bufferInfos[0].range = sizeof(RenderInfoBlock);
 	bufferInfos[1].offset = 0;
@@ -119,6 +138,8 @@ void RenderLayer::OnCreate()
 	bufferInfos[2].range = sizeof(CameraInfoBlock);
 	bufferInfos[3].offset = 0;
 	bufferInfos[3].range = sizeof(MaterialInfoBlock);
+	bufferInfos[4].offset = 0;
+	bufferInfos[4].range = sizeof(ObjectInfoBlock);
 	m_descriptorBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
@@ -133,6 +154,7 @@ void RenderLayer::OnCreate()
 	m_environmentalInfoBlockMemory.resize(maxFramesInFlight);
 	m_cameraInfoBlockMemory.resize(maxFramesInFlight);
 	m_materialInfoBlockMemory.resize(maxFramesInFlight);
+	m_objectInfoBlockMemory.resize(maxFramesInFlight);
 	for (size_t i = 0; i < maxFramesInFlight; i++) {
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
 		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
@@ -142,19 +164,23 @@ void RenderLayer::OnCreate()
 		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(MaterialInfoBlock);
 		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(ObjectInfoBlock);
+		m_descriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
 		bufferInfos[0].buffer = m_descriptorBuffers[i * 4 + 0]->GetVkBuffer();
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
 
 		bufferInfos[1].buffer = m_descriptorBuffers[i * 4 + 1]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 1]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
 
 		bufferInfos[2].buffer = m_descriptorBuffers[i * 4 + 2]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 2]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
 
 		bufferInfos[3].buffer = m_descriptorBuffers[i * 4 + 3]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 3]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
 
+		bufferInfos[4].buffer = m_descriptorBuffers[i * 4 + 4]->GetVkBuffer();
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_descriptorBuffers[i * 4 + 4]->GetVmaAllocation(), &m_objectInfoBlockMemory[i]);
 
 		VkWriteDescriptorSet renderInfo{};
 		renderInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -192,8 +218,17 @@ void RenderLayer::OnCreate()
 		materialInfo.descriptorCount = 1;
 		materialInfo.pBufferInfo = &bufferInfos[3];
 
-		std::vector writeInfos = { renderInfo, environmentInfo, cameraInfo, materialInfo };
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 4, writeInfos.data(), 0, nullptr);
+		VkWriteDescriptorSet objectInfo{};
+		objectInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		objectInfo.dstSet = m_perObjectDescriptorSets[i];
+		objectInfo.dstBinding = 4;
+		objectInfo.dstArrayElement = 0;
+		objectInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		objectInfo.descriptorCount = 1;
+		objectInfo.pBufferInfo = &bufferInfos[4];
+
+		std::vector writeInfos = { renderInfo, environmentInfo, cameraInfo, materialInfo, objectInfo };
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), writeInfos.size(), writeInfos.data(), 0, nullptr);
 	}
 #pragma endregion
 	CreateRenderPasses();
