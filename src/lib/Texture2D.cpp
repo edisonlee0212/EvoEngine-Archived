@@ -7,7 +7,6 @@
 #include "Graphics.hpp"
 
 using namespace EvoEngine;
-AssetRegistration<Texture2D> Texture2DReg("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 
 bool Texture2D::SaveInternal(const std::filesystem::path& path)
 {

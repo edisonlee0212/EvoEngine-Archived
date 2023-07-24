@@ -1,6 +1,7 @@
 #pragma once
 #include "IAsset.hpp"
 #include "ISingleton.hpp"
+#include "Resources.hpp"
 #include "Serialization.hpp"
 namespace EvoEngine
 {
@@ -75,11 +76,6 @@ namespace EvoEngine
 	};
 
 	class Texture2D;
-	struct  DefaultResource
-	{
-		std::string m_name;
-		std::shared_ptr<IAsset> m_value;
-	};
 
 	class  AssetThumbnail {
 		std::shared_ptr<Texture2D> m_icon;
@@ -93,6 +89,7 @@ namespace EvoEngine
 		friend class AssetRecord;
 		friend class Folder;
 		friend class PhysicsLayer;
+		friend class Resources;
 		std::shared_ptr<Folder> m_projectFolder;
 		std::filesystem::path m_projectPath;
 		std::optional<std::function<void()>> m_newSceneCustomizer;
@@ -103,7 +100,6 @@ namespace EvoEngine
 		std::unordered_map<Handle, std::weak_ptr<Folder>> m_folderRegistry;
 
 		friend class ClassRegistry;
-		std::unordered_map<std::string, std::unordered_map<Handle, DefaultResource>> m_defaultResources;
 		std::shared_ptr<Scene> m_startScene;
 		std::unordered_map<std::string, std::vector<std::string>> m_assetExtensions;
 		std::map<std::string, std::string> m_typeNames;
@@ -121,12 +117,7 @@ namespace EvoEngine
 		friend class Prefab;
 		template <typename T>
 		static void RegisterAssetType(const std::string& name, const std::vector<std::string>& extensions);
-		template <typename T>
-		static std::shared_ptr<T> CreateDefaultResource(const Handle& handle, const std::string& name);
-		std::shared_ptr<IAsset> static CreateDefaultResource(
-			const std::string& typeName, const Handle& handle, const std::string& name);
 
-		static void DisplayDefaultResources();
 		[[nodiscard]] static std::shared_ptr<IAsset> CreateTemporaryAsset(const std::string& typeName);
 		[[nodiscard]] static std::shared_ptr<IAsset> CreateTemporaryAsset(const std::string& typeName, const Handle& handle);
 
@@ -137,7 +128,6 @@ namespace EvoEngine
 		std::shared_ptr<IAsset> m_inspectingAsset;
 		bool m_showProjectWindow = true;
 		bool m_showAssetInspectorWindow = true;
-		bool m_showDefaultResourcesWindow = false;
 		static std::weak_ptr<Scene> GetStartScene();
 		static void SetStartScene(const std::shared_ptr<Scene>& scene);
 		static void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer);
@@ -167,19 +157,14 @@ namespace EvoEngine
 	{
 		return std::dynamic_pointer_cast<T>(CreateTemporaryAsset(Serialization::GetSerializableTypeName<T>()));
 	}
-	template <typename T>
-	std::shared_ptr<T> ProjectManager::CreateDefaultResource(const Handle& handle, const std::string& name)
-	{
-		return std::dynamic_pointer_cast<T>(
-			CreateDefaultResource(Serialization::GetSerializableTypeName<T>(), handle, name));
-	}
 
 	template <typename T>
 	void ProjectManager::RegisterAssetType(const std::string& name, const std::vector<std::string>& extensions)
 	{
 		auto& projectManager = GetInstance();
+		auto& resources = Resources::GetInstance();
 		Serialization::RegisterSerializableType<T>(name);
-		projectManager.m_defaultResources[name] = std::unordered_map<Handle, DefaultResource>();
+		resources.m_typedResources[name] = std::unordered_map<Handle, std::shared_ptr<IAsset>>();
 		projectManager.m_assetExtensions[name] = extensions;
 		for (const auto& extension : extensions)
 		{

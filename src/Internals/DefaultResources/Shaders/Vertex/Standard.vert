@@ -5,7 +5,7 @@ layout (location = 4) in vec2 inTexCoord;
 
 
 
-out VS_OUT {
+layout(location = 0) out VS_OUT {
 	vec3 FragPos;
 	vec3 Normal;
 	vec3 Tangent;

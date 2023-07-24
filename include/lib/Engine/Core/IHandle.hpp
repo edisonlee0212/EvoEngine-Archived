@@ -8,7 +8,7 @@ struct Handle
 {
     friend class IAsset;
     friend class EntityMetadata;
-    friend class DefaultResources;
+    friend class Resources;
 
     /**
      * Default constructor, will allocate a random number to the handle. EvoEngine will not handle the collision since possibility is extremely small and negligible.
@@ -40,7 +40,7 @@ class IHandle{
     friend class EntityMetadata;
     friend class Editor;
     friend class EditorLayer;
-    friend class DefaultResources;
+    friend class Resources;
     friend class Serialization;
     friend class IAsset;
     friend class AssetRef;

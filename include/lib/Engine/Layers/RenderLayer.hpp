@@ -65,6 +65,21 @@ namespace EvoEngine
 	};
 
 	class RenderLayer : public ILayer {
+		friend class Resources;
+		class ShaderIncludes
+		{
+			friend class Resources;
+		public:
+			static std::unique_ptr<std::string> GENERAL_INCLUDES;
+			constexpr static size_t MAX_BONE_AMOUNT = 65536;
+			constexpr static size_t MAX_MATERIAL_AMOUNT = 1;
+			constexpr static size_t MAX_KERNEL_AMOUNT = 64;
+			constexpr static size_t MAX_DIRECTIONAL_LIGHT_AMOUNT = 128;
+			constexpr static size_t MAX_POINT_LIGHT_AMOUNT = 128;
+			constexpr static size_t MAX_SPOT_LIGHT_AMOUNT = 128;
+			constexpr static size_t SHADOW_CASCADE_SIZE = 4;
+		};
+
 		std::unique_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::unique_ptr<DescriptorSetLayout> m_perPassLayout = {};
 		std::unique_ptr<DescriptorSetLayout> m_perObjectGroupLayout = {};
@@ -90,9 +105,11 @@ namespace EvoEngine
 		void OnDestroy() override;
 		void PreUpdate() override;
 		void LateUpdate() override;
-		void CreateRenderPass();
-		std::unique_ptr<RenderPass> m_renderPass = {};
+		void CreateRenderPasses();
+		std::unordered_map<std::string, std::unique_ptr<RenderPass>> m_renderPasses;
 	public:
+		[[nodiscard]] const std::unique_ptr<RenderPass>& GetRenderPass(const std::string& name);
+
 		bool m_allowAutoResize = true;
 
 		EnvironmentInfoBlock m_environmentInfoBlock = {};

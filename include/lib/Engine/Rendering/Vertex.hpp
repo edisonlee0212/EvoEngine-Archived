@@ -13,18 +13,12 @@ namespace EvoEngine
 
     struct Vertex
     {
-        glm::vec3 m_pos;
-        glm::vec3 m_color;
-        glm::vec2 m_texCoord;
-        /*
         glm::vec3 m_position = glm::vec3(0.0f);
         glm::vec3 m_normal = glm::vec3(0.0f);
         glm::vec3 m_tangent = glm::vec3(0.0f);
         glm::vec2 m_texCoord = glm::vec2(0.0f);
 		glm::vec4 m_color = glm::vec4(1.0f);
-
-        */
-
+        /*
         static VkVertexInputBindingDescription GetBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
             bindingDescription.binding = 0;
@@ -53,7 +47,7 @@ namespace EvoEngine
             attributeDescriptions[1].offset = offsetof(Vertex, m_texCoord);
 
             return attributeDescriptions;
-        }
+        }*/
     };
 
     struct SkinnedVertex

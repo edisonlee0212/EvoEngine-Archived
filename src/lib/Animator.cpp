@@ -4,7 +4,6 @@
 #include "ClassRegistry.hpp"
 #include "Time.hpp"
 using namespace EvoEngine;
-PrivateComponentRegistration<Animator> AnimatorRegistry("Animator");
 
 bool Animator::AnimatedCurrentFrame() const
 {

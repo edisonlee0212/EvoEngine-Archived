@@ -1,5 +1,6 @@
 #pragma once
-//#include "Editor.hpp"
+#include "EditorLayer.hpp"
+#include "Application.hpp"
 #include "Entity.hpp"
 #include "Serialization.hpp"
 #include "ProjectManager.hpp"
@@ -18,12 +19,18 @@ template <typename T> void ClassRegistry::RegisterPrivateComponent(const std::st
 {
     Serialization::RegisterSerializableType<T>(name);
     Serialization::RegisterPrivateComponentType<T>(name);
-    //Editor::RegisterPrivateComponent<T>();
+    if (const auto editorLayer = Application::GetLayer<EditorLayer>())
+    {
+        editorLayer->RegisterPrivateComponent<T>();
+    }
 }
 template <typename T> void ClassRegistry::RegisterDataComponent(const std::string &name)
 {
     Serialization::RegisterDataComponentType<T>(name);
-    //Editor::RegisterDataComponent<T>();
+    if (const auto editorLayer = Application::GetLayer<EditorLayer>())
+    {
+        editorLayer->RegisterDataComponent<T>();
+    }
 }
 template <typename T>
 void ClassRegistry::RegisterAsset(const std::string &name, const std::vector<std::string> &externalExtensions)
@@ -38,7 +45,10 @@ template <typename T> void ClassRegistry::RegisterSystem(const std::string &name
 {
     Serialization::RegisterSerializableType<T>(name);
     Serialization::RegisterSystemType<T>(name);
-    //Editor::RegisterSystem<T>();
+    if(const auto editorLayer = Application::GetLayer<EditorLayer>())
+    {
+        editorLayer->RegisterSystem<T>();
+    }
 }
 
 template <typename T> class DataComponentRegistration

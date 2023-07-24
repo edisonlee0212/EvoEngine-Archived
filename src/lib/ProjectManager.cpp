@@ -3,6 +3,7 @@
 #include "Application.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
+#include "Resources.hpp"
 using namespace EvoEngine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
@@ -751,18 +752,6 @@ bool ProjectManager::IsAsset(const std::string& typeName)
 	return projectManager.m_assetExtensions.find(typeName) != projectManager.m_assetExtensions.end();
 }
 
-std::shared_ptr<IAsset> ProjectManager::CreateDefaultResource(
-	const std::string& typeName, const Handle& handle, const std::string& name)
-{
-	auto& projectManager = GetInstance();
-	size_t hashCode;
-	auto retVal = std::dynamic_pointer_cast<IAsset>(Serialization::ProduceSerializable(typeName, hashCode, handle));
-	retVal->m_self = retVal;
-	projectManager.m_defaultResources[typeName][handle] = { name, retVal };
-	retVal->OnCreate();
-	return retVal;
-}
-
 std::shared_ptr<IAsset> ProjectManager::GetAsset(const Handle& handle)
 {
 	auto& projectManager = GetInstance();
@@ -772,11 +761,10 @@ std::shared_ptr<IAsset> ProjectManager::GetAsset(const Handle& handle)
 	auto search2 = projectManager.m_assetRecordRegistry.find(handle);
 	if (search2 != projectManager.m_assetRecordRegistry.end())
 		return search2->second.lock()->GetAsset();
-	for (const auto& i : projectManager.m_defaultResources)
+
+	if(Resources::IsResource(handle))
 	{
-		auto inSearch = i.second.find(handle);
-		if (inSearch != i.second.end())
-			return inSearch->second.m_value;
+		return Resources::GetResource(handle);
 	}
 	return {};
 }
@@ -788,37 +776,6 @@ std::vector<std::string> ProjectManager::GetExtension(const std::string& typeNam
 	if (search != projectManager.m_assetExtensions.end())
 		return search->second;
 	return {};
-}
-void ProjectManager::DisplayDefaultResources()
-{
-	const auto& projectManager = GetInstance();
-	const auto editorLayer = Application::GetLayer<EditorLayer>();
-
-	if (projectManager.m_showDefaultResourcesWindow)
-	{
-		ImGui::Begin("Default Resources");
-		if (ImGui::BeginTabBar(
-			"##Resource Tab", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
-		{
-			if (ImGui::BeginTabItem("Assets"))
-			{
-				for (auto& collection : projectManager.m_defaultResources)
-				{
-					if (ImGui::CollapsingHeader(collection.first.c_str()))
-					{
-						for (auto& i : collection.second)
-						{
-							ImGui::Button(i.second.m_name.c_str());
-							editorLayer->DraggableAsset(i.second.m_value);
-						}
-					}
-				}
-				ImGui::EndTabItem();
-			}
-			ImGui::EndTabBar();
-		}
-		ImGui::End();
-	}
 }
 std::string ProjectManager::GetTypeName(const std::string& extension)
 {
@@ -915,7 +872,6 @@ void ProjectManager::OnDestroy()
 	projectManager.m_assetRegistry.clear();
 	projectManager.m_assetRecordRegistry.clear();
 	projectManager.m_folderRegistry.clear();
-	projectManager.m_defaultResources.clear();
 	projectManager.m_startScene.reset();
 
 	projectManager.m_assetThumbnails.clear();
@@ -960,12 +916,10 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		{
 			ImGui::Checkbox("Project", &projectManager.m_showProjectWindow);
 			ImGui::Checkbox("Asset Inspector", &projectManager.m_showAssetInspectorWindow);
-			ImGui::Checkbox("Default Resources", &projectManager.m_showDefaultResourcesWindow);
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
-	DisplayDefaultResources();
 	if (projectManager.m_showProjectWindow) {
 		if (ImGui::Begin("Project"))
 		{

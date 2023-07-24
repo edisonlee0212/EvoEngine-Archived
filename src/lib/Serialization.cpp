@@ -72,8 +72,7 @@ std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::str
     EVOENGINE_ERROR("PrivateComponent " + typeName + "is not registered!");
     throw 1;
 }
-std::shared_ptr<ISerializable> Serialization::ProduceSerializable(
-    const std::string &typeName, size_t &hashCode, const Handle &handle)
+std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::string &typeName, size_t &hashCode, const Handle &handle)
 {
     auto &serializationManager = GetInstance();
     const auto it = serializationManager.m_serializableGenerators.find(typeName);

@@ -1,10 +1,11 @@
 #include "EditorLayer.hpp"
 #include "ILayer.hpp"
 #include "Application.hpp"
-#include "Console.hpp"
+#include "Prefab.hpp"
 #include "Graphics.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
+#include "MeshRenderer.hpp"
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "Scene.hpp"
@@ -375,6 +376,8 @@ static const char* HierarchyDisplayMode[]{ "Archetype", "Hierarchy" };
 void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
+	if(!windowLayer) return;
+
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("View"))
@@ -606,6 +609,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	//if (m_showCameraWindow) MainCameraWindow();
 
 	ProjectManager::OnInspect(editorLayer);
+	Resources::OnInspect(editorLayer);
 }
 
 void EditorLayer::LateUpdate()
@@ -1402,7 +1406,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			ProjectManager::SetStartScene(scene);
 			Application::Attach(scene);
 		}
-		/*
+		
 		else if (asset->GetTypeName() == "Prefab") {
 			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene);
 			scene->SetEntityName(entity, asset->GetTitle());
@@ -1412,10 +1416,9 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
 			meshRenderer->m_mesh.Set<Mesh>(std::dynamic_pointer_cast<Mesh>(asset));
 			auto material = ProjectManager::CreateTemporaryAsset<Material>();
-			material->SetProgram(DefaultResources::GLPrograms::StandardProgram);
 			meshRenderer->m_material.Set<Material>(material);
 		}
-		
+		/*
 		else if (asset->GetTypeName() == "Strands") {
 			Entity entity = scene->CreateEntity(asset->GetTitle());
 			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(entity).lock();

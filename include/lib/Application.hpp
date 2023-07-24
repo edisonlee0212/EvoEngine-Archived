@@ -46,6 +46,7 @@ namespace EvoEngine {
 
 		std::vector<std::function<void(const std::shared_ptr<Scene>& newScene)>> m_postAttachSceneFunctions;
 
+		static void InitializeRegistry();
 	public:
 		static void RegisterPreUpdateFunction(const std::function<void()>& func);
 		static void RegisterUpdateFunction(const std::function<void()>& func);

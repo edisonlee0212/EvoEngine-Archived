@@ -4,7 +4,6 @@
 #include "Graphics.hpp"
 #include "ClassRegistry.hpp"
 using namespace EvoEngine;
-AssetRegistration<Mesh> MeshRegistry("Mesh", { ".uemesh" });
 
 void Mesh::Bind(VkCommandBuffer vkCommandBuffer) const
 {
@@ -254,7 +253,19 @@ void Mesh::Serialize(YAML::Emitter& out)
 
 void Mesh::Deserialize(const YAML::Node& in)
 {
-	if (in["m_vertices"] && in["m_triangles"] && in["m_vertexAttributes"])
+	if(in["m_vertexAttributes"])
+	{
+		m_vertexAttributes.Deserialize(in["m_vertexAttributes"]);
+	}else
+	{
+		m_vertexAttributes = {};
+		m_vertexAttributes.m_normal = true;
+		m_vertexAttributes.m_tangent = true;
+		m_vertexAttributes.m_texCoord = true;
+		m_vertexAttributes.m_color = true;
+	}
+
+	if (in["m_vertices"] && in["m_triangles"])
 	{
 		auto vertexData = in["m_vertices"].as<YAML::Binary>();
 		std::vector<Vertex> vertices;
@@ -266,10 +277,7 @@ void Mesh::Deserialize(const YAML::Node& in)
 		triangles.resize(triangleData.size() / sizeof(glm::uvec3));
 		std::memcpy(triangles.data(), triangleData.data(), triangleData.size());
 
-		m_vertexAttributes.Deserialize(in["m_vertexAttributes"]);
-
 		SetVertices(m_vertexAttributes, vertices, triangles);
-
 		m_version++;
 	}
 }

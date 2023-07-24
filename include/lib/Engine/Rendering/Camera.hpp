@@ -19,7 +19,7 @@ namespace EvoEngine
         friend class SSR;
         
         std::shared_ptr<RenderTexture> m_renderTexture;
-
+        std::unique_ptr<Framebuffer> m_framebuffer;
         
         //Deferred shading GBuffer
         std::unique_ptr<Image> m_gBufferDepth = {};
@@ -34,9 +34,9 @@ namespace EvoEngine
         std::unique_ptr<ImageView> m_gBufferAlbedoView = {};
         ImTextureID m_gBufferAlbedoImTextureId = {};
 
-        std::unique_ptr<Image> m_gBufferMetallicRoughnessEmissionAmbient = {};
-        std::unique_ptr<ImageView> m_gBufferMetallicRoughnessEmissionAmbientView = {};
-        ImTextureID m_gBufferMetallicRoughnessEmissionAmbientImTextureId = {};
+        std::unique_ptr<Image> m_gBufferMaterial = {};
+        std::unique_ptr<ImageView> m_gBufferMaterialView = {};
+        ImTextureID m_gBufferMaterialImTextureId = {};
 
         size_t m_frameCount = 0;
         bool m_rendered = false;
@@ -45,7 +45,10 @@ namespace EvoEngine
         glm::uvec2 m_size = glm::uvec2(1, 1);
 
         void UpdateGBuffer();
+        void UpdateFrameBuffer();
     public:
+        static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
+
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] std::shared_ptr<RenderTexture> GetRenderTexture() const;

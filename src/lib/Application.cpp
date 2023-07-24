@@ -1,4 +1,6 @@
 #include "Application.hpp"
+#include "Prefab.hpp"
+#include "ClassRegistry.hpp"
 #include "Graphics.hpp"
 #include "Utilities.hpp"
 #include "Scene.hpp"
@@ -9,6 +11,11 @@
 #include "Jobs.hpp"
 #include "TransformGraph.hpp"
 #include "Input.hpp"
+#include "Mesh.hpp"
+#include "MeshRenderer.hpp"
+#include "Resources.hpp"
+#include "Shader.hpp"
+#include "SkinnedMeshRenderer.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -199,12 +206,12 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 			return;
 	}
 	application.m_applicationInfo = applicationCreateInfo;
-
+	InitializeRegistry();
 	Jobs::Initialize();
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();
-
+	Resources::Initialize();
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
@@ -329,6 +336,46 @@ void Application::Step()
 		Attach(copiedScene);
 	}
 	application.m_applicationStatus = ApplicationStatus::Step;
+}
+
+void Application::InitializeRegistry()
+{
+	ClassRegistry::RegisterDataComponent<Ray>("Ray");
+	
+
+	//ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
+	//ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
+	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
+	//ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
+	//ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
+	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");
+	//ClassRegistry::RegisterPrivateComponent<PostProcessing>("PostProcessing");
+	ClassRegistry::RegisterPrivateComponent<SkinnedMeshRenderer>("SkinnedMeshRenderer");
+	ClassRegistry::RegisterPrivateComponent<Animator>("Animator");
+
+	//ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
+
+	//ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
+
+	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".ueasset" });
+	ClassRegistry::RegisterAsset<Material>("Material", { ".uemat" });
+	
+
+
+	//ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".uecubemap" });
+	//ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".uelightprobe" });
+	//ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".uereflecprobe" });
+	ClassRegistry::RegisterAsset<ShaderProgram>("ShaderProgram", { ".ueshaderprogram" });
+	ClassRegistry::RegisterAsset<Shader>("Shader", { ".ueshader" });
+	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".uemesh" });
+
+	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".ueprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
+	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
+	ClassRegistry::RegisterAsset<Scene>("Scene", { ".uescene" });
+
+	ClassRegistry::RegisterAsset<Animation>("Animation", { ".ueanimation" });
+	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { "ueskinnedmesh" });
+	//ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { "uephysmat" });
 }
 
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)

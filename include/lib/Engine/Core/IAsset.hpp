@@ -8,7 +8,7 @@ namespace EvoEngine
 	class IAsset : public ISerializable
 	{
 	protected:
-		friend class DefaultResources;
+		friend class Resources;
 		friend class EditorLayer;
 		friend class AssetRegistry;
 		friend class ProjectManager;
@@ -32,6 +32,7 @@ namespace EvoEngine
 		 * Whether the asset is saved or not.
 		 */
 		bool m_saved = false;
+		unsigned m_version = 0;
 	public:
 		[[nodiscard]] bool SetPathAndSave(const std::filesystem::path& projectRelativePath);
 		[[nodiscard]] std::filesystem::path GetProjectRelativePath() const;
