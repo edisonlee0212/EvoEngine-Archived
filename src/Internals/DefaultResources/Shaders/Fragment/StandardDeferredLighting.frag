@@ -1,26 +1,28 @@
+precision highp float;
+
 layout (location = 0) out vec4 FragColor;
 
 layout (location = 0) in VS_OUT {
 	vec2 TexCoord;
 } fs_in;
 
-uniform sampler2D gDepth;
-uniform sampler2D gNormal;
-uniform sampler2D gAlbedo;
-uniform sampler2D gMetallicRoughnessEmissionAmbient;
+layout(input_attachment_index = 0, binding = 0) uniform subpassInput inDepth;
+layout(input_attachment_index = 1, binding = 1) uniform subpassInput inNormal;
+layout(input_attachment_index = 2, binding = 2) uniform subpassInput inAlbedo;
+layout(input_attachment_index = 3, binding = 3) uniform subpassInput inMaterial;
 
 void main()
 {
-	vec3 normal = 		texture(gNormal, fs_in.TexCoord).rgb;
-	float ndcDepth = 	texture(gDepth, fs_in.TexCoord).r;
+	vec3 normal = 		subpassLoad(inNormal).xyz;
+	float ndcDepth = 	subpassLoad(inDepth).x;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
-	float metallic = 	texture(gMetallicRoughnessEmissionAmbient, fs_in.TexCoord).r;
-	float roughness = 	texture(gMetallicRoughnessEmissionAmbient, fs_in.TexCoord).g;
-	float emission = 	texture(gMetallicRoughnessEmissionAmbient, fs_in.TexCoord).b;
-	float ao = 			texture(gMetallicRoughnessEmissionAmbient, fs_in.TexCoord).a;
+	float metallic = 	subpassLoad(inMaterial).x;
+	float roughness = 	subpassLoad(inMaterial).y;
+	float emission = 	subpassLoad(inMaterial).z;
+	float ao = 			subpassLoad(inMaterial).w;
 
-	vec3 albedo = 		texture(gAlbedo, fs_in.TexCoord).rgb;
+	vec3 albedo = 		subpassLoad(inAlbedo).xyz;
 
 	vec3 fragPos = EE_DEPTH_TO_WORLD_POS(fs_in.TexCoord, ndcDepth);
 
@@ -33,6 +35,5 @@ void main()
 	vec3 ambient = EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(albedo, normal, viewDir, metallic, roughness, F0);
 	vec3 color = result + emission * normalize(albedo.xyz) + ambient * ao;
 	color = pow(color, vec3(1.0 / EE_GAMMA));
-	int width = textureSize(gAlbedo, 0).x;
 	FragColor = vec4(color, 1.0);
 }

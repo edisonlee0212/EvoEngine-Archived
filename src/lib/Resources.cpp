@@ -12,15 +12,15 @@ void Resources::LoadShaders()
 #pragma region Shader Includes
 	std::string add;
 
-	add += "\n#define MAX_BONES_AMOUNT " + std::to_string(RenderLayer::RenderLayer::ShaderIncludes::MAX_BONE_AMOUNT) +
-		"\n#define MAX_TEXTURES_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::MAX_MATERIAL_AMOUNT) +
-		"\n#define DIRECTIONAL_LIGHTS_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::MAX_DIRECTIONAL_LIGHT_AMOUNT) +
-		"\n#define POINT_LIGHTS_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::MAX_POINT_LIGHT_AMOUNT) +
-		"\n#define SHADOW_CASCADE_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::SHADOW_CASCADE_SIZE) +
-		"\n#define MAX_KERNEL_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::MAX_KERNEL_AMOUNT) +
-		"\n#define SPOT_LIGHTS_AMOUNT " + std::to_string(RenderLayer::ShaderIncludes::MAX_SPOT_LIGHT_AMOUNT) + "\n";
+	add += "\n#define MAX_BONES_AMOUNT " + std::to_string(Graphics::GetMaxBoneAmount()) +
+		"\n#define MAX_TEXTURES_AMOUNT " + std::to_string(Graphics::GetMaxMaterialAmount()) +
+		"\n#define DIRECTIONAL_LIGHTS_AMOUNT " + std::to_string(Graphics::GetMaxDirectionalLightAmount()) +
+		"\n#define POINT_LIGHTS_AMOUNT " + std::to_string(Graphics::GetMaxPointLightAmount()) +
+		"\n#define SHADOW_CASCADE_AMOUNT " + std::to_string(Graphics::GetMaxShadowCascadeAmount()) +
+		"\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::GetMaxKernelAmount()) +
+		"\n#define SPOT_LIGHTS_AMOUNT " + std::to_string(Graphics::GetMaxSpotLightAmount()) + "\n";
 
-	RenderLayer::ShaderIncludes::GENERAL_INCLUDES = std::make_unique<std::string>(
+	Graphics::GetInstance().m_standardShaderIncludes = std::make_unique<std::string>(
 		add +
 		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Uniform.glsl"));
 
@@ -29,9 +29,9 @@ void Resources::LoadShaders()
 #pragma region Standard Shader
 	{
 		auto vertShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard.vert");
-		auto fragShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		auto fragShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForward.frag");
 
@@ -44,7 +44,7 @@ void Resources::LoadShaders()
 		standardProgram->m_vertexShader = standardVert;
 		standardProgram->m_fragmentShader = standardFrag;
 		/*
-		vertShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardSkinned.vert");
 		auto standardSkinnedVert = CreateResource<Shader>("STANDARD_SKINNED_VERT");
@@ -54,7 +54,7 @@ void Resources::LoadShaders()
 		standardSkinnedProgram->m_fragmentShader =  standardFrag;
 
 
-		vertShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardInstanced.vert");
 
@@ -64,13 +64,13 @@ void Resources::LoadShaders()
 		standardInstancedProgram->m_vertexShader = standardInstancedVert;
 		standardInstancedProgram->m_fragmentShader = standardFrag;
 
-		vertShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardInstancedColored.vert");
 
 		auto standardInstancedColoredVert= CreateResource<Shader>("STANDARD_INSTANCED_COLORED_VERT");
 		standardInstancedColoredVert->Set(ShaderType::Vertex, vertShaderCode);
 
-		auto fragColoredShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		auto fragColoredShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForwardColored.frag");
 
@@ -81,7 +81,7 @@ void Resources::LoadShaders()
 		standardInstancedColoredProgram->m_fragmentShader = standardColoredFrag;
 
 
-		vertShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardInstancedSkinned.vert");
 
 		auto standardInstancedSkinnedVert = CreateResource<Shader>("STANDARD_INSTANCED_SKINNED_VERT");
@@ -92,18 +92,18 @@ void Resources::LoadShaders()
 
 
 		auto strandsVertCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardStrands.vert");
 
 		auto tessContShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/StandardStrands.tesc");
 
 		auto tessEvalShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/StandardStrands.tese");
 
-		auto geomShaderCode = std::string("#version 450 core\n") + std::string("#extension GL_EXT_geometry_shader4 : enable\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		auto geomShaderCode = std::string("#version 450 core\n") + std::string("#extension GL_EXT_geometry_shader4 : enable\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/StandardStrands.geom");
 
 		auto standardStrandsVert = CreateResource<Shader>("STANDARD_STRANDS_VERT");
@@ -136,7 +136,7 @@ void Resources::LoadShaders()
 #pragma region GBuffer
 	{
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
@@ -147,7 +147,7 @@ void Resources::LoadShaders()
 		gBufferLightingPass->m_fragmentShader = standardDeferredLightingFrag;
 
 		
-		fragShaderCode = std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferred.frag");
 
@@ -166,14 +166,14 @@ void Resources::LoadShaders()
 		gBufferInstancedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 
 		auto tessContShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/StandardStrands.tesc");
 
 		auto tessEvalShaderCode =
-			std::string("#version 450 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/StandardStrands.tese");
 
-		auto geomShaderCode = std::string("#version 450 core\n") + std::string("#extension GL_EXT_geometry_shader4 : enable\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		auto geomShaderCode = std::string("#version 450 core\n") + std::string("#extension GL_EXT_geometry_shader4 : enable\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/StandardStrands.geom");
 
 
@@ -229,7 +229,7 @@ void Resources::LoadShaders()
 		bloomCombineProgram->m_vertexShader = texPassVert;
 		bloomCombineProgram->m_fragmentShader = bloomCombineFrag;
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOGeometry.frag");
 
@@ -239,7 +239,7 @@ void Resources::LoadShaders()
 		ssaoGeomProgram->m_vertexShader = texPassVert;
 		ssaoGeomProgram->m_fragmentShader = ssaoGeomFrag;
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
 
@@ -249,7 +249,7 @@ void Resources::LoadShaders()
 		ssaoBlurProgram->m_vertexShader = texPassVert;
 		ssaoBlurProgram->m_fragmentShader = ssaoBlurFrag;
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOCombine.frag");
 
@@ -260,7 +260,7 @@ void Resources::LoadShaders()
 		ssaoCombineProgram->m_fragmentShader = ssaoCombineFrag;
 
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRReflect.frag");
 
@@ -270,7 +270,7 @@ void Resources::LoadShaders()
 		ssrReflectProgram->m_vertexShader = texPassVert;
 		ssrReflectProgram->m_fragmentShader = ssrReflectFrag;
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
 
@@ -280,7 +280,7 @@ void Resources::LoadShaders()
 		ssrBlurProgram->m_vertexShader = texPassVert;
 		ssrBlurProgram->m_fragmentShader = ssrBlurFrag;
 
-		fragShaderCode = std::string("#version 460 core\n") + *RenderLayer::ShaderIncludes::GENERAL_INCLUDES + "\n" +
+		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRCombine.frag");
 		auto ssrCombineProgram = CreateResource<ShaderProgram>("SSR_COMBINE_PROGRAM");

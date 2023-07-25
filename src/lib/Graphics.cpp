@@ -13,6 +13,7 @@
 using namespace EvoEngine;
 
 
+
 #pragma region Helpers
 uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
 {
@@ -27,6 +28,84 @@ uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPrope
 	}
 
 	throw std::runtime_error("failed to find suitable memory type!");
+}
+
+const std::string& Graphics::GetStandardShaderIncludes()
+{
+	const auto& graphics = GetInstance();
+	return *graphics.m_standardShaderIncludes;
+}
+
+size_t Graphics::GetMaxBoneAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxBoneAmount;
+}
+
+size_t Graphics::GetMaxMaterialAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxMaterialAmount;
+}
+
+size_t Graphics::GetMaxShadowCascadeAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_shadowCascadeAmount;
+}
+
+size_t Graphics::GetMaxKernelAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxKernelAmount;
+}
+
+size_t Graphics::GetMaxDirectionalLightAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxDirectionalLightAmount;
+}
+
+size_t Graphics::GetMaxPointLightAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxPointLightAmount;
+}
+
+size_t Graphics::GetMaxSpotLightAmount()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxSpotLightAmount;
+}
+
+void Graphics::UploadEnvironmentInfo(const EnvironmentInfoBlock& environmentInfoBlock)
+{
+	const auto& graphics = GetInstance();
+	memcpy(graphics.m_environmentalInfoBlockMemory[graphics.m_currentFrameIndex], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
+}
+
+void Graphics::UploadRenderInfo(const RenderInfoBlock& renderInfoBlock)
+{
+	const auto& graphics = GetInstance();
+	memcpy(graphics.m_renderInfoBlockMemory[graphics.m_currentFrameIndex], &renderInfoBlock, sizeof(RenderInfoBlock));
+}
+
+void Graphics::UploadCameraInfo(const CameraInfoBlock& cameraInfoBlock)
+{
+	const auto& graphics = GetInstance();
+	memcpy(graphics.m_cameraInfoBlockMemory[graphics.m_currentFrameIndex], &cameraInfoBlock, sizeof(CameraInfoBlock));
+}
+
+void Graphics::UploadMaterialInfo(const MaterialInfoBlock& materialInfoBlock)
+{
+	const auto& graphics = GetInstance();
+	memcpy(graphics.m_materialInfoBlockMemory[graphics.m_currentFrameIndex], &materialInfoBlock, sizeof(MaterialInfoBlock));
+}
+
+void Graphics::UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock)
+{
+	const auto& graphics = GetInstance();
+	memcpy(graphics.m_objectInfoBlockMemory[graphics.m_currentFrameIndex], &objectInfoBlock, sizeof(ObjectInfoBlock));
 }
 
 const std::unique_ptr<RenderPass>& Graphics::GetSwapchainRenderPass()
@@ -308,13 +387,6 @@ void GlobalPipelineState::ResetAllStates(VkCommandBuffer commandBuffer)
 	m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
 	m_stencilCompareOp = VK_COMPARE_OP_LESS;
 
-	m_vertexShader = {};
-	m_tessellationControlShader = {};
-	m_tessellationEvaluationShader = {};
-	m_geometryShader = {};
-	m_fragShader = {};
-	m_computeShader = {};
-
 	ApplyAllStates(commandBuffer, true);
 }
 
@@ -386,7 +458,7 @@ void GlobalPipelineState::ApplyAllStates(const VkCommandBuffer commandBuffer, co
 		m_stencilTestApplied = m_stencilTest;
 		vkCmdSetStencilTestEnableEXT(commandBuffer, m_stencilTestApplied);
 	}
-	if (forceSet || 
+	if (forceSet ||
 		m_frontFaceApplied != m_frontFace
 		|| m_stencilFailOpApplied != m_stencilFailOp
 		|| m_stencilPassOpApplied != m_stencilPassOp
@@ -398,56 +470,7 @@ void GlobalPipelineState::ApplyAllStates(const VkCommandBuffer commandBuffer, co
 		m_stencilDepthFailOpApplied = m_stencilDepthFailOp;
 		m_stencilCompareOpApplied = m_stencilCompareOp;
 		vkCmdSetStencilOpEXT(commandBuffer, m_stencilFaceMaskApplied, m_stencilFailOpApplied, m_stencilPassOpApplied, m_stencilDepthFailOpApplied, m_stencilCompareOpApplied);
-	}
-	constexpr  VkShaderStageFlagBits stages[6] =
-	{
-		VK_SHADER_STAGE_VERTEX_BIT,
-		VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-		VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-		VK_SHADER_STAGE_GEOMETRY_BIT,
-		VK_SHADER_STAGE_FRAGMENT_BIT,
-		VK_SHADER_STAGE_COMPUTE_BIT
-	};
-	if (forceSet || m_vertexShaderApplied != m_vertexShader) {
-		m_vertexShaderApplied = m_vertexShader;
-		if (m_vertexShaderApplied) vkCmdBindShadersEXT(commandBuffer, 1, &stages[0], &m_vertexShaderApplied->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[0], nullptr);
-	}
-	if (forceSet || m_tessellationControlShaderApplied != m_tessellationControlShader) {
-		m_tessellationControlShaderApplied = m_tessellationControlShader;
-		if (m_tessellationControlShaderApplied) vkCmdBindShadersEXT(commandBuffer, 1, &stages[1], &m_tessellationControlShaderApplied->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[1], nullptr);
-	}
-	if (forceSet || m_tessellationEvaluationShaderApplied != m_tessellationEvaluationShader) {
-		m_tessellationEvaluationShaderApplied = m_tessellationEvaluationShader;
-		if (m_tessellationEvaluationShaderApplied) vkCmdBindShadersEXT(commandBuffer, 1, &stages[2], &m_tessellationEvaluationShaderApplied->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[2], nullptr);
-	}
-	if (forceSet || m_geometryShaderApplied != m_geometryShader) {
-		m_geometryShaderApplied = m_geometryShader;
-		if (m_geometryShaderApplied) vkCmdBindShadersEXT(commandBuffer, 1, &stages[3], &m_geometryShaderApplied->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[3], nullptr);
-	}
-	if (forceSet || m_fragShaderApplied != m_fragShader) {
-		m_fragShaderApplied = m_fragShader;
-		if (m_fragShaderApplied) vkCmdBindShadersEXT(commandBuffer, 1, &stages[4], &m_fragShaderApplied->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[4], nullptr);
-	}
-	if (forceSet || m_computeShaderApplied != m_computeShader) {
-		m_computeShaderApplied = m_computeShader;
-		if (m_computeShader) vkCmdBindShadersEXT(commandBuffer, 1, &stages[5], &m_computeShader->GetVkShaderEXT());
-		else vkCmdBindShadersEXT(commandBuffer, 1, &stages[5], nullptr);
-	}
-}
-
-void GlobalPipelineState::ClearShaders()
-{
-	m_vertexShader = {};
-	m_tessellationControlShader = {};
-	m_tessellationEvaluationShader = {};
-	m_geometryShader = {};
-	m_fragShader = {};
-	m_computeShader = {};
+	}	
 }
 
 QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
@@ -864,6 +887,39 @@ void Graphics::CreateSwapChainSyncObjects()
 #pragma endregion
 }
 
+void Graphics::CreateStandardDescriptorLayout()
+{
+#pragma region Standard Descrioptor Layout
+	m_standardDescriptorBuffers.clear();
+
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
+	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	bufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+	m_renderInfoBlockMemory.resize(m_maxFrameInFlight);
+	m_environmentalInfoBlockMemory.resize(m_maxFrameInFlight);
+	m_cameraInfoBlockMemory.resize(m_maxFrameInFlight);
+	m_materialInfoBlockMemory.resize(m_maxFrameInFlight);
+	m_objectInfoBlockMemory.resize(m_maxFrameInFlight);
+	for (size_t i = 0; i < m_maxFrameInFlight; i++) {
+		bufferCreateInfo.size = sizeof(RenderInfoBlock);
+		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
+		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(CameraInfoBlock);
+		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(MaterialInfoBlock);
+		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(ObjectInfoBlock);
+		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+	}
+#pragma endregion
+}
+
 void Graphics::CreateSwapChain()
 {
 	auto applicationInfo = Application::GetApplicationInfo();
@@ -1045,6 +1101,15 @@ void Graphics::RecreateSwapChain()
 void Graphics::OnDestroy()
 {
 	vkDeviceWaitIdle(m_vkDevice);
+
+	m_standardDescriptorBuffers.clear();
+
+	m_renderInfoBlockMemory.clear();
+	m_environmentalInfoBlockMemory.clear();
+	m_cameraInfoBlockMemory.clear();
+	m_materialInfoBlockMemory.clear();
+	m_objectInfoBlockMemory.clear();
+
 	m_descriptorPool.reset();
 
 #pragma region Vulkan
@@ -1205,6 +1270,7 @@ void Graphics::Initialize()
 		renderLayerDescriptorPoolInfo.maxSets = 1024;
 		graphics.m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
 
+		graphics.CreateStandardDescriptorLayout();
 	}
 #pragma endregion
 

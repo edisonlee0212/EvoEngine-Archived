@@ -1,3 +1,7 @@
+#define EE_PER_FRAME_SET 0
+#define EE_PER_PASS_SET 1
+#define EE_PER_GROUP_SET 2
+#define EE_PER_COMMAND_SET 3
 
 //Lights
 struct DirectionalLight {
@@ -46,32 +50,9 @@ struct SpotLight {
 	int viewPortYSize;
 };
 
-layout(set = 0, binding = 5) uniform EE_DIRECTIONAL_LIGHT_BLOCK
-{
-	int EE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
-	DirectionalLight EE_DIRECTIONAL_LIGHTS[DIRECTIONAL_LIGHTS_AMOUNT];
-};
-
-layout(set = 0, binding = 6) uniform EE_POINT_LIGHT_BLOCK
-{
-	int EE_POINT_LIGHT_AMOUNT;
-	PointLight EE_POINT_LIGHTS[POINT_LIGHTS_AMOUNT];
-};
-
-layout(set = 0, binding = 7) uniform EE_SPOT_LIGHT_BLOCK
-{
-	int EE_SPOT_LIGHT_AMOUNT;
-	SpotLight EE_SPOT_LIGHTS[SPOT_LIGHTS_AMOUNT];
-};
 
 
-layout(set = 0, binding = 8) uniform EE_KERNEL_BLOCK
-{
-	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
-	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
-};
-
-layout(set = 0, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
 {
 	float EE_SHADOW_SPLIT_0;
 	float EE_SHADOW_SPLIT_1;
@@ -89,7 +70,7 @@ layout(set = 0, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
 	int EE_STRANDS_SUBDIVISION_MAX_Y;
 };
 
-layout(set = 0, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
 {
 	vec4 EE_ENVIRONMENTAL_BACKGROUND_COLOR;
 	float EE_ENVIRONMENTAL_MAP_GAMMA;
@@ -100,7 +81,7 @@ layout(set = 0, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
 
 
 //Camera
-layout(set = 1, binding = 2) uniform EE_CAMERA
+layout(set = EE_PER_PASS_SET, binding = 2) uniform EE_CAMERA
 {
 	mat4 EE_CAMERA_PROJECTION;
 	mat4 EE_CAMERA_VIEW;
@@ -113,9 +94,7 @@ layout(set = 1, binding = 2) uniform EE_CAMERA
 	vec4 EE_CAMERA_RESERVED2;
 };
 
-
-
-layout(set = 2, binding = 3) uniform EE_MATERIAL_BLOCK
+layout(set = EE_PER_GROUP_SET, binding = 3) uniform EE_MATERIAL_BLOCK
 {
 	bool EE_ALBEDO_MAP_ENABLED;
 	bool EE_NORMAL_MAP_ENABLED;
@@ -135,6 +114,30 @@ layout(set = 2, binding = 3) uniform EE_MATERIAL_BLOCK
 	float EE_PBR_EMISSION;
 };
 
+layout(set = EE_PER_PASS_SET, binding = 5) uniform EE_DIRECTIONAL_LIGHT_BLOCK
+{
+	int EE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
+	DirectionalLight EE_DIRECTIONAL_LIGHTS[DIRECTIONAL_LIGHTS_AMOUNT];
+};
+
+layout(set = EE_PER_PASS_SET, binding = 6) uniform EE_POINT_LIGHT_BLOCK
+{
+	int EE_POINT_LIGHT_AMOUNT;
+	PointLight EE_POINT_LIGHTS[POINT_LIGHTS_AMOUNT];
+};
+
+layout(set = EE_PER_PASS_SET, binding = 7) uniform EE_SPOT_LIGHT_BLOCK
+{
+	int EE_SPOT_LIGHT_AMOUNT;
+	SpotLight EE_SPOT_LIGHTS[SPOT_LIGHTS_AMOUNT];
+};
+
+
+layout(set = EE_PER_PASS_SET, binding = 8) uniform EE_KERNEL_BLOCK
+{
+	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
+	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
+};
 
 layout(binding = 3) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
 layout(binding = 3) uniform sampler2DArray EE_POINT_LIGHT_SM;

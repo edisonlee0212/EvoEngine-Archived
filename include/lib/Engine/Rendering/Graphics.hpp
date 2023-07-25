@@ -44,13 +44,6 @@ namespace EvoEngine
 		VkStencilOp m_stencilDepthFailOpApplied = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOpApplied = VK_COMPARE_OP_LESS;
 
-		std::shared_ptr<ShaderEXT> m_vertexShaderApplied = {};
-		std::shared_ptr<ShaderEXT> m_tessellationControlShaderApplied = {};
-		std::shared_ptr<ShaderEXT> m_tessellationEvaluationShaderApplied = {};
-		std::shared_ptr<ShaderEXT> m_geometryShaderApplied = {};
-		std::shared_ptr<ShaderEXT> m_fragShaderApplied = {};
-		std::shared_ptr<ShaderEXT> m_computeShaderApplied = {};
-		
 		void ResetAllStates(VkCommandBuffer commandBuffer);
 	public:
 		VkViewport m_viewPort = {};
@@ -76,20 +69,76 @@ namespace EvoEngine
 		VkStencilOp m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOp = VK_COMPARE_OP_LESS;
 
-		std::shared_ptr<ShaderEXT> m_vertexShader = {};
-		std::shared_ptr<ShaderEXT> m_tessellationControlShader = {};
-		std::shared_ptr<ShaderEXT> m_tessellationEvaluationShader = {};
-		std::shared_ptr<ShaderEXT> m_geometryShader = {};
-		std::shared_ptr<ShaderEXT> m_fragShader = {};
-		std::shared_ptr<ShaderEXT> m_computeShader = {};
-		
 		void ApplyAllStates(VkCommandBuffer commandBuffer, bool forceSet = false);
-		void ClearShaders();
+	};
+
+	struct RenderInfoBlock {
+		glm::vec4 m_splitDistances = {};
+		alignas(4) int m_pcfSampleAmount = 64;
+		alignas(4) int m_blockerSearchAmount = 1;
+		alignas(4) float m_seamFixRatio = 0.05f;
+		alignas(4) float m_gamma = 2.2f;
+
+		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
+		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
+		alignas(4) int m_strandsSubdivisionMaxX = 15;
+		alignas(4) int m_strandsSubdivisionMaxY = 8;
+	};
+
+	struct EnvironmentInfoBlock {
+		glm::vec4 m_backgroundColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		alignas(4) float m_environmentalMapGamma = 1.0f;
+		alignas(4) float m_environmentalLightingIntensity = 1.0f;
+		alignas(4) float m_backgroundIntensity = 1.0f;
+		alignas(4) float m_environmentalPadding2 = 0.0f;
+	};
+
+	struct CameraInfoBlock
+	{
+		glm::mat4 m_projection = {};
+		glm::mat4 m_view = {};
+		glm::mat4 m_projectionView = {};
+		glm::mat4 m_inverseProjection = {};
+		glm::mat4 m_inverseView = {};
+		glm::mat4 m_inverseProjectionView = {};
+		glm::vec4 m_clearColor = {};
+		glm::vec4 m_reservedParameters1 = {};
+		glm::vec4 m_reservedParameters2 = {};
+
+		[[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
+		[[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
+	};
+
+	struct MaterialInfoBlock {
+		alignas(4) bool m_albedoEnabled = false;
+		alignas(4) bool m_normalEnabled = false;
+		alignas(4) bool m_metallicEnabled = false;
+		alignas(4) bool m_roughnessEnabled = false;
+
+		alignas(4) bool m_aoEnabled = false;
+		alignas(4) bool m_castShadow = true;
+		alignas(4) bool m_receiveShadow = true;
+		alignas(4) bool m_enableShadow = true;
+
+		glm::vec4 m_albedoColorVal = glm::vec4(1.0f);
+		glm::vec4 m_subsurfaceColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+		glm::vec4 m_subsurfaceRadius = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+
+		alignas(4) float m_metallicVal = 0.5f;
+		alignas(4) float m_roughnessVal = 0.5f;
+		alignas(4) float m_aoVal = 1.0f;
+		alignas(4) float m_emissionVal = 0.0f;
+	};
+
+	struct ObjectInfoBlock
+	{
+		glm::mat4 m_model;
 	};
 
 	class Graphics final : public ISingleton<Graphics>
 	{
 		friend class Application;
+		friend class Resources;
 #pragma region Vulkan
 		VkInstance m_vkInstance = VK_NULL_HANDLE;
 		std::vector<std::string> m_requiredDeviceExtensions = {};
@@ -112,12 +161,12 @@ namespace EvoEngine
 		VkQueue m_vkPresentQueue = VK_NULL_HANDLE;
 
 		std::unique_ptr<Swapchain> m_swapchain = {};
-		
+
 		VkSurfaceFormatKHR m_vkSurfaceFormat = {};
-		
+
 
 #pragma endregion
-
+#pragma region Internals
 		std::unique_ptr<CommandPool> m_commandPool = {};
 		std::unique_ptr<DescriptorPool> m_descriptorPool = {};
 
@@ -136,7 +185,25 @@ namespace EvoEngine
 
 		std::unique_ptr<RenderPass> m_swapChainRenderPass = {};
 		std::vector<std::unique_ptr<Framebuffer>> m_swapChainFramebuffers = {};
+#pragma endregion
+#pragma region Shader related
+		std::unique_ptr<std::string> m_standardShaderIncludes;
+		size_t m_maxBoneAmount = 65536;
+		size_t m_maxMaterialAmount = 1;
+		size_t m_maxKernelAmount = 64;
+		size_t m_maxDirectionalLightAmount = 8;
+		size_t m_maxPointLightAmount = 8;
+		size_t m_maxSpotLightAmount = 8;
+		size_t m_shadowCascadeAmount = 4;
 
+		friend class ShaderProgram;
+		std::vector<void*> m_renderInfoBlockMemory;
+		std::vector<void*> m_environmentalInfoBlockMemory;
+		std::vector<void*> m_cameraInfoBlockMemory;
+		std::vector<void*> m_materialInfoBlockMemory;
+		std::vector<void*> m_objectInfoBlockMemory;
+		std::vector<std::unique_ptr<Buffer>> m_standardDescriptorBuffers = {};
+#pragma endregion
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
 		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
@@ -147,12 +214,13 @@ namespace EvoEngine
 		void CreatePhysicalDevice();
 		void CreateLogicalDevice();
 		void SetupVmaAllocator();
-		
-		void CreateSwapChainSyncObjects();
+
 		void CreateSwapChain();
 		void CreateRenderPass();
 		bool UpdateFrameBuffers();
-		
+
+		void CreateSwapChainSyncObjects();
+		void CreateStandardDescriptorLayout();
 
 		void RecreateSwapChain();
 
@@ -168,6 +236,21 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+		static const std::string& GetStandardShaderIncludes();
+		static size_t GetMaxBoneAmount();
+		static size_t GetMaxMaterialAmount();
+		static size_t GetMaxKernelAmount();
+		static size_t GetMaxDirectionalLightAmount();
+		static size_t GetMaxPointLightAmount();
+		static size_t GetMaxSpotLightAmount();
+		static size_t GetMaxShadowCascadeAmount();
+
+		static void UploadEnvironmentInfo(const EnvironmentInfoBlock& environmentInfoBlock);
+		static void UploadRenderInfo(const RenderInfoBlock& renderInfoBlock);
+		static void UploadCameraInfo(const CameraInfoBlock& cameraInfoBlock);
+		static void UploadMaterialInfo(const MaterialInfoBlock& materialInfoBlock);
+		static void UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock);
+
 		static const std::unique_ptr<RenderPass>& GetSwapchainRenderPass();
 		static const std::unique_ptr<Framebuffer>& GetSwapchainFramebuffer();
 		static GlobalPipelineState& GlobalState();
