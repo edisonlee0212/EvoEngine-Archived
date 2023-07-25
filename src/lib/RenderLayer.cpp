@@ -79,6 +79,10 @@ void RenderLayer::PreUpdate()
 	CollectRenderTasks(worldBound, cameras);
 	scene->SetBound(worldBound);
 
+	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
+	{
+		if (m_allowAutoResize) mainCamera->Resize({ m_mainCameraResolutionX, m_mainCameraResolutionY });
+	}
 	for (const auto& camera : cameras)
 	{
 		camera->m_rendered = false;
@@ -592,7 +596,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = extent2D;
 
-		VkClearValue clearColor = { {{1.0f, 0.0f, 0.0f, 0.0f}},  };
+		VkClearValue clearColor = { {{1.0f, 0.0f, 0.0f, 1.0f}},  };
 
 		std::vector<VkClearValue> clearValues = { 6, clearColor };
 
@@ -614,7 +618,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		globalPipelineState.m_scissor = scissor;
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		/*
+		
 		m_deferredInstancedRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
@@ -639,7 +643,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 				}
 			}
 			);
-		*/
+		
 		vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 		
 		vkCmdEndRenderPass(commandBuffer);

@@ -140,10 +140,12 @@ void Camera::UpdateGBuffer()
 	}
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
 		//m_gBufferDepthImTextureId = editorLayer->GetTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
-		//m_gBufferNormalImTextureId = editorLayer->GetTextureId(m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
-		m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_gBufferNormal->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_gBufferNormalImTextureId = editorLayer->GetTextureId(m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
+		m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		m_gBufferAlbedoImTextureId = editorLayer->GetTextureId(m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
-		//m_gBufferMaterialImTextureId = editorLayer->GetTextureId(m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
+		m_gBufferMaterial->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_gBufferMaterialImTextureId = editorLayer->GetTextureId(m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 	}
 }
 
@@ -545,10 +547,11 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
+			/*
 			ImGui::Image(m_gBufferDepthImTextureId,
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),
-				ImVec2(1, 0));
+				ImVec2(1, 0));*/
 			ImGui::Image(m_gBufferNormalImTextureId,
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),

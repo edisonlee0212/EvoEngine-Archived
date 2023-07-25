@@ -3,11 +3,8 @@
 //
 
 #include "AssetRef.hpp"
-/*
-#include <ProjectManager.hpp>
-#include <DefaultResources.hpp>
-#include <IAsset.hpp>
-*/
+#include "ProjectManager.hpp"
+
 using namespace EvoEngine;
 bool AssetRef::Update()
 {
@@ -16,11 +13,10 @@ bool AssetRef::Update()
         m_value.reset();
         return false;
     }
-    /*
+    
     if (!m_value)
     {
-        auto ptr = ProjectManager::GetAsset(m_assetHandle);
-        if (ptr)
+	    if (const auto ptr = ProjectManager::GetAsset(m_assetHandle))
         {
             m_value = ptr;
             m_assetTypeName = ptr->GetTypeName();
@@ -29,7 +25,7 @@ bool AssetRef::Update()
         Clear();
         return false;
     }
-    */
+    
     return true;
 }
 

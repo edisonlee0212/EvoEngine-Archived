@@ -136,7 +136,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_colorSampler = std::make_unique<Sampler>(samplerInfo);
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		m_colorImage->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_colorImage->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		m_colorImTextureId = editorLayer->GetTextureId(m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
 	}
 
