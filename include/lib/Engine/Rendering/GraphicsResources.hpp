@@ -343,7 +343,7 @@ namespace EvoEngine
 		void Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		[[nodiscard]] VkImage GetVkImage() const;
-
+		[[nodiscard]] VkFormat GetFormat() const;
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
 		[[nodiscard]] VkExtent3D GetExtent() const;
 		[[nodiscard]] VkImageLayout GetLayout() const;

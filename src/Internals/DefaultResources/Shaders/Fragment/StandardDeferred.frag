@@ -6,9 +6,9 @@ layout (location = 0) in VS_OUT {
     vec2 TexCoord;
 } fs_in;
 
-layout (location = 0) out vec4 outNormal;
-layout (location = 1) out vec3 outAlbedo;
-layout (location = 2) out vec4 outMaterial;
+layout (location = 1) out vec4 outNormal;
+layout (location = 2) out vec3 outAlbedo;
+layout (location = 3) out vec4 outMaterial;
 
 void main()
 {

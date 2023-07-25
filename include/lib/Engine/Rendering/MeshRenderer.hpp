@@ -5,7 +5,7 @@ namespace EvoEngine
 {
     class MeshRenderer : public IPrivateComponent
     {
-        friend class Editor;
+        
         void RenderBound(glm::vec4& color);
     public:
         bool m_forwardRendering = false;

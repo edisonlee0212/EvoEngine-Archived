@@ -119,6 +119,12 @@ std::filesystem::path IAsset::GetAbsolutePath() const
         return {};
     return m_assetRecord.lock()->GetAbsolutePath();
 }
+
+unsigned IAsset::GetVersion() const
+{
+    return m_version;
+}
+
 bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
 {
     if (!projectRelativePath.is_relative())

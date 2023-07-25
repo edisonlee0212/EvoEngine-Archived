@@ -9,13 +9,19 @@
 #include "Scene.hpp"
 using namespace EvoEngine;
 
-constexpr VkFormat GBufferDepthFormat = VK_FORMAT_D32_SFLOAT;
-constexpr VkFormat GBufferNormalFormat = VK_FORMAT_R16G16B16_SFLOAT;
-constexpr VkFormat GBufferAlbedoFormat = VK_FORMAT_R16G16B16_SFLOAT;
-constexpr VkFormat GBufferMaterialFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-
 void Camera::UpdateGBuffer()
 {
+	m_gBufferDepthView.reset();
+	m_gBufferNormalView.reset();
+	m_gBufferAlbedoView.reset();
+	m_gBufferMaterialView.reset();
+
+	m_gBufferDepth.reset();
+	m_gBufferNormal.reset();
+	m_gBufferAlbedo.reset();
+	m_gBufferMaterial.reset();
+
+
 	{
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -23,7 +29,7 @@ void Camera::UpdateGBuffer()
 		imageInfo.extent = m_renderTexture->GetExtent();
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = GBufferDepthFormat;
+		imageInfo.format = Graphics::ImageFormats::m_gBufferDepth;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -36,7 +42,7 @@ void Camera::UpdateGBuffer()
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_gBufferDepth->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = GBufferDepthFormat;
+		viewInfo.format = Graphics::ImageFormats::m_gBufferDepth;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -52,7 +58,7 @@ void Camera::UpdateGBuffer()
 		imageInfo.extent = m_renderTexture->GetExtent();
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = GBufferNormalFormat;
+		imageInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -65,7 +71,7 @@ void Camera::UpdateGBuffer()
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_gBufferNormal->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = GBufferNormalFormat;
+		viewInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -81,7 +87,7 @@ void Camera::UpdateGBuffer()
 		imageInfo.extent = m_renderTexture->GetExtent();
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = GBufferAlbedoFormat;
+		imageInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -94,7 +100,7 @@ void Camera::UpdateGBuffer()
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_gBufferAlbedo->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = GBufferAlbedoFormat;
+		viewInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -110,7 +116,7 @@ void Camera::UpdateGBuffer()
 		imageInfo.extent = m_renderTexture->GetExtent();
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = GBufferMaterialFormat;
+		imageInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -123,7 +129,7 @@ void Camera::UpdateGBuffer()
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_gBufferMaterial->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = GBufferMaterialFormat;
+		viewInfo.format = Graphics::ImageFormats::m_gBufferColor;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -133,10 +139,11 @@ void Camera::UpdateGBuffer()
 		m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
 	}
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		m_gBufferDepthImTextureId = editorLayer->GetTextureId(m_gBufferDepthView->GetVkImageView());
-		m_gBufferNormalImTextureId = editorLayer->GetTextureId(m_gBufferNormalView->GetVkImageView());
-		m_gBufferAlbedoImTextureId = editorLayer->GetTextureId(m_gBufferAlbedoView->GetVkImageView());
-		m_gBufferMaterialImTextureId = editorLayer->GetTextureId(m_gBufferMaterialView->GetVkImageView());
+		//m_gBufferDepthImTextureId = editorLayer->GetTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
+		//m_gBufferNormalImTextureId = editorLayer->GetTextureId(m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
+		m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_gBufferAlbedoImTextureId = editorLayer->GetTextureId(m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
+		//m_gBufferMaterialImTextureId = editorLayer->GetTextureId(m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 	}
 }
 
@@ -144,26 +151,64 @@ void Camera::UpdateFrameBuffer()
 {
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (renderLayer) {
-		const std::vector<VkImageView> attachments = {
-			m_renderTexture->GetColorImageView()->GetVkImageView(),
-			m_renderTexture->GetDepthStencilImageView()->GetVkImageView(),
+		const std::vector attachments = {
 			m_gBufferDepthView->GetVkImageView(),
 			m_gBufferNormalView->GetVkImageView(),
 			m_gBufferAlbedoView->GetVkImageView(),
-			m_gBufferMaterialView->GetVkImageView() };
+			m_gBufferMaterialView->GetVkImageView(),
+			
+			m_renderTexture->GetDepthImageView()->GetVkImageView(),
+			m_renderTexture->GetColorImageView()->GetVkImageView()
+		};
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderLayer->GetRenderPass("CAMERA_DEFERRED_SHADING")->GetVkRenderPass();
+		framebufferInfo.renderPass = renderLayer->GetRenderPass("DEFERRED_RENDERING")->GetVkRenderPass();
 		framebufferInfo.attachmentCount = attachments.size();
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = m_size.x;
 		framebufferInfo.height = m_size.y;
 		framebufferInfo.layers = 1;
 
-		m_framebuffer.reset();
-		m_framebuffer = std::make_unique<Framebuffer>(framebufferInfo);
+		m_deferredRenderingFramebuffer.reset();
+		m_deferredRenderingFramebuffer = std::make_unique<Framebuffer>(framebufferInfo);
 	}
+}
+
+void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const
+{
+	const auto rotation = globalTransform.GetRotation();
+	const auto position = globalTransform.GetPosition();
+	const glm::vec3 front = rotation * glm::vec3(0, 0, -1);
+	const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
+	const auto ratio = GetSizeRatio();
+	cameraInfoBlock.m_projection =
+		glm::perspective(glm::radians(m_fov * 0.5f), ratio, m_nearDistance, m_farDistance);
+	cameraInfoBlock.m_view = glm::lookAt(position, position + front, up);
+	cameraInfoBlock.m_projectionView = cameraInfoBlock.m_projection * cameraInfoBlock.m_view;
+	cameraInfoBlock.m_inverseProjection = glm::inverse(cameraInfoBlock.m_projection);
+	cameraInfoBlock.m_inverseView = glm::inverse(cameraInfoBlock.m_view);
+	cameraInfoBlock.m_inverseProjectionView = glm::inverse(cameraInfoBlock.m_projection) * glm::inverse(cameraInfoBlock.m_view);
+	cameraInfoBlock.m_reservedParameters1 = glm::vec4(
+		m_nearDistance,
+		m_farDistance,
+		glm::tan(glm::radians(m_fov * 0.5f)),
+		glm::tan(glm::radians(m_fov * 0.25f)));
+	cameraInfoBlock.m_clearColor = glm::vec4(m_clearColor, 1.0f);
+	cameraInfoBlock.m_reservedParameters2 = glm::vec4(m_size.x, m_size.y, static_cast<float>(m_size.x) / m_size.y, 0.0f);
+	if (m_useClearColor)
+	{
+		cameraInfoBlock.m_clearColor.w = 1.0f;
+	}
+	else
+	{
+		cameraInfoBlock.m_clearColor.w = 0.0f;
+	}
+}
+
+const std::unique_ptr<Framebuffer>& Camera::GetFramebuffer() const
+{
+	return m_deferredRenderingFramebuffer;
 }
 
 const std::vector<VkAttachmentDescription>& Camera::GetAttachmentDescriptions()
@@ -171,27 +216,29 @@ const std::vector<VkAttachmentDescription>& Camera::GetAttachmentDescriptions()
 	static std::vector<VkAttachmentDescription> attachments{};
 
 	if (attachments.empty()) {
-		attachments = RenderTexture::GetAttachmentDescriptions();
-
 		VkAttachmentDescription attachment{};
 
 		attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		attachment.format = GBufferDepthFormat;
+		attachment.format = Graphics::ImageFormats::m_gBufferDepth;
 		attachments.push_back(attachment);
+		attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attachment.format = GBufferNormalFormat;
+		attachment.format = Graphics::ImageFormats::m_gBufferColor;
 		attachments.push_back(attachment);
-		attachment.format = GBufferAlbedoFormat;
+		attachment.format = Graphics::ImageFormats::m_gBufferColor;
 		attachments.push_back(attachment);
-		attachment.format = GBufferMaterialFormat;
+		attachment.format = Graphics::ImageFormats::m_gBufferColor;
 		attachments.push_back(attachment);
+
+		auto renderTextureAttachments = RenderTexture::GetAttachmentDescriptions();
+		attachments.insert(attachments.end(), renderTextureAttachments.begin(), renderTextureAttachments.end());
 	}
 	return attachments;
 }
@@ -221,6 +268,7 @@ void Camera::Resize(const glm::uvec2& size)
 	m_size = size;
 	m_renderTexture->Resize({ m_size.x, m_size.y, 1 });
 	UpdateGBuffer();
+	UpdateFrameBuffer();
 }
 
 void Camera::OnCreate()
@@ -231,6 +279,8 @@ void Camera::OnCreate()
 	extent.height = m_size.y;
 	extent.depth = 1;
 	m_renderTexture = std::make_unique<RenderTexture>(extent);
+	UpdateGBuffer();
+	UpdateFrameBuffer();
 }
 
 bool Camera::Rendered() const

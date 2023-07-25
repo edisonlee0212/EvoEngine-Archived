@@ -84,7 +84,7 @@ namespace EvoEngine
 	class  ProjectManager : public ISingleton<ProjectManager>
 	{
 		friend class Application;
-		friend class Editor;
+		
 		friend class EditorLayer;
 		friend class AssetRecord;
 		friend class Folder;
@@ -110,7 +110,7 @@ namespace EvoEngine
 		friend class DefaultResources;
 		friend class AssetRegistry;
 		friend class ProjectManager;
-		friend class Editor;
+		
 		friend class EditorLayer;
 		friend class IAsset;
 		friend class Scene;

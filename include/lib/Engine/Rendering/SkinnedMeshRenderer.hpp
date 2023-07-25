@@ -17,7 +17,7 @@ namespace EvoEngine
 
 	class SkinnedMeshRenderer : public IPrivateComponent
 	{
-		friend class Editor;
+		
 		friend class Animator;
 		friend class AnimationLayer;
 		friend class Prefab;

@@ -204,6 +204,9 @@ namespace EvoEngine
 		std::vector<void*> m_objectInfoBlockMemory;
 		std::vector<std::unique_ptr<Buffer>> m_standardDescriptorBuffers = {};
 #pragma endregion
+
+
+
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
 		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
@@ -236,6 +239,17 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+#pragma region Formats
+		class ImageFormats
+		{
+		public:
+			inline static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
+			inline static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
+		};
+
+#pragma endregion
 		static const std::string& GetStandardShaderIncludes();
 		static size_t GetMaxBoneAmount();
 		static size_t GetMaxMaterialAmount();

@@ -57,7 +57,7 @@ namespace EvoEngine
     {
         friend class Application;
         friend class Entities;
-        friend class Editor;
+        
         friend class EditorLayer;
         friend class Serialization;
         friend class SystemRef;

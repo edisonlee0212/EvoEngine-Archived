@@ -38,7 +38,7 @@ class IHandle{
     friend class Prefab;
     friend class Entities;
     friend class EntityMetadata;
-    friend class Editor;
+    
     friend class EditorLayer;
     friend class Resources;
     friend class Serialization;

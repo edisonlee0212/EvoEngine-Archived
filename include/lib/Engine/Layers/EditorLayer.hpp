@@ -15,7 +15,7 @@ namespace EvoEngine
 	{
 #pragma region Registrations
 		friend class ClassRegistry;
-		friend class EditorLayer;
+		friend class RenderLayer;
 		friend class Application;
 		friend class DefaultResources;
 		friend class ProjectManager;
@@ -89,18 +89,18 @@ namespace EvoEngine
 		std::shared_ptr<Camera> m_sceneCamera;
 
 		void SceneCameraWindow();
-
+		void MainCameraWindow();
 		void OnInputEvent(const InputEvent& inputEvent) override;
 		void RenderToSceneCamera();
 	public:
-
+		[[nodiscard]] std::shared_ptr<Camera> GetSceneCamera();
 		void MoveCamera(
 			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
 
 
 		void CameraWindowDragAndDrop();
 
-		[[nodiscard]] ImTextureID GetTextureId(VkImageView imageView) const;
+		[[nodiscard]] ImTextureID GetTextureId(VkImageView imageView, VkImageLayout imageLayout) const;
 
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;

@@ -3,6 +3,7 @@
 #include "Graphics.hpp"
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
+#include "IGeometry.hpp"
 #include "Vertex.hpp"
 namespace EvoEngine
 {
@@ -18,9 +19,8 @@ namespace EvoEngine
 		void Deserialize(const YAML::Node& in);
 	};
 
-	class Mesh final : public IAsset
+	class Mesh final : public IAsset, public IGeometry
 	{
-		size_t m_version = 0;
 		Bound m_bound = {};
 
 		std::vector<Vertex> m_vertices;
@@ -31,7 +31,8 @@ namespace EvoEngine
 		std::unique_ptr<Buffer> m_verticesBuffer = {};
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const;
+
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const override;
 		void Bind(VkCommandBuffer vkCommandBuffer) const;
 
 		void UploadData();
@@ -43,10 +44,10 @@ namespace EvoEngine
 		void RecalculateNormal();
 		void RecalculateTangent();
 
-		[[nodiscard]] size_t& GetVersion();
+		
 		[[nodiscard]] std::vector<Vertex>& UnsafeGetVertices();
 		[[nodiscard]] std::vector<glm::uvec3>& UnsafeGetTriangles();
-
+		[[nodiscard]] Bound GetBound() const;
 		
 		void Serialize(YAML::Emitter& out) override;
 		void Deserialize(const YAML::Node& in) override;

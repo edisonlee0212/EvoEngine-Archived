@@ -29,7 +29,7 @@ class Entities final : ISingleton<Entities>
     friend class PrefabHolder;
     friend class PrivateComponentStorage;
     friend class TransformGraph;
-    friend class Editor;
+    
     friend class Scene;
     friend class Serialization;
     friend struct EntityArchetype;

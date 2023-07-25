@@ -751,9 +751,14 @@ void Graphics::CreateLogicalDevice()
 #pragma region Logical Device
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
+	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
+	physicalDeviceSynchronization2Features.pNext = nullptr;
+	physicalDeviceSynchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+
 	VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT extendedVertexInputDynamicStateFeatures{};
 	extendedVertexInputDynamicStateFeatures.vertexInputDynamicState = VK_TRUE;
-	extendedVertexInputDynamicStateFeatures.pNext = nullptr;
+	extendedVertexInputDynamicStateFeatures.pNext = &physicalDeviceSynchronization2Features;
 	extendedVertexInputDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
 
 	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3Features{};
@@ -916,6 +921,12 @@ void Graphics::CreateStandardDescriptorLayout()
 		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(ObjectInfoBlock);
 		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 1]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 2]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 3]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 4]->GetVmaAllocation(), &m_objectInfoBlockMemory[i]);
 	}
 #pragma endregion
 }
@@ -1138,6 +1149,7 @@ void Graphics::SwapChainSwapImage()
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
 	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
+	vkDeviceWaitIdle(m_vkDevice);
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);

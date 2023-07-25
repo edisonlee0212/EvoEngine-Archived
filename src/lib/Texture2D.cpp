@@ -131,7 +131,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
 		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-			m_imTextureId = editorLayer->GetTextureId(m_imageView->GetVkImageView());
+			m_imTextureId = editorLayer->GetTextureId(m_imageView->GetVkImageView(), m_image->GetLayout());
 		}
 	}
 	else
@@ -262,4 +262,31 @@ void Texture2D::StoreToHdr(const std::string& path, int resizeX, int resizeY, bo
 ImTextureID Texture2D::GetImTextureId() const
 {
 	return m_imTextureId;
+}
+
+VkImage Texture2D::GetVkImage() const
+{
+	if(m_image)
+	{
+		return m_image->GetVkImage();
+	}
+	return VK_NULL_HANDLE;
+}
+
+VkImageView Texture2D::GetVkImageView() const
+{
+	if (m_imageView)
+	{
+		return m_imageView->GetVkImageView();
+	}
+	return VK_NULL_HANDLE;
+}
+
+VkSampler Texture2D::GetVkSampler() const
+{
+	if (m_sampler)
+	{
+		return m_sampler->GetVkSampler();
+	}
+	return VK_NULL_HANDLE;
 }

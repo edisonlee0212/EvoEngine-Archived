@@ -36,5 +36,9 @@ namespace EvoEngine
 		void StoreToHdr(const std::string& path, int resizeX = -1, int resizeY = -1,
 			bool alphaChannel = false, unsigned quality = 100) const;
 		ImTextureID GetImTextureId() const;
+
+		[[nodiscard]] VkImage GetVkImage() const;
+		[[nodiscard]] VkImageView GetVkImageView() const;
+		[[nodiscard]] VkSampler GetVkSampler() const;
 	};
 }

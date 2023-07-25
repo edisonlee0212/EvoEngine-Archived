@@ -172,11 +172,6 @@ void EditorLayer::OnCreate()
 	m_defaultImageSampler = std::make_unique<Sampler>(samplerInfo);
 
 	LoadIcons();
-
-	m_sceneCamera = Serialization::ProduceSerializable<Camera>();
-	m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
-	m_sceneCamera->m_useClearColor = false;
-	m_sceneCamera->OnCreate();
 }
 
 void EditorLayer::OnDestroy()
@@ -606,7 +601,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	}
 
 	if (m_showSceneWindow) SceneCameraWindow();
-	//if (m_showCameraWindow) MainCameraWindow();
+	if (m_showCameraWindow) MainCameraWindow();
 
 	ProjectManager::OnInspect(editorLayer);
 	Resources::OnInspect(editorLayer);
@@ -755,12 +750,12 @@ void EditorLayer::InspectComponentData(Entity entity, IDataComponent* data, Data
 
 void EditorLayer::SceneCameraWindow()
 {
-	auto scene = GetScene();
+	const auto scene = GetScene();
 	auto windowLayer = Application::GetLayer<WindowLayer>();
 #pragma region Scene Window
-	ImVec2 viewPortSize;
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	if (ImGui::Begin("Scene")) {
+		ImVec2 viewPortSize;
 		// Using a Child allow to fill all the space of the window.
 		// It also allows customization
 		static int corner = 1;
@@ -775,7 +770,7 @@ void EditorLayer::SceneCameraWindow()
 			viewPortSize = ImGui::GetWindowSize();
 			m_sceneCameraResolutionX = viewPortSize.x * m_sceneCameraResolutionMultiplier;
 			m_sceneCameraResolutionY = (viewPortSize.y - 20) * m_sceneCameraResolutionMultiplier;
-			ImVec2 overlayPos = ImGui::GetWindowPos();
+			const ImVec2 overlayPos = ImGui::GetWindowPos();
 			if (m_sceneCamera && m_sceneCamera->m_rendered) {
 				// Because I use the texture from OpenGL, I need to invert the V from the UV.
 				ImGui::Image(m_sceneCamera->GetRenderTexture()->GetColorImTextureId(),
@@ -787,24 +782,24 @@ void EditorLayer::SceneCameraWindow()
 			else {
 				ImGui::Text("No active scene camera!");
 			}
-			ImVec2 window_pos = ImVec2(
+			const auto windowPos = ImVec2(
 				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
 				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
 			
 			if (m_showSceneInfo) {
-				ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
-				ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+				const auto windowPosPivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+				ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, windowPosPivot);
 				ImGui::SetNextWindowBgAlpha(0.35f);
-				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
+				constexpr auto windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
 					ImGuiWindowFlags_AlwaysAutoResize |
 					ImGuiWindowFlags_NoSavedSettings |
 					ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-				if (ImGui::BeginChild("Info", ImVec2(200, 300), true, window_flags)) {
+				if (ImGui::BeginChild("Info", ImVec2(200, 300), true, windowFlags)) {
 					ImGui::Text("_");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-					std::string trisstr = "";
+					std::string triangleInfo = {};
 					if (ImGui::IsMousePosValid()) {
-						glm::vec2 pos = Input::GetMousePosition();
+						const auto pos = Input::GetMousePosition();
 						ImGui::Text("Mouse Pos: (%.1f,%.1f)", pos.x, pos.y);
 					}
 					else {
@@ -992,6 +987,113 @@ void EditorLayer::SceneCameraWindow()
 #pragma endregion
 }
 
+void EditorLayer::MainCameraWindow()
+{
+	const auto renderLayer = Application::GetLayer<RenderLayer>();
+	if (!renderLayer)
+		return;
+
+	const auto scene = GetScene();
+#pragma region Window
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	if (ImGui::Begin("Camera")) {
+		static int corner = 1;
+		// Using a Child allow to fill all the space of the window.
+		// It also allows customization
+		if (ImGui::BeginChild("MainCameraRenderer", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar)) {
+			if (ImGui::BeginMenuBar()) {
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 5, 5 });
+				if (ImGui::BeginMenu("Settings")) {
+#pragma region Menu
+					ImGui::Checkbox("Display info", &m_showCameraInfo);
+#pragma endregion
+					ImGui::EndMenu();
+				}
+				ImGui::PopStyleVar();
+				ImGui::EndMenuBar();
+			}
+			ImVec2 viewPortSize = ImGui::GetWindowSize();
+			renderLayer->m_mainCameraResolutionX = viewPortSize.x * renderLayer->m_mainCameraResolutionMultiplier;
+			renderLayer->m_mainCameraResolutionY = (viewPortSize.y - 20) * renderLayer->m_mainCameraResolutionMultiplier;
+			//  Get the size of the child (i.e. the whole draw size of the windows).
+			ImVec2 overlayPos = ImGui::GetWindowPos();
+			// Because I use the texture from OpenGL, I need to invert the V from the UV.
+			const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+			if (mainCamera && mainCamera->m_rendered) {
+				ImGui::Image(mainCamera->GetRenderTexture()->GetColorImTextureId(), ImVec2(viewPortSize.x, viewPortSize.y - 20), ImVec2(0, 1),
+					ImVec2(1, 0));
+				CameraWindowDragAndDrop();
+			}
+			else {
+				ImGui::Text("No active main camera!");
+			}
+
+			ImVec2 window_pos = ImVec2(
+				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
+				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
+			if (m_showCameraInfo) {
+				ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+				ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+				ImGui::SetNextWindowBgAlpha(0.35f);
+				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
+					ImGuiWindowFlags_AlwaysAutoResize |
+					ImGuiWindowFlags_NoSavedSettings |
+					ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+				if (ImGui::BeginChild("Render Info", ImVec2(200, 150), true, window_flags)) {
+					ImGui::Text("_");
+					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+					ImGui::PushItemWidth(100);
+					ImGui::Checkbox("Auto resize", &renderLayer->m_allowAutoResize);
+					if (renderLayer->m_allowAutoResize)
+					{
+						ImGui::DragFloat("Resolution multiplier", &renderLayer->m_mainCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
+					}
+					ImGui::PopItemWidth();
+					std::string drawCallInfo = {};
+					if (renderLayer->m_triangles < 999)
+						drawCallInfo += std::to_string(renderLayer->m_triangles);
+					else if (renderLayer->m_triangles < 999999)
+						drawCallInfo += std::to_string((int)(renderLayer->m_triangles / 1000)) + "K";
+					else
+						drawCallInfo += std::to_string((int)(renderLayer->m_triangles / 1000000)) + "M";
+					drawCallInfo += " tris";
+					ImGui::Text(drawCallInfo.c_str());
+					ImGui::Text("%d drawcall", renderLayer->m_drawCall);
+					ImGui::Separator();
+					if (ImGui::IsMousePosValid()) {
+						const auto pos = Input::GetMousePosition();
+						ImGui::Text("Mouse Pos: (%.1f,%.1f)", pos.x, pos.y);
+					}
+					else {
+						ImGui::Text("Mouse Pos: <invalid>");
+					}
+				}
+				ImGui::EndChild();
+			}
+		}
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+			m_mainCameraWindowFocused = true;
+		}
+		else {
+			m_mainCameraWindowFocused = false;
+		}
+
+		ImGui::EndChild();
+	}
+	else {
+		m_mainCameraWindowFocused = false;
+	}
+	if (const auto mainCamera = scene->m_mainCamera.Get<Camera>()) {
+		mainCamera->SetRequireRendering(
+			!ImGui::GetCurrentWindowRead()->Hidden && !ImGui::GetCurrentWindowRead()->Collapsed);
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar();
+#pragma endregion
+}
+
 void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 {
 	//If main camera is focused, we pass the event to the scene.
@@ -1025,20 +1127,39 @@ void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 
 void EditorLayer::RenderToSceneCamera()
 {
-	auto renderLayer = Application::GetLayer<RenderLayer>();
+	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (!renderLayer)
 		return;
-	m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
+	const auto resolution = m_sceneCamera->GetSize();
+	if (m_sceneCameraResolutionX != 0 && m_sceneCameraResolutionY != 0 &&
+		(resolution.x != m_sceneCameraResolutionX || resolution.y != m_sceneCameraResolutionY)) {
+		m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
+		/*
+		m_sceneCameraEntityRecorderTexture->ReSize(
+			0, GL_R32F, GL_RED, GL_FLOAT, 0, m_sceneCameraResolutionX, m_sceneCameraResolutionY);
+		m_sceneCameraEntityRecorderRenderBuffer->AllocateStorage(
+			GL_DEPTH24_STENCIL8, m_sceneCameraResolutionX, m_sceneCameraResolutionY);
+		m_sceneCameraEntityRecorder->SetResolution(m_sceneCameraResolutionX, m_sceneCameraResolutionY);
+		*/
+	}
+	
 
 	if(m_sceneCamera->m_requireRendering)
 	{
-		
+		GlobalTransform sceneCameraGT;
+		sceneCameraGT.SetValue(m_sceneCameraPosition, m_sceneCameraRotation, glm::vec3(1.0f));
+		renderLayer->RenderToCamera(m_sceneCamera, sceneCameraGT);
 	}
 }
 
-ImTextureID EditorLayer::GetTextureId(const VkImageView imageView) const
+std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 {
-	return ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	return m_sceneCamera;
+}
+
+ImTextureID EditorLayer::GetTextureId(const VkImageView imageView, VkImageLayout imageLayout) const
+{
+	return ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, imageLayout);
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)

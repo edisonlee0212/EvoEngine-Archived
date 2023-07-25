@@ -18,7 +18,7 @@ class SkinnedMesh : public IAsset
     friend class Particles;
     friend class Graphics;
     friend class RenderLayer;
-    friend class Editor;
+    
     size_t m_version = 0;
     std::vector<SkinnedVertex> m_skinnedVertices;
     std::vector<glm::uvec3> m_triangles;

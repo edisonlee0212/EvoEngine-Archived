@@ -142,7 +142,7 @@ void Resources::LoadShaders()
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 
-		auto gBufferLightingPass = CreateResource<ShaderProgram>("GBUFFER_LIGHTING_PROGRAM");
+		auto gBufferLightingPass = CreateResource<ShaderProgram>("STANDARD_DEFERRED_LIGHTING_PROGRAM");
 		gBufferLightingPass->m_vertexShader = texPassVert;
 		gBufferLightingPass->m_fragmentShader = standardDeferredLightingFrag;
 
@@ -153,15 +153,15 @@ void Resources::LoadShaders()
 
 		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
-		auto gBufferPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_PREPASS_PROGRAM");
+		auto gBufferPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_PREPASS_PROGRAM");
 		gBufferPrepassProgram->m_vertexShader = GetResource("STANDARD_VERT");
 		gBufferPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 		/*
-		auto gBufferSkinnedPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_SKINNED_PREPASS_PROGRAM");
+		auto gBufferSkinnedPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_SKINNED_PREPASS_PROGRAM");
 		gBufferSkinnedPrepassProgram->m_vertexShader = GetResource("STANDARD_SKINNED_VERT");
 		gBufferSkinnedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 
-		auto gBufferInstancedPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_INSTANCED_PREPASS_PROGRAM");
+		auto gBufferInstancedPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_INSTANCED_PREPASS_PROGRAM");
 		gBufferInstancedPrepassProgram->m_vertexShader = GetResource("STANDARD_INSTANCED_VERT");
 		gBufferInstancedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 
@@ -186,7 +186,7 @@ void Resources::LoadShaders()
 		auto standardGeometry = CreateResource<Shader>("StandardStrands.geom");
 		standardGeometry->Set(ShaderType::Geometry, geomShaderCode);
 
-		auto gBufferStrandsPrepassProgram = CreateResource<ShaderProgram>("GBUFFER_STRANDS_PREPASS_PROGRAM");
+		auto gBufferStrandsPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_STRANDS_PREPASS_PROGRAM");
 		gBufferStrandsPrepassProgram->m_vertexShader = GetResource("STANDARD_STRANDS_VERT");
 		gBufferStrandsPrepassProgram->m_tessellationControlShader = standardTessCont;
 		gBufferStrandsPrepassProgram->m_tessellationEvaluationShader = standardTessEval;

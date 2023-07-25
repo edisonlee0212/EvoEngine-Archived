@@ -238,7 +238,7 @@ RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
 
 	ApplyVector(m_attachments, renderPassCreateInfo.attachmentCount, renderPassCreateInfo.pAttachments);
 	m_subpasses.resize(renderPassCreateInfo.subpassCount);
-	for(int i = 0; i < renderPassCreateInfo.subpassCount; i++)
+	for (int i = 0; i < renderPassCreateInfo.subpassCount; i++)
 	{
 		auto& subpass = m_subpasses[i];
 		const auto& subpassInfo = renderPassCreateInfo.pSubpasses[i];
@@ -246,8 +246,8 @@ RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
 		subpass.m_pipelineBindPoint = subpassInfo.pipelineBindPoint;
 		ApplyVector(subpass.m_inputAttachments, subpassInfo.inputAttachmentCount, subpassInfo.pInputAttachments);
 		ApplyVector(subpass.m_colorAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pColorAttachments);
-		if(subpassInfo.pResolveAttachments != VK_NULL_HANDLE) ApplyVector(subpass.m_resolveAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pResolveAttachments);
-		if(subpassInfo.pDepthStencilAttachment != VK_NULL_HANDLE)
+		if (subpassInfo.pResolveAttachments != VK_NULL_HANDLE) ApplyVector(subpass.m_resolveAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pResolveAttachments);
+		if (subpassInfo.pDepthStencilAttachment != VK_NULL_HANDLE)
 			subpass.m_depthStencilAttachment = *subpassInfo.pDepthStencilAttachment;
 		ApplyVector(subpass.m_preserveAttachment, subpassInfo.preserveAttachmentCount, subpassInfo.pPreserveAttachments);
 	}
@@ -300,7 +300,7 @@ void PipelineShaderStage::Apply(const VkPipelineShaderStageCreateInfo& vkPipelin
 	m_stage = vkPipelineShaderStageCreateInfo.stage;
 	m_module = vkPipelineShaderStageCreateInfo.module;
 	m_name = vkPipelineShaderStageCreateInfo.pName;
-	if(vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
+	if (vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
 	{
 		m_specializationInfo = *vkPipelineShaderStageCreateInfo.pSpecializationInfo;
 	}
@@ -404,7 +404,7 @@ GraphicsPipeline::GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsP
 
 	m_flags = graphicsPipelineCreateInfo.flags;
 	m_stages.resize(graphicsPipelineCreateInfo.stageCount);
-	for(int i = 0; i < graphicsPipelineCreateInfo.stageCount; i++)
+	for (int i = 0; i < graphicsPipelineCreateInfo.stageCount; i++)
 	{
 		m_stages[i].Apply(graphicsPipelineCreateInfo.pStages[i]);
 	}
@@ -535,7 +535,7 @@ Image::Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreate
 bool Image::HasStencilComponent() const
 {
 	return m_format == VK_FORMAT_D32_SFLOAT_S8_UINT
-	|| m_format == VK_FORMAT_D24_UNORM_S8_UINT;
+		|| m_format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 void Image::Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
@@ -561,6 +561,11 @@ VkImage Image::GetVkImage() const
 	return m_vkImage;
 }
 
+VkFormat Image::GetFormat() const
+{
+	return m_format;
+}
+
 VmaAllocation Image::GetVmaAllocation() const
 {
 	return m_vmaAllocation;
@@ -584,6 +589,43 @@ Image::~Image()
 		m_vkImage = VK_NULL_HANDLE;
 		m_vmaAllocation = VK_NULL_HANDLE;
 		m_vmaAllocationInfo = {};
+	}
+}
+
+void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkPipelineStageFlags& stageFlags, VkAccessFlags& mask)
+{
+	switch (imageLayout)
+	{
+	case VK_IMAGE_LAYOUT_UNDEFINED:
+	{
+		mask = 0;
+		stageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+	{
+		mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+	{
+		mask = VK_ACCESS_SHADER_READ_BIT;
+		stageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	{
+		mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+	{
+		mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}break;
+	default:
+	{
+		mask = 0;
+		stageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}break;
 	}
 }
 
@@ -615,30 +657,8 @@ void Image::TransitionImageLayout(VkImageLayout newLayout)
 			VkPipelineStageFlags sourceStage;
 			VkPipelineStageFlags destinationStage;
 
-			if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			}
-			else if (m_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-				sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			}
-			else if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-				destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-			}
-			else {
-				throw std::invalid_argument("unsupported layout transition!");
-			}
+			SelectStageFlagsAccessMask(m_layout, sourceStage, barrier.srcAccessMask);
+			SelectStageFlagsAccessMask(newLayout, destinationStage, barrier.dstAccessMask);
 
 			vkCmdPipelineBarrier(
 				commandBuffer,

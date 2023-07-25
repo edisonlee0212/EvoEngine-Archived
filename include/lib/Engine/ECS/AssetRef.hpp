@@ -6,7 +6,7 @@ namespace EvoEngine
 class AssetRef final
 {
     friend class Prefab;
-    friend class Editor;
+    
     friend class EditorLayer;
     std::shared_ptr<IAsset> m_value = {};
     Handle m_assetHandle = Handle(0);

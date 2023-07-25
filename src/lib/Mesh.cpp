@@ -217,11 +217,6 @@ void Mesh::RecalculateTangent()
 	*/
 }
 
-size_t& Mesh::GetVersion()
-{
-	return m_version;
-}
-
 std::vector<Vertex>& Mesh::UnsafeGetVertices()
 {
 	return m_vertices;
@@ -232,6 +227,10 @@ std::vector<glm::uvec3>& Mesh::UnsafeGetTriangles()
 	return m_triangles;
 }
 
+Bound Mesh::GetBound() const
+{
+	return m_bound;
+}
 
 
 void Mesh::Serialize(YAML::Emitter& out)

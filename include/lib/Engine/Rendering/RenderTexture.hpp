@@ -8,7 +8,8 @@ namespace EvoEngine{
 		std::unique_ptr<ImageView> m_colorImageView = {};
 
 		std::unique_ptr<Image> m_depthStencilImage = {};
-		std::unique_ptr<ImageView> m_depthStencilImageView = {};
+		std::unique_ptr<ImageView> m_depthImageView = {};
+		std::unique_ptr<ImageView> m_stencilImageView = {};
 
 		VkExtent3D m_extent;
 		VkImageViewType m_imageViewType;
@@ -17,12 +18,11 @@ namespace EvoEngine{
 
 		std::unique_ptr<Sampler> m_colorSampler = {};
 		ImTextureID m_colorImTextureId = nullptr;
-		ImTextureID m_depthStencilImTextureId = nullptr;
 
-		void Initialize(VkExtent3D extent, VkImageViewType imageViewType, VkFormat colorFormat, VkFormat depthStencilFormat);
+		void Initialize(VkExtent3D extent, VkImageViewType imageViewType);
 
 	public:
-		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D, VkFormat colorFormat = VK_FORMAT_R32G32B32A32_SFLOAT, VkFormat depthStencilFormat = VK_FORMAT_D24_UNORM_S8_UINT);
+		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 		void Resize(VkExtent3D extent);
 
 		[[nodiscard]] VkExtent3D GetExtent() const;
@@ -34,10 +34,9 @@ namespace EvoEngine{
 		[[nodiscard]] const std::unique_ptr<Image>& GetColorImage();
 		[[nodiscard]] const std::unique_ptr<Image>& GetDepthStencilImage();
 		[[nodiscard]] const std::unique_ptr<ImageView>& GetColorImageView();
-		[[nodiscard]] const std::unique_ptr<ImageView>& GetDepthStencilImageView();
+		[[nodiscard]] const std::unique_ptr<ImageView>& GetDepthImageView();
 
 		[[nodiscard]] ImTextureID GetColorImTextureId() const;
-		[[nodiscard]] ImTextureID GetDepthStencilImTextureId() const;
 
 		[[nodiscard]] static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
 	};

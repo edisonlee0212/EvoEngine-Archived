@@ -9,7 +9,7 @@ namespace EvoEngine
 	class IPrivateComponent : public ISerializable
 	{
 		friend class Entities;
-		friend class Editor;
+		
 		friend class EditorLayer;
 		friend struct PrivateComponentElement;
 		friend struct PrivateComponentStorage;
