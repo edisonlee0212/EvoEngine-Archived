@@ -108,7 +108,7 @@ void Graphics::UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock)
 	memcpy(graphics.m_objectInfoBlockMemory[graphics.m_currentFrameIndex], &objectInfoBlock, sizeof(ObjectInfoBlock));
 }
 
-const std::unique_ptr<RenderPass>& Graphics::GetSwapchainRenderPass()
+const std::shared_ptr<RenderPass>& Graphics::GetSwapchainRenderPass()
 {
 	const auto& graphics = GetInstance();
 	return graphics.m_swapChainRenderPass;
@@ -120,7 +120,7 @@ const std::unique_ptr<Framebuffer>& Graphics::GetSwapchainFramebuffer()
 	return graphics.m_swapChainFramebuffers[graphics.m_nextImageIndex];
 }
 
-GlobalPipelineState& Graphics::GlobalState()
+GraphicsGlobalStates& Graphics::GlobalState()
 {
 	auto& graphics = GetInstance();
 	return graphics.m_globalPipelineState;
@@ -360,182 +360,6 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 }
 
 
-void GlobalPipelineState::ResetAllStates(VkCommandBuffer commandBuffer)
-{
-	m_viewPort = {};
-	m_viewPort.width = 1;
-	m_viewPort.height = 1;
-	m_scissor = {};
-	m_patchControlPoints = 1;
-	m_depthClamp = false;
-	m_rasterizerDiscard = false;
-	m_polygonMode = VK_POLYGON_MODE_FILL;
-	m_cullMode = VK_CULL_MODE_BACK_BIT;
-	m_frontFace = VK_FRONT_FACE_CLOCKWISE;
-	m_depthBias = false;
-	m_depthBiasConstantClampSlope = glm::vec3(0.0f);
-	m_lineWidth = 1.0f;
-	m_depthTest = true;
-	m_depthWrite = true;
-	m_depthCompare = VK_COMPARE_OP_LESS;
-	m_depthBoundTest = false;
-	m_minMaxDepthBound = glm::vec2(0.0f, 1.0f);
-	m_stencilTest = false;
-	m_stencilFaceMask = VK_STENCIL_FACE_FRONT_BIT;
-	m_stencilFailOp = VK_STENCIL_OP_ZERO;
-	m_stencilPassOp = VK_STENCIL_OP_ZERO;
-	m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
-	m_stencilCompareOp = VK_COMPARE_OP_LESS;
-	m_geometryTypeApplied = GeometryType::Mesh;
-	ApplyAllStates(commandBuffer, true);
-}
-
-void GlobalPipelineState::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
-{
-	m_viewPortApplied = m_viewPort;
-	m_viewPort.width = glm::max(1.0f, m_viewPort.width);
-	m_viewPort.height = glm::max(1.0f, m_viewPort.height);
-	m_scissorApplied = m_scissor;
-	vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
-	vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
-	if (forceSet || m_patchControlPointsApplied != m_patchControlPoints) {
-		m_patchControlPointsApplied = m_patchControlPoints;
-		vkCmdSetPatchControlPointsEXT(commandBuffer, m_patchControlPointsApplied);
-	}
-	if (forceSet || m_depthClampApplied != m_depthClamp) {
-		m_depthClampApplied = m_depthClamp;
-		vkCmdSetDepthClampEnableEXT(commandBuffer, m_depthClampApplied);
-	}
-	if (forceSet || m_rasterizerDiscardApplied != m_rasterizerDiscard) {
-		m_rasterizerDiscardApplied = m_rasterizerDiscard;
-		vkCmdSetRasterizerDiscardEnable(commandBuffer, m_rasterizerDiscardApplied);
-	}
-	if (forceSet || m_polygonModeApplied != m_polygonMode) {
-		m_polygonModeApplied = m_polygonMode;
-		vkCmdSetPolygonModeEXT(commandBuffer, m_polygonModeApplied);
-	}
-	if (forceSet || m_cullModeApplied != m_cullMode) {
-		m_cullModeApplied = m_cullMode;
-		vkCmdSetCullModeEXT(commandBuffer, m_cullModeApplied);
-	}
-	if (forceSet || m_frontFaceApplied != m_frontFace) {
-		m_frontFaceApplied = m_frontFace;
-		vkCmdSetFrontFace(commandBuffer, m_frontFaceApplied);
-	}
-	if (forceSet || m_depthBiasApplied != m_depthBias) {
-		m_depthBiasApplied = m_depthBias;
-		vkCmdSetDepthBiasEnable(commandBuffer, m_depthBiasApplied);
-	}
-	if (forceSet || m_depthBiasConstantClampSlopeApplied != m_depthBiasConstantClampSlope) {
-		m_depthBiasConstantClampSlopeApplied = m_depthBiasConstantClampSlope;
-		vkCmdSetDepthBias(commandBuffer, m_depthBiasConstantClampSlopeApplied.x, m_depthBiasConstantClampSlopeApplied.y, m_depthBiasConstantClampSlopeApplied.z);
-	}
-	if (forceSet || m_lineWidthApplied != m_lineWidth) {
-		m_lineWidthApplied = m_lineWidth;
-		vkCmdSetLineWidth(commandBuffer, m_lineWidthApplied);
-	}
-	if (forceSet || m_depthTestApplied != m_depthTest) {
-		m_depthTestApplied = m_depthTest;
-		vkCmdSetDepthTestEnableEXT(commandBuffer, m_depthTestApplied);
-	}
-	if (forceSet || m_depthWriteApplied != m_depthWrite) {
-		m_depthWriteApplied = m_depthWrite;
-		vkCmdSetDepthWriteEnableEXT(commandBuffer, m_depthWriteApplied);
-	}
-	if (forceSet || m_depthCompareApplied != m_depthCompare) {
-		m_depthCompareApplied = m_depthCompare;
-		vkCmdSetDepthCompareOpEXT(commandBuffer, m_depthCompareApplied);
-	}
-	if (forceSet || m_depthBoundTestApplied != m_depthBoundTest) {
-		m_depthBoundTestApplied = m_depthBoundTest;
-		vkCmdSetDepthBoundsTestEnableEXT(commandBuffer, m_depthBoundTestApplied);
-	}
-	if (forceSet || m_minMaxDepthBoundApplied != m_minMaxDepthBound) {
-		m_minMaxDepthBoundApplied = m_minMaxDepthBound;
-		vkCmdSetDepthBounds(commandBuffer, m_minMaxDepthBoundApplied.x, m_minMaxDepthBoundApplied.y);
-	}
-	if (forceSet || m_stencilTestApplied != m_stencilTest) {
-		m_stencilTestApplied = m_stencilTest;
-		vkCmdSetStencilTestEnableEXT(commandBuffer, m_stencilTestApplied);
-	}
-	if (forceSet ||
-		m_frontFaceApplied != m_frontFace
-		|| m_stencilFailOpApplied != m_stencilFailOp
-		|| m_stencilPassOpApplied != m_stencilPassOp
-		|| m_stencilDepthFailOpApplied != m_stencilDepthFailOp
-		|| m_stencilCompareOpApplied != m_stencilCompareOp) {
-		m_stencilFaceMaskApplied = m_stencilFaceMask;
-		m_stencilFailOpApplied = m_stencilFailOp;
-		m_stencilPassOpApplied = m_stencilPassOp;
-		m_stencilDepthFailOpApplied = m_stencilDepthFailOp;
-		m_stencilCompareOpApplied = m_stencilCompareOp;
-		vkCmdSetStencilOpEXT(commandBuffer, m_stencilFaceMaskApplied, m_stencilFailOpApplied, m_stencilPassOpApplied, m_stencilDepthFailOpApplied, m_stencilCompareOpApplied);
-	}
-	if (forceSet || m_geometryTypeApplied != m_geometryType)
-	{
-		m_geometryTypeApplied = m_geometryType;
-		switch (m_geometryTypeApplied)
-		{
-		case GeometryType::Mesh:
-		{
-			vkCmdSetVertexInputEXT(commandBuffer, 1, &GetVertexBindingDescription(),
-				GetVertexAttributeDescriptions().size(), GetVertexAttributeDescriptions().data());
-		}break;
-		}
-	}
-	
-}
-
-const VkVertexInputBindingDescription2EXT &GlobalPipelineState::GetVertexBindingDescription()
-{
-	static VkVertexInputBindingDescription2EXT bindingDescription{
-		VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,
-		nullptr,
-		0,
-		sizeof(Vertex),
-		VK_VERTEX_INPUT_RATE_VERTEX,
-		1};
-	return bindingDescription;
-}
-
-const std::vector<VkVertexInputAttributeDescription2EXT>& GlobalPipelineState::GetVertexAttributeDescriptions()
-{
-	static std::vector<VkVertexInputAttributeDescription2EXT> attributeDescriptions{};
-	if(attributeDescriptions.empty())
-	{
-		attributeDescriptions.resize(5);
-		attributeDescriptions[0].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, m_position);
-
-		attributeDescriptions[1].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, m_normal);
-
-		attributeDescriptions[2].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, m_tangent);
-
-		attributeDescriptions[3].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, m_texCoord);
-
-		attributeDescriptions[4].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-		attributeDescriptions[4].binding = 0;
-		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[4].offset = offsetof(Vertex, m_color);
-	}
-	return attributeDescriptions;
-}
 
 QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
 
@@ -988,7 +812,7 @@ void Graphics::CheckVk(const VkResult& result)
 	throw std::runtime_error("Vulkan error: " + failure);
 }
 
-void Graphics::AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action)
+void Graphics::AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
 {
 	auto& graphics = GetInstance();
 	auto& commands = graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
@@ -1188,24 +1012,15 @@ void Graphics::CreateRenderPass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	m_swapChainRenderPass = std::make_unique<RenderPass>(renderPassInfo);
+	m_swapChainRenderPass = std::make_shared<RenderPass>(renderPassInfo);
 }
 
 bool Graphics::UpdateFrameBuffers()
 {
-	const auto& swapChainImageViews = m_swapchain->GetVkImageViews();
+	const auto& swapChainImageViews = m_swapchain->GetImageViews();
 	m_swapChainFramebuffers.clear();
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		const VkImageView attachments[] = { swapChainImageViews[i] };
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_swapChainRenderPass->GetVkRenderPass();
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = m_swapchain->GetImageExtent().width;
-		framebufferInfo.height = m_swapchain->GetImageExtent().height;
-		framebufferInfo.layers = 1;
-		m_swapChainFramebuffers.emplace_back(std::make_unique<Framebuffer>(framebufferInfo));
+		m_swapChainFramebuffers.emplace_back(std::make_unique<Framebuffer>(m_swapchain, i, m_swapChainRenderPass));
 	}
 
 	return true;
@@ -1447,7 +1262,7 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	AppendCommands("GlobalReset", [&](const VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
+	AppendCommands("GlobalReset", [&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			globalPipelineState.ResetAllStates(commandBuffer);
 		}

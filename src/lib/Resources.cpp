@@ -40,13 +40,7 @@ void Resources::LoadShaders()
 		auto standardFrag = CreateResource<Shader>("STANDARD_FORWARD_FRAG");
 		standardFrag->Set(ShaderType::Fragment, fragShaderCode);
 
-		auto standardProgram = CreateResource<ShaderProgram>("STANDARD_PROGRAM");
-		standardProgram->m_vertexShader = standardVert;
-		standardProgram->m_fragmentShader = standardFrag;
-		standardProgram->InitializeStandardBindings();
-		standardProgram->PrepareLayouts();
-		standardProgram->LinkShaders();
-		standardProgram->UpdateStandardBindings();
+		
 
 		/*
 		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
@@ -54,7 +48,7 @@ void Resources::LoadShaders()
 				std::filesystem::path("./DefaultResources") / "Shaders/Vertex/StandardSkinned.vert");
 		auto standardSkinnedVert = CreateResource<Shader>("STANDARD_SKINNED_VERT");
 		standardSkinnedVert->Set(ShaderType::Vertex, vertShaderCode);
-		auto standardSkinnedProgram = CreateResource<ShaderProgram>("STANDARD_SKINNED_PROGRAM");
+		auto standardSkinnedProgram = CreateResource<GraphicsPipeline>("STANDARD_SKINNED_PROGRAM");
 		standardSkinnedProgram->m_vertexShader = standardSkinnedVert;
 		standardSkinnedProgram->m_fragmentShader =  standardFrag;
 
@@ -65,7 +59,7 @@ void Resources::LoadShaders()
 
 		auto standardInstancedVert = CreateResource<Shader>("STANDARD_INSTANCED_VERT");
 		standardInstancedVert->Set(ShaderType::Vertex, vertShaderCode);
-		auto standardInstancedProgram = CreateResource<ShaderProgram>("STANDARD_INSTANCED");
+		auto standardInstancedProgram = CreateResource<GraphicsPipeline>("STANDARD_INSTANCED");
 		standardInstancedProgram->m_vertexShader = standardInstancedVert;
 		standardInstancedProgram->m_fragmentShader = standardFrag;
 
@@ -81,7 +75,7 @@ void Resources::LoadShaders()
 
 		auto standardColoredFrag = CreateResource<Shader>("STANDARD_FORWARD_COLORED_FRAG");
 		standardColoredFrag->Set(ShaderType::Fragment, fragColoredShaderCode);
-		auto standardInstancedColoredProgram = CreateResource<ShaderProgram>("STANDARD_INSTANCED_COLORED");
+		auto standardInstancedColoredProgram = CreateResource<GraphicsPipeline>("STANDARD_INSTANCED_COLORED");
 		standardInstancedColoredProgram->m_vertexShader = standardInstancedColoredVert;
 		standardInstancedColoredProgram->m_fragmentShader = standardColoredFrag;
 
@@ -91,7 +85,7 @@ void Resources::LoadShaders()
 
 		auto standardInstancedSkinnedVert = CreateResource<Shader>("STANDARD_INSTANCED_SKINNED_VERT");
 		standardInstancedSkinnedVert->Set(ShaderType::Vertex, vertShaderCode);
-		auto standardInstancedSkinned = CreateResource<ShaderProgram>("STANDARD_INSTANCED_SKINNED");
+		auto standardInstancedSkinned = CreateResource<GraphicsPipeline>("STANDARD_INSTANCED_SKINNED");
 		standardInstancedSkinned->m_vertexShader = standardInstancedSkinnedVert;
 		standardInstancedSkinned->m_fragmentShader = standardFrag;
 
@@ -123,7 +117,7 @@ void Resources::LoadShaders()
 		auto standardStrandsGeometry = CreateResource<Shader>("STANDARD_STRANDS_GEOM");
 		standardStrandsGeometry->Set(ShaderType::Geometry, geomShaderCode);
 
-		auto standardStrandsProgram = CreateResource<ShaderProgram>("STANDARD_STRANDS_PROGRAM");
+		auto standardStrandsProgram = CreateResource<GraphicsPipeline>("STANDARD_STRANDS_PROGRAM");
 		standardStrandsProgram->m_vertexShader = standardStrandsVert;
 		standardStrandsProgram->m_tessellationControlShader = standardStrandsTessCont;
 		standardStrandsProgram->m_tessellationEvaluationShader = standardStrandsTessEval;
@@ -146,11 +140,7 @@ void Resources::LoadShaders()
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
-
-		auto gBufferLightingPass = CreateResource<ShaderProgram>("STANDARD_DEFERRED_LIGHTING_PROGRAM");
-		gBufferLightingPass->m_vertexShader = texPassVert;
-		gBufferLightingPass->m_fragmentShader = standardDeferredLightingFrag;
-
+		
 		
 		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
@@ -158,19 +148,12 @@ void Resources::LoadShaders()
 
 		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
-		auto gBufferPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_PREPASS_PROGRAM");
-		gBufferPrepassProgram->m_vertexShader = GetResource("STANDARD_VERT");
-		gBufferPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
-		gBufferPrepassProgram->InitializeStandardBindings();
-		gBufferPrepassProgram->PrepareLayouts();
-		gBufferPrepassProgram->LinkShaders();
-		gBufferPrepassProgram->UpdateStandardBindings();
 		/*
-		auto gBufferSkinnedPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_SKINNED_PREPASS_PROGRAM");
+		auto gBufferSkinnedPrepassProgram = CreateResource<GraphicsPipeline>("STANDARD_DEFERRED_SKINNED_PREPASS_PROGRAM");
 		gBufferSkinnedPrepassProgram->m_vertexShader = GetResource("STANDARD_SKINNED_VERT");
 		gBufferSkinnedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 
-		auto gBufferInstancedPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_INSTANCED_PREPASS_PROGRAM");
+		auto gBufferInstancedPrepassProgram = CreateResource<GraphicsPipeline>("STANDARD_DEFERRED_INSTANCED_PREPASS_PROGRAM");
 		gBufferInstancedPrepassProgram->m_vertexShader = GetResource("STANDARD_INSTANCED_VERT");
 		gBufferInstancedPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
 
@@ -195,7 +178,7 @@ void Resources::LoadShaders()
 		auto standardGeometry = CreateResource<Shader>("StandardStrands.geom");
 		standardGeometry->Set(ShaderType::Geometry, geomShaderCode);
 
-		auto gBufferStrandsPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_STRANDS_PREPASS_PROGRAM");
+		auto gBufferStrandsPrepassProgram = CreateResource<GraphicsPipeline>("STANDARD_DEFERRED_STRANDS_PREPASS_PROGRAM");
 		gBufferStrandsPrepassProgram->m_vertexShader = GetResource("STANDARD_STRANDS_VERT");
 		gBufferStrandsPrepassProgram->m_tessellationControlShader = standardTessCont;
 		gBufferStrandsPrepassProgram->m_tessellationEvaluationShader = standardTessEval;
@@ -211,7 +194,7 @@ void Resources::LoadShaders()
 #pragma region Post - Processing
 
 	{
-		auto bloomSeparatorProgram = CreateResource<ShaderProgram>("BLOOM_SEPARATOR_PROGRAM");
+		auto bloomSeparatorProgram = CreateResource<GraphicsPipeline>("BLOOM_SEPARATOR_PROGRAM");
 		auto fragShaderCode = std::string("#version 450 core\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomSeparator.frag");
@@ -220,7 +203,7 @@ void Resources::LoadShaders()
 		bloomSeparatorProgram->m_vertexShader = texPassVert;
 		bloomSeparatorProgram->m_fragmentShader = bloomSeparatorFrag;
 
-		auto bloomFilterProgram = CreateResource<ShaderProgram>("BLOOM_FILTER_PROGRAM");
+		auto bloomFilterProgram = CreateResource<GraphicsPipeline>("BLOOM_FILTER_PROGRAM");
 		fragShaderCode = std::string("#version 450 core\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
@@ -229,7 +212,7 @@ void Resources::LoadShaders()
 		bloomFilterProgram->m_vertexShader = texPassVert;
 		bloomFilterProgram->m_fragmentShader = bloomFilterFrag;
 
-		auto bloomCombineProgram = CreateResource<ShaderProgram>("BLOOM_COMBINE_PROGRAM");
+		auto bloomCombineProgram = CreateResource<GraphicsPipeline>("BLOOM_COMBINE_PROGRAM");
 		fragShaderCode = std::string("#version 450 core\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomCombine.frag");
@@ -242,7 +225,7 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOGeometry.frag");
 
-		auto ssaoGeomProgram = CreateResource<ShaderProgram>("SSAO_GEOMETRY_PROGRAM");
+		auto ssaoGeomProgram = CreateResource<GraphicsPipeline>("SSAO_GEOMETRY_PROGRAM");
 		auto ssaoGeomFrag = CreateResource<Shader>("SSAO_GEOMETRY_FRAG");
 		ssaoGeomFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssaoGeomProgram->m_vertexShader = texPassVert;
@@ -252,7 +235,7 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
 
-		auto ssaoBlurProgram = CreateResource<ShaderProgram>("SSAO_BLUR_PROGRAM");
+		auto ssaoBlurProgram = CreateResource<GraphicsPipeline>("SSAO_BLUR_PROGRAM");
 		auto ssaoBlurFrag = CreateResource<Shader>("SSAO_BLUR_FRAG");
 		ssaoBlurFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssaoBlurProgram->m_vertexShader = texPassVert;
@@ -262,7 +245,7 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOCombine.frag");
 
-		auto ssaoCombineProgram = CreateResource<ShaderProgram>("SSAO_COMBINE_PROGRAM");
+		auto ssaoCombineProgram = CreateResource<GraphicsPipeline>("SSAO_COMBINE_PROGRAM");
 		auto ssaoCombineFrag = CreateResource<Shader>("SSAO_COMBINE_FRAG");
 		ssaoCombineFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssaoCombineProgram->m_vertexShader = texPassVert;
@@ -273,7 +256,7 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRReflect.frag");
 
-		auto ssrReflectProgram = CreateResource<ShaderProgram>("SSR_REFLECT_PROGRAM");
+		auto ssrReflectProgram = CreateResource<GraphicsPipeline>("SSR_REFLECT_PROGRAM");
 		auto ssrReflectFrag = CreateResource<Shader>("SSR_REFLECT_FRAG");
 		ssrReflectFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssrReflectProgram->m_vertexShader = texPassVert;
@@ -283,7 +266,7 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
 
-		auto ssrBlurProgram = CreateResource<ShaderProgram>("SSR_BLUR_PROGRAM");
+		auto ssrBlurProgram = CreateResource<GraphicsPipeline>("SSR_BLUR_PROGRAM");
 		auto ssrBlurFrag = CreateResource<Shader>("SSR_BLUR_FRAG");
 		ssrBlurFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssrBlurProgram->m_vertexShader = texPassVert;
@@ -292,7 +275,7 @@ void Resources::LoadShaders()
 		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRCombine.frag");
-		auto ssrCombineProgram = CreateResource<ShaderProgram>("SSR_COMBINE_PROGRAM");
+		auto ssrCombineProgram = CreateResource<GraphicsPipeline>("SSR_COMBINE_PROGRAM");
 		auto ssrCombineFrag = CreateResource<Shader>("SSR_COMBINE_FRAG");
 		ssrCombineFrag->Set(ShaderType::Fragment, fragShaderCode);
 		ssrCombineProgram->m_vertexShader = texPassVert;

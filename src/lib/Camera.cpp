@@ -158,26 +158,16 @@ void Camera::UpdateFrameBuffer()
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (renderLayer) {
 		const std::vector attachments = {
-			m_gBufferDepthView->GetVkImageView(),
-			m_gBufferNormalView->GetVkImageView(),
-			m_gBufferAlbedoView->GetVkImageView(),
-			m_gBufferMaterialView->GetVkImageView(),
+			m_gBufferDepthView,
+			m_gBufferNormalView,
+			m_gBufferAlbedoView,
+			m_gBufferMaterialView,
 
-			m_renderTexture->GetDepthImageView()->GetVkImageView(),
-			m_renderTexture->GetColorImageView()->GetVkImageView()
+			m_renderTexture->GetDepthImageView(),
+			m_renderTexture->GetColorImageView()
 		};
-
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderLayer->GetRenderPass("DEFERRED_RENDERING")->GetVkRenderPass();
-		framebufferInfo.attachmentCount = attachments.size();
-		framebufferInfo.pAttachments = attachments.data();
-		framebufferInfo.width = m_size.x;
-		framebufferInfo.height = m_size.y;
-		framebufferInfo.layers = 1;
-
 		m_deferredRenderingFramebuffer.reset();
-		m_deferredRenderingFramebuffer = std::make_unique<Framebuffer>(framebufferInfo);
+		m_deferredRenderingFramebuffer = std::make_shared<Framebuffer>(attachments, renderLayer->GetRenderPass("DEFERRED_RENDERING"));
 	}
 }
 
@@ -212,7 +202,7 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	}
 }
 
-const std::unique_ptr<Framebuffer>& Camera::GetFramebuffer() const
+const std::shared_ptr<Framebuffer>& Camera::GetFramebuffer() const
 {
 	return m_deferredRenderingFramebuffer;
 }

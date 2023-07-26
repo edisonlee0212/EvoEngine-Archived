@@ -19,23 +19,23 @@ namespace EvoEngine
         friend class SSR;
         
         std::shared_ptr<RenderTexture> m_renderTexture;
-        std::unique_ptr<Framebuffer> m_deferredRenderingFramebuffer;
+        std::shared_ptr<Framebuffer> m_deferredRenderingFramebuffer;
         
         //Deferred shading GBuffer
-        std::unique_ptr<Image> m_gBufferDepth = {};
-        std::unique_ptr<ImageView> m_gBufferDepthView = {};
+        std::shared_ptr<Image> m_gBufferDepth = {};
+        std::shared_ptr<ImageView> m_gBufferDepthView = {};
         ImTextureID m_gBufferDepthImTextureId = {};
 
-        std::unique_ptr<Image> m_gBufferNormal = {};
-        std::unique_ptr<ImageView> m_gBufferNormalView = {};
+        std::shared_ptr<Image> m_gBufferNormal = {};
+        std::shared_ptr<ImageView> m_gBufferNormalView = {};
         ImTextureID m_gBufferNormalImTextureId = {};
 
-        std::unique_ptr<Image> m_gBufferAlbedo = {};
-        std::unique_ptr<ImageView> m_gBufferAlbedoView = {};
+        std::shared_ptr<Image> m_gBufferAlbedo = {};
+        std::shared_ptr<ImageView> m_gBufferAlbedoView = {};
         ImTextureID m_gBufferAlbedoImTextureId = {};
 
-        std::unique_ptr<Image> m_gBufferMaterial = {};
-        std::unique_ptr<ImageView> m_gBufferMaterialView = {};
+        std::shared_ptr<Image> m_gBufferMaterial = {};
+        std::shared_ptr<ImageView> m_gBufferMaterialView = {};
         ImTextureID m_gBufferMaterialImTextureId = {};
 
         size_t m_frameCount = 0;
@@ -48,7 +48,7 @@ namespace EvoEngine
         void UpdateFrameBuffer();
     public:
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
-        [[nodiscard]] const std::unique_ptr<Framebuffer>& GetFramebuffer() const;
+        [[nodiscard]] const std::shared_ptr<Framebuffer>& GetFramebuffer() const;
         static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
 
         [[nodiscard]] float GetSizeRatio() const;

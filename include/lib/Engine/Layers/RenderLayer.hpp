@@ -47,7 +47,7 @@ namespace EvoEngine
 
 	class RenderLayer : public ILayer {
 		friend class Resources;
-		friend class ShaderProgram;
+		friend class GraphicsPipeline;
 		friend class EditorLayer;
 		size_t m_triangles = 0;
 		size_t m_strandsSegments = 0;
@@ -58,7 +58,9 @@ namespace EvoEngine
 		void PreUpdate() override;
 		void LateUpdate() override;
 		void CreateRenderPasses();
-		std::unordered_map<std::string, std::unique_ptr<RenderPass>> m_renderPasses;
+		void CreateGraphicsPipelines();
+		std::unordered_map<std::string, std::shared_ptr<RenderPass>> m_renderPasses;
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
 
 		std::unordered_map<Handle, RenderTask> m_deferredRenderInstances;
 		std::unordered_map<Handle, RenderTask> m_deferredInstancedRenderInstances;
@@ -70,7 +72,7 @@ namespace EvoEngine
 
 		void CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras);
 	public:
-		[[nodiscard]] const std::unique_ptr<RenderPass>& GetRenderPass(const std::string& name);
+		[[nodiscard]] const std::shared_ptr<RenderPass>& GetRenderPass(const std::string& name);
 
 		int m_mainCameraResolutionX = 1;
 		int m_mainCameraResolutionY = 1;

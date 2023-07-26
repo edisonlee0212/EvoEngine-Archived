@@ -130,7 +130,7 @@ void Application::LateUpdateInternal()
 			ImGui::EndMainMenuBar();
 		}
 
-		Graphics::AppendCommands("ImGuiDraw", [&](const VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
+		Graphics::AppendCommands("ImGuiDraw", [&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 			{
 				const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 				VkRenderPassBeginInfo renderPassBeginInfo{};
@@ -363,7 +363,6 @@ void Application::InitializeRegistry()
 	//ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".uecubemap" });
 	//ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".uelightprobe" });
 	//ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".uereflecprobe" });
-	ClassRegistry::RegisterAsset<ShaderProgram>("ShaderProgram", { ".ueshaderprogram" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".ueshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".uemesh" });
 

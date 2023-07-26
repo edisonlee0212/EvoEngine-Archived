@@ -8,6 +8,7 @@
 #include "SkinnedMeshRenderer.hpp"
 #include "EditorLayer.hpp"
 #include "MeshRenderer.hpp"
+#include "GraphicsPipeline.hpp"
 #include "Shader.hpp"
 using namespace EvoEngine;
 
@@ -48,6 +49,9 @@ void RenderTask::Dispatch(
 void RenderLayer::OnCreate()
 {
 	CreateRenderPasses();
+
+	CreateGraphicsPipelines();
+
 	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
 		editorLayer->m_sceneCamera = Serialization::ProduceSerializable<Camera>();
@@ -157,7 +161,7 @@ void RenderLayer::CreateRenderPasses()
 		const std::vector attachments = { colorAttachment, depthAttachment };
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		renderPassInfo.pAttachments = attachments.data();
-		m_renderPasses.insert({ "SCREEN_PRESENT", std::make_unique<RenderPass>(renderPassInfo) });
+		m_renderPasses.insert({ "SCREEN_PRESENT", std::make_shared<RenderPass>(renderPassInfo) });
 	}
 
 	{
@@ -231,8 +235,30 @@ void RenderLayer::CreateRenderPasses()
 		auto attachmentDescriptions = Camera::GetAttachmentDescriptions();
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
 		renderPassInfo.pAttachments = attachmentDescriptions.data();
-		m_renderPasses.insert({ "DEFERRED_RENDERING", std::make_unique<RenderPass>(renderPassInfo) });
+		m_renderPasses.insert({ "DEFERRED_RENDERING", std::make_shared<RenderPass>(renderPassInfo) });
 	}
+}
+
+void RenderLayer::CreateGraphicsPipelines()
+{
+	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
+	standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
+	standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
+	standardDeferredPrepass->InitializeStandardBindings();
+	standardDeferredPrepass->PrepareLayouts();
+	standardDeferredPrepass->UpdateStandardBindings();
+	standardDeferredPrepass->PreparePipeline(m_renderPasses["DEFERRED_RENDERING"], 0);
+	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
+
+
+	auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
+	standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+	standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
+	standardDeferredLighting->InitializeStandardBindings();
+	standardDeferredLighting->PrepareLayouts();
+	standardDeferredLighting->UpdateStandardBindings();
+	standardDeferredLighting->PreparePipeline(m_renderPasses["DEFERRED_RENDERING"], 1);
+	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
 }
 
 void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras)
@@ -573,7 +599,7 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 	*/
 }
 
-const std::unique_ptr<RenderPass>& RenderLayer::GetRenderPass(const std::string& name)
+const std::shared_ptr<RenderPass>& RenderLayer::GetRenderPass(const std::string& name)
 {
 	return m_renderPasses.at(name);
 }
@@ -583,50 +609,27 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 	CameraInfoBlock cameraInfoBlock = {};
 	camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraModel);
 	Graphics::UploadCameraInfo(cameraInfoBlock);
-	auto deferredPrepassProgram = std::dynamic_pointer_cast<ShaderProgram>(Resources::GetResource("STANDARD_DEFERRED_PREPASS_PROGRAM"));
-	auto deferredLightingProgram = std::dynamic_pointer_cast<ShaderProgram>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_PROGRAM"));
+	auto deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
+	auto deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	auto& deferredRenderPass = m_renderPasses["DEFERRED_RENDERING"];
 	auto commandBufferName = "DeferredRendering##" + std::to_string(camera->GetHandle());
-	Graphics::AppendCommands(commandBufferName, [&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState) {
-		VkExtent2D extent2D;
-		const auto resolution = camera->GetSize();
-		extent2D.width = resolution.x;
-		extent2D.height = resolution.y;
-		VkRenderPassBeginInfo renderPassBeginInfo{};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = deferredRenderPass->GetVkRenderPass();
-		renderPassBeginInfo.framebuffer = camera->GetFramebuffer()->GetVkFrameBuffer();
-		renderPassBeginInfo.renderArea.offset = { 0, 0 };
-		renderPassBeginInfo.renderArea.extent = extent2D;
-
-		std::array<VkClearValue, 6> clearValues{};
-		
-		clearValues[0].depthStencil = { 1.0f, 0 };
-		clearValues[1].color = { {1.0f, 0.0f, 0.0f, 1.0f} };
-		clearValues[2].color = { {0.0f, 1.0f, 0.0f, 1.0f} };
-		clearValues[3].color = { {0.0f, 0.0f, 1.0f, 1.0f} };
-		clearValues[4].depthStencil = { 1.0f, 0 };
-		clearValues[5].color = { {1.0f, 1.0f, 1.0f, 1.0f} };
-
-		renderPassBeginInfo.clearValueCount = clearValues.size();
-		renderPassBeginInfo.pClearValues = clearValues.data();
-
+	Graphics::AppendCommands(commandBufferName, [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+		globalPipelineState.BeginRenderPass(commandBuffer, deferredRenderPass, camera->GetFramebuffer());
 		VkViewport viewport;
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(extent2D.width);
-		viewport.height = static_cast<float>(extent2D.height);
+		viewport.width = camera->GetSize().x;
+		viewport.height = camera->GetSize().y;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor;
 		scissor.offset = { 0, 0 };
-		scissor.extent = extent2D;
+		scissor.extent.width = camera->GetSize().x;
+		scissor.extent.height = camera->GetSize().y;
 		globalPipelineState.m_viewPort = viewport;
 		globalPipelineState.m_scissor = scissor;
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		globalPipelineState.m_geometryType = GeometryType::Mesh;
+		globalPipelineState.BindGraphicsPipeline(commandBuffer, deferredPrepassProgram);
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
@@ -642,10 +645,6 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 					objectInfoBlock.m_model = renderCommand.m_globalTransform.m_value;
 					Graphics::UploadObjectInfo(objectInfoBlock);
 					globalPipelineState.ApplyAllStates(commandBuffer);
-
-					deferredPrepassProgram->BindAllDescriptorSets(commandBuffer);
-
-					deferredPrepassProgram->BindShaders(commandBuffer);
 					const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, globalPipelineState);
@@ -655,9 +654,11 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 			}
 			);
 		
-		vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-		
-		vkCmdEndRenderPass(commandBuffer);
+		globalPipelineState.NextSubpass(commandBuffer);
+		globalPipelineState.BindGraphicsPipeline(commandBuffer, deferredLightingProgram);
+
+
+		globalPipelineState.EndRenderPass(commandBuffer);
 		}
 	);
 

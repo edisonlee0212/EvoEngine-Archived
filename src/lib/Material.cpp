@@ -89,7 +89,7 @@ bool DrawSettings::OnInspect() {
     return changed;
 }
 
-void DrawSettings::ApplySettings(GlobalPipelineState& globalPipelineState) const
+void DrawSettings::ApplySettings(GraphicsGlobalStates& globalPipelineState) const
 {
     globalPipelineState.m_cullMode = m_cullMode;
     globalPipelineState.m_polygonMode = m_polygonMode;

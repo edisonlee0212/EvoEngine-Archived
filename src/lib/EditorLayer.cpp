@@ -140,8 +140,8 @@ void EditorLayer::OnCreate()
 	init_info.Queue = Graphics::GetGraphicsVkQueue();
 	init_info.PipelineCache = VK_NULL_HANDLE;
 	init_info.DescriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-	init_info.MinImageCount = Graphics::GetSwapchain()->GetVkImageViews().size();
-	init_info.ImageCount = Graphics::GetSwapchain()->GetVkImageViews().size();
+	init_info.MinImageCount = Graphics::GetSwapchain()->GetImageViews().size();
+	init_info.ImageCount = Graphics::GetSwapchain()->GetImageViews().size();
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
@@ -632,7 +632,7 @@ void EditorLayer::LateUpdate()
 	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
 	
 
-	Graphics::AppendCommands("ImGuiDraw", [&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
+	Graphics::AppendCommands("ImGuiDraw", [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
 			VkRenderPassBeginInfo renderPassBeginInfo{};

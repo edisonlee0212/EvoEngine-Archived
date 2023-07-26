@@ -6,15 +6,6 @@
 
 using namespace EvoEngine;
 
-template<typename T>
-void ApplyVector(std::vector<T>& target, uint32_t size, const T* data)
-{
-	if (size == 0 || data == nullptr) return;
-	target.resize(size);
-	memcpy(target.data(), data,
-		sizeof(T) * size);
-}
-
 Fence::Fence(const VkFenceCreateInfo& vkFenceCreateInfo)
 {
 	Graphics::CheckVk(vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence));
@@ -79,7 +70,7 @@ Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 	m_presentMode = swapChainCreateInfo.presentMode;
 	m_clipped = swapChainCreateInfo.clipped;
 
-	m_vkImageViews.resize(m_vkImages.size());
+	m_vkImageViews.clear();
 	for (size_t i = 0; i < m_vkImages.size(); i++) {
 		VkImageViewCreateInfo imageViewCreateInfo{};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -95,18 +86,13 @@ Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-		Graphics::CheckVk(vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]));
+		auto imageView = std::make_shared<ImageView>(imageViewCreateInfo);
+		m_vkImageViews.emplace_back(imageView);
 	}
 }
 
 Swapchain::~Swapchain()
 {
-	for (const auto& imageView : m_vkImageViews) {
-		if (imageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(Graphics::GetVkDevice(), imageView, nullptr);
-		}
-	}
 	m_vkImageViews.clear();
 	if (m_vkSwapchain != VK_NULL_HANDLE) {
 		vkDestroySwapchainKHR(Graphics::GetVkDevice(), m_vkSwapchain, nullptr);
@@ -124,7 +110,7 @@ const std::vector<VkImage>& Swapchain::GetVkImages() const
 	return m_vkImages;
 }
 
-const std::vector<VkImageView>& Swapchain::GetVkImageViews() const
+const std::vector<std::shared_ptr<ImageView>>& Swapchain::GetImageViews() const
 {
 	return m_vkImageViews;
 }
@@ -140,16 +126,28 @@ VkExtent2D Swapchain::GetImageExtent() const
 }
 
 
-
 ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo)
 {
 	Graphics::CheckVk(vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView));
-	m_image = imageViewCreateInfo.image;
+	m_image = nullptr;
 	m_flags = imageViewCreateInfo.flags;
 	m_viewType = imageViewCreateInfo.viewType;
 	m_format = imageViewCreateInfo.format;
 	m_components = imageViewCreateInfo.components;
 	m_subresourceRange = imageViewCreateInfo.subresourceRange;
+	m_clearValue.color = {0, 0, 0, 0};
+}
+
+ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std::shared_ptr<Image>& image)
+{
+	Graphics::CheckVk(vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView));
+	m_image = image;
+	m_flags = imageViewCreateInfo.flags;
+	m_viewType = imageViewCreateInfo.viewType;
+	m_format = image->GetFormat();
+	m_components = imageViewCreateInfo.components;
+	m_subresourceRange = imageViewCreateInfo.subresourceRange;
+	m_clearValue.color = { 0, 0, 0, 0 };
 }
 
 ImageView::~ImageView()
@@ -165,15 +163,56 @@ VkImageView ImageView::GetVkImageView() const
 	return m_vkImageView;
 }
 
-Framebuffer::Framebuffer(const VkFramebufferCreateInfo& framebufferCreateInfo)
+const std::shared_ptr<Image>& ImageView::GetImage() const
 {
-	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer));
-	m_flags = framebufferCreateInfo.flags;
-	m_renderPass = framebufferCreateInfo.renderPass;
-	ApplyVector(m_attachments, framebufferCreateInfo.attachmentCount, framebufferCreateInfo.pAttachments);
-	m_width = framebufferCreateInfo.width;
-	m_height = framebufferCreateInfo.height;
-	m_layers = framebufferCreateInfo.layers;
+	return m_image;
+}
+
+Framebuffer::Framebuffer(const std::unique_ptr<Swapchain>& swapchain, uint32_t imageIndex, const std::shared_ptr<RenderPass>& renderPass)
+{
+	const VkImageView attachments[] = { swapchain->GetImageViews()[imageIndex]->GetVkImageView() };
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = renderPass->GetVkRenderPass();
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = swapchain->GetImageExtent().width;
+	framebufferInfo.height = swapchain->GetImageExtent().height;
+	framebufferInfo.layers = 1;
+	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferInfo, nullptr, &m_vkFramebuffer));
+
+	m_width = framebufferInfo.width;
+	m_height = framebufferInfo.height;
+	m_layers = framebufferInfo.layers;
+	m_renderPass = renderPass;
+	m_attachments = { swapchain->GetImageViews()[imageIndex] };
+}
+
+Framebuffer::Framebuffer(const std::vector<std::shared_ptr<ImageView>>& attachments, const std::shared_ptr<RenderPass>& renderPass)
+{
+	std::vector<VkImageView> vkImageViews;
+	for(const auto& attachment : attachments)
+	{
+		vkImageViews.push_back(attachment->GetVkImageView());
+
+	}
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = renderPass->GetVkRenderPass();
+	framebufferInfo.attachmentCount = vkImageViews.size();
+	framebufferInfo.pAttachments = vkImageViews.data();
+	framebufferInfo.width = attachments[0]->GetImage()->GetExtent().width;
+	framebufferInfo.height = attachments[0]->GetImage()->GetExtent().height;
+	framebufferInfo.layers = 1;
+
+	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferInfo, nullptr, &m_vkFramebuffer));
+	m_flags = framebufferInfo.flags;
+	m_renderPass = renderPass;
+	m_width = framebufferInfo.width;
+	m_height = framebufferInfo.height;
+	m_layers = framebufferInfo.layers;
+
+	m_attachments = attachments;
 }
 
 Framebuffer::~Framebuffer()
@@ -184,9 +223,29 @@ Framebuffer::~Framebuffer()
 	}
 }
 
-VkFramebuffer Framebuffer::GetVkFrameBuffer() const
+uint32_t Framebuffer::GetWidth() const
+{
+	return m_width;
+}
+
+uint32_t Framebuffer::GetHeight() const
+{
+	return m_height;
+}
+
+uint32_t Framebuffer::GetLayers() const
+{
+	return m_layers;
+}
+
+const VkFramebuffer& Framebuffer::GetVkFrameBuffer() const
 {
 	return m_vkFramebuffer;
+}
+
+const std::vector<std::shared_ptr<ImageView>>& Framebuffer::GetAttachments() const
+{
+	return m_attachments;
 }
 
 ShaderModule::~ShaderModule()
@@ -197,17 +256,9 @@ ShaderModule::~ShaderModule()
 	}
 }
 
-ShaderModule::ShaderModule(shaderc_shader_kind shaderKind, const std::string& code)
+ShaderModule::ShaderModule(const VkShaderModuleCreateInfo& createInfo)
 {
-	m_shaderKind = shaderKind;
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	const auto binary = ShaderUtils::CompileFile("Shader", m_shaderKind, code);
-	createInfo.pCode = binary.data();
-	createInfo.codeSize = binary.size() * sizeof(uint32_t);
 	Graphics::CheckVk(vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule));
-
-	m_code = code;
 }
 
 VkShaderModule ShaderModule::GetVkShaderModule() const
@@ -216,44 +267,6 @@ VkShaderModule ShaderModule::GetVkShaderModule() const
 }
 
 
-RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
-{
-	Graphics::CheckVk(vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass));
-	m_flags = renderPassCreateInfo.flags;
-
-	ApplyVector(m_attachments, renderPassCreateInfo.attachmentCount, renderPassCreateInfo.pAttachments);
-	m_subpasses.resize(renderPassCreateInfo.subpassCount);
-	for (int i = 0; i < renderPassCreateInfo.subpassCount; i++)
-	{
-		auto& subpass = m_subpasses[i];
-		const auto& subpassInfo = renderPassCreateInfo.pSubpasses[i];
-		subpass.m_flags = subpassInfo.flags;
-		subpass.m_pipelineBindPoint = subpassInfo.pipelineBindPoint;
-		ApplyVector(subpass.m_inputAttachments, subpassInfo.inputAttachmentCount, subpassInfo.pInputAttachments);
-		ApplyVector(subpass.m_colorAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pColorAttachments);
-		if (subpassInfo.pResolveAttachments != VK_NULL_HANDLE) ApplyVector(subpass.m_resolveAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pResolveAttachments);
-		if (subpassInfo.pDepthStencilAttachment != VK_NULL_HANDLE)
-			subpass.m_depthStencilAttachment = *subpassInfo.pDepthStencilAttachment;
-		ApplyVector(subpass.m_preserveAttachment, subpassInfo.preserveAttachmentCount, subpassInfo.pPreserveAttachments);
-	}
-
-	m_dependencies.resize(renderPassCreateInfo.dependencyCount);
-	memcpy(m_dependencies.data(), renderPassCreateInfo.pDependencies,
-		sizeof(VkSubpassDependency) * renderPassCreateInfo.dependencyCount);
-}
-
-RenderPass::~RenderPass()
-{
-	if (m_vkRenderPass != VK_NULL_HANDLE) {
-		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
-		m_vkRenderPass = VK_NULL_HANDLE;
-	}
-}
-
-VkRenderPass RenderPass::GetVkRenderPass() const
-{
-	return m_vkRenderPass;
-}
 
 PipelineLayout::PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
@@ -276,175 +289,6 @@ VkPipelineLayout PipelineLayout::GetVkPipelineLayout() const
 {
 	return m_vkPipelineLayout;
 }
-
-void PipelineShaderStage::Apply(const VkPipelineShaderStageCreateInfo& vkPipelineShaderStageCreateInfo)
-{
-	m_flags = vkPipelineShaderStageCreateInfo.flags;
-	m_stage = vkPipelineShaderStageCreateInfo.stage;
-	m_module = vkPipelineShaderStageCreateInfo.module;
-	m_name = vkPipelineShaderStageCreateInfo.pName;
-	if (vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
-	{
-		m_specializationInfo = *vkPipelineShaderStageCreateInfo.pSpecializationInfo;
-	}
-}
-
-void PipelineVertexInputState::Apply(const VkPipelineVertexInputStateCreateInfo& vkPipelineShaderStageCreateInfo)
-{
-	m_flags = vkPipelineShaderStageCreateInfo.flags;
-	ApplyVector(m_vertexBindingDescriptions, vkPipelineShaderStageCreateInfo.vertexBindingDescriptionCount, vkPipelineShaderStageCreateInfo.pVertexBindingDescriptions);
-	ApplyVector(m_vertexAttributeDescriptions, vkPipelineShaderStageCreateInfo.vertexAttributeDescriptionCount, vkPipelineShaderStageCreateInfo.pVertexAttributeDescriptions);
-}
-
-void PipelineInputAssemblyState::Apply(
-	const VkPipelineInputAssemblyStateCreateInfo& vkPipelineInputAssemblyStateCreateInfo)
-{
-	m_flags = vkPipelineInputAssemblyStateCreateInfo.flags;
-	m_topology = vkPipelineInputAssemblyStateCreateInfo.topology;
-	m_primitiveRestartEnable = vkPipelineInputAssemblyStateCreateInfo.primitiveRestartEnable;
-}
-
-void PipelineTessellationState::Apply(const VkPipelineTessellationStateCreateInfo& vkPipelineTessellationStateCreateInfo)
-{
-	m_flags = vkPipelineTessellationStateCreateInfo.flags;
-	m_patchControlPoints = vkPipelineTessellationStateCreateInfo.patchControlPoints;
-}
-
-void PipelineViewportState::Apply(const VkPipelineViewportStateCreateInfo& vkPipelineViewportStateCreateInfo)
-{
-	m_flags = vkPipelineViewportStateCreateInfo.flags;
-	ApplyVector(m_viewports, vkPipelineViewportStateCreateInfo.viewportCount, vkPipelineViewportStateCreateInfo.pViewports);
-	ApplyVector(m_scissors, vkPipelineViewportStateCreateInfo.scissorCount, vkPipelineViewportStateCreateInfo.pScissors);
-}
-
-void PipelineRasterizationState::Apply(
-	const VkPipelineRasterizationStateCreateInfo& vkPipelineRasterizationStateCreateInfo)
-{
-	m_flags = vkPipelineRasterizationStateCreateInfo.flags;
-	m_depthClampEnable = vkPipelineRasterizationStateCreateInfo.depthClampEnable;
-	m_rasterizerDiscardEnable = vkPipelineRasterizationStateCreateInfo.rasterizerDiscardEnable;
-	m_polygonMode = vkPipelineRasterizationStateCreateInfo.polygonMode;
-	m_cullMode = vkPipelineRasterizationStateCreateInfo.cullMode;
-	m_frontFace = vkPipelineRasterizationStateCreateInfo.frontFace;
-	m_depthBiasEnable = vkPipelineRasterizationStateCreateInfo.depthBiasEnable;
-	m_depthBiasConstantFactor = vkPipelineRasterizationStateCreateInfo.depthBiasConstantFactor;
-	m_depthBiasClamp = vkPipelineRasterizationStateCreateInfo.depthBiasClamp;
-	m_depthBiasSlopeFactor = vkPipelineRasterizationStateCreateInfo.depthBiasSlopeFactor;
-	m_lineWidth = vkPipelineRasterizationStateCreateInfo.lineWidth;
-}
-
-void PipelineMultisampleState::Apply(const VkPipelineMultisampleStateCreateInfo& vkPipelineMultisampleStateCreateInfo)
-{
-	m_flags = vkPipelineMultisampleStateCreateInfo.flags;
-	m_rasterizationSamples = vkPipelineMultisampleStateCreateInfo.rasterizationSamples;
-	m_sampleShadingEnable = vkPipelineMultisampleStateCreateInfo.sampleShadingEnable;
-	m_minSampleShading = vkPipelineMultisampleStateCreateInfo.minSampleShading;
-	if (vkPipelineMultisampleStateCreateInfo.pSampleMask) m_sampleMask = *vkPipelineMultisampleStateCreateInfo.pSampleMask;
-	m_alphaToCoverageEnable = vkPipelineMultisampleStateCreateInfo.alphaToCoverageEnable;
-	m_alphaToOneEnable = vkPipelineMultisampleStateCreateInfo.alphaToOneEnable;
-}
-
-void PipelineDepthStencilState::Apply(
-	const VkPipelineDepthStencilStateCreateInfo& vkPipelineDepthStencilStateCreateInfo)
-{
-	m_flags = vkPipelineDepthStencilStateCreateInfo.flags;
-	m_depthTestEnable = vkPipelineDepthStencilStateCreateInfo.depthTestEnable;
-	m_depthWriteEnable = vkPipelineDepthStencilStateCreateInfo.depthWriteEnable;
-	m_depthCompareOp = vkPipelineDepthStencilStateCreateInfo.depthCompareOp;
-	m_depthBoundsTestEnable = vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable;
-	m_stencilTestEnable = vkPipelineDepthStencilStateCreateInfo.stencilTestEnable;
-	m_front = vkPipelineDepthStencilStateCreateInfo.front;
-	m_back = vkPipelineDepthStencilStateCreateInfo.back;
-	m_minDepthBounds = vkPipelineDepthStencilStateCreateInfo.minDepthBounds;
-	m_maxDepthBounds = vkPipelineDepthStencilStateCreateInfo.maxDepthBounds;
-}
-
-void PipelineColorBlendState::Apply(const VkPipelineColorBlendStateCreateInfo& vkPipelineColorBlendStateCreateInfo)
-{
-	m_flags = vkPipelineColorBlendStateCreateInfo.flags;
-	m_logicOpEnable = vkPipelineColorBlendStateCreateInfo.logicOpEnable;
-	m_logicOp = vkPipelineColorBlendStateCreateInfo.logicOp;
-	ApplyVector(m_attachments, vkPipelineColorBlendStateCreateInfo.attachmentCount, vkPipelineColorBlendStateCreateInfo.pAttachments);
-	m_blendConstants[0] = vkPipelineColorBlendStateCreateInfo.blendConstants[0];
-	m_blendConstants[1] = vkPipelineColorBlendStateCreateInfo.blendConstants[1];
-	m_blendConstants[2] = vkPipelineColorBlendStateCreateInfo.blendConstants[2];
-	m_blendConstants[3] = vkPipelineColorBlendStateCreateInfo.blendConstants[3];
-}
-
-void PipelineDynamicState::Apply(const VkPipelineDynamicStateCreateInfo& vkPipelineDynamicStateCreateInfo)
-{
-	m_flags = vkPipelineDynamicStateCreateInfo.flags;
-	ApplyVector(m_dynamicStates, vkPipelineDynamicStateCreateInfo.dynamicStateCount, vkPipelineDynamicStateCreateInfo.pDynamicStates);
-}
-
-
-GraphicsPipeline::GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
-{
-	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
-		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline));
-
-	m_flags = graphicsPipelineCreateInfo.flags;
-	m_stages.resize(graphicsPipelineCreateInfo.stageCount);
-	for (int i = 0; i < graphicsPipelineCreateInfo.stageCount; i++)
-	{
-		m_stages[i].Apply(graphicsPipelineCreateInfo.pStages[i]);
-	}
-	if (graphicsPipelineCreateInfo.pVertexInputState) {
-		m_vertexInputState.emplace();
-		m_vertexInputState.value().Apply(*graphicsPipelineCreateInfo.pVertexInputState);
-	}
-	if (graphicsPipelineCreateInfo.pInputAssemblyState) {
-		m_inputAssemblyState.emplace();
-		m_inputAssemblyState.value().Apply(*graphicsPipelineCreateInfo.pInputAssemblyState);
-	}
-	if (graphicsPipelineCreateInfo.pTessellationState) {
-		m_tessellationState.emplace();
-		m_tessellationState.value().Apply(*graphicsPipelineCreateInfo.pTessellationState);
-	}
-	if (graphicsPipelineCreateInfo.pViewportState) {
-		m_viewportState.emplace();
-		m_viewportState.value().Apply(*graphicsPipelineCreateInfo.pViewportState);
-	}
-	if (graphicsPipelineCreateInfo.pRasterizationState) {
-		m_rasterizationState.emplace();
-		m_rasterizationState.value().Apply(*graphicsPipelineCreateInfo.pRasterizationState);
-	}
-	if (graphicsPipelineCreateInfo.pMultisampleState) {
-		m_multisampleState.emplace();
-		m_multisampleState.value().Apply(*graphicsPipelineCreateInfo.pMultisampleState);
-	}
-	if (graphicsPipelineCreateInfo.pDepthStencilState) {
-		m_depthStencilState.emplace();
-		m_depthStencilState.value().Apply(*graphicsPipelineCreateInfo.pDepthStencilState);
-	}
-	if (graphicsPipelineCreateInfo.pColorBlendState) {
-		m_colorBlendState.emplace();
-		m_colorBlendState.value().Apply(*graphicsPipelineCreateInfo.pColorBlendState);
-	}
-	if (graphicsPipelineCreateInfo.pDynamicState) {
-		m_dynamicState.emplace();
-		m_dynamicState.value().Apply(*graphicsPipelineCreateInfo.pDynamicState);
-	}
-	m_layout = graphicsPipelineCreateInfo.layout;
-	m_renderPass = graphicsPipelineCreateInfo.renderPass;
-	m_subpass = graphicsPipelineCreateInfo.subpass;
-	m_basePipelineHandle = graphicsPipelineCreateInfo.basePipelineHandle;
-	m_basePipelineIndex = graphicsPipelineCreateInfo.basePipelineIndex;
-}
-
-GraphicsPipeline::~GraphicsPipeline()
-{
-	if (m_vkGraphicsPipeline != VK_NULL_HANDLE) {
-		vkDestroyPipeline(Graphics::GetVkDevice(), m_vkGraphicsPipeline, nullptr);
-		m_vkGraphicsPipeline = VK_NULL_HANDLE;
-	}
-}
-
-VkPipeline GraphicsPipeline::GetVkPipeline() const
-{
-	return m_vkGraphicsPipeline;
-}
-
 
 
 
@@ -654,6 +498,11 @@ void Image::TransitionImageLayout(VkImageLayout newLayout)
 const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 {
 	return m_vmaAllocationInfo;
+}
+
+VkClearValue& ImageView::RefClearValue()
+{
+	return m_clearValue;
 }
 
 Sampler::Sampler(const VkSamplerCreateInfo& samplerCreateInfo)
@@ -943,4 +792,44 @@ void CommandBuffer::Reset()
 	}
 	Graphics::CheckVk(vkResetCommandBuffer(m_vkCommandBuffer, 0));
 	m_status = CommandBufferStatus::Ready;
+}
+
+
+RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
+{
+	Graphics::CheckVk(vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass));
+	m_flags = renderPassCreateInfo.flags;
+
+	ApplyVector(m_attachments, renderPassCreateInfo.attachmentCount, renderPassCreateInfo.pAttachments);
+	m_subpasses.resize(renderPassCreateInfo.subpassCount);
+	for (int i = 0; i < renderPassCreateInfo.subpassCount; i++)
+	{
+		auto& subpass = m_subpasses[i];
+		const auto& subpassInfo = renderPassCreateInfo.pSubpasses[i];
+		subpass.m_flags = subpassInfo.flags;
+		subpass.m_pipelineBindPoint = subpassInfo.pipelineBindPoint;
+		ApplyVector(subpass.m_inputAttachments, subpassInfo.inputAttachmentCount, subpassInfo.pInputAttachments);
+		ApplyVector(subpass.m_colorAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pColorAttachments);
+		if (subpassInfo.pResolveAttachments != VK_NULL_HANDLE) ApplyVector(subpass.m_resolveAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pResolveAttachments);
+		if (subpassInfo.pDepthStencilAttachment != VK_NULL_HANDLE)
+			subpass.m_depthStencilAttachment = *subpassInfo.pDepthStencilAttachment;
+		ApplyVector(subpass.m_preserveAttachment, subpassInfo.preserveAttachmentCount, subpassInfo.pPreserveAttachments);
+	}
+
+	m_dependencies.resize(renderPassCreateInfo.dependencyCount);
+	memcpy(m_dependencies.data(), renderPassCreateInfo.pDependencies,
+		sizeof(VkSubpassDependency) * renderPassCreateInfo.dependencyCount);
+}
+
+RenderPass::~RenderPass()
+{
+	if (m_vkRenderPass != VK_NULL_HANDLE) {
+		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
+		m_vkRenderPass = VK_NULL_HANDLE;
+	}
+}
+
+VkRenderPass RenderPass::GetVkRenderPass() const
+{
+	return m_vkRenderPass;
 }
