@@ -1,5 +1,6 @@
 #include "GraphicsResources.hpp"
 
+#include "Console.hpp"
 #include "Graphics.hpp"
 #include "Utilities.hpp"
 
@@ -16,9 +17,7 @@ void ApplyVector(std::vector<T>& target, uint32_t size, const T* data)
 
 Fence::Fence(const VkFenceCreateInfo& vkFenceCreateInfo)
 {
-	if (vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create vkFence!");
-	}
+	Graphics::CheckVk(vkCreateFence(Graphics::GetVkDevice(), &vkFenceCreateInfo, nullptr, &m_vkFence));
 	m_flags = vkFenceCreateInfo.flags;
 }
 
@@ -31,16 +30,14 @@ Fence::~Fence()
 	}
 }
 
-VkFence Fence::GetVkFence() const
+const VkFence& Fence::GetVkFence() const
 {
 	return m_vkFence;
 }
 
 Semaphore::Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo)
 {
-	if (vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create vkSemaphore!");
-	}
+	Graphics::CheckVk(vkCreateSemaphore(Graphics::GetVkDevice(), &semaphoreCreateInfo, nullptr, &m_vkSemaphore));
 	m_flags = semaphoreCreateInfo.flags;
 }
 
@@ -55,7 +52,7 @@ Semaphore::~Semaphore()
 
 
 
-VkSemaphore Semaphore::GetVkSemaphore() const
+const VkSemaphore& Semaphore::GetVkSemaphore() const
 {
 	return m_vkSemaphore;
 }
@@ -63,9 +60,7 @@ VkSemaphore Semaphore::GetVkSemaphore() const
 Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 {
 	const auto& device = Graphics::GetVkDevice();
-	if (vkCreateSwapchainKHR(Graphics::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create swap chain!");
-	}
+	Graphics::CheckVk(vkCreateSwapchainKHR(Graphics::GetVkDevice(), &swapChainCreateInfo, nullptr, &m_vkSwapchain));
 	uint32_t imageCount = 0;
 	vkGetSwapchainImagesKHR(device, m_vkSwapchain, &imageCount, nullptr);
 	m_vkImages.resize(imageCount);
@@ -101,9 +96,7 @@ Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create image views!");
-		}
+		Graphics::CheckVk(vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageViews[i]));
 	}
 }
 
@@ -150,9 +143,7 @@ VkExtent2D Swapchain::GetImageExtent() const
 
 ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo)
 {
-	if (vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image views!");
-	}
+	Graphics::CheckVk(vkCreateImageView(Graphics::GetVkDevice(), &imageViewCreateInfo, nullptr, &m_vkImageView));
 	m_image = imageViewCreateInfo.image;
 	m_flags = imageViewCreateInfo.flags;
 	m_viewType = imageViewCreateInfo.viewType;
@@ -176,9 +167,7 @@ VkImageView ImageView::GetVkImageView() const
 
 Framebuffer::Framebuffer(const VkFramebufferCreateInfo& framebufferCreateInfo)
 {
-	if (vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create framebuffer!");
-	}
+	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferCreateInfo, nullptr, &m_vkFramebuffer));
 	m_flags = framebufferCreateInfo.flags;
 	m_renderPass = framebufferCreateInfo.renderPass;
 	ApplyVector(m_attachments, framebufferCreateInfo.attachmentCount, framebufferCreateInfo.pAttachments);
@@ -216,9 +205,7 @@ ShaderModule::ShaderModule(shaderc_shader_kind shaderKind, const std::string& co
 	const auto binary = ShaderUtils::CompileFile("Shader", m_shaderKind, code);
 	createInfo.pCode = binary.data();
 	createInfo.codeSize = binary.size() * sizeof(uint32_t);
-	if (vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create shader module!");
-	}
+	Graphics::CheckVk(vkCreateShaderModule(Graphics::GetVkDevice(), &createInfo, nullptr, &m_vkShaderModule));
 
 	m_code = code;
 }
@@ -231,9 +218,7 @@ VkShaderModule ShaderModule::GetVkShaderModule() const
 
 RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
 {
-	if (vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create render pass!");
-	}
+	Graphics::CheckVk(vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass));
 	m_flags = renderPassCreateInfo.flags;
 
 	ApplyVector(m_attachments, renderPassCreateInfo.attachmentCount, renderPassCreateInfo.pAttachments);
@@ -272,9 +257,7 @@ VkRenderPass RenderPass::GetVkRenderPass() const
 
 PipelineLayout::PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
-	if (vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create pipeline layout!");
-	}
+	Graphics::CheckVk(vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout));
 
 	m_flags = pipelineLayoutCreateInfo.flags;
 	ApplyVector(m_setLayouts, pipelineLayoutCreateInfo.setLayoutCount, pipelineLayoutCreateInfo.pSetLayouts);
@@ -300,7 +283,7 @@ void PipelineShaderStage::Apply(const VkPipelineShaderStageCreateInfo& vkPipelin
 	m_stage = vkPipelineShaderStageCreateInfo.stage;
 	m_module = vkPipelineShaderStageCreateInfo.module;
 	m_name = vkPipelineShaderStageCreateInfo.pName;
-	if (vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
+	if(vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
 	{
 		m_specializationInfo = *vkPipelineShaderStageCreateInfo.pSpecializationInfo;
 	}
@@ -356,7 +339,7 @@ void PipelineMultisampleState::Apply(const VkPipelineMultisampleStateCreateInfo&
 	m_rasterizationSamples = vkPipelineMultisampleStateCreateInfo.rasterizationSamples;
 	m_sampleShadingEnable = vkPipelineMultisampleStateCreateInfo.sampleShadingEnable;
 	m_minSampleShading = vkPipelineMultisampleStateCreateInfo.minSampleShading;
-	if (vkPipelineMultisampleStateCreateInfo.pSampleMask) m_sampleMask = *vkPipelineMultisampleStateCreateInfo.pSampleMask;
+	if(vkPipelineMultisampleStateCreateInfo.pSampleMask) m_sampleMask = *vkPipelineMultisampleStateCreateInfo.pSampleMask;
 	m_alphaToCoverageEnable = vkPipelineMultisampleStateCreateInfo.alphaToCoverageEnable;
 	m_alphaToOneEnable = vkPipelineMultisampleStateCreateInfo.alphaToOneEnable;
 }
@@ -397,10 +380,8 @@ void PipelineDynamicState::Apply(const VkPipelineDynamicStateCreateInfo& vkPipel
 
 GraphicsPipeline::GraphicsPipeline(const VkGraphicsPipelineCreateInfo& graphicsPipelineCreateInfo)
 {
-	if (vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
-		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create graphics pipeline!");
-	}
+	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
+		&graphicsPipelineCreateInfo, nullptr, &m_vkGraphicsPipeline));
 
 	m_flags = graphicsPipelineCreateInfo.flags;
 	m_stages.resize(graphicsPipelineCreateInfo.stageCount);
@@ -469,9 +450,7 @@ VkPipeline GraphicsPipeline::GetVkPipeline() const
 
 CommandPool::CommandPool(const VkCommandPoolCreateInfo& commandPoolCreateInfo)
 {
-	if (vkCreateCommandPool(Graphics::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create command pool!");
-	}
+	Graphics::CheckVk(vkCreateCommandPool(Graphics::GetVkDevice(), &commandPoolCreateInfo, nullptr, &m_vkCommandPool));
 }
 
 CommandPool::~CommandPool()
@@ -492,7 +471,7 @@ Image::Image(const VkImageCreateInfo& imageCreateInfo)
 {
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &allocInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &allocInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create image!");
 	}
 	m_flags = imageCreateInfo.flags;
@@ -514,7 +493,7 @@ Image::Image(const VkImageCreateInfo& imageCreateInfo)
 
 Image::Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
-	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create image!");
 	}
 	m_flags = imageCreateInfo.flags;
@@ -679,9 +658,7 @@ const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 
 Sampler::Sampler(const VkSamplerCreateInfo& samplerCreateInfo)
 {
-	if (vkCreateSampler(Graphics::GetVkDevice(), &samplerCreateInfo, nullptr, &m_vkSampler) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create sampler!");
-	}
+	Graphics::CheckVk(vkCreateSampler(Graphics::GetVkDevice(), &samplerCreateInfo, nullptr, &m_vkSampler));
 }
 
 Sampler::~Sampler()
@@ -701,14 +678,14 @@ Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo)
 {
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 }
 
 Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
-	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo) != VK_SUCCESS) {
+	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
 }
@@ -753,9 +730,7 @@ const VmaAllocationInfo& Buffer::GetVmaAllocationInfo() const
 
 DescriptorSetLayout::DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo)
 {
-	if (vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor set layout!");
-	}
+	Graphics::CheckVk(vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout));
 }
 
 DescriptorSetLayout::~DescriptorSetLayout()
@@ -774,9 +749,7 @@ VkDescriptorSetLayout DescriptorSetLayout::GetVkDescriptorSetLayout() const
 
 DescriptorPool::DescriptorPool(const VkDescriptorPoolCreateInfo& descriptorPoolCreateInfo)
 {
-	if (vkCreateDescriptorPool(Graphics::GetVkDevice(), &descriptorPoolCreateInfo, nullptr, &m_vkDescriptorPool) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor pool!");
-	}
+	Graphics::CheckVk(vkCreateDescriptorPool(Graphics::GetVkDevice(), &descriptorPoolCreateInfo, nullptr, &m_vkDescriptorPool));
 }
 
 DescriptorPool::~DescriptorPool()
@@ -795,9 +768,7 @@ VkDescriptorPool DescriptorPool::GetVkDescriptorPool() const
 
 ShaderEXT::ShaderEXT(const VkShaderCreateInfoEXT& shaderCreateInfoExt)
 {
-	if (vkCreateShadersEXT(Graphics::GetVkDevice(), 1, &shaderCreateInfoExt, nullptr, &m_shaderExt) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create shaderEXT!");
-	}
+	Graphics::CheckVk(vkCreateShadersEXT(Graphics::GetVkDevice(), 1, &shaderCreateInfoExt, nullptr, &m_shaderExt));
 	m_flags = shaderCreateInfoExt.flags;
 	m_stage = shaderCreateInfoExt.stage;
 	m_nextStage = shaderCreateInfoExt.nextStage;
@@ -820,4 +791,156 @@ ShaderEXT::~ShaderEXT()
 const VkShaderEXT& ShaderEXT::GetVkShaderEXT() const
 {
 	return m_shaderExt;
+}
+
+CommandBufferStatus CommandBuffer::GetStatus() const
+{
+	return m_status;
+}
+
+void CommandBuffer::Allocate(const VkQueueFlagBits& queueType, const VkCommandBufferLevel& bufferLevel)
+{
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+	commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.commandPool = Graphics::GetVkCommandPool();
+	commandBufferAllocateInfo.level = bufferLevel;
+	commandBufferAllocateInfo.commandBufferCount = 1;
+	Graphics::CheckVk(vkAllocateCommandBuffers(Graphics::GetVkDevice(), &commandBufferAllocateInfo, &m_vkCommandBuffer));
+	m_status = CommandBufferStatus::Ready;
+}
+
+void CommandBuffer::Free()
+{
+	if (m_vkCommandBuffer != VK_NULL_HANDLE)
+	{
+		vkFreeCommandBuffers(Graphics::GetVkDevice(), Graphics::GetVkCommandPool(), 1, &m_vkCommandBuffer);
+		m_vkCommandBuffer = VK_NULL_HANDLE;
+	}
+	m_status = CommandBufferStatus::Invalid;
+}
+
+const VkCommandBuffer& CommandBuffer::GetVkCommandBuffer() const
+{
+	return m_vkCommandBuffer;
+}
+
+void CommandBuffer::Begin(const VkCommandBufferUsageFlags& usage)
+{
+	if(m_status == CommandBufferStatus::Invalid)
+	{
+		EVOENGINE_ERROR("Command buffer invalid!");
+		return;
+	}
+	if(m_status != CommandBufferStatus::Ready)
+	{
+		EVOENGINE_ERROR("Command buffer not ready!");
+		return;
+	}
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = usage;
+	Graphics::CheckVk(vkBeginCommandBuffer(m_vkCommandBuffer, &beginInfo));
+	m_status = CommandBufferStatus::Recording;
+}
+
+void CommandBuffer::End()
+{
+	if (m_status == CommandBufferStatus::Invalid)
+	{
+		EVOENGINE_ERROR("Command buffer invalid!");
+		return;
+	}
+	if (m_status != CommandBufferStatus::Recording)
+	{
+		EVOENGINE_ERROR("Command buffer not recording!");
+		return;
+	}
+	Graphics::CheckVk(vkEndCommandBuffer(m_vkCommandBuffer));
+	m_status = CommandBufferStatus::Recorded;
+}
+
+void CommandBuffer::SubmitIdle()
+{
+	if (m_status == CommandBufferStatus::Invalid)
+	{
+		EVOENGINE_ERROR("Command buffer invalid!");
+		return;
+	}
+	if(m_status == CommandBufferStatus::Recording)
+	{
+		EVOENGINE_ERROR("Command buffer recording!");
+		return;
+	}
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_vkCommandBuffer;
+
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	VkFence fence;
+	auto device = Graphics::GetVkDevice();
+	if(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+
+	Graphics::CheckVk(vkResetFences(device, 1, &fence));
+
+	Graphics::CheckVk(vkQueueSubmit(Graphics::GetGraphicsVkQueue(), 1, &submitInfo, fence));
+
+	Graphics::CheckVk(vkWaitForFences(device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+
+	vkDestroyFence(device, fence, nullptr);
+}
+
+void CommandBuffer::Submit(const VkSemaphore& waitSemaphore, const VkSemaphore& signalSemaphore, VkFence fence)
+{
+	if (m_status == CommandBufferStatus::Invalid)
+	{
+		EVOENGINE_ERROR("Command buffer invalid!");
+		return;
+	}
+	if (m_status == CommandBufferStatus::Recording)
+	{
+		EVOENGINE_ERROR("Command buffer recording!");
+		return;
+	}
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_vkCommandBuffer;
+
+	if (waitSemaphore != VK_NULL_HANDLE)
+	{
+		// Pipeline stages used to wait at for graphics queue submissions.
+		static VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		submitInfo.pWaitDstStageMask = &submitPipelineStages;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &waitSemaphore;
+	}
+
+	if (signalSemaphore != VK_NULL_HANDLE)
+	{
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &signalSemaphore;
+	}
+
+	if (fence != VK_NULL_HANDLE)
+	{
+		//Graphics::CheckVk(vkResetFences(Graphics::GetVkDevice(), 1, &fence));
+		//Renderer::CheckVk(vkWaitForFences(*logicalDevice, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
+	}
+
+	Graphics::CheckVk(vkQueueSubmit(Graphics::GetGraphicsVkQueue(), 1, &submitInfo, fence));
+}
+
+void CommandBuffer::Reset()
+{
+	if (m_status == CommandBufferStatus::Invalid)
+	{
+		EVOENGINE_ERROR("Command buffer invalid!");
+		return;
+	}
+	Graphics::CheckVk(vkResetCommandBuffer(m_vkCommandBuffer, 0));
+	m_status = CommandBufferStatus::Ready;
 }

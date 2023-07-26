@@ -229,10 +229,10 @@ VmaAllocator Graphics::GetVmaAllocator()
 	return graphics.m_vmaAllocator;
 }
 
-VkCommandBuffer Graphics::GetCurrentVkCommandBuffer()
+VkCommandBuffer Graphics::GetCurrentVkCommandBuffer(const std::string& name)
 {
 	const auto& graphics = GetInstance();
-	return graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
+	return graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex].at(name).GetVkCommandBuffer();
 }
 
 const std::unique_ptr<Swapchain>& Graphics::GetSwapchain()
@@ -269,7 +269,7 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	//if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
+	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
 	std::string msg = "Vulkan";
 	switch (messageType)
 	{
@@ -616,8 +616,8 @@ void Graphics::CreateInstance()
 		}
 	}
 	//For MacOS
-	instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-	requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+	//instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+	//requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #ifndef NDEBUG
 	requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
@@ -842,54 +842,100 @@ void Graphics::SetupVmaAllocator()
 	vmaCreateAllocator(&vmaAllocatorCreateInfo, &m_vmaAllocator);
 #pragma endregion
 }
-void Graphics::CreateCommandBuffers(const std::unique_ptr<CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers)
-{
-	const auto& graphics = GetInstance();
-#pragma region Command buffers
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = commandPool->GetVkCommandPool();
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = static_cast<uint32_t>(graphics.m_maxFrameInFlight);
-	commandBuffers.resize(graphics.m_maxFrameInFlight);
 
-	if (vkAllocateCommandBuffers(graphics.m_vkDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate command buffers!");
-	}
-#pragma endregion
-}
-
-void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action)
+void Graphics::RegisterCommandBuffer(const std::string& name)
 {
 	auto& graphics = GetInstance();
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	if (vkBeginCommandBuffer(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex], &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to begin recording command buffer!");
-	}
-
-	action(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex], graphics.m_globalPipelineState);
-	if (vkEndCommandBuffer(graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex]) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to record command buffer!");
+	for (auto& commandsGroup : graphics.m_vkCommandBuffers)
+	{
+		assert(commandsGroup.find(name) == commandsGroup.end());
+		commandsGroup[name].Allocate();
 	}
 }
 
-void Graphics::CreateSwapChainSyncObjects()
+std::string Graphics::StringifyResultVk(const VkResult& result)
 {
-#pragma region Sync Objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo{};
-	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	VkFenceCreateInfo fenceCreateInfo{};
-	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	m_renderFinishedSemaphores.clear();
-	m_inFlightFences.clear();
-	for (int i = 0; i < m_maxFrameInFlight; i++) {
-		m_renderFinishedSemaphores.emplace_back(std::make_unique<Semaphore>(semaphoreCreateInfo));
-		m_inFlightFences.emplace_back(std::make_unique<Fence>(fenceCreateInfo));
+	switch (result)
+	{
+	case VK_SUCCESS:
+		return "Success";
+	case VK_NOT_READY:
+		return "A fence or query has not yet completed";
+	case VK_TIMEOUT:
+		return "A wait operation has not completed in the specified time";
+	case VK_EVENT_SET:
+		return "An event is signaled";
+	case VK_EVENT_RESET:
+		return "An event is not signaled";
+	case VK_INCOMPLETE:
+		return "A return array was too small for the result";
+	case VK_ERROR_OUT_OF_HOST_MEMORY:
+		return "A host memory allocation has failed";
+	case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+		return "A device memory allocation has failed";
+	case VK_ERROR_INITIALIZATION_FAILED:
+		return "Initialization of an object could not be completed for implementation-specific reasons";
+	case VK_ERROR_DEVICE_LOST:
+		return "The logical or physical device has been lost";
+	case VK_ERROR_MEMORY_MAP_FAILED:
+		return "Mapping of a memory object has failed";
+	case VK_ERROR_LAYER_NOT_PRESENT:
+		return "A requested layer is not present or could not be loaded";
+	case VK_ERROR_EXTENSION_NOT_PRESENT:
+		return "A requested extension is not supported";
+	case VK_ERROR_FEATURE_NOT_PRESENT:
+		return "A requested feature is not supported";
+	case VK_ERROR_INCOMPATIBLE_DRIVER:
+		return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible";
+	case VK_ERROR_TOO_MANY_OBJECTS:
+		return "Too many objects of the type have already been created";
+	case VK_ERROR_FORMAT_NOT_SUPPORTED:
+		return "A requested format is not supported on this device";
+	case VK_ERROR_SURFACE_LOST_KHR:
+		return "A surface is no longer available";
+		//case VK_ERROR_OUT_OF_POOL_MEMORY:
+		//return "A allocation failed due to having no more space in the descriptor pool";
+	case VK_SUBOPTIMAL_KHR:
+		return "A swapchain no longer matches the surface properties exactly, but can still be used";
+	case VK_ERROR_OUT_OF_DATE_KHR:
+		return "A surface has changed in such a way that it is no longer compatible with the swapchain";
+	case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+		return "The display used by a swapchain does not use the same presentable image layout";
+	case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+		return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
+	case VK_ERROR_VALIDATION_FAILED_EXT:
+		return "A validation layer found an error";
+	default:
+		return "Unknown Vulkan error";
 	}
-#pragma endregion
+}
+
+
+
+void Graphics::CheckVk(const VkResult& result)
+{
+	if (result >= 0)
+	{
+		return;
+	}
+
+	const std::string failure = StringifyResultVk(result);
+	throw std::runtime_error("Vulkan error: " + failure);
+}
+
+void Graphics::AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action)
+{
+	auto& graphics = GetInstance();
+	auto& commands = graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
+	if(const auto search = commands.find(name); search == commands.end())
+	{
+		RegisterCommandBuffer(name);
+	}
+	auto& commandBuffer = commands[name];
+	commandBuffer.Begin();
+	action(commandBuffer.GetVkCommandBuffer(), graphics.m_globalPipelineState);
+	commandBuffer.End();
 }
 
 void Graphics::CreateStandardDescriptorLayout()
@@ -1101,6 +1147,21 @@ bool Graphics::UpdateFrameBuffers()
 	return true;
 }
 
+void Graphics::CreateSwapChainSyncObjects()
+{
+	VkSemaphoreCreateInfo semaphoreCreateInfo{};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	VkFenceCreateInfo fenceCreateInfo{};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	m_renderFinishedSemaphores.clear();
+	m_inFlightFences.clear();
+	for (int i = 0; i < m_maxFrameInFlight; i++) {
+		m_renderFinishedSemaphores.emplace_back(std::make_unique<Semaphore>(semaphoreCreateInfo));
+		m_inFlightFences.emplace_back(std::make_unique<Fence>(fenceCreateInfo));
+	}
+}
+
 
 void Graphics::RecreateSwapChain()
 {
@@ -1124,8 +1185,6 @@ void Graphics::OnDestroy()
 	m_descriptorPool.reset();
 
 #pragma region Vulkan
-	m_inFlightFences.clear();
-	m_renderFinishedSemaphores.clear();
 	m_imageAvailableSemaphores.clear();
 	m_commandPool.reset();
 	m_swapchain.reset();
@@ -1169,7 +1228,11 @@ void Graphics::SwapChainSwapImage()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 	vkResetFences(m_vkDevice, 1, inFlightFences);
-	vkResetCommandBuffer(m_vkCommandBuffers[m_currentFrameIndex], 0);
+
+	for (auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+	{
+		commandBuffer.second.Reset();
+	}
 }
 
 void Graphics::SubmitPresent()
@@ -1186,8 +1249,14 @@ void Graphics::SubmitPresent()
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_vkCommandBuffers[m_currentFrameIndex];
+	std::vector<VkCommandBuffer> commandBuffers;
+	for(const auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+	{
+		if(commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffers.emplace_back(commandBuffer.second.GetVkCommandBuffer());
+	}
+
+	submitInfo.commandBufferCount = commandBuffers.size();
+	submitInfo.pCommandBuffers = commandBuffers.data();
 
 	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
@@ -1195,7 +1264,10 @@ void Graphics::SubmitPresent()
 	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
-
+	for (auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+	{
+		if (commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffer.second.m_status = CommandBufferStatus::Ready;
+	}
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -1257,10 +1329,10 @@ void Graphics::Initialize()
 		poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
 		graphics.m_commandPool = std::make_unique<CommandPool>(poolInfo);
 #pragma endregion
-		CreateCommandBuffers(graphics.m_commandPool, graphics.m_vkCommandBuffers);
+		graphics.m_vkCommandBuffers.resize(graphics.m_maxFrameInFlight);
 		graphics.CreateSwapChainSyncObjects();
 
-		const VkDescriptorPoolSize renderLayerDescriptorPoolSizes[] =
+		constexpr VkDescriptorPoolSize renderLayerDescriptorPoolSizes[] =
 		{
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
 			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
@@ -1310,7 +1382,7 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	AppendCommands([&](const VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
+	AppendCommands("GlobalReset", [&](const VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)
 		{
 			globalPipelineState.ResetAllStates(commandBuffer);
 		}

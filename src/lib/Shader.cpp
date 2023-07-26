@@ -106,10 +106,10 @@ void ShaderProgram::PrepareLayouts()
 	m_perGroupLayout.reset();
 	m_perCommandLayout.reset();
 
-	vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
-	vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perPassDescriptorSets.size(), m_perPassDescriptorSets.data());
-	vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perGroupDescriptorSets.size(), m_perGroupDescriptorSets.data());
-	vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perCommandDescriptorSets.size(), m_perCommandDescriptorSets.data());
+	if(!m_perFrameDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
+	if (!m_perPassDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perPassDescriptorSets.size(), m_perPassDescriptorSets.data());
+	if (!m_perGroupDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perGroupDescriptorSets.size(), m_perGroupDescriptorSets.data());
+	if (!m_perCommandDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perCommandDescriptorSets.size(), m_perCommandDescriptorSets.data());
 
 	m_perFrameDescriptorSets.clear();
 	m_perPassDescriptorSets.clear();
@@ -225,30 +225,21 @@ void ShaderProgram::UpdateStandardBindings()
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
 	VkDescriptorBufferInfo bufferInfos[5] = {};
 	bufferInfos[0].offset = 0;
-	bufferInfos[0].range = sizeof(RenderInfoBlock);
+	bufferInfos[0].range = VK_WHOLE_SIZE;
 	bufferInfos[1].offset = 0;
-	bufferInfos[1].range = sizeof(EnvironmentInfoBlock);
+	bufferInfos[1].range = VK_WHOLE_SIZE;
 	bufferInfos[2].offset = 0;
-	bufferInfos[2].range = sizeof(CameraInfoBlock);
+	bufferInfos[2].range = VK_WHOLE_SIZE;
 	bufferInfos[3].offset = 0;
-	bufferInfos[3].range = sizeof(MaterialInfoBlock);
+	bufferInfos[3].range = VK_WHOLE_SIZE;
 	bufferInfos[4].offset = 0;
-	bufferInfos[4].range = sizeof(ObjectInfoBlock);
+	bufferInfos[4].range = VK_WHOLE_SIZE;
 	for (size_t i = 0; i < maxFramesInFlight; i++) {
 		bufferInfos[0].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 0]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), graphics.m_standardDescriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &graphics.m_renderInfoBlockMemory[i]);
-
 		bufferInfos[1].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 1]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), graphics.m_standardDescriptorBuffers[i * 4 + 1]->GetVmaAllocation(), &graphics.m_environmentalInfoBlockMemory[i]);
-
 		bufferInfos[2].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 2]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), graphics.m_standardDescriptorBuffers[i * 4 + 2]->GetVmaAllocation(), &graphics.m_cameraInfoBlockMemory[i]);
-
 		bufferInfos[3].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 3]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), graphics.m_standardDescriptorBuffers[i * 4 + 3]->GetVmaAllocation(), &graphics.m_materialInfoBlockMemory[i]);
-
 		bufferInfos[4].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 4]->GetVkBuffer();
-		vmaMapMemory(Graphics::GetVmaAllocator(), graphics.m_standardDescriptorBuffers[i * 4 + 4]->GetVmaAllocation(), &graphics.m_objectInfoBlockMemory[i]);
 
 		VkWriteDescriptorSet renderInfo{};
 		renderInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -508,7 +499,7 @@ void ShaderProgram::LinkShaders()
 	if (const auto tessControlShader = m_tessellationControlShader.Get<Shader>())
 	{
 		VkShaderCreateInfoEXT shaderCreateInfo{};
-		shaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderCreateInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 		const auto fragShaderBinary = ShaderUtils::CompileFile("TessControlShader", shaderc_tess_control_shader, tessControlShader->m_code);
 
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
@@ -539,7 +530,7 @@ void ShaderProgram::LinkShaders()
 	if (const auto tessEvaluationShader = m_tessellationEvaluationShader.Get<Shader>())
 	{
 		VkShaderCreateInfoEXT shaderCreateInfo{};
-		shaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderCreateInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 		const auto fragShaderBinary = ShaderUtils::CompileFile("TessEvaluationShader", shaderc_tess_evaluation_shader, tessEvaluationShader->m_code);
 
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
@@ -570,7 +561,7 @@ void ShaderProgram::LinkShaders()
 	if (const auto geometryShader = m_geometryShader.Get<Shader>())
 	{
 		VkShaderCreateInfoEXT shaderCreateInfo{};
-		shaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderCreateInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 		const auto fragShaderBinary = ShaderUtils::CompileFile("GeometryShader", shaderc_geometry_shader, geometryShader->m_code);
 
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
@@ -601,7 +592,7 @@ void ShaderProgram::LinkShaders()
 	if (const auto fragmentShader = m_fragmentShader.Get<Shader>())
 	{
 		VkShaderCreateInfoEXT shaderCreateInfo{};
-		shaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		const auto fragShaderBinary = ShaderUtils::CompileFile("FragmentShader", shaderc_fragment_shader, fragmentShader->m_code);
 
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
@@ -632,7 +623,7 @@ void ShaderProgram::LinkShaders()
 	if (const auto computeShader = m_computeShader.Get<Shader>())
 	{
 		VkShaderCreateInfoEXT shaderCreateInfo{};
-		shaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 		const auto fragShaderBinary = ShaderUtils::CompileFile("ComputeShader", shaderc_compute_shader, computeShader->m_code);
 
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;

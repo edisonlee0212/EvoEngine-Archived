@@ -98,7 +98,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	}
 	m_vertices = vertices;
 	m_triangles = triangles;
-	/*
+	
 #pragma region Bound
 	glm::vec3 minBound = m_vertices.at(0).m_position;
 	glm::vec3 maxBound = m_vertices.at(0).m_position;
@@ -116,7 +116,6 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_bound.m_max = maxBound;
 	m_bound.m_min = minBound;
 #pragma endregion
-*/
 	if (!vertexAttributes.m_normal)
 		RecalculateNormal();
 	if (!vertexAttributes.m_tangent)

@@ -172,7 +172,7 @@ namespace EvoEngine
 
 		int m_maxFrameInFlight = 2;
 
-		std::vector<VkCommandBuffer> m_vkCommandBuffers = {};
+		std::vector<std::unordered_map<std::string, CommandBuffer>> m_vkCommandBuffers = {};
 
 		std::vector<std::unique_ptr<Semaphore>> m_imageAvailableSemaphores = {};
 		std::vector<std::unique_ptr<Semaphore>> m_renderFinishedSemaphores = {};
@@ -239,6 +239,8 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+		static std::string StringifyResultVk(const VkResult& result);
+		static void CheckVk(const VkResult& result);
 #pragma region Formats
 		class ImageFormats
 		{
@@ -250,6 +252,7 @@ namespace EvoEngine
 		};
 
 #pragma endregion
+		static void RegisterCommandBuffer(const std::string& name);
 		static const std::string& GetStandardShaderIncludes();
 		static size_t GetMaxBoneAmount();
 		static size_t GetMaxMaterialAmount();
@@ -268,8 +271,7 @@ namespace EvoEngine
 		static const std::unique_ptr<RenderPass>& GetSwapchainRenderPass();
 		static const std::unique_ptr<Framebuffer>& GetSwapchainFramebuffer();
 		static GlobalPipelineState& GlobalState();
-		static void CreateCommandBuffers(const std::unique_ptr <CommandPool>& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
-		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action);
+		static void AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static QueueFamilyIndices GetQueueFamilyIndices();
 		static int GetMaxFramesInFlight();
@@ -283,7 +285,7 @@ namespace EvoEngine
 		static VkQueue GetGraphicsVkQueue();
 		static VkQueue GetPresentVkQueue();
 		static VmaAllocator GetVmaAllocator();
-		static VkCommandBuffer GetCurrentVkCommandBuffer();
+		static VkCommandBuffer GetCurrentVkCommandBuffer(const std::string& name);
 		static const std::unique_ptr<Swapchain>& GetSwapchain();
 		static const std::unique_ptr<DescriptorPool>& GetDescriptorPool();
 		static unsigned GetSwapchainVersion();

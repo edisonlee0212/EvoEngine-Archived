@@ -24,6 +24,8 @@ glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
 	return start / start.w;
 }
 
+
+
 void RenderTask::Dispatch(
 	const std::function<void(const std::shared_ptr<Material>&)>&
 	beginCommandGroupAction,
@@ -584,7 +586,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 	auto deferredPrepassProgram = std::dynamic_pointer_cast<ShaderProgram>(Resources::GetResource("STANDARD_DEFERRED_PREPASS_PROGRAM"));
 	auto deferredLightingProgram = std::dynamic_pointer_cast<ShaderProgram>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_PROGRAM"));
 	auto& deferredRenderPass = m_renderPasses["DEFERRED_RENDERING"];
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState) {
+	auto commandBufferName = "DeferredRendering##" + std::to_string(camera->GetHandle());
+	Graphics::AppendCommands(commandBufferName, [&](VkCommandBuffer commandBuffer, GlobalPipelineState& globalPipelineState) {
 		VkExtent2D extent2D;
 		const auto resolution = camera->GetSize();
 		extent2D.width = resolution.x;
@@ -618,8 +621,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		globalPipelineState.m_scissor = scissor;
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		
-		m_deferredInstancedRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
+		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
 				material->m_drawSettings.ApplySettings(globalPipelineState);
@@ -633,10 +635,13 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 					ObjectInfoBlock objectInfoBlock{};
 					objectInfoBlock.m_model = renderCommand.m_globalTransform.m_value;
 					Graphics::UploadObjectInfo(objectInfoBlock);
+					globalPipelineState.ApplyAllStates(commandBuffer);
+
 					deferredPrepassProgram->BindAllDescriptorSets(commandBuffer);
 
 					deferredPrepassProgram->BindShaders(commandBuffer);
-					auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+					const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, globalPipelineState);
 					break;
 				}

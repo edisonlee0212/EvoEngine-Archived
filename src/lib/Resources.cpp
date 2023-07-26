@@ -43,6 +43,11 @@ void Resources::LoadShaders()
 		auto standardProgram = CreateResource<ShaderProgram>("STANDARD_PROGRAM");
 		standardProgram->m_vertexShader = standardVert;
 		standardProgram->m_fragmentShader = standardFrag;
+		standardProgram->InitializeStandardBindings();
+		standardProgram->PrepareLayouts();
+		standardProgram->LinkShaders();
+		standardProgram->UpdateStandardBindings();
+
 		/*
 		vertShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(
@@ -156,6 +161,10 @@ void Resources::LoadShaders()
 		auto gBufferPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_PREPASS_PROGRAM");
 		gBufferPrepassProgram->m_vertexShader = GetResource("STANDARD_VERT");
 		gBufferPrepassProgram->m_fragmentShader = standardDeferredPrepassFrag;
+		gBufferPrepassProgram->InitializeStandardBindings();
+		gBufferPrepassProgram->PrepareLayouts();
+		gBufferPrepassProgram->LinkShaders();
+		gBufferPrepassProgram->UpdateStandardBindings();
 		/*
 		auto gBufferSkinnedPrepassProgram = CreateResource<ShaderProgram>("STANDARD_DEFERRED_SKINNED_PREPASS_PROGRAM");
 		gBufferSkinnedPrepassProgram->m_vertexShader = GetResource("STANDARD_SKINNED_VERT");
