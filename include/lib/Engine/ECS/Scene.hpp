@@ -289,12 +289,12 @@ namespace EvoEngine
         bool HasPrivateComponent(const Entity& entity, const std::string& typeName);
 #pragma endregion
 #pragma region Entity Management
-        Entity CreateEntity(const std::string& name = "New Entity");
-        Entity CreateEntity(
+        [[maybe_unused]] Entity CreateEntity(const std::string& name = "New Entity");
+        [[maybe_unused]] Entity CreateEntity(
             const EntityArchetype& archetype, const std::string& name = "New Entity", const Handle& handle = Handle());
-        std::vector<Entity> CreateEntities(
+        [[maybe_unused]] std::vector<Entity> CreateEntities(
             const EntityArchetype& archetype, const size_t& amount, const std::string& name = "New Entity");
-        std::vector<Entity> CreateEntities(const size_t& amount, const std::string& name = "New Entity");
+        [[maybe_unused]] std::vector<Entity> CreateEntities(const size_t& amount, const std::string& name = "New Entity");
         void DeleteEntity(const Entity& entity);
         Entity GetEntity(const Handle& handle);
         Entity GetEntity(const size_t& index);

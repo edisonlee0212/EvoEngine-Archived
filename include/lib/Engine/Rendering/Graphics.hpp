@@ -18,6 +18,10 @@ namespace EvoEngine
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
+	enum class GeometryType
+	{
+		Mesh
+	};
 	class GlobalPipelineState
 	{
 		friend class Graphics;
@@ -43,7 +47,7 @@ namespace EvoEngine
 		VkStencilOp m_stencilPassOpApplied = VK_STENCIL_OP_ZERO;
 		VkStencilOp m_stencilDepthFailOpApplied = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOpApplied = VK_COMPARE_OP_LESS;
-
+		GeometryType m_geometryTypeApplied = GeometryType::Mesh;
 		void ResetAllStates(VkCommandBuffer commandBuffer);
 	public:
 		VkViewport m_viewPort = {};
@@ -68,8 +72,11 @@ namespace EvoEngine
 		VkStencilOp m_stencilPassOp = VK_STENCIL_OP_ZERO;
 		VkStencilOp m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOp = VK_COMPARE_OP_LESS;
-
+		GeometryType m_geometryType = GeometryType::Mesh;
 		void ApplyAllStates(VkCommandBuffer commandBuffer, bool forceSet = false);
+
+		static const VkVertexInputBindingDescription2EXT &GetVertexBindingDescription();
+		static const std::vector<VkVertexInputAttributeDescription2EXT>& GetVertexAttributeDescriptions();
 	};
 
 	struct RenderInfoBlock {
@@ -245,6 +252,7 @@ namespace EvoEngine
 		class ImageFormats
 		{
 		public:
+			inline static VkFormat m_texture2D = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;

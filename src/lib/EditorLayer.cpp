@@ -391,7 +391,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::Begin("Entity Explorer");
 		if (ImGui::BeginPopupContextWindow("NewEntityPopup")) {
 			if (ImGui::Button("Create new entity")) {
-				auto newEntity = scene->CreateEntity(m_basicEntityArchetype);
+				scene->CreateEntity(m_basicEntityArchetype);
 			}
 			ImGui::EndPopup();
 		}
@@ -728,7 +728,7 @@ void EditorLayer::DrawEntityNode(const Entity& entity, const unsigned& hierarchy
 	}
 	const bool deleted = DrawEntityMenu(enabled, entity);
 	if (opened && !deleted) {
-		ImGui::TreePush();
+		ImGui::TreePush(title.c_str());
 		scene->ForEachChild(
 			entity, [=](Entity child) {
 				DrawEntityNode(child, hierarchyLevel + 1);
@@ -774,7 +774,7 @@ void EditorLayer::SceneCameraWindow()
 			if (m_sceneCamera && m_sceneCamera->m_rendered) {
 				// Because I use the texture from OpenGL, I need to invert the V from the UV.
 				ImGui::Image(m_sceneCamera->GetRenderTexture()->GetColorImTextureId(),
-					ImVec2(viewPortSize.x, viewPortSize.y - 20),
+					ImVec2(m_sceneCamera->GetSize().x, m_sceneCamera->GetSize().y),
 					ImVec2(0, 1),
 					ImVec2(1, 0));
 				CameraWindowDragAndDrop();
@@ -1157,9 +1157,10 @@ std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 	return m_sceneCamera;
 }
 
-ImTextureID EditorLayer::GetTextureId(const VkImageView imageView, VkImageLayout imageLayout) const
+void EditorLayer::UpdateTextureId(ImTextureID& target, const VkImageView imageView, VkImageLayout imageLayout) const
 {
-	return ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, imageLayout);
+	if (target != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(target));
+	target = ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, imageLayout);
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)

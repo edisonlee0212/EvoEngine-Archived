@@ -138,14 +138,18 @@ void Camera::UpdateGBuffer()
 
 		m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
 	}
+	m_gBufferDepth->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	m_gBufferNormal->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	m_gBufferMaterial->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		//m_gBufferDepthImTextureId = editorLayer->GetTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
-		m_gBufferNormal->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		m_gBufferNormalImTextureId = editorLayer->GetTextureId(m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
-		m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		m_gBufferAlbedoImTextureId = editorLayer->GetTextureId(m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
-		m_gBufferMaterial->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		m_gBufferMaterialImTextureId = editorLayer->GetTextureId(m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
+		//m_gBufferDepthImTextureId = editorLayer->UpdateTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
+		editorLayer->UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
+
+		editorLayer->UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
+
+		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 	}
 }
 
@@ -158,7 +162,7 @@ void Camera::UpdateFrameBuffer()
 			m_gBufferNormalView->GetVkImageView(),
 			m_gBufferAlbedoView->GetVkImageView(),
 			m_gBufferMaterialView->GetVkImageView(),
-			
+
 			m_renderTexture->GetDepthImageView()->GetVkImageView(),
 			m_renderTexture->GetColorImageView()->GetVkImageView()
 		};

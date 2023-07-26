@@ -56,6 +56,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	m_colorImage = std::make_unique<Image>(imageInfo);
+	m_colorImage->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -84,6 +85,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthStencilInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	m_depthStencilImage = std::make_unique<Image>(depthStencilInfo);
+	m_depthStencilImage->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 	VkImageViewCreateInfo depthViewInfo{};
 	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -136,8 +138,8 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_colorSampler = std::make_unique<Sampler>(samplerInfo);
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		m_colorImage->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		m_colorImTextureId = editorLayer->GetTextureId(m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
+		
+		editorLayer->UpdateTextureId(m_colorImTextureId, m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
 	}
 
 }

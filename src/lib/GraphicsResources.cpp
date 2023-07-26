@@ -283,7 +283,7 @@ void PipelineShaderStage::Apply(const VkPipelineShaderStageCreateInfo& vkPipelin
 	m_stage = vkPipelineShaderStageCreateInfo.stage;
 	m_module = vkPipelineShaderStageCreateInfo.module;
 	m_name = vkPipelineShaderStageCreateInfo.pName;
-	if(vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
+	if (vkPipelineShaderStageCreateInfo.pSpecializationInfo != VK_NULL_HANDLE)
 	{
 		m_specializationInfo = *vkPipelineShaderStageCreateInfo.pSpecializationInfo;
 	}
@@ -339,7 +339,7 @@ void PipelineMultisampleState::Apply(const VkPipelineMultisampleStateCreateInfo&
 	m_rasterizationSamples = vkPipelineMultisampleStateCreateInfo.rasterizationSamples;
 	m_sampleShadingEnable = vkPipelineMultisampleStateCreateInfo.sampleShadingEnable;
 	m_minSampleShading = vkPipelineMultisampleStateCreateInfo.minSampleShading;
-	if(vkPipelineMultisampleStateCreateInfo.pSampleMask) m_sampleMask = *vkPipelineMultisampleStateCreateInfo.pSampleMask;
+	if (vkPipelineMultisampleStateCreateInfo.pSampleMask) m_sampleMask = *vkPipelineMultisampleStateCreateInfo.pSampleMask;
 	m_alphaToCoverageEnable = vkPipelineMultisampleStateCreateInfo.alphaToCoverageEnable;
 	m_alphaToOneEnable = vkPipelineMultisampleStateCreateInfo.alphaToOneEnable;
 }
@@ -619,15 +619,15 @@ void Image::TransitionImageLayout(VkImageLayout newLayout)
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.image = m_vkImage;
-			if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-				if (HasStencilComponent()) {
-					barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-				}
-			}
-			else {
+			if (m_format == Graphics::ImageFormats::m_texture2D || m_format == Graphics::ImageFormats::m_renderTextureColor || m_format == Graphics::ImageFormats::m_gBufferColor)
+			{
 				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			}
+			else if (m_format == Graphics::ImageFormats::m_gBufferDepth || m_format == Graphics::ImageFormats::m_renderTextureDepthStencil)
+			{
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.levelCount = 1;
 			barrier.subresourceRange.baseArrayLayer = 0;
@@ -713,7 +713,7 @@ void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDevi
 		});
 }
 
-VkBuffer Buffer::GetVkBuffer() const
+const VkBuffer& Buffer::GetVkBuffer() const
 {
 	return m_vkBuffer;
 }
@@ -826,12 +826,12 @@ const VkCommandBuffer& CommandBuffer::GetVkCommandBuffer() const
 
 void CommandBuffer::Begin(const VkCommandBufferUsageFlags& usage)
 {
-	if(m_status == CommandBufferStatus::Invalid)
+	if (m_status == CommandBufferStatus::Invalid)
 	{
 		EVOENGINE_ERROR("Command buffer invalid!");
 		return;
 	}
-	if(m_status != CommandBufferStatus::Ready)
+	if (m_status != CommandBufferStatus::Ready)
 	{
 		EVOENGINE_ERROR("Command buffer not ready!");
 		return;
@@ -866,7 +866,7 @@ void CommandBuffer::SubmitIdle()
 		EVOENGINE_ERROR("Command buffer invalid!");
 		return;
 	}
-	if(m_status == CommandBufferStatus::Recording)
+	if (m_status == CommandBufferStatus::Recording)
 	{
 		EVOENGINE_ERROR("Command buffer recording!");
 		return;
@@ -881,7 +881,7 @@ void CommandBuffer::SubmitIdle()
 
 	VkFence fence;
 	auto device = Graphics::GetVkDevice();
-	if(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+	if (vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
 
 	Graphics::CheckVk(vkResetFences(device, 1, &fence));
 

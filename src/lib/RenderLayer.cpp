@@ -167,16 +167,16 @@ void RenderLayer::CreateRenderPasses()
 		//Subpass 1: To gBuffer.
 		VkAttachmentReference gBufferDepthAttachmentRef{};
 		gBufferDepthAttachmentRef.attachment = 0;
-		gBufferDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		gBufferDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		VkAttachmentReference gBufferNormalAttachmentRef{};
 		gBufferNormalAttachmentRef.attachment = 1;
-		gBufferNormalAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		gBufferNormalAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		VkAttachmentReference gBufferAlbedoAttachmentRef{};
 		gBufferAlbedoAttachmentRef.attachment = 2;
-		gBufferAlbedoAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		gBufferAlbedoAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		VkAttachmentReference gBufferMaterialAttachmentRef{};
 		gBufferMaterialAttachmentRef.attachment = 3;
-		gBufferMaterialAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		gBufferMaterialAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 		std::vector colorReferences {gBufferNormalAttachmentRef, gBufferAlbedoAttachmentRef, gBufferMaterialAttachmentRef};
 
@@ -188,11 +188,11 @@ void RenderLayer::CreateRenderPasses()
 
 		//Subpass 2: To RenderTexture
 		VkAttachmentReference depthAttachmentRef{};
-		depthAttachmentRef.attachment = 0;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachmentRef.attachment = 4;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 1;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachmentRef.attachment = 5;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 		shadingSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		shadingSubpass.colorAttachmentCount = 1;
@@ -599,9 +599,14 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = extent2D;
 
-		VkClearValue clearColor = { {{1.0f, 0.0f, 0.0f, 1.0f}},  };
-
-		std::vector<VkClearValue> clearValues = { 6, clearColor };
+		std::array<VkClearValue, 6> clearValues{};
+		
+		clearValues[0].depthStencil = { 1.0f, 0 };
+		clearValues[1].color = { {1.0f, 0.0f, 0.0f, 1.0f} };
+		clearValues[2].color = { {0.0f, 1.0f, 0.0f, 1.0f} };
+		clearValues[3].color = { {0.0f, 0.0f, 1.0f, 1.0f} };
+		clearValues[4].depthStencil = { 1.0f, 0 };
+		clearValues[5].color = { {1.0f, 1.0f, 1.0f, 1.0f} };
 
 		renderPassBeginInfo.clearValueCount = clearValues.size();
 		renderPassBeginInfo.pClearValues = clearValues.data();
@@ -621,6 +626,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		globalPipelineState.m_scissor = scissor;
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		globalPipelineState.m_geometryType = GeometryType::Mesh;
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};

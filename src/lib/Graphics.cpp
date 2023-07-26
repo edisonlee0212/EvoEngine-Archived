@@ -386,7 +386,7 @@ void GlobalPipelineState::ResetAllStates(VkCommandBuffer commandBuffer)
 	m_stencilPassOp = VK_STENCIL_OP_ZERO;
 	m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
 	m_stencilCompareOp = VK_COMPARE_OP_LESS;
-
+	m_geometryTypeApplied = GeometryType::Mesh;
 	ApplyAllStates(commandBuffer, true);
 }
 
@@ -470,7 +470,71 @@ void GlobalPipelineState::ApplyAllStates(const VkCommandBuffer commandBuffer, co
 		m_stencilDepthFailOpApplied = m_stencilDepthFailOp;
 		m_stencilCompareOpApplied = m_stencilCompareOp;
 		vkCmdSetStencilOpEXT(commandBuffer, m_stencilFaceMaskApplied, m_stencilFailOpApplied, m_stencilPassOpApplied, m_stencilDepthFailOpApplied, m_stencilCompareOpApplied);
-	}	
+	}
+	if (forceSet || m_geometryTypeApplied != m_geometryType)
+	{
+		m_geometryTypeApplied = m_geometryType;
+		switch (m_geometryTypeApplied)
+		{
+		case GeometryType::Mesh:
+		{
+			vkCmdSetVertexInputEXT(commandBuffer, 1, &GetVertexBindingDescription(),
+				GetVertexAttributeDescriptions().size(), GetVertexAttributeDescriptions().data());
+		}break;
+		}
+	}
+	
+}
+
+const VkVertexInputBindingDescription2EXT &GlobalPipelineState::GetVertexBindingDescription()
+{
+	static VkVertexInputBindingDescription2EXT bindingDescription{
+		VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,
+		nullptr,
+		0,
+		sizeof(Vertex),
+		VK_VERTEX_INPUT_RATE_VERTEX,
+		1};
+	return bindingDescription;
+}
+
+const std::vector<VkVertexInputAttributeDescription2EXT>& GlobalPipelineState::GetVertexAttributeDescriptions()
+{
+	static std::vector<VkVertexInputAttributeDescription2EXT> attributeDescriptions{};
+	if(attributeDescriptions.empty())
+	{
+		attributeDescriptions.resize(5);
+		attributeDescriptions[0].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, m_position);
+
+		attributeDescriptions[1].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, m_normal);
+
+		attributeDescriptions[2].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, m_tangent);
+
+		attributeDescriptions[3].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, m_texCoord);
+
+		attributeDescriptions[4].sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[4].offset = offsetof(Vertex, m_color);
+	}
+	return attributeDescriptions;
 }
 
 QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
@@ -1348,6 +1412,7 @@ void Graphics::Initialize()
 		};
 
 		VkDescriptorPoolCreateInfo renderLayerDescriptorPoolInfo{};
+		renderLayerDescriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 		renderLayerDescriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		renderLayerDescriptorPoolInfo.poolSizeCount = std::size(renderLayerDescriptorPoolSizes);
 		renderLayerDescriptorPoolInfo.pPoolSizes = renderLayerDescriptorPoolSizes;

@@ -5,17 +5,15 @@
 #include "ClassRegistry.hpp"
 using namespace EvoEngine;
 
-void Mesh::Bind(VkCommandBuffer vkCommandBuffer) const
+void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 {
-	VkBuffer vertexBuffers[] = { m_verticesBuffer->GetVkBuffer() };
-	VkDeviceSize offsets[] = { 0 };
-
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, vertexBuffers, offsets);
+	constexpr VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &m_verticesBuffer->GetVkBuffer(), offsets);
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 }
 
-void Mesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GlobalPipelineState& globalPipelineState) const
 {
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);

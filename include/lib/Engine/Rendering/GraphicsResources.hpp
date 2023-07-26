@@ -307,7 +307,7 @@ namespace EvoEngine
 
 		void Copy(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
 
-		[[nodiscard]] VkBuffer GetVkBuffer() const;
+		[[nodiscard]] const VkBuffer &GetVkBuffer() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
 

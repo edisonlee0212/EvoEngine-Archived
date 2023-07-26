@@ -100,7 +100,7 @@ namespace EvoEngine
 
 		void CameraWindowDragAndDrop();
 
-		[[nodiscard]] ImTextureID GetTextureId(VkImageView imageView, VkImageLayout imageLayout) const;
+		[[nodiscard]] void UpdateTextureId(ImTextureID& target, VkImageView imageView, VkImageLayout imageLayout) const;
 
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;

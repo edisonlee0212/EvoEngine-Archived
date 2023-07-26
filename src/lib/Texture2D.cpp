@@ -113,7 +113,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 		m_imageView = std::make_unique<ImageView>(viewInfo);
 
-		
+
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -131,7 +131,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
 		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-			m_imTextureId = editorLayer->GetTextureId(m_imageView->GetVkImageView(), m_image->GetLayout());
+			editorLayer->UpdateTextureId(m_imTextureId, m_imageView->GetVkImageView(), m_image->GetLayout());
 		}
 	}
 	else
@@ -266,7 +266,7 @@ ImTextureID Texture2D::GetImTextureId() const
 
 VkImage Texture2D::GetVkImage() const
 {
-	if(m_image)
+	if (m_image)
 	{
 		return m_image->GetVkImage();
 	}
