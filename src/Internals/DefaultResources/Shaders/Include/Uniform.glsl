@@ -114,51 +114,46 @@ layout(set = EE_PER_GROUP_SET, binding = 3) uniform EE_MATERIAL_BLOCK
 	float EE_PBR_EMISSION;
 };
 
-layout(set = EE_PER_PASS_SET, binding = 5) uniform EE_DIRECTIONAL_LIGHT_BLOCK
+layout(set = EE_PER_COMMAND_SET, binding = 5) buffer EE_ANIM_BONES_BLOCK
+{
+	mat4 EE_ANIM_BONES[];
+};
+
+layout(set = EE_PER_PASS_SET, binding = 6) uniform EE_DIRECTIONAL_LIGHT_BLOCK
 {
 	int EE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
 	DirectionalLight EE_DIRECTIONAL_LIGHTS[DIRECTIONAL_LIGHTS_AMOUNT];
-};
 
-layout(set = EE_PER_PASS_SET, binding = 6) uniform EE_POINT_LIGHT_BLOCK
-{
 	int EE_POINT_LIGHT_AMOUNT;
 	PointLight EE_POINT_LIGHTS[POINT_LIGHTS_AMOUNT];
-};
 
-layout(set = EE_PER_PASS_SET, binding = 7) uniform EE_SPOT_LIGHT_BLOCK
-{
 	int EE_SPOT_LIGHT_AMOUNT;
 	SpotLight EE_SPOT_LIGHTS[SPOT_LIGHTS_AMOUNT];
 };
 
-
-layout(set = EE_PER_PASS_SET, binding = 8) uniform EE_KERNEL_BLOCK
+layout(set = EE_PER_PASS_SET, binding = 7) uniform EE_KERNEL_BLOCK
 {
 	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
 	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
 };
 
-layout(binding = 3) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
-layout(binding = 3) uniform sampler2DArray EE_POINT_LIGHT_SM;
-layout(binding = 3) uniform sampler2D EE_SPOT_LIGHT_SM;
+layout(set = EE_PER_PASS_SET, binding = 8) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
+layout(set = EE_PER_PASS_SET, binding = 9) uniform sampler2DArray EE_POINT_LIGHT_SM;
+layout(set = EE_PER_PASS_SET, binding = 10) uniform sampler2D EE_SPOT_LIGHT_SM;
 
-layout(binding = 3) uniform sampler2D EE_ALBEDO_MAP;
-layout(binding = 3) uniform sampler2D EE_NORMAL_MAP;
-layout(binding = 3) uniform sampler2D EE_METALLIC_MAP;
-layout(binding = 3) uniform sampler2D EE_ROUGHNESS_MAP;
-layout(binding = 3) uniform sampler2D EE_AO_MAP;
+layout(set = EE_PER_GROUP_SET, binding = 11) uniform sampler2D EE_ALBEDO_MAP;
+layout(set = EE_PER_GROUP_SET, binding = 12) uniform sampler2D EE_NORMAL_MAP;
+layout(set = EE_PER_GROUP_SET, binding = 13) uniform sampler2D EE_METALLIC_MAP;
+layout(set = EE_PER_GROUP_SET, binding = 14) uniform sampler2D EE_ROUGHNESS_MAP;
+layout(set = EE_PER_GROUP_SET, binding = 15) uniform sampler2D EE_AO_MAP;
 
-layout(binding = 3) uniform samplerCube EE_SKYBOX;
-layout(binding = 3) uniform samplerCube EE_ENVIRONMENTAL_IRRADIANCE;
-layout(binding = 3) uniform samplerCube EE_ENVIRONMENTAL_PREFILERED;
-layout(binding = 3) uniform sampler2D EE_ENVIRONMENTAL_BRDFLUT;
+layout(set = EE_PER_PASS_SET, binding = 16) uniform samplerCube EE_SKYBOX;
+layout(set = EE_PER_PASS_SET, binding = 17) uniform samplerCube EE_ENVIRONMENTAL_IRRADIANCE;
+layout(set = EE_PER_PASS_SET, binding = 18) uniform samplerCube EE_ENVIRONMENTAL_PREFILERED;
+layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D EE_ENVIRONMENTAL_BRDFLUT;
 
 
-layout(std140, binding = 8) buffer EE_ANIM_BONES_BLOCK
-{
-	mat4 EE_ANIM_BONES[];
-};
+
 
 vec3 EE_FUNC_CALCULATE_LIGHTS(in bool calculateShadow, vec3 albedo, float specular, float dist, vec3 normal, vec3 viewDir, vec3 fragPos, float metallic, float roughness, vec3 F0);
 vec3 EE_FUNC_DIRECTIONAL_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 viewDir, float metallic, float roughness, vec3 F0);

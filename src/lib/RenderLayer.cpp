@@ -48,7 +48,7 @@ void RenderTask::Dispatch(
 
 void RenderLayer::OnCreate()
 {
-	//CreateGraphicsPipelines();
+	CreateGraphicsPipelines();
 
 	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
 	{

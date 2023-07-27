@@ -11,7 +11,7 @@ layout(location = 0) out VS_OUT {
 } vs_out;
 
 
-layout(set = 3, binding = 4) uniform EE_OBJECT_BLOCK
+layout(set = EE_PER_COMMAND_SET, binding = 4) uniform EE_OBJECT_BLOCK
 {
 	mat4 model;
 };
