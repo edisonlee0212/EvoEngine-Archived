@@ -46,8 +46,8 @@ namespace EvoEngine
         void UpdateGBuffer();
     public:
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
-        static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
-
+        void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo() const;
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] std::shared_ptr<RenderTexture> GetRenderTexture() const;

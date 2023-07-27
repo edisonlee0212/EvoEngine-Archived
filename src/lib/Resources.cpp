@@ -31,15 +31,11 @@ void Resources::LoadShaders()
 		auto vertShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard.vert");
-		auto fragShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardForward.frag");
+		
 
 		auto standardVert = CreateResource<Shader>("STANDARD_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
-		auto standardFrag = CreateResource<Shader>("STANDARD_FORWARD_FRAG");
-		standardFrag->Set(ShaderType::Fragment, fragShaderCode);
-
+		
 		
 
 		/*

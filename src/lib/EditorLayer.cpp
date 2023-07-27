@@ -634,11 +634,22 @@ void EditorLayer::LateUpdate()
 	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
 
 
-	Graphics::AppendCommands("ImGuiDraw", [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			Graphics::TransitImageLayout(commandBuffer,
 			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+			VkMemoryBarrier2 memoryBarrier {};
+			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+			memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			memoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+			VkDependencyInfo dependencyInfo{};
+			dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			dependencyInfo.memoryBarrierCount = 1;
+			dependencyInfo.pMemoryBarriers = &memoryBarrier;
+			
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
 
 			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };

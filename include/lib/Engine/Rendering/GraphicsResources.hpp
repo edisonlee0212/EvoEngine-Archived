@@ -92,9 +92,6 @@ namespace EvoEngine
 		VkFormat                   m_format;
 		VkComponentMapping         m_components;
 		VkImageSubresourceRange    m_subresourceRange;
-
-		VkClearValue			   m_clearValue = {};
-
 		friend class Swapchain;
 		friend class Graphics;
 
@@ -102,7 +99,6 @@ namespace EvoEngine
 		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo);
 		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std::shared_ptr<Image>& image);
 		~ImageView() override;
-		[[nodiscard]] VkClearValue& RefClearValue();
 		[[nodiscard]] VkImageView GetVkImageView() const;
 
 		[[nodiscard]] const std::shared_ptr<Image>& GetImage() const;

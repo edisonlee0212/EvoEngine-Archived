@@ -130,7 +130,7 @@ void Application::LateUpdateInternal()
 			ImGui::EndMainMenuBar();
 		}
 
-		Graphics::AppendCommands("ImGuiDraw", [&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 			{
 				constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 				VkRect2D renderArea;

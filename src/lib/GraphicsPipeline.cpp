@@ -458,22 +458,30 @@ void GraphicsPipeline::PreparePipeline()
 	multisampling.sampleShadingEnable = VK_FALSE;
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	/*
+
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
-
+	std::vector colorBlendAttachments = { 3, colorBlendAttachment };
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.attachmentCount = colorBlendAttachments.size();
+	colorBlending.pAttachments = colorBlendAttachments.data();
 	colorBlending.blendConstants[0] = 0.0f;
 	colorBlending.blendConstants[1] = 0.0f;
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
-	*/
+
+	VkPipelineDepthStencilStateCreateInfo depthStencil{};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
 	std::vector<VkDynamicState> dynamicStates = {
 		VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
 
@@ -497,7 +505,7 @@ void GraphicsPipeline::PreparePipeline()
 		VK_DYNAMIC_STATE_STENCIL_OP,
 		VK_DYNAMIC_STATE_DEPTH_BOUNDS,
 
-		
+
 		VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT,
 		VK_DYNAMIC_STATE_LOGIC_OP_EXT,
 		VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
@@ -510,8 +518,17 @@ void GraphicsPipeline::PreparePipeline()
 	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 	dynamicState.pDynamicStates = dynamicStates.data();
 
+	VkPipelineRenderingCreateInfo renderingCreateInfo{};
+	renderingCreateInfo.viewMask = m_viewMask;
+	renderingCreateInfo.colorAttachmentCount = m_colorAttachmentFormats.size();
+	renderingCreateInfo.pColorAttachmentFormats = m_colorAttachmentFormats.data();
+	renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+	renderingCreateInfo.depthAttachmentFormat = m_depthAttachmentFormat;
+	renderingCreateInfo.stencilAttachmentFormat = m_stencilAttachmentFormat;
+
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.stageCount = shaderStages.size();
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pStages = shaderStages.data();
@@ -519,11 +536,10 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pMultisampleState = &multisampling;
-	//pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
-	//pipelineInfo.renderPass = renderPass->GetVkRenderPass();
-	//pipelineInfo.subpass = subpassIndex;
+	pipelineInfo.pNext = &renderingCreateInfo;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
@@ -533,6 +549,17 @@ void GraphicsPipeline::PreparePipeline()
 bool GraphicsPipeline::PipelineReady() const
 {
 	return m_vkGraphicsPipeline != VK_NULL_HANDLE;;
+}
+
+void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer) const
+{
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkGraphicsPipeline);
+	std::vector<VkDescriptorSet> descriptorSets{
+		m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()],
+			m_perPassDescriptorSets[Graphics::GetCurrentFrameIndex()],
+			m_perGroupDescriptorSets[Graphics::GetCurrentFrameIndex()],
+			m_perCommandDescriptorSets[Graphics::GetCurrentFrameIndex()]};
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout->GetVkPipelineLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
 }
 
 #pragma region Pipeline Data

@@ -145,7 +145,6 @@ ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo)
 	m_format = imageViewCreateInfo.format;
 	m_components = imageViewCreateInfo.components;
 	m_subresourceRange = imageViewCreateInfo.subresourceRange;
-	m_clearValue.color = { 0, 0, 0, 0 };
 }
 
 ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std::shared_ptr<Image>& image)
@@ -157,7 +156,6 @@ ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std
 	m_format = image->GetFormat();
 	m_components = imageViewCreateInfo.components;
 	m_subresourceRange = imageViewCreateInfo.subresourceRange;
-	m_clearValue.color = { 0, 0, 0, 0 };
 }
 
 ImageView::~ImageView()
@@ -354,11 +352,6 @@ void Image::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout n
 const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 {
 	return m_vmaAllocationInfo;
-}
-
-VkClearValue& ImageView::RefClearValue()
-{
-	return m_clearValue;
 }
 
 Sampler::Sampler(const VkSamplerCreateInfo& samplerCreateInfo)

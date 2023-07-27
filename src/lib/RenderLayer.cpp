@@ -100,143 +100,7 @@ void RenderLayer::PreUpdate()
 void RenderLayer::LateUpdate()
 {
 }
-/*
-void RenderLayer::CreateRenderPasses()
-{
-	if (auto editorLayer = Application::GetLayer<EditorLayer>())
-	{
-		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = Graphics::GetSwapchain()->GetImageFormat();
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthAttachmentRef{};
-		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorAttachmentRef;
-		subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-		const std::vector<VkSubpassDescription> subpasses = { subpass };
-		const std::vector<VkSubpassDependency> dependencies = { dependency };
-		renderPassInfo.subpassCount = static_cast<uint32_t>(subpasses.size());
-		renderPassInfo.pSubpasses = subpasses.data();
-		renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-		renderPassInfo.pDependencies = dependencies.data();
-
-		const std::vector attachments = { colorAttachment, depthAttachment };
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		renderPassInfo.pAttachments = attachments.data();
-		m_renderPasses.insert({ "SCREEN_PRESENT", std::make_shared<RenderPass>(renderPassInfo) });
-	}
-
-	{
-		VkSubpassDescription geometricSubpass{};
-		VkSubpassDescription shadingSubpass{};
-
-		//Subpass 1: To gBuffer.
-		VkAttachmentReference gBufferDepthAttachmentRef{};
-		gBufferDepthAttachmentRef.attachment = 0;
-		gBufferDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference gBufferNormalAttachmentRef{};
-		gBufferNormalAttachmentRef.attachment = 1;
-		gBufferNormalAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference gBufferAlbedoAttachmentRef{};
-		gBufferAlbedoAttachmentRef.attachment = 2;
-		gBufferAlbedoAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference gBufferMaterialAttachmentRef{};
-		gBufferMaterialAttachmentRef.attachment = 3;
-		gBufferMaterialAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-
-		std::vector colorReferences {gBufferNormalAttachmentRef, gBufferAlbedoAttachmentRef, gBufferMaterialAttachmentRef};
-
-		geometricSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		geometricSubpass.colorAttachmentCount = colorReferences.size();
-		geometricSubpass.pColorAttachments = colorReferences.data();
-		geometricSubpass.pDepthStencilAttachment = &gBufferDepthAttachmentRef;
-
-
-		//Subpass 2: To RenderTexture
-		VkAttachmentReference depthAttachmentRef{};
-		depthAttachmentRef.attachment = 4;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 5;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-
-		shadingSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		shadingSubpass.colorAttachmentCount = 1;
-		shadingSubpass.pColorAttachments = &colorAttachmentRef;
-		shadingSubpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-
-		VkSubpassDependency geometryPassDependency{};
-		geometryPassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		geometryPassDependency.dstSubpass = 1;
-
-		geometryPassDependency.srcStageMask = 0;
-		geometryPassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
-		geometryPassDependency.srcAccessMask = 0;
-		geometryPassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		VkSubpassDependency shadingPassDependency{};
-		shadingPassDependency.srcSubpass = 0;
-		shadingPassDependency.dstSubpass = 1;
-		shadingPassDependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		shadingPassDependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-		shadingPassDependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		shadingPassDependency.dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-
-		const std::vector subpasses = { geometricSubpass, shadingSubpass };
-		const std::vector dependencies = { geometryPassDependency,  shadingPassDependency };
-
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.subpassCount = static_cast<uint32_t>(subpasses.size());
-		renderPassInfo.pSubpasses = subpasses.data();
-		renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-		renderPassInfo.pDependencies = dependencies.data();
-		auto attachmentDescriptions = Camera::GetAttachmentDescriptions();
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-		renderPassInfo.pAttachments = attachmentDescriptions.data();
-		m_renderPasses.insert({ "DEFERRED_RENDERING", std::make_shared<RenderPass>(renderPassInfo) });
-	}
-}
-*/
 void RenderLayer::CreateGraphicsPipelines()
 {
 	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
@@ -245,10 +109,15 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredPrepass->InitializeStandardBindings();
 	standardDeferredPrepass->PrepareLayouts();
 	standardDeferredPrepass->UpdateStandardBindings();
+
+	standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
+	standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
+	standardDeferredPrepass->m_colorAttachmentFormats = { 3, Graphics::ImageFormats::m_gBufferColor };
+
 	standardDeferredPrepass->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
 
-
+	/*
 	auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 	standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
 	standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
@@ -256,7 +125,7 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredLighting->PrepareLayouts();
 	standardDeferredLighting->UpdateStandardBindings();
 	standardDeferredLighting->PreparePipeline();
-	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
+	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;*/
 }
 
 void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras)
@@ -599,14 +468,29 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const GlobalTransform& cameraModel)
 {
-	/*
+	
 	CameraInfoBlock cameraInfoBlock = {};
 	camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraModel);
 	Graphics::UploadCameraInfo(cameraInfoBlock);
 	auto deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
 	auto deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
-	auto commandBufferName = "DeferredRendering##" + std::to_string(camera->GetHandle());
-	Graphics::AppendCommands(commandBufferName, [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+		VkRect2D renderArea;
+		renderArea.offset = { 0, 0 };
+		renderArea.extent.width = camera->GetSize().x;
+		renderArea.extent.height = camera->GetSize().y;
+		std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
+		camera->AppendColorAttachmentInfos(colorAttachmentInfos);
+		const auto depthAttachment = camera->GetDepthAttachmentInfo();
+		VkRenderingInfo renderInfo{};
+		renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderInfo.renderArea = renderArea;
+		renderInfo.layerCount = 1;
+		renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+		renderInfo.pColorAttachments = colorAttachmentInfos.data();
+		renderInfo.pDepthAttachment = &depthAttachment;
+		vkCmdBeginRendering(commandBuffer, &renderInfo);
+
 		VkViewport viewport;
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -621,29 +505,16 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		scissor.extent.height = camera->GetSize().y;
 		globalPipelineState.m_viewPort = viewport;
 		globalPipelineState.m_scissor = scissor;
-
-		constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-		VkRect2D renderArea;
-		renderArea.offset = { 0, 0 };
-		renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
-
-		VkRenderingAttachmentInfo colorAttachmentInfo{};
-				colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-				colorAttachmentInfo.imageView = ;
-				colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-				colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				colorAttachmentInfo.clearValue = clearColor;
-
-				VkRenderingInfo renderInfo{};
-				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-				renderInfo.renderArea = renderArea;
-				renderInfo.layerCount = 1;
-				renderInfo.colorAttachmentCount = 1;
-				renderInfo.pColorAttachments = &colorAttachmentInfo;
-
-		vkCmdBeginRendering(commandBuffer, &renderInfo);
-
+		deferredPrepassProgram->Bind(commandBuffer);
+		globalPipelineState.m_colorBlendAttachmentStates.clear();
+		globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+		for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+		{
+			i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			i.blendEnable = VK_FALSE;
+		}
+		globalPipelineState.ApplyAllStates(commandBuffer, true);
+		
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
@@ -675,5 +546,4 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
-	*/
 }

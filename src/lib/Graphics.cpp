@@ -309,12 +309,6 @@ VmaAllocator Graphics::GetVmaAllocator()
 	return graphics.m_vmaAllocator;
 }
 
-VkCommandBuffer Graphics::GetCurrentVkCommandBuffer(const std::string& name)
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex].at(name).GetVkCommandBuffer();
-}
-
 const std::unique_ptr<Swapchain>& Graphics::GetSwapchain()
 {
 	const auto& graphics = GetInstance();
@@ -816,16 +810,6 @@ void Graphics::SetupVmaAllocator()
 #pragma endregion
 }
 
-void Graphics::RegisterCommandBuffer(const std::string& name)
-{
-	auto& graphics = GetInstance();
-
-	for (auto& commandsGroup : graphics.m_vkCommandBuffers)
-	{
-		assert(commandsGroup.find(name) == commandsGroup.end());
-		commandsGroup[name].Allocate();
-	}
-}
 
 std::string Graphics::StringifyResultVk(const VkResult& result)
 {
@@ -897,18 +881,20 @@ void Graphics::CheckVk(const VkResult& result)
 	throw std::runtime_error("Vulkan error: " + failure);
 }
 
-void Graphics::AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
+void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
 {
 	auto& graphics = GetInstance();
-	auto& commands = graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
-	if (const auto search = commands.find(name); search == commands.end())
+	const unsigned commandBufferIndex = graphics.m_usedCommandBufferSize;
+	if(commandBufferIndex >= graphics.m_commandBufferPool[graphics.m_currentFrameIndex].size())
 	{
-		RegisterCommandBuffer(name);
+		graphics.m_commandBufferPool[graphics.m_currentFrameIndex].emplace_back();
+		graphics.m_commandBufferPool[graphics.m_currentFrameIndex].back().Allocate();
 	}
-	auto& commandBuffer = commands[name];
+	auto& commandBuffer = graphics.m_commandBufferPool[graphics.m_currentFrameIndex][commandBufferIndex];
 	commandBuffer.Begin();
 	action(commandBuffer.GetVkCommandBuffer(), graphics.m_globalPipelineState);
 	commandBuffer.End();
+	graphics.m_usedCommandBufferSize++;
 }
 
 void Graphics::CreateStandardDescriptorLayout()
@@ -1140,9 +1126,10 @@ void Graphics::SwapChainSwapImage()
 	}
 	vkResetFences(m_vkDevice, 1, inFlightFences);
 
-	for (auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+	m_usedCommandBufferSize = 0;
+	for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
 	{
-		commandBuffer.second.Reset();
+		if(commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
 	}
 }
 
@@ -1154,38 +1141,38 @@ void Graphics::SubmitPresent()
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	const VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
+	const VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	std::vector<VkCommandBuffer> commandBuffers;
-	for (const auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+
+	commandBuffers.reserve(m_usedCommandBufferSize);
+	for (int i = 0; i < m_usedCommandBufferSize; i++)
 	{
-		if (commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffers.emplace_back(commandBuffer.second.GetVkCommandBuffer());
+		commandBuffers.emplace_back(m_commandBufferPool[m_currentFrameIndex][i].GetVkCommandBuffer());
 	}
 
 	submitInfo.commandBufferCount = commandBuffers.size();
 	submitInfo.pCommandBuffers = commandBuffers.data();
 
-	VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
+	const VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrameIndex]->GetVkSemaphore() };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
-	for (auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
-	{
-		if (commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffer.second.m_status = CommandBufferStatus::Ready;
-	}
+	
+
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { m_swapchain->GetVkSwapchain() };
+	const VkSwapchainKHR swapChains[] = { m_swapchain->GetVkSwapchain() };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
@@ -1238,7 +1225,8 @@ void Graphics::Initialize()
 		poolInfo.queueFamilyIndex = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
 		graphics.m_commandPool = std::make_unique<CommandPool>(poolInfo);
 #pragma endregion
-		graphics.m_vkCommandBuffers.resize(graphics.m_maxFrameInFlight);
+		graphics.m_usedCommandBufferSize = 0;
+		graphics.m_commandBufferPool.resize(graphics.m_maxFrameInFlight);
 		graphics.CreateSwapChainSyncObjects();
 
 		constexpr VkDescriptorPoolSize renderLayerDescriptorPoolSizes[] =
@@ -1292,9 +1280,9 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	AppendCommands("GlobalReset", [&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	AppendCommands([&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
-			globalPipelineState.ResetAllStates(commandBuffer);
+			globalPipelineState.ResetAllStates(commandBuffer, 1);
 		}
 	);
 }

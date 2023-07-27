@@ -164,6 +164,12 @@ namespace EvoEngine
 		std::shared_ptr<Shader> m_geometryShader;
 		std::shared_ptr<Shader> m_fragmentShader;
 		GeometryType m_geometryType = GeometryType::Mesh;
+
+		uint32_t m_viewMask;
+		std::vector<VkFormat> m_colorAttachmentFormats;
+		VkFormat m_depthAttachmentFormat;
+		VkFormat m_stencilAttachmentFormat;
+
 		void ClearDescriptorSets();
 		void InitializeStandardBindings();
 		[[nodiscard]] bool ContainStandardBindings() const;
@@ -180,5 +186,6 @@ namespace EvoEngine
 
 		void PreparePipeline();
 		[[nodiscard]] bool PipelineReady() const;
+		void Bind(VkCommandBuffer commandBuffer) const;
 	};
 }

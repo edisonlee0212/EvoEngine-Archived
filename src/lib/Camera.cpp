@@ -139,13 +139,13 @@ void Camera::UpdateGBuffer()
 		m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
 	}
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-	{
+		{
 			m_gBufferDepth->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			m_gBufferNormal->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			m_gBufferAlbedo->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			m_gBufferMaterial->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	});
-	
+		});
+
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
 		//m_gBufferDepthImTextureId = editorLayer->UpdateTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
@@ -188,36 +188,40 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	}
 }
 
-const std::vector<VkAttachmentDescription>& Camera::GetAttachmentDescriptions()
+void Camera::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
 {
-	static std::vector<VkAttachmentDescription> attachments{};
+	VkRenderingAttachmentInfo attachment{};
+	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
-	if (attachments.empty()) {
-		VkAttachmentDescription attachment{};
+	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-		attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachment.initialLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		attachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.clearValue = {0, 0, 0, 1};
+	attachment.imageView = m_gBufferNormalView->GetVkImageView();
+	attachmentInfos.push_back(attachment);
 
-		attachment.format = Graphics::ImageFormats::m_gBufferDepth;
-		attachments.push_back(attachment);
-		attachment.initialLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		attachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		attachment.format = Graphics::ImageFormats::m_gBufferColor;
-		attachments.push_back(attachment);
-		attachment.format = Graphics::ImageFormats::m_gBufferColor;
-		attachments.push_back(attachment);
-		attachment.format = Graphics::ImageFormats::m_gBufferColor;
-		attachments.push_back(attachment);
+	attachment.clearValue = { 0, 0, 0, 1 };
+	attachment.imageView = m_gBufferAlbedoView->GetVkImageView();
+	attachmentInfos.push_back(attachment);
 
-		auto renderTextureAttachments = RenderTexture::GetAttachmentDescriptions();
-		attachments.insert(attachments.end(), renderTextureAttachments.begin(), renderTextureAttachments.end());
-	}
-	return attachments;
+	attachment.clearValue = { 0, 0, 0, 1 };
+	attachment.imageView = m_gBufferMaterialView->GetVkImageView();
+	attachmentInfos.push_back(attachment);
+}
+
+VkRenderingAttachmentInfo Camera::GetDepthAttachmentInfo() const
+{
+	VkRenderingAttachmentInfo attachment{};
+	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	attachment.clearValue.depthStencil.depth = 1.0f;
+	attachment.imageView = m_gBufferDepthView->GetVkImageView();
+	return attachment;
 }
 
 float Camera::GetSizeRatio() const

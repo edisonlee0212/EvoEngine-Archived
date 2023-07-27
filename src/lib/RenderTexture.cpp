@@ -14,7 +14,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_depthImageView.reset();
 	m_stencilImageView.reset();
 	m_depthStencilImage.reset();
-	
+
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	switch (imageViewType)
@@ -61,7 +61,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 			m_colorImage->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
 
-	
+
 
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -94,7 +94,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 		{
 			m_depthStencilImage->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
-	
+
 
 	VkImageViewCreateInfo depthViewInfo{};
 	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -147,7 +147,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_colorSampler = std::make_shared<Sampler>(samplerInfo);
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		
+
 		editorLayer->UpdateTextureId(m_colorImTextureId, m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
 	}
 
@@ -160,6 +160,48 @@ RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imag
 void RenderTexture::Resize(const VkExtent3D extent)
 {
 	Initialize(extent, m_imageViewType);
+}
+
+void RenderTexture::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
+{
+	VkRenderingAttachmentInfo attachment{};
+	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	attachment.clearValue.color = { 0, 0, 0, 0 };
+	attachment.imageView = m_colorImageView->GetVkImageView();
+	attachmentInfos.push_back(attachment);
+}
+
+VkRenderingAttachmentInfo RenderTexture::GetDepthAttachmentInfo() const
+{
+	VkRenderingAttachmentInfo attachment{};
+	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	attachment.clearValue.depthStencil = { 1, 0 };
+	attachment.imageView = m_depthImageView->GetVkImageView();
+	return attachment;
+}
+
+VkRenderingAttachmentInfo RenderTexture::GetStencilAttachmentInf0() const
+{
+	VkRenderingAttachmentInfo attachment{};
+	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+	attachment.clearValue.depthStencil = { 1, 0 };
+	attachment.imageView = m_stencilImageView->GetVkImageView();
+	return attachment;
 }
 
 VkExtent3D RenderTexture::GetExtent() const
@@ -235,7 +277,7 @@ const std::vector<VkAttachmentDescription>& RenderTexture::GetAttachmentDescript
 		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		attachments = { depthAttachment, colorAttachment};
+		attachments = { depthAttachment, colorAttachment };
 	}
 	return attachments;
 }

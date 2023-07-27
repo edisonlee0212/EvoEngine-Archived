@@ -120,7 +120,8 @@ namespace EvoEngine
 
 		int m_maxFrameInFlight = 2;
 
-		std::vector<std::unordered_map<std::string, CommandBuffer>> m_vkCommandBuffers = {};
+		int m_usedCommandBufferSize = 0;
+		std::vector<std::vector<CommandBuffer>> m_commandBufferPool = {};
 
 		std::vector<std::unique_ptr<Semaphore>> m_imageAvailableSemaphores = {};
 		std::vector<std::unique_ptr<Semaphore>> m_renderFinishedSemaphores = {};
@@ -198,7 +199,6 @@ namespace EvoEngine
 		};
 
 #pragma endregion
-		static void RegisterCommandBuffer(const std::string& name);
 		static const std::string& GetStandardShaderIncludes();
 		static size_t GetMaxBoneAmount();
 		static size_t GetMaxMaterialAmount();
@@ -215,7 +215,7 @@ namespace EvoEngine
 		static void UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock);
 
 		static GraphicsGlobalStates& GlobalState();
-		static void AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
+		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static QueueFamilyIndices GetQueueFamilyIndices();
 		static int GetMaxFramesInFlight();
@@ -229,7 +229,6 @@ namespace EvoEngine
 		static VkQueue GetGraphicsVkQueue();
 		static VkQueue GetPresentVkQueue();
 		static VmaAllocator GetVmaAllocator();
-		static VkCommandBuffer GetCurrentVkCommandBuffer(const std::string& name);
 		static const std::unique_ptr<Swapchain>& GetSwapchain();
 		static const std::unique_ptr<DescriptorPool>& GetDescriptorPool();
 		static unsigned GetSwapchainVersion();
