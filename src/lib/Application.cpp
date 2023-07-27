@@ -132,24 +132,38 @@ void Application::LateUpdateInternal()
 
 		Graphics::AppendCommands("ImGuiDraw", [&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 			{
-				const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
-				VkRenderPassBeginInfo renderPassBeginInfo{};
-				renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
-				renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();;
-				renderPassBeginInfo.renderArea.offset = { 0, 0 };
-				renderPassBeginInfo.renderArea.extent = extent2D;
-
 				constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-				renderPassBeginInfo.clearValueCount = 1;
-				renderPassBeginInfo.pClearValues = &clearColor;
+				VkRect2D renderArea;
+				renderArea.offset = { 0, 0 };
+				renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
+				Graphics::TransitImageLayout(commandBuffer,
+					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-				vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+				VkRenderingAttachmentInfo colorAttachmentInfo{};
+				colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+				colorAttachmentInfo.imageView = Graphics::GetSwapchain()->GetAllImageViews().at(Graphics::GetCurrentFrameIndex())->GetVkImageView();
+				colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+				colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				colorAttachmentInfo.clearValue = clearColor;
+
+				VkRenderingInfo renderInfo{};
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 1;
+				renderInfo.pColorAttachments = &colorAttachmentInfo;
+
+				vkCmdBeginRendering(commandBuffer, &renderInfo);
 
 				ImGui::Render();
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
-				vkCmdEndRenderPass(commandBuffer);
+				vkCmdEndRendering(commandBuffer);
+				Graphics::TransitImageLayout(commandBuffer,
+					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			});
 
 	}

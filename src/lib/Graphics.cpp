@@ -30,6 +30,98 @@ uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPrope
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
+void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkAccessFlags& mask, VkPipelineStageFlags& stageFlags)
+{
+	switch (imageLayout)
+	{
+	case VK_IMAGE_LAYOUT_UNDEFINED:
+	{
+		mask = 0;
+		stageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+	{
+		mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+	{
+		mask = VK_ACCESS_SHADER_READ_BIT;
+		stageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	{
+		mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+	{
+		mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
+	{
+		mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}break;
+	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+	{
+		mask = 0;
+		stageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}break;
+	default:
+	{
+		mask = 0;
+		stageFlags = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+	}break;
+	}
+}
+
+
+void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout,
+	VkImageLayout newLayout)
+{
+
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = targetImage;
+	if (imageFormat == ImageFormats::m_texture2D || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+	else if (imageFormat == ImageFormats::m_gBufferDepth || imageFormat == ImageFormats::m_renderTextureDepthStencil)
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	}else if(imageFormat == GetSwapchain()->GetImageFormat())
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags sourceStage;
+	VkPipelineStageFlags destinationStage;
+
+	SelectStageFlagsAccessMask(oldLayout, barrier.srcAccessMask, sourceStage);
+	SelectStageFlagsAccessMask(newLayout, barrier.dstAccessMask, destinationStage);
+
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		sourceStage, destinationStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
+}
+
 const std::string& Graphics::GetStandardShaderIncludes()
 {
 	const auto& graphics = GetInstance();
@@ -106,18 +198,6 @@ void Graphics::UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock)
 {
 	const auto& graphics = GetInstance();
 	memcpy(graphics.m_objectInfoBlockMemory[graphics.m_currentFrameIndex], &objectInfoBlock, sizeof(ObjectInfoBlock));
-}
-
-const std::shared_ptr<RenderPass>& Graphics::GetSwapchainRenderPass()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_swapChainRenderPass;
-}
-
-const std::unique_ptr<Framebuffer>& Graphics::GetSwapchainFramebuffer()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_swapChainFramebuffers[graphics.m_nextImageIndex];
 }
 
 GraphicsGlobalStates& Graphics::GlobalState()
@@ -447,7 +527,7 @@ void Graphics::CreateInstance()
 		}
 		windowLayer->m_primaryMonitor = glfwGetPrimaryMonitor();
 		glfwSetMonitorCallback(windowLayer->SetMonitorCallback);
-		
+
 		const auto& applicationInfo = Application::GetApplicationInfo();
 		windowLayer->m_windowSize = applicationInfo.m_defaultWindowSize;
 		if (editorLayer) windowLayer->m_windowSize = { 250, 50 };
@@ -468,7 +548,7 @@ void Graphics::CreateInstance()
 #pragma endregion
 		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	}
-	
+
 	m_requiredLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> cRequiredLayers;
 	for (const auto& i : m_requiredLayers) cRequiredLayers.emplace_back(i.c_str());
@@ -595,7 +675,7 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 void Graphics::CreatePhysicalDevice()
 {
 #pragma region Physical Device
-	
+
 	m_vkPhysicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
@@ -626,7 +706,7 @@ void Graphics::CreatePhysicalDevice()
 
 void Graphics::CreateLogicalDevice()
 {
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
@@ -637,11 +717,16 @@ void Graphics::CreateLogicalDevice()
 	for (const auto& i : m_requiredLayers) cRequiredLayers.emplace_back(i.c_str());
 
 #pragma region Logical Device
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{};
+	dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+	dynamicRenderingFeatures.pNext = nullptr;
+
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
 	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
-	physicalDeviceSynchronization2Features.pNext = nullptr;
+	physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;
 	physicalDeviceSynchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
 
 	VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT extendedVertexInputDynamicStateFeatures{};
@@ -653,6 +738,11 @@ void Graphics::CreateLogicalDevice()
 	extendedDynamicState3Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
 	extendedDynamicState3Features.extendedDynamicState3PolygonMode = VK_TRUE;
 	extendedDynamicState3Features.extendedDynamicState3DepthClampEnable = VK_TRUE;
+	extendedDynamicState3Features.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+	extendedDynamicState3Features.extendedDynamicState3LogicOpEnable = VK_TRUE;
+	extendedDynamicState3Features.extendedDynamicState3ColorBlendEquation = VK_TRUE;
+	extendedDynamicState3Features.extendedDynamicState3ColorWriteMask = VK_TRUE;
+
 	extendedDynamicState3Features.pNext = &extendedVertexInputDynamicStateFeatures;
 
 	VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2Features{};
@@ -666,11 +756,6 @@ void Graphics::CreateLogicalDevice()
 	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
 	extendedDynamicStateFeatures.pNext = &extendedDynamicState2Features;
-
-	VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{};
-	shaderObjectFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
-	shaderObjectFeatures.shaderObject = VK_TRUE;
-	shaderObjectFeatures.pNext = &extendedDynamicStateFeatures;
 
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -693,7 +778,7 @@ void Graphics::CreateLogicalDevice()
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 #pragma endregion
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-	deviceCreateInfo.pNext = &shaderObjectFeatures;
+	deviceCreateInfo.pNext = &extendedDynamicStateFeatures;
 
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = cRequiredDeviceExtensions.data();
@@ -707,7 +792,7 @@ void Graphics::CreateLogicalDevice()
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
 	}
-	
+
 	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 
@@ -816,7 +901,7 @@ void Graphics::AppendCommands(const std::string& name, const std::function<void(
 {
 	auto& graphics = GetInstance();
 	auto& commands = graphics.m_vkCommandBuffers[graphics.m_currentFrameIndex];
-	if(const auto search = commands.find(name); search == commands.end())
+	if (const auto search = commands.find(name); search == commands.end())
 	{
 		RegisterCommandBuffer(name);
 	}
@@ -974,58 +1059,6 @@ void Graphics::CreateSwapChain()
 	m_swapchainVersion++;
 }
 
-void Graphics::CreateRenderPass()
-{
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = m_swapchain->GetImageFormat();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	m_swapChainRenderPass = std::make_shared<RenderPass>(renderPassInfo);
-}
-
-bool Graphics::UpdateFrameBuffers()
-{
-	const auto& swapChainImageViews = m_swapchain->GetImageViews();
-	m_swapChainFramebuffers.clear();
-	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-		m_swapChainFramebuffers.emplace_back(std::make_unique<Framebuffer>(m_swapchain, i, m_swapChainRenderPass));
-	}
-
-	return true;
-}
-
 void Graphics::CreateSwapChainSyncObjects()
 {
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
@@ -1046,7 +1079,6 @@ void Graphics::RecreateSwapChain()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 	CreateSwapChain();
-	UpdateFrameBuffers();
 }
 
 void Graphics::OnDestroy()
@@ -1129,9 +1161,9 @@ void Graphics::SubmitPresent()
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	std::vector<VkCommandBuffer> commandBuffers;
-	for(const auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
+	for (const auto& commandBuffer : m_vkCommandBuffers[m_currentFrameIndex])
 	{
-		if(commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffers.emplace_back(commandBuffer.second.GetVkCommandBuffer());
+		if (commandBuffer.second.m_status == CommandBufferStatus::Recorded) commandBuffers.emplace_back(commandBuffer.second.GetVkCommandBuffer());
 	}
 
 	submitInfo.commandBufferCount = commandBuffers.size();
@@ -1197,8 +1229,6 @@ void Graphics::Initialize()
 				break;
 			}
 		}
-		graphics.CreateRenderPass();
-		graphics.UpdateFrameBuffers();
 	}
 	if (graphics.m_queueFamilyIndices.m_graphicsFamily.has_value()) {
 #pragma region Command pool

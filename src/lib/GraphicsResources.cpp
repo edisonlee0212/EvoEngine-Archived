@@ -105,12 +105,22 @@ VkSwapchainKHR Swapchain::GetVkSwapchain() const
 	return m_vkSwapchain;
 }
 
-const std::vector<VkImage>& Swapchain::GetVkImages() const
+const std::vector<VkImage>& Swapchain::GetAllVkImages() const
 {
 	return m_vkImages;
 }
 
-const std::vector<std::shared_ptr<ImageView>>& Swapchain::GetImageViews() const
+const VkImage& Swapchain::GetVkImage() const
+{
+	return m_vkImages[Graphics::GetNextImageIndex()];
+}
+
+const VkImageView& Swapchain::GetVkImageView() const
+{
+	return m_vkImageViews[Graphics::GetNextImageIndex()]->GetVkImageView();
+}
+
+const std::vector<std::shared_ptr<ImageView>>& Swapchain::GetAllImageViews() const
 {
 	return m_vkImageViews;
 }
@@ -135,7 +145,7 @@ ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo)
 	m_format = imageViewCreateInfo.format;
 	m_components = imageViewCreateInfo.components;
 	m_subresourceRange = imageViewCreateInfo.subresourceRange;
-	m_clearValue.color = {0, 0, 0, 0};
+	m_clearValue.color = { 0, 0, 0, 0 };
 }
 
 ImageView::ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std::shared_ptr<Image>& image)
@@ -168,85 +178,6 @@ const std::shared_ptr<Image>& ImageView::GetImage() const
 	return m_image;
 }
 
-Framebuffer::Framebuffer(const std::unique_ptr<Swapchain>& swapchain, uint32_t imageIndex, const std::shared_ptr<RenderPass>& renderPass)
-{
-	const VkImageView attachments[] = { swapchain->GetImageViews()[imageIndex]->GetVkImageView() };
-	VkFramebufferCreateInfo framebufferInfo{};
-	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	framebufferInfo.renderPass = renderPass->GetVkRenderPass();
-	framebufferInfo.attachmentCount = 1;
-	framebufferInfo.pAttachments = attachments;
-	framebufferInfo.width = swapchain->GetImageExtent().width;
-	framebufferInfo.height = swapchain->GetImageExtent().height;
-	framebufferInfo.layers = 1;
-	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferInfo, nullptr, &m_vkFramebuffer));
-
-	m_width = framebufferInfo.width;
-	m_height = framebufferInfo.height;
-	m_layers = framebufferInfo.layers;
-	m_renderPass = renderPass;
-	m_attachments = { swapchain->GetImageViews()[imageIndex] };
-}
-
-Framebuffer::Framebuffer(const std::vector<std::shared_ptr<ImageView>>& attachments, const std::shared_ptr<RenderPass>& renderPass)
-{
-	std::vector<VkImageView> vkImageViews;
-	for(const auto& attachment : attachments)
-	{
-		vkImageViews.push_back(attachment->GetVkImageView());
-
-	}
-	VkFramebufferCreateInfo framebufferInfo{};
-	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	framebufferInfo.renderPass = renderPass->GetVkRenderPass();
-	framebufferInfo.attachmentCount = vkImageViews.size();
-	framebufferInfo.pAttachments = vkImageViews.data();
-	framebufferInfo.width = attachments[0]->GetImage()->GetExtent().width;
-	framebufferInfo.height = attachments[0]->GetImage()->GetExtent().height;
-	framebufferInfo.layers = 1;
-
-	Graphics::CheckVk(vkCreateFramebuffer(Graphics::GetVkDevice(), &framebufferInfo, nullptr, &m_vkFramebuffer));
-	m_flags = framebufferInfo.flags;
-	m_renderPass = renderPass;
-	m_width = framebufferInfo.width;
-	m_height = framebufferInfo.height;
-	m_layers = framebufferInfo.layers;
-
-	m_attachments = attachments;
-}
-
-Framebuffer::~Framebuffer()
-{
-	if (m_vkFramebuffer != VK_NULL_HANDLE) {
-		vkDestroyFramebuffer(Graphics::GetVkDevice(), m_vkFramebuffer, nullptr);
-		m_vkFramebuffer = VK_NULL_HANDLE;
-	}
-}
-
-uint32_t Framebuffer::GetWidth() const
-{
-	return m_width;
-}
-
-uint32_t Framebuffer::GetHeight() const
-{
-	return m_height;
-}
-
-uint32_t Framebuffer::GetLayers() const
-{
-	return m_layers;
-}
-
-const VkFramebuffer& Framebuffer::GetVkFrameBuffer() const
-{
-	return m_vkFramebuffer;
-}
-
-const std::vector<std::shared_ptr<ImageView>>& Framebuffer::GetAttachments() const
-{
-	return m_attachments;
-}
 
 ShaderModule::~ShaderModule()
 {
@@ -361,22 +292,20 @@ bool Image::HasStencilComponent() const
 		|| m_format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Image::Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
+void Image::Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
 {
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			VkBufferImageCopy region{};
-			region.bufferOffset = srcOffset;
-			region.bufferRowLength = 0;
-			region.bufferImageHeight = 0;
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.mipLevel = 0;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
-			region.imageOffset = { 0, 0, 0 };
-			region.imageExtent = m_extent;
-			vkCmdCopyBufferToImage(commandBuffer, srcBuffer, m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-		});
+
+	VkBufferImageCopy region{};
+	region.bufferOffset = srcOffset;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = m_extent;
+	vkCmdCopyBufferToImage(commandBuffer, srcBuffer, m_vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
 VkImage Image::GetVkImage() const
@@ -415,84 +344,11 @@ Image::~Image()
 	}
 }
 
-void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkPipelineStageFlags& stageFlags, VkAccessFlags& mask)
+
+void Image::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
 {
-	switch (imageLayout)
-	{
-	case VK_IMAGE_LAYOUT_UNDEFINED:
-	{
-		mask = 0;
-		stageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-	}break;
-	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-	{
-		mask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		stageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
-	}break;
-	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-	{
-		mask = VK_ACCESS_SHADER_READ_BIT;
-		stageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	}break;
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-	{
-		mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		stageFlags = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	}break;
-	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-	{
-		mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	}break;
-	default:
-	{
-		mask = 0;
-		stageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	}break;
-	}
-}
-
-void Image::TransitionImageLayout(VkImageLayout newLayout)
-{
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			VkImageMemoryBarrier barrier{};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.oldLayout = m_layout;
-			barrier.newLayout = newLayout;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.image = m_vkImage;
-			if (m_format == Graphics::ImageFormats::m_texture2D || m_format == Graphics::ImageFormats::m_renderTextureColor || m_format == Graphics::ImageFormats::m_gBufferColor)
-			{
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			}
-			else if (m_format == Graphics::ImageFormats::m_gBufferDepth || m_format == Graphics::ImageFormats::m_renderTextureDepthStencil)
-			{
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-			}
-
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = 1;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-
-			VkPipelineStageFlags sourceStage;
-			VkPipelineStageFlags destinationStage;
-
-			SelectStageFlagsAccessMask(m_layout, sourceStage, barrier.srcAccessMask);
-			SelectStageFlagsAccessMask(newLayout, destinationStage, barrier.dstAccessMask);
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				sourceStage, destinationStage,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier
-			);
-			m_layout = newLayout;
-		});
+	Graphics::TransitImageLayout(commandBuffer, m_vkImage, m_format, m_layout, newLayout);
+	m_layout = newLayout;
 }
 
 const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
@@ -792,44 +648,4 @@ void CommandBuffer::Reset()
 	}
 	Graphics::CheckVk(vkResetCommandBuffer(m_vkCommandBuffer, 0));
 	m_status = CommandBufferStatus::Ready;
-}
-
-
-RenderPass::RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo)
-{
-	Graphics::CheckVk(vkCreateRenderPass(Graphics::GetVkDevice(), &renderPassCreateInfo, nullptr, &m_vkRenderPass));
-	m_flags = renderPassCreateInfo.flags;
-
-	ApplyVector(m_attachments, renderPassCreateInfo.attachmentCount, renderPassCreateInfo.pAttachments);
-	m_subpasses.resize(renderPassCreateInfo.subpassCount);
-	for (int i = 0; i < renderPassCreateInfo.subpassCount; i++)
-	{
-		auto& subpass = m_subpasses[i];
-		const auto& subpassInfo = renderPassCreateInfo.pSubpasses[i];
-		subpass.m_flags = subpassInfo.flags;
-		subpass.m_pipelineBindPoint = subpassInfo.pipelineBindPoint;
-		ApplyVector(subpass.m_inputAttachments, subpassInfo.inputAttachmentCount, subpassInfo.pInputAttachments);
-		ApplyVector(subpass.m_colorAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pColorAttachments);
-		if (subpassInfo.pResolveAttachments != VK_NULL_HANDLE) ApplyVector(subpass.m_resolveAttachments, subpassInfo.colorAttachmentCount, subpassInfo.pResolveAttachments);
-		if (subpassInfo.pDepthStencilAttachment != VK_NULL_HANDLE)
-			subpass.m_depthStencilAttachment = *subpassInfo.pDepthStencilAttachment;
-		ApplyVector(subpass.m_preserveAttachment, subpassInfo.preserveAttachmentCount, subpassInfo.pPreserveAttachments);
-	}
-
-	m_dependencies.resize(renderPassCreateInfo.dependencyCount);
-	memcpy(m_dependencies.data(), renderPassCreateInfo.pDependencies,
-		sizeof(VkSubpassDependency) * renderPassCreateInfo.dependencyCount);
-}
-
-RenderPass::~RenderPass()
-{
-	if (m_vkRenderPass != VK_NULL_HANDLE) {
-		vkDestroyRenderPass(Graphics::GetVkDevice(), m_vkRenderPass, nullptr);
-		m_vkRenderPass = VK_NULL_HANDLE;
-	}
-}
-
-VkRenderPass RenderPass::GetVkRenderPass() const
-{
-	return m_vkRenderPass;
 }

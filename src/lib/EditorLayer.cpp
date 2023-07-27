@@ -101,7 +101,7 @@ void EditorLayer::OnCreate()
 		}
 		return edited;
 		});
-	
+
 	RegisterComponentDataInspector<Ray>([&](Entity entity, IDataComponent* data, bool isRoot) {
 		auto* ray = static_cast<Ray*>(static_cast<void*>(data));
 		bool changed = false;
@@ -140,19 +140,21 @@ void EditorLayer::OnCreate()
 	init_info.Queue = Graphics::GetGraphicsVkQueue();
 	init_info.PipelineCache = VK_NULL_HANDLE;
 	init_info.DescriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-	init_info.MinImageCount = Graphics::GetSwapchain()->GetImageViews().size();
-	init_info.ImageCount = Graphics::GetSwapchain()->GetImageViews().size();
+	init_info.MinImageCount = Graphics::GetSwapchain()->GetAllImageViews().size();
+	init_info.ImageCount = Graphics::GetSwapchain()->GetAllImageViews().size();
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.UseDynamicRendering = true;
+	init_info.ColorAttachmentFormat = Graphics::GetSwapchain()->GetImageFormat();
 
 	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
-	ImGui_ImplVulkan_Init(&init_info, Graphics::GetSwapchainRenderPass()->GetVkRenderPass());
+	ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
 	ImGui::StyleColorsDark();
 	Graphics::ImmediateSubmit([&](const VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
 		});
 	//clear font textures from cpu data
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
-	
+
 
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -343,7 +345,7 @@ void EditorLayer::PreUpdate()
 	}
 	if (m_showSceneWindow) RenderToSceneCamera();
 
-	if(!m_mainCameraWindowFocused)
+	if (!m_mainCameraWindowFocused)
 	{
 		const auto activeScene = Application::GetActiveScene();
 		auto& pressedKeys = activeScene->m_pressedKeys;
@@ -371,7 +373,7 @@ static const char* HierarchyDisplayMode[]{ "Archetype", "Hierarchy" };
 void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if(!windowLayer) return;
+	if (!windowLayer) return;
 
 	if (ImGui::BeginMainMenuBar())
 	{
@@ -630,28 +632,47 @@ void EditorLayer::LateUpdate()
 	const auto& layers = Application::GetLayers();
 
 	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
-	
+
 
 	Graphics::AppendCommands("ImGuiDraw", [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
-			const auto extent2D = Graphics::GetSwapchain()->GetImageExtent();
-			VkRenderPassBeginInfo renderPassBeginInfo{};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.renderPass = Graphics::GetSwapchainRenderPass()->GetVkRenderPass();
-			renderPassBeginInfo.framebuffer = Graphics::GetSwapchainFramebuffer()->GetVkFrameBuffer();
-			renderPassBeginInfo.renderArea.offset = { 0, 0 };
-			renderPassBeginInfo.renderArea.extent = extent2D;
+			Graphics::TransitImageLayout(commandBuffer,
+			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
 
 			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-			renderPassBeginInfo.clearValueCount = 1;
-			renderPassBeginInfo.pClearValues = &clearColor;
+			VkRect2D renderArea;
+			renderArea.offset = { 0, 0 };
+			renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
+			
+					
+			VkRenderingAttachmentInfo colorAttachmentInfo{};
+			colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			colorAttachmentInfo.imageView = Graphics::GetSwapchain()->GetVkImageView();
+			colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+			colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachmentInfo.clearValue = clearColor;
 
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 1;
+			renderInfo.pColorAttachments = &colorAttachmentInfo;
+
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
 
 			ImGui::Render();
 			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
-			vkCmdEndRenderPass(commandBuffer);
+			vkCmdEndRendering(commandBuffer);
+			
+			Graphics::TransitImageLayout(commandBuffer,
+				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			
 		});
 }
 
@@ -785,7 +806,7 @@ void EditorLayer::SceneCameraWindow()
 			const auto windowPos = ImVec2(
 				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
 				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
-			
+
 			if (m_showSceneInfo) {
 				const auto windowPosPivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
 				ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, windowPosPivot);
@@ -832,8 +853,8 @@ void EditorLayer::SceneCameraWindow()
 				static bool isDraggingPreviously = false;
 				bool mouseDrag = true;
 				if (m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
-						m_mouseScreenPosition.x > viewPortSize.x ||
-						m_mouseScreenPosition.y > viewPortSize.y ||
+					m_mouseScreenPosition.x > viewPortSize.x ||
+					m_mouseScreenPosition.y > viewPortSize.y ||
 					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) != KeyActionType::Hold) {
 					mouseDrag = false;
 				}
@@ -887,7 +908,7 @@ void EditorLayer::SceneCameraWindow()
 #pragma endregion
 				}
 			}
-			
+
 		}
 #pragma region Gizmos and Entity Selection
 		bool mouseSelectEntity = true;
@@ -1097,7 +1118,7 @@ void EditorLayer::MainCameraWindow()
 void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 {
 	//If main camera is focused, we pass the event to the scene.
-	if(m_mainCameraWindowFocused)
+	if (m_mainCameraWindowFocused)
 	{
 		const auto activeScene = Application::GetActiveScene();
 		auto& pressedKeys = activeScene->m_pressedKeys;
@@ -1142,9 +1163,9 @@ void EditorLayer::RenderToSceneCamera()
 		m_sceneCameraEntityRecorder->SetResolution(m_sceneCameraResolutionX, m_sceneCameraResolutionY);
 		*/
 	}
-	
 
-	if(m_sceneCamera->m_requireRendering)
+
+	if (m_sceneCamera->m_requireRendering)
 	{
 		GlobalTransform sceneCameraGT;
 		sceneCameraGT.SetValue(m_sceneCameraPosition, m_sceneCameraRotation, glm::vec3(1.0f));
@@ -1528,7 +1549,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			ProjectManager::SetStartScene(scene);
 			Application::Attach(scene);
 		}
-		
+
 		else if (asset->GetTypeName() == "Prefab") {
 			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene);
 			scene->SetEntityName(entity, asset->GetTitle());

@@ -19,7 +19,6 @@ namespace EvoEngine
         friend class SSR;
         
         std::shared_ptr<RenderTexture> m_renderTexture;
-        std::shared_ptr<Framebuffer> m_deferredRenderingFramebuffer;
         
         //Deferred shading GBuffer
         std::shared_ptr<Image> m_gBufferDepth = {};
@@ -45,10 +44,8 @@ namespace EvoEngine
         glm::uvec2 m_size = glm::uvec2(1, 1);
 
         void UpdateGBuffer();
-        void UpdateFrameBuffer();
     public:
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
-        [[nodiscard]] const std::shared_ptr<Framebuffer>& GetFramebuffer() const;
         static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
 
         [[nodiscard]] float GetSizeRatio() const;

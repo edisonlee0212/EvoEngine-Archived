@@ -57,9 +57,7 @@ namespace EvoEngine
 		void OnDestroy() override;
 		void PreUpdate() override;
 		void LateUpdate() override;
-		void CreateRenderPasses();
 		void CreateGraphicsPipelines();
-		std::unordered_map<std::string, std::shared_ptr<RenderPass>> m_renderPasses;
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
 
 		std::unordered_map<Handle, RenderTask> m_deferredRenderInstances;
@@ -72,7 +70,6 @@ namespace EvoEngine
 
 		void CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras);
 	public:
-		[[nodiscard]] const std::shared_ptr<RenderPass>& GetRenderPass(const std::string& name);
 
 		int m_mainCameraResolutionX = 1;
 		int m_mainCameraResolutionY = 1;

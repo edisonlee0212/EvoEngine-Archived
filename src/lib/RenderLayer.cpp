@@ -48,9 +48,7 @@ void RenderTask::Dispatch(
 
 void RenderLayer::OnCreate()
 {
-	CreateRenderPasses();
-
-	CreateGraphicsPipelines();
+	//CreateGraphicsPipelines();
 
 	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
@@ -63,7 +61,7 @@ void RenderLayer::OnCreate()
 
 void RenderLayer::OnDestroy()
 {
-	m_renderPasses.clear();
+	
 }
 
 void RenderLayer::PreUpdate()
@@ -102,7 +100,7 @@ void RenderLayer::PreUpdate()
 void RenderLayer::LateUpdate()
 {
 }
-
+/*
 void RenderLayer::CreateRenderPasses()
 {
 	if (auto editorLayer = Application::GetLayer<EditorLayer>())
@@ -238,7 +236,7 @@ void RenderLayer::CreateRenderPasses()
 		m_renderPasses.insert({ "DEFERRED_RENDERING", std::make_shared<RenderPass>(renderPassInfo) });
 	}
 }
-
+*/
 void RenderLayer::CreateGraphicsPipelines()
 {
 	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
@@ -247,7 +245,7 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredPrepass->InitializeStandardBindings();
 	standardDeferredPrepass->PrepareLayouts();
 	standardDeferredPrepass->UpdateStandardBindings();
-	standardDeferredPrepass->PreparePipeline(m_renderPasses["DEFERRED_RENDERING"], 0);
+	standardDeferredPrepass->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
 
 
@@ -257,7 +255,7 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredLighting->InitializeStandardBindings();
 	standardDeferredLighting->PrepareLayouts();
 	standardDeferredLighting->UpdateStandardBindings();
-	standardDeferredLighting->PreparePipeline(m_renderPasses["DEFERRED_RENDERING"], 1);
+	standardDeferredLighting->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
 }
 
@@ -599,22 +597,16 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 	*/
 }
 
-const std::shared_ptr<RenderPass>& RenderLayer::GetRenderPass(const std::string& name)
-{
-	return m_renderPasses.at(name);
-}
-
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const GlobalTransform& cameraModel)
 {
+	/*
 	CameraInfoBlock cameraInfoBlock = {};
 	camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraModel);
 	Graphics::UploadCameraInfo(cameraInfoBlock);
 	auto deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
 	auto deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
-	auto& deferredRenderPass = m_renderPasses["DEFERRED_RENDERING"];
 	auto commandBufferName = "DeferredRendering##" + std::to_string(camera->GetHandle());
 	Graphics::AppendCommands(commandBufferName, [&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
-		globalPipelineState.BeginRenderPass(commandBuffer, deferredRenderPass, camera->GetFramebuffer());
 		VkViewport viewport;
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -629,7 +621,29 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 		scissor.extent.height = camera->GetSize().y;
 		globalPipelineState.m_viewPort = viewport;
 		globalPipelineState.m_scissor = scissor;
-		globalPipelineState.BindGraphicsPipeline(commandBuffer, deferredPrepassProgram);
+
+		constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+		VkRect2D renderArea;
+		renderArea.offset = { 0, 0 };
+		renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
+
+		VkRenderingAttachmentInfo colorAttachmentInfo{};
+				colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+				colorAttachmentInfo.imageView = ;
+				colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+				colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				colorAttachmentInfo.clearValue = clearColor;
+
+				VkRenderingInfo renderInfo{};
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 1;
+				renderInfo.pColorAttachments = &colorAttachmentInfo;
+
+		vkCmdBeginRendering(commandBuffer, &renderInfo);
+
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
@@ -654,15 +668,12 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 			}
 			);
 		
-		globalPipelineState.NextSubpass(commandBuffer);
-		globalPipelineState.BindGraphicsPipeline(commandBuffer, deferredLightingProgram);
-
-
-		globalPipelineState.EndRenderPass(commandBuffer);
+		vkCmdEndRendering(commandBuffer);
 		}
 	);
 
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
+	*/
 }

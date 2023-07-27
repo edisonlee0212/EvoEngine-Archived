@@ -94,9 +94,14 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		memcpy(deviceData, data, imageSize);
 		vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
-		m_image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		m_image->Copy(stagingBuffer.GetVkBuffer());
-		m_image->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+			{
+				m_image->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				m_image->Copy(commandBuffer, stagingBuffer.GetVkBuffer());
+				m_image->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			});
+
+		
 		stbi_image_free(data);
 
 

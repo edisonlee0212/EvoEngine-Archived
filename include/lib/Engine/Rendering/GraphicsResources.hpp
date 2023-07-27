@@ -31,7 +31,7 @@ namespace EvoEngine
 		explicit Fence(const VkFenceCreateInfo& vkFenceCreateInfo);
 		~Fence() override;
 
-		[[nodiscard]] const VkFence &GetVkFence() const;
+		[[nodiscard]] const VkFence& GetVkFence() const;
 	};
 
 	class Semaphore final : public IGraphicsResource
@@ -41,7 +41,7 @@ namespace EvoEngine
 	public:
 		explicit Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
 		~Semaphore() override;
-		[[nodiscard]] const VkSemaphore &GetVkSemaphore() const;
+		[[nodiscard]] const VkSemaphore& GetVkSemaphore() const;
 	};
 
 	class Image final : public IGraphicsResource
@@ -71,8 +71,8 @@ namespace EvoEngine
 		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 		bool HasStencilComponent() const;
 		~Image() override;
-		void TransitionImageLayout(VkImageLayout newLayout);
-		void Copy(const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
+		void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
+		void Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		[[nodiscard]] VkImage GetVkImage() const;
 		[[nodiscard]] VkFormat GetFormat() const;
@@ -96,9 +96,8 @@ namespace EvoEngine
 		VkClearValue			   m_clearValue = {};
 
 		friend class Swapchain;
-		friend class Framebuffer;
 		friend class Graphics;
-		
+
 	public:
 		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo);
 		explicit ImageView(const VkImageViewCreateInfo& imageViewCreateInfo, const std::shared_ptr<Image>& image);
@@ -136,58 +135,14 @@ namespace EvoEngine
 
 		[[nodiscard]] VkSwapchainKHR GetVkSwapchain() const;
 
-		[[nodiscard]] const std::vector<VkImage>& GetVkImages() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<ImageView>>& GetImageViews() const;
+		[[nodiscard]] const std::vector<VkImage>& GetAllVkImages() const;
+		[[nodiscard]] const VkImage &GetVkImage() const;
+		[[nodiscard]] const VkImageView& GetVkImageView() const;
+		[[nodiscard]] const std::vector<std::shared_ptr<ImageView>>& GetAllImageViews() const;
+
 		[[nodiscard]] VkFormat GetImageFormat() const;
 
 		[[nodiscard]] VkExtent2D GetImageExtent() const;
-	};
-
-	struct SubpassDescription
-	{
-		VkSubpassDescriptionFlags m_flags;
-		VkPipelineBindPoint m_pipelineBindPoint;
-		std::vector<VkAttachmentReference> m_inputAttachments;
-		std::vector<VkAttachmentReference> m_colorAttachments;
-		std::vector<VkAttachmentReference> m_resolveAttachments;
-		std::optional<VkAttachmentReference> m_depthStencilAttachment;
-		std::vector<uint32_t> m_preserveAttachment;
-	};
-	class RenderPass final : public IGraphicsResource
-	{
-		VkRenderPass m_vkRenderPass = VK_NULL_HANDLE;
-
-		VkRenderPassCreateFlags m_flags;
-		std::vector<VkAttachmentDescription> m_attachments;
-		std::vector<SubpassDescription> m_subpasses;
-		std::vector<VkSubpassDependency> m_dependencies;
-	public:
-		RenderPass(const VkRenderPassCreateInfo& renderPassCreateInfo);
-		~RenderPass() override;
-
-		[[nodiscard]] VkRenderPass GetVkRenderPass() const;
-	};
-
-	class Framebuffer final : public IGraphicsResource
-	{
-		VkFramebuffer m_vkFramebuffer = VK_NULL_HANDLE;
-
-		VkFramebufferCreateFlags m_flags;
-		std::shared_ptr<RenderPass> m_renderPass;
-		std::vector<std::shared_ptr<ImageView>> m_attachments;
-		uint32_t m_width;
-		uint32_t m_height;
-		uint32_t m_layers;
-
-	public:
-		explicit Framebuffer(const std::unique_ptr<Swapchain>& swapchain, uint32_t imageIndex, const std::shared_ptr<RenderPass>& renderPass);
-		explicit Framebuffer(const std::vector<std::shared_ptr<ImageView>>& attachments, const std::shared_ptr<RenderPass>& renderPass);
-		~Framebuffer() override;
-		[[nodiscard]] uint32_t GetWidth() const;
-		[[nodiscard]] uint32_t GetHeight() const;
-		[[nodiscard]] uint32_t GetLayers() const;
-		[[nodiscard]] const VkFramebuffer& GetVkFrameBuffer() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<ImageView>>& GetAttachments() const;
 	};
 
 	class ShaderModule final : public IGraphicsResource
@@ -203,7 +158,7 @@ namespace EvoEngine
 	};
 
 
-	
+
 
 	class PipelineLayout final : public IGraphicsResource
 	{
@@ -243,14 +198,14 @@ namespace EvoEngine
 
 		void Copy(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
 
-		[[nodiscard]] const VkBuffer &GetVkBuffer() const;
+		[[nodiscard]] const VkBuffer& GetVkBuffer() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
 
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 	};
 
-	
+
 
 	class Sampler final : public IGraphicsResource
 	{
@@ -314,7 +269,7 @@ namespace EvoEngine
 		void Allocate(const VkQueueFlagBits& queueType = VK_QUEUE_GRAPHICS_BIT,
 			const VkCommandBufferLevel& bufferLevel = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 		void Free();
-		[[nodiscard]] const VkCommandBuffer &GetVkCommandBuffer() const;
+		[[nodiscard]] const VkCommandBuffer& GetVkCommandBuffer() const;
 		/**
 		 * Begins the recording state for this command buffer.
 		 * @param usage How this command buffer will be used.

@@ -30,10 +30,6 @@ namespace EvoEngine
 		VkStencilOp m_stencilDepthFailOpApplied = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOpApplied = VK_COMPARE_OP_LESS;
 		void ResetAllStates(VkCommandBuffer commandBuffer);
-
-		std::shared_ptr<RenderPass> m_renderPassApplied = {};
-		std::shared_ptr<GraphicsPipeline> m_graphicsPipeline = {};
-		uint32_t m_subpassIndexApplied = 0;
 	public:
 		VkViewport m_viewPort = {};
 		VkRect2D m_scissor = {};
@@ -58,11 +54,5 @@ namespace EvoEngine
 		VkStencilOp m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
 		VkCompareOp m_stencilCompareOp = VK_COMPARE_OP_LESS;
 		void ApplyAllStates(VkCommandBuffer commandBuffer, bool forceSet = false);
-
-		void BeginRenderPass(VkCommandBuffer commandBuffer, const std::shared_ptr<RenderPass>& targetRenderPass, const std::shared_ptr<Framebuffer>& targetFramebuffer);
-		void NextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_INLINE);
-		void EndRenderPass(VkCommandBuffer commandBuffer);
-
-		void BindGraphicsPipeline(VkCommandBuffer commandBuffer, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
 	};
 }

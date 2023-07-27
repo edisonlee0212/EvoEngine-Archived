@@ -375,7 +375,7 @@ bool GraphicsPipeline::DescriptorSetsReady() const
 	return m_descriptorSetsReady;
 }
 
-void GraphicsPipeline::PreparePipeline(std::shared_ptr<RenderPass> renderPass, uint32_t subpassIndex)
+void GraphicsPipeline::PreparePipeline()
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages {};
 	if (m_vertexShader && m_vertexShader->m_shaderType == ShaderType::Vertex && m_vertexShader->Compiled())
@@ -458,6 +458,7 @@ void GraphicsPipeline::PreparePipeline(std::shared_ptr<RenderPass> renderPass, u
 	multisampling.sampleShadingEnable = VK_FALSE;
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+	/*
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
@@ -472,7 +473,7 @@ void GraphicsPipeline::PreparePipeline(std::shared_ptr<RenderPass> renderPass, u
 	colorBlending.blendConstants[1] = 0.0f;
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
-
+	*/
 	std::vector<VkDynamicState> dynamicStates = {
 		VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
 
@@ -496,14 +497,13 @@ void GraphicsPipeline::PreparePipeline(std::shared_ptr<RenderPass> renderPass, u
 		VK_DYNAMIC_STATE_STENCIL_OP,
 		VK_DYNAMIC_STATE_DEPTH_BOUNDS,
 
-		/*
+		
 		VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT,
 		VK_DYNAMIC_STATE_LOGIC_OP_EXT,
 		VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
 		VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
 		VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
 		VK_DYNAMIC_STATE_BLEND_CONSTANTS
-		*/
 	};
 	VkPipelineDynamicStateCreateInfo dynamicState{};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -519,18 +519,15 @@ void GraphicsPipeline::PreparePipeline(std::shared_ptr<RenderPass> renderPass, u
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
+	//pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
-	pipelineInfo.renderPass = renderPass->GetVkRenderPass();
-	pipelineInfo.subpass = subpassIndex;
+	//pipelineInfo.renderPass = renderPass->GetVkRenderPass();
+	//pipelineInfo.subpass = subpassIndex;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&pipelineInfo, nullptr, &m_vkGraphicsPipeline));
-
-	m_targetRenderPass = renderPass;
-	m_targetSubpassIndex = subpassIndex;
 }
 
 bool GraphicsPipeline::PipelineReady() const

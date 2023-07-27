@@ -138,10 +138,14 @@ void Camera::UpdateGBuffer()
 
 		m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
 	}
-	m_gBufferDepth->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	m_gBufferNormal->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	m_gBufferAlbedo->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	m_gBufferMaterial->TransitionImageLayout(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+	{
+			m_gBufferDepth->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_gBufferNormal->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_gBufferAlbedo->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_gBufferMaterial->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	});
+	
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
 		//m_gBufferDepthImTextureId = editorLayer->UpdateTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
@@ -150,24 +154,6 @@ void Camera::UpdateGBuffer()
 		editorLayer->UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
 
 		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
-	}
-}
-
-void Camera::UpdateFrameBuffer()
-{
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if (renderLayer) {
-		const std::vector attachments = {
-			m_gBufferDepthView,
-			m_gBufferNormalView,
-			m_gBufferAlbedoView,
-			m_gBufferMaterialView,
-
-			m_renderTexture->GetDepthImageView(),
-			m_renderTexture->GetColorImageView()
-		};
-		m_deferredRenderingFramebuffer.reset();
-		m_deferredRenderingFramebuffer = std::make_shared<Framebuffer>(attachments, renderLayer->GetRenderPass("DEFERRED_RENDERING"));
 	}
 }
 
@@ -200,11 +186,6 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	{
 		cameraInfoBlock.m_clearColor.w = 0.0f;
 	}
-}
-
-const std::shared_ptr<Framebuffer>& Camera::GetFramebuffer() const
-{
-	return m_deferredRenderingFramebuffer;
 }
 
 const std::vector<VkAttachmentDescription>& Camera::GetAttachmentDescriptions()
@@ -264,7 +245,6 @@ void Camera::Resize(const glm::uvec2& size)
 	m_size = size;
 	m_renderTexture->Resize({ m_size.x, m_size.y, 1 });
 	UpdateGBuffer();
-	UpdateFrameBuffer();
 }
 
 void Camera::OnCreate()
@@ -276,7 +256,6 @@ void Camera::OnCreate()
 	extent.depth = 1;
 	m_renderTexture = std::make_unique<RenderTexture>(extent);
 	UpdateGBuffer();
-	UpdateFrameBuffer();
 }
 
 bool Camera::Rendered() const

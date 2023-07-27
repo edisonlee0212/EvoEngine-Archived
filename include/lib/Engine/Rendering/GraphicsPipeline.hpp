@@ -157,8 +157,6 @@ namespace EvoEngine
 
 
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
-		std::shared_ptr<RenderPass> m_targetRenderPass = {};
-		uint32_t m_targetSubpassIndex = 0;
 	public:
 		std::shared_ptr<Shader> m_vertexShader;
 		std::shared_ptr<Shader> m_tessellationControlShader;
@@ -180,7 +178,7 @@ namespace EvoEngine
 		void UpdateBinding(uint32_t binding, const VkDescriptorImageInfo& imageInfo);
 		[[nodiscard]] bool DescriptorSetsReady() const;
 
-		void PreparePipeline(std::shared_ptr<RenderPass> renderPass, uint32_t subpassIndex);
+		void PreparePipeline();
 		[[nodiscard]] bool PipelineReady() const;
 	};
 }

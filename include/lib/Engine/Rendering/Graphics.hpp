@@ -130,9 +130,6 @@ namespace EvoEngine
 		uint32_t m_nextImageIndex = 0;
 
 		GraphicsGlobalStates m_globalPipelineState = {};
-
-		std::shared_ptr<RenderPass> m_swapChainRenderPass = {};
-		std::vector<std::unique_ptr<Framebuffer>> m_swapChainFramebuffers = {};
 #pragma endregion
 #pragma region Shader related
 		std::unique_ptr<std::string> m_standardShaderIncludes;
@@ -167,8 +164,6 @@ namespace EvoEngine
 		void SetupVmaAllocator();
 
 		void CreateSwapChain();
-		void CreateRenderPass();
-		bool UpdateFrameBuffers();
 
 		void CreateSwapChainSyncObjects();
 		void CreateStandardDescriptorLayout();
@@ -187,6 +182,8 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	public:
+		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+
 		static std::string StringifyResultVk(const VkResult& result);
 		static void CheckVk(const VkResult& result);
 #pragma region Formats
@@ -217,8 +214,6 @@ namespace EvoEngine
 		static void UploadMaterialInfo(const MaterialInfoBlock& materialInfoBlock);
 		static void UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock);
 
-		static const std::shared_ptr<RenderPass>& GetSwapchainRenderPass();
-		static const std::unique_ptr<Framebuffer>& GetSwapchainFramebuffer();
 		static GraphicsGlobalStates& GlobalState();
 		static void AppendCommands(const std::string& name, const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
