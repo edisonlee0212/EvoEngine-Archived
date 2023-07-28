@@ -39,18 +39,22 @@ namespace EvoEngine
         //Deferred shading GBuffer
         std::shared_ptr<Image> m_gBufferDepth = {};
         std::shared_ptr<ImageView> m_gBufferDepthView = {};
+        std::shared_ptr<Sampler> m_gBufferDepthSampler = {};
         ImTextureID m_gBufferDepthImTextureId = {};
 
         std::shared_ptr<Image> m_gBufferNormal = {};
         std::shared_ptr<ImageView> m_gBufferNormalView = {};
+        std::shared_ptr<Sampler> m_gBufferNormalSampler = {};
         ImTextureID m_gBufferNormalImTextureId = {};
 
         std::shared_ptr<Image> m_gBufferAlbedo = {};
         std::shared_ptr<ImageView> m_gBufferAlbedoView = {};
+        std::shared_ptr<Sampler> m_gBufferAlbedoSampler = {};
         ImTextureID m_gBufferAlbedoImTextureId = {};
 
         std::shared_ptr<Image> m_gBufferMaterial = {};
         std::shared_ptr<ImageView> m_gBufferMaterialView = {};
+        std::shared_ptr<Sampler> m_gBufferMaterialSampler = {};
         ImTextureID m_gBufferMaterialImTextureId = {};
 
         size_t m_frameCount = 0;

@@ -12,7 +12,55 @@
 #include "RenderLayer.hpp"
 using namespace EvoEngine;
 
-
+VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
+{
+	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
+	std::string msg = "Vulkan";
+	switch (messageType)
+	{
+	case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
+	{
+		msg += " [General]";
+	}
+	break;
+	case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
+	{
+		msg += " [Validation]";
+	}
+	break; case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
+	{
+		msg += " [Performance]";
+	}
+	break;
+	}
+	switch (messageSeverity) {
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+	{
+		msg += "-[Diagnostic]: ";
+	}
+	break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+	{
+		msg += "-[Info]: ";
+	}
+	break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+	{
+		msg += "-[Warning]: ";
+	}
+	break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+	{
+		msg += "-[Error]: ";
+	}
+	break;
+	}
+	msg += std::string(pCallbackData->pMessage);
+	EVOENGINE_LOG(msg);
+	return VK_FALSE;
+}
 
 #pragma region Helpers
 uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
@@ -305,55 +353,7 @@ const VkPhysicalDeviceProperties& Graphics::GetVkPhysicalDeviceProperties()
 	return graphics.m_vkPhysicalDeviceProperties;
 }
 
-VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
-{
-	if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) return VK_FALSE;
-	std::string msg = "Vulkan";
-	switch (messageType)
-	{
-	case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-	{
-		msg += " [General]";
-	}
-	break;
-	case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
-	{
-		msg += " [Validation]";
-	}
-	break; case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-	{
-		msg += " [Performance]";
-	}
-	break;
-	}
-	switch (messageSeverity) {
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-	{
-		msg += "-[Diagnostic]: ";
-	}
-	break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-	{
-		msg += "-[Info]: ";
-	}
-	break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-	{
-		msg += "-[Warning]: ";
-	}
-	break;
-	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-	{
-		msg += "-[Error]: ";
-	}
-	break;
-	}
-	msg += std::string(pCallbackData->pMessage);
-	EVOENGINE_LOG(msg);
-	return VK_FALSE;
-}
+
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -1107,9 +1107,6 @@ void Graphics::SubmitPresent()
 
 #pragma endregion
 
-
-
-
 void Graphics::Initialize()
 {
 	auto& graphics = GetInstance();
@@ -1176,8 +1173,44 @@ void Graphics::Initialize()
 		
 	}
 #pragma endregion
+	const auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto& editorLayer = Application::GetLayer<EditorLayer>();
+	if (windowLayer && editorLayer)
+	{
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+		//io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
+		ImGui::StyleColorsDark();
+		ImGui::CreateContext();
+		ImGui_ImplGlfw_InitForVulkan(windowLayer->GetGlfwWindow(), true);
+		ImGui_ImplVulkan_InitInfo init_info = {};
+		init_info.Instance = graphics.m_vkInstance;
+		init_info.PhysicalDevice = graphics.m_vkPhysicalDevice;
+		init_info.Device = graphics.m_vkDevice;
+		init_info.QueueFamily = graphics.m_queueFamilyIndices.m_graphicsFamily.value();
+		init_info.Queue = graphics.m_vkGraphicsQueue;
+		init_info.PipelineCache = VK_NULL_HANDLE;
+		init_info.DescriptorPool = graphics.m_descriptorPool->GetVkDescriptorPool();
+		init_info.MinImageCount = graphics.m_swapchain->GetAllImageViews().size();
+		init_info.ImageCount = graphics.m_swapchain->GetAllImageViews().size();
+		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+		init_info.UseDynamicRendering = true;
+		init_info.ColorAttachmentFormat = graphics.m_swapchain->GetImageFormat();
 
-
+		ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
+		ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
+		ImGui::StyleColorsDark();
+		ImmediateSubmit([&](const VkCommandBuffer cmd) {
+			ImGui_ImplVulkan_CreateFontsTexture(cmd);
+			});
+		//clear font textures from cpu data
+		ImGui_ImplVulkan_DestroyFontUploadObjects();
+	}
+	
 }
 
 void Graphics::Destroy()

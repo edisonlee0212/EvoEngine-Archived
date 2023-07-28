@@ -16,7 +16,7 @@ namespace EvoEngine
 		bool m_rasterizerDiscardApplied = false;
 		VkPolygonMode m_polygonModeApplied = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags m_cullModeApplied = VK_CULL_MODE_BACK_BIT;
-		VkFrontFace m_frontFaceApplied = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		VkFrontFace m_frontFaceApplied = VK_FRONT_FACE_CLOCKWISE;
 		bool m_depthBiasApplied = false;
 		glm::vec3 m_depthBiasConstantClampSlopeApplied = glm::vec3(0.0f);
 		float m_lineWidthApplied = 1.0f;
@@ -59,7 +59,7 @@ namespace EvoEngine
 		bool m_rasterizerDiscard = false;
 		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
-		VkFrontFace m_frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		VkFrontFace m_frontFace = VK_FRONT_FACE_CLOCKWISE;
 		bool m_depthBias = false;
 		glm::vec3 m_depthBiasConstantClampSlope = glm::vec3(0.0f);
 		float m_lineWidth = 1.0f;

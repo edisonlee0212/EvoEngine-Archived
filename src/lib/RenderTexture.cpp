@@ -148,7 +148,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
 
-		editorLayer->UpdateTextureId(m_colorImTextureId, m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
+		editorLayer->UpdateTextureId(m_colorImTextureId, m_colorSampler->GetVkSampler(), m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
 	}
 
 }

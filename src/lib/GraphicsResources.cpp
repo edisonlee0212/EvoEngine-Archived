@@ -292,7 +292,6 @@ bool Image::HasStencilComponent() const
 
 void Image::Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
 {
-
 	VkBufferImageCopy region{};
 	region.bufferOffset = srcOffset;
 	region.bufferRowLength = 0;

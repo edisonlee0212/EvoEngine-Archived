@@ -64,6 +64,23 @@ void Camera::UpdateGBuffer()
 		viewInfo.subresourceRange.layerCount = 1;
 
 		m_gBufferDepthView = std::make_unique<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_gBufferDepthSampler = std::make_unique<Sampler>(samplerInfo);
 	}
 	{
 		VkImageCreateInfo imageInfo{};
@@ -93,6 +110,23 @@ void Camera::UpdateGBuffer()
 		viewInfo.subresourceRange.layerCount = 1;
 
 		m_gBufferNormalView = std::make_unique<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_gBufferNormalSampler = std::make_unique<Sampler>(samplerInfo);
 	}
 	{
 		VkImageCreateInfo imageInfo{};
@@ -122,6 +156,23 @@ void Camera::UpdateGBuffer()
 		viewInfo.subresourceRange.layerCount = 1;
 
 		m_gBufferAlbedoView = std::make_unique<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_gBufferAlbedoSampler = std::make_unique<Sampler>(samplerInfo);
 	}
 	{
 		VkImageCreateInfo imageInfo{};
@@ -151,6 +202,24 @@ void Camera::UpdateGBuffer()
 		viewInfo.subresourceRange.layerCount = 1;
 
 		m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_gBufferMaterialSampler = std::make_unique<Sampler>(samplerInfo);
+
 	}
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
@@ -162,12 +231,13 @@ void Camera::UpdateGBuffer()
 
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		//m_gBufferDepthImTextureId = editorLayer->UpdateTextureId(m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
-		editorLayer->UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
+		editorLayer->UpdateTextureId(m_gBufferDepthImTextureId, m_gBufferDepthSampler->GetVkSampler(), m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
 
-		editorLayer->UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
+		editorLayer->UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalSampler->GetVkSampler(), m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
 
-		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
+		editorLayer->UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoSampler->GetVkSampler(), m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
+
+		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(), m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 	}
 }
 
@@ -538,11 +608,11 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
-			/*
+			
 			ImGui::Image(m_gBufferDepthImTextureId,
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),
-				ImVec2(1, 0));*/
+				ImVec2(1, 0));
 			ImGui::Image(m_gBufferNormalImTextureId,
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
 				ImVec2(0, 1),

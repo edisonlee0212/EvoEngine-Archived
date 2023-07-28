@@ -332,6 +332,9 @@ void Resources::Initialize()
 
 	resources.LoadShaders();
 	resources.LoadPrimitives();
+
+	const auto missingTexture = CreateResource<Texture2D>("TEXTURE_MISSING");
+	missingTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/texture-missing.png");
 }
 
 Handle Resources::GenerateNewHandle()

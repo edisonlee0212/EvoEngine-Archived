@@ -39,30 +39,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
-	float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, 0);
+	float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
-		if (nrComponents == 1)
-		{
-			m_imageFormat = VK_FORMAT_R32_SFLOAT;
-		}
-		else if (nrComponents == 2)
-		{
-			m_imageFormat = VK_FORMAT_R32G32_SFLOAT;
-		}
-		else if (nrComponents == 3)
-		{
-			m_imageFormat = VK_FORMAT_R32G32B32_SFLOAT;
-		}
-		else if (nrComponents == 4)
-		{
-			m_imageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-		}
-		else
-		{
-			EVOENGINE_ERROR("Format not supported!");
-		}
-
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -71,7 +50,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = m_imageFormat;
+		imageInfo.format = Graphics::ImageFormats::m_texture2D;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -79,7 +58,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		m_image = std::make_unique<Image>(imageInfo);
-		const auto imageSize = nrComponents * width * height * sizeof(float);
+		const auto imageSize = width * height * sizeof(float) * 4;
 		VkBufferCreateInfo stagingBufferCreateInfo{};
 		stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		stagingBufferCreateInfo.size = imageSize;
@@ -109,7 +88,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = m_imageFormat;
+		viewInfo.format = Graphics::ImageFormats::m_texture2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -136,7 +115,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
 		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-			editorLayer->UpdateTextureId(m_imTextureId, m_imageView->GetVkImageView(), m_image->GetLayout());
+			editorLayer->UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
 		}
 	}
 	else

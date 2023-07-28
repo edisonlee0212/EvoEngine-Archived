@@ -122,56 +122,7 @@ void EditorLayer::OnCreate()
 		throw;
 	}
 
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
-	//io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
-	ImGui::StyleColorsDark();
-	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForVulkan(windowLayer->GetGlfwWindow(), true);
-	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance = Graphics::GetVkInstance();
-	init_info.PhysicalDevice = Graphics::GetVkPhysicalDevice();
-	init_info.Device = Graphics::GetVkDevice();
-	init_info.QueueFamily = Graphics::GetQueueFamilyIndices().m_graphicsFamily.value();
-	init_info.Queue = Graphics::GetGraphicsVkQueue();
-	init_info.PipelineCache = VK_NULL_HANDLE;
-	init_info.DescriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-	init_info.MinImageCount = Graphics::GetSwapchain()->GetAllImageViews().size();
-	init_info.ImageCount = Graphics::GetSwapchain()->GetAllImageViews().size();
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	init_info.UseDynamicRendering = true;
-	init_info.ColorAttachmentFormat = Graphics::GetSwapchain()->GetImageFormat();
-
-	ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
-	ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
-	ImGui::StyleColorsDark();
-	Graphics::ImmediateSubmit([&](const VkCommandBuffer cmd) {
-		ImGui_ImplVulkan_CreateFontsTexture(cmd);
-		});
-	//clear font textures from cpu data
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	m_defaultImageSampler = std::make_unique<Sampler>(samplerInfo);
+	
 
 	LoadIcons();
 }
@@ -1174,10 +1125,10 @@ std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 	return m_sceneCamera;
 }
 
-void EditorLayer::UpdateTextureId(ImTextureID& target, const VkImageView imageView, VkImageLayout imageLayout) const
+void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout) const
 {
 	if (target != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(target));
-	target = ImGui_ImplVulkan_AddTexture(m_defaultImageSampler->GetVkSampler(), imageView, imageLayout);
+	target = ImGui_ImplVulkan_AddTexture(imageSampler, imageView, imageLayout);
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)

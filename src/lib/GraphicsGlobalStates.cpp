@@ -15,7 +15,7 @@ void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, s
 	m_rasterizerDiscard = false;
 	m_polygonMode = VK_POLYGON_MODE_FILL;
 	m_cullMode = VK_CULL_MODE_BACK_BIT;
-	m_frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	m_frontFace = VK_FRONT_FACE_CLOCKWISE;
 	m_depthBias = false;
 	m_depthBiasConstantClampSlope = glm::vec3(0.0f);
 	m_lineWidth = 1.0f;

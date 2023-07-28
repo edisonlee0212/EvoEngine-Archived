@@ -36,8 +36,6 @@ namespace EvoEngine
 		std::map<std::string, std::vector<EntityRef>> m_entityRefBus;
 #pragma endregion
 
-		std::unique_ptr<Sampler> m_defaultImageSampler;
-
 		EntityArchetype m_basicEntityArchetype;
 
 		glm::vec3 m_previouslyStoredPosition;
@@ -100,7 +98,7 @@ namespace EvoEngine
 
 		void CameraWindowDragAndDrop();
 
-		[[nodiscard]] void UpdateTextureId(ImTextureID& target, VkImageView imageView, VkImageLayout imageLayout) const;
+		[[nodiscard]] void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout) const;
 
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;

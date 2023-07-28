@@ -13,12 +13,10 @@ namespace EvoEngine
 	class Texture2D : public IAsset
 	{
 		friend class EditorLayer;
+		friend class Resources;
 		std::unique_ptr<Image> m_image = {};
 		std::unique_ptr<ImageView> m_imageView = {};
 		std::unique_ptr<Sampler> m_sampler = {};
-
-		VkFormat m_imageFormat = VK_FORMAT_UNDEFINED;
-
 		ImTextureID m_imTextureId = VK_NULL_HANDLE;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;

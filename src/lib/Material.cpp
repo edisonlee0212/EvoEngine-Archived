@@ -178,90 +178,97 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 
 void Material::UpdateDescriptorBindings()
 {
+    VkDescriptorImageInfo imageInfo;
+    VkWriteDescriptorSet writeInfo{};
+    auto missingTexture = std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("TEXTURE_MISSING"));
 	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
-        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = texture->GetLayout();
         imageInfo.imageView = texture->GetVkImageView();
         imageInfo.sampler = texture->GetVkSampler();
-        VkWriteDescriptorSet writeInfo{};
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_descriptorSet;
-        writeInfo.dstBinding = 10;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }else
+    {
+        imageInfo.imageLayout = missingTexture->GetLayout();
+        imageInfo.imageView = missingTexture->GetVkImageView();
+        imageInfo.sampler = missingTexture->GetVkSampler();
     }
+    
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstSet = m_descriptorSet;
+    writeInfo.dstBinding = 10;
+    writeInfo.dstArrayElement = 0;
+    writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writeInfo.descriptorCount = 1;
+    writeInfo.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 
     if (const auto texture = m_normalTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
-        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = texture->GetLayout();
         imageInfo.imageView = texture->GetVkImageView();
         imageInfo.sampler = texture->GetVkSampler();
-        VkWriteDescriptorSet writeInfo{};
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_descriptorSet;
-        writeInfo.dstBinding = 11;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     }
+    else
+    {
+        imageInfo.imageLayout = missingTexture->GetLayout();
+        imageInfo.imageView = missingTexture->GetVkImageView();
+        imageInfo.sampler = missingTexture->GetVkSampler();
+    }
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstBinding = 11;
+    writeInfo.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 
     if (const auto texture = m_metallicTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
-        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = texture->GetLayout();
         imageInfo.imageView = texture->GetVkImageView();
         imageInfo.sampler = texture->GetVkSampler();
-        VkWriteDescriptorSet writeInfo{};
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_descriptorSet;
-        writeInfo.dstBinding = 12;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     }
+    else
+    {
+        imageInfo.imageLayout = missingTexture->GetLayout();
+        imageInfo.imageView = missingTexture->GetVkImageView();
+        imageInfo.sampler = missingTexture->GetVkSampler();
+    }
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstBinding = 12;
+    writeInfo.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 
     if (const auto texture = m_roughnessTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
-        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = texture->GetLayout();
         imageInfo.imageView = texture->GetVkImageView();
         imageInfo.sampler = texture->GetVkSampler();
-        VkWriteDescriptorSet writeInfo{};
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_descriptorSet;
-        writeInfo.dstBinding = 13;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     }
+    else
+    {
+        imageInfo.imageLayout = missingTexture->GetLayout();
+        imageInfo.imageView = missingTexture->GetVkImageView();
+        imageInfo.sampler = missingTexture->GetVkSampler();
+    }
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstBinding = 13;
+    writeInfo.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 
     if (const auto texture = m_aoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
-        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = texture->GetLayout();
         imageInfo.imageView = texture->GetVkImageView();
         imageInfo.sampler = texture->GetVkSampler();
-        VkWriteDescriptorSet writeInfo{};
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_descriptorSet;
-        writeInfo.dstBinding = 14;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     }
+    else
+    {
+        imageInfo.imageLayout = missingTexture->GetLayout();
+        imageInfo.imageView = missingTexture->GetVkImageView();
+        imageInfo.sampler = missingTexture->GetVkSampler();
+    }
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstBinding = 14;
+    writeInfo.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 }
 
 void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
