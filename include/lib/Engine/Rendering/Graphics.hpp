@@ -78,13 +78,7 @@ namespace EvoEngine
 		std::string m_shaderShadow;
 		std::string m_shaderSkybox;
 		size_t m_maxBoneAmount = 65536;
-		size_t m_maxMaterialAmount = 1;
-		size_t m_maxKernelAmount = 64;
-		size_t m_maxDirectionalLightAmount = 8;
-		size_t m_maxPointLightAmount = 8;
-		size_t m_maxSpotLightAmount = 8;
-		size_t m_shadowCascadeAmount = 4;
-
+		size_t m_maxShadowCascadeAmount = 4;
 		friend class RenderLayer;
 		
 #pragma endregion
@@ -123,9 +117,14 @@ namespace EvoEngine
 		class StorageSizes
 		{
 			friend class RenderLayer;
+			friend class Resources;
 			inline static uint32_t m_maxCameraSize = 64;
 			inline static uint32_t m_maxMaterialSize = 1024;
 			inline static uint32_t m_maxInstanceSize = 8192;
+			inline static uint32_t m_maxKernelAmount = 64;
+			inline static uint32_t m_maxDirectionalLightSize = 8;
+			inline static uint32_t m_maxPointLightSize = 8;
+			inline static uint32_t m_maxSpotLightSize = 4;
 		};
 
 	public:
@@ -146,16 +145,8 @@ namespace EvoEngine
 
 #pragma endregion
 
-		static size_t GetMaxBoneAmount();
-		static size_t GetMaxMaterialAmount();
-		static size_t GetMaxKernelAmount();
-		static size_t GetMaxDirectionalLightAmount();
-		static size_t GetMaxPointLightAmount();
-		static size_t GetMaxSpotLightAmount();
+		static size_t GetMaxBoneAmount();		
 		static size_t GetMaxShadowCascadeAmount();
-
-		
-
 		static GraphicsGlobalStates& GlobalState();
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
 		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);

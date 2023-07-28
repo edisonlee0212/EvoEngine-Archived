@@ -4,6 +4,7 @@
 #include "Material.hpp"
 #include "Mesh.hpp"
 #include "IGeometry.hpp"
+#include "Lights.hpp"
 #include "SkinnedMeshRenderer.hpp"
 namespace EvoEngine
 {
@@ -64,6 +65,11 @@ namespace EvoEngine
 		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
 		alignas(4) int m_strandsSubdivisionMaxX = 15;
 		alignas(4) int m_strandsSubdivisionMaxY = 8;
+
+		alignas(4) int m_directionalLightSize = 0;
+		alignas(4) int m_pointLightSize = 0;
+		alignas(4) int m_spotLightSize = 0;
+
 	};
 
 	struct EnvironmentInfoBlock {
@@ -119,11 +125,21 @@ namespace EvoEngine
 		std::vector<CameraInfoBlock*> m_cameraInfoBlockMemory;
 		std::vector<MaterialInfoBlock*> m_materialInfoBlockMemory;
 		std::vector<InstanceInfoBlock*> m_instanceInfoBlockMemory;
+		std::vector<glm::vec4*> m_kernelBlockMemory;
+		std::vector<DirectionalLightInfo*> m_directionalLightInfoBlockMemory;
+		std::vector<PointLightInfo*> m_pointLightInfoBlockMemory;
+		std::vector<SpotLightInfo*> m_spotLightInfoBlockMemory;
+
 		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_objectInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_spotLightInfoDescriptorBuffers = {};
+		
 
 		void CreateStandardDescriptorBuffers();
 		void UpdateStandardBindings();
@@ -137,6 +153,10 @@ namespace EvoEngine
 		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
 		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};
 		std::vector<InstanceInfoBlock> m_instanceInfoBlocks{};
+
+		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
+		std::vector<PointLightInfo> m_pointLightInfoBlocks;
+		std::vector<SpotLightInfo> m_spotLightInfoBlocks;
 
 		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks);
 		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks);

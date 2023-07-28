@@ -26,7 +26,8 @@ std::shared_ptr<Scene> IPrivateComponent::GetScene() const {
     return m_scene.lock();
 }
 
-bool IPrivateComponent::Started() {
+bool IPrivateComponent::Started() const
+{
     return m_started;
 }
 

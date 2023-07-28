@@ -37,6 +37,22 @@ void RenderLayer::OnCreate()
 	PrepareMaterialLayout();
 	PreparePerFrameLayout();
 
+	std::vector<glm::vec4> kernels;
+	for (uint32_t i = 0; i < Graphics::StorageSizes::m_maxKernelAmount; i++)
+	{
+		kernels.emplace_back(glm::ballRand(1.0f), 1.0f);
+	}
+	for (uint32_t i = 0; i < Graphics::StorageSizes::m_maxKernelAmount; i++)
+	{
+		kernels.emplace_back(
+			glm::gaussRand(0.0f, 1.0f),
+			glm::gaussRand(0.0f, 1.0f),
+			glm::gaussRand(0.0f, 1.0f),
+			glm::gaussRand(0.0f, 1.0f));
+	}
+	for (int i = 0; i < Graphics::GetMaxFramesInFlight(); i++) {
+		memcpy(m_cameraInfoBlockMemory[i], kernels.data(), sizeof(glm::vec4) * kernels.size());
+	}
 	CreateGraphicsPipelines();
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>())
@@ -609,6 +625,10 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_cameraInfoDescriptorBuffers.clear();
 	m_materialInfoDescriptorBuffers.clear();
 	m_objectInfoDescriptorBuffers.clear();
+	m_kernelDescriptorBuffers.clear();
+	m_directionalLightInfoDescriptorBuffers.clear();
+	m_pointLightInfoDescriptorBuffers.clear();
+	m_spotLightInfoDescriptorBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -623,6 +643,10 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_cameraInfoBlockMemory.resize(maxFrameInFlight);
 	m_materialInfoBlockMemory.resize(maxFrameInFlight);
 	m_instanceInfoBlockMemory.resize(maxFrameInFlight);
+	m_kernelBlockMemory.resize(maxFrameInFlight);
+	m_directionalLightInfoBlockMemory.resize(maxFrameInFlight);
+	m_pointLightInfoBlockMemory.resize(maxFrameInFlight);
+	m_spotLightInfoBlockMemory.resize(maxFrameInFlight);
 	for (size_t i = 0; i < maxFrameInFlight; i++) {
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
@@ -636,12 +660,27 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::StorageSizes::m_maxInstanceSize;
 		m_objectInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::StorageSizes::m_maxKernelAmount * 2;
+		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::StorageSizes::m_maxDirectionalLightSize;
+		m_directionalLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::StorageSizes::m_maxPointLightSize;
+		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(SpotLightInfo) * Graphics::StorageSizes::m_maxSpotLightSize;
+		m_spotLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+
 
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_renderInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_renderInfoBlockMemory[i])));
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_environmentInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_environmentalInfoBlockMemory[i])));
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_cameraInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_cameraInfoBlockMemory[i])));
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_materialInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_materialInfoBlockMemory[i])));
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_objectInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_instanceInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_kernelDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_kernelBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_directionalLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_directionalLightInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_pointLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_pointLightInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_spotLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_spotLightInfoBlockMemory[i])));
 	}
 #pragma endregion
 }
@@ -685,6 +724,30 @@ void RenderLayer::UpdateStandardBindings()
 		tempBufferInfos[i].buffer = m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(4, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = m_kernelDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(6, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = m_directionalLightInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(7, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = m_pointLightInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(8, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = m_spotLightInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(9, tempBufferInfos);
 }
 
 
@@ -815,6 +878,11 @@ void RenderLayer::PreparePerFrameLayout()
 	PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+
+	PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 
 	std::vector<VkDescriptorSetLayoutBinding> perFrameBindings;
 

@@ -554,6 +554,42 @@ void Camera::OnDestroy()
 
 void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	if (ImGui::TreeNode("Contents"))
+	{
+		m_requireRendering = true;
+		static float debugSacle = 0.25f;
+		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
+		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
+		if (m_rendered)
+		{
+			ImGui::Image(m_renderTexture->GetColorImTextureId(),
+				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+
+			ImGui::Image(m_gBufferDepthImTextureId,
+				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+			ImGui::SameLine();
+			ImGui::Image(m_gBufferNormalImTextureId,
+				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+
+			ImGui::Image(m_gBufferAlbedoImTextureId,
+				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+			ImGui::SameLine();
+			ImGui::Image(m_gBufferMaterialImTextureId,
+				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+		}
+		ImGui::TreePop();
+	}
+
 	if (!Application::GetLayer<RenderLayer>()->m_allowAutoResize)
 	{
 		glm::ivec2 resolution = { m_size.x, m_size.y };
@@ -587,47 +623,17 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		//Editor::DragAndDropButton<Cubemap>(m_skybox, "Skybox");
 	}
-
-	ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);
-	ImGui::DragFloat("Far", &m_farDistance, m_farDistance / 10.0f, m_nearDistance);
-	ImGui::DragFloat("FOV", &m_fov, 1.0f, 1, 359);
-
+	if (ImGui::TreeNode("Intrinsic Settings")) {
+		ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);
+		ImGui::DragFloat("Far", &m_farDistance, m_farDistance / 10.0f, m_nearDistance);
+		ImGui::DragFloat("FOV", &m_fov, 1.0f, 1, 359);
+		ImGui::TreePop();
+	}
 	FileUtils::SaveFile("Screenshot", "Texture2D", { ".png", ".jpg" }, [this](const std::filesystem::path& filePath) {
 		//m_colorTexture->SetPathAndSave(filePath);
 		});
 
-	if (ImGui::TreeNode("Debug"))
-	{
-		m_requireRendering = true;
-		static float debugSacle = 0.25f;
-		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
-		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
-		if (m_rendered)
-		{
-			ImGui::Image(m_renderTexture->GetColorImTextureId(),
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-			
-			ImGui::Image(m_gBufferDepthImTextureId,
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-			ImGui::Image(m_gBufferNormalImTextureId,
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-			ImGui::Image(m_gBufferAlbedoImTextureId,
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-			ImGui::Image(m_gBufferMaterialImTextureId,
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
-		}
-		ImGui::TreePop();
-	}
+	
 }
 
 void Camera::CollectAssetRef(std::vector<AssetRef>& list)

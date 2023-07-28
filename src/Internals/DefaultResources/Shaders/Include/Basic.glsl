@@ -19,6 +19,10 @@ layout(set = EE_PER_FRAME_SET, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
 	float EE_STRANDS_SUBDIVISION_Y_FACTOR;
 	int EE_STRANDS_SUBDIVISION_MAX_X;
 	int EE_STRANDS_SUBDIVISION_MAX_Y;
+
+	int UE_DIRECTIONAL_LIGHT_AMOUNT;
+	int UE_POINT_LIGHT_AMOUNT;
+	int UE_SPOT_LIGHT_AMOUNT;
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
@@ -135,22 +139,24 @@ struct SpotLight {
 	int viewPortXSize;
 	int viewPortYSize;
 };
+layout(set = EE_PER_FRAME_SET, binding = 6) uniform UE_KERNEL_BLOCK
+{
+	vec4 UE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
+	vec4 UE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
+};
 
 layout(set = EE_PER_FRAME_SET, binding = 7) readonly buffer EE_DIRECTIONAL_LIGHT_BLOCK
 {
-	int UE_DIRECTIONAL_LIGHT_BLOCK_AMOUNT;
 	DirectionalLight UE_DIRECTIONAL_LIGHTS[];
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 8) readonly buffer EE_POINT_LIGHT_BLOCK
 {
-	int UE_POINT_LIGHT_AMOUNT;
 	PointLight UE_POINT_LIGHTS[];
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_SPOT_LIGHT_BLOCK
 {
-	int UE_SPOT_LIGHT_AMOUNT;
 	SpotLight UE_SPOT_LIGHTS[];
 };
 

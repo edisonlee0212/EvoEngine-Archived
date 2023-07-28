@@ -128,6 +128,19 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	return true;
 }
 
+void Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+{
+	if (m_imTextureId) {
+		static float debugSacle = 0.25f;
+		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
+		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
+		ImGui::Image(m_imTextureId,
+			ImVec2(m_image->GetExtent().width * debugSacle, m_image->GetExtent().height * debugSacle),
+			ImVec2(0, 1),
+			ImVec2(1, 0));
+	}
+}
+
 glm::vec2 Texture2D::GetResolution() const
 {
 	return { m_image->GetExtent().width, m_image->GetExtent().height };

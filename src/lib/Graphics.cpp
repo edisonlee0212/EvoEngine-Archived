@@ -176,43 +176,11 @@ size_t Graphics::GetMaxBoneAmount()
 	return graphics.m_maxBoneAmount;
 }
 
-size_t Graphics::GetMaxMaterialAmount()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxMaterialAmount;
-}
-
 size_t Graphics::GetMaxShadowCascadeAmount()
 {
 	const auto& graphics = GetInstance();
-	return graphics.m_shadowCascadeAmount;
+	return graphics.m_maxShadowCascadeAmount;
 }
-
-size_t Graphics::GetMaxKernelAmount()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxKernelAmount;
-}
-
-size_t Graphics::GetMaxDirectionalLightAmount()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxDirectionalLightAmount;
-}
-
-size_t Graphics::GetMaxPointLightAmount()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxPointLightAmount;
-}
-
-size_t Graphics::GetMaxSpotLightAmount()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxSpotLightAmount;
-}
-
-
 
 GraphicsGlobalStates& Graphics::GlobalState()
 {
