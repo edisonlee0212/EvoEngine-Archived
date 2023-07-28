@@ -13,7 +13,7 @@ layout (location = 2) out vec4 outMaterial;
 void main()
 {
     vec2 texCoord = fs_in.TexCoord;
-    vec4 albedo = EE_PBR_ALBEDO;
+    vec4 albedo = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX].EE_PBR_ALBEDO;
     
 
     vec3 B = cross(fs_in.Normal, fs_in.Tangent);
@@ -21,10 +21,10 @@ void main()
     vec3 normal = fs_in.Normal;
    
 
-    float roughness = EE_PBR_ROUGHNESS;
-    float metallic = EE_PBR_METALLIC;
-    float emission = EE_PBR_EMISSION;
-    float ao = EE_PBR_AO;
+    float roughness = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX].EE_PBR_ROUGHNESS;
+    float metallic = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX].EE_PBR_METALLIC;
+    float emission = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX].EE_PBR_EMISSION;
+    float ao = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX].EE_PBR_AO;
 
     // also store the per-fragment normals into the gbuffer
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);

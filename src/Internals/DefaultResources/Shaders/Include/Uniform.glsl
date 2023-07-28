@@ -79,10 +79,7 @@ layout(set = EE_PER_FRAME_SET, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
 	float EE_ENVIRONMENTAL_PADDING2;
 };
 
-
-//Camera
-layout(set = EE_PER_PASS_SET, binding = 2) uniform EE_CAMERA
-{
+struct Camera {
 	mat4 EE_CAMERA_PROJECTION;
 	mat4 EE_CAMERA_VIEW;
 	mat4 EE_CAMERA_PROJECTION_VIEW;
@@ -94,8 +91,13 @@ layout(set = EE_PER_PASS_SET, binding = 2) uniform EE_CAMERA
 	vec4 EE_CAMERA_RESERVED2;
 };
 
-layout(set = EE_PER_GROUP_SET, binding = 3) uniform EE_MATERIAL_BLOCK
+//Camera
+layout(set = EE_PER_FRAME_SET, binding = 2) readonly buffer EE_CAMERA
 {
+	Camera EE_CAMERAS[];
+};
+
+struct MaterialProperties {
 	bool EE_ALBEDO_MAP_ENABLED;
 	bool EE_NORMAL_MAP_ENABLED;
 	bool EE_METALLIC_MAP_ENABLED;
@@ -114,8 +116,27 @@ layout(set = EE_PER_GROUP_SET, binding = 3) uniform EE_MATERIAL_BLOCK
 	float EE_PBR_EMISSION;
 };
 
+layout(set = EE_PER_FRAME_SET, binding = 3) readonly buffer EE_MATERIAL_BLOCK
+{
+	MaterialProperties EE_MATERIAL_PROPERTIES[];
+};
 
 
+struct Instance {
+	mat4 model;
+};
+
+layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
+{
+	Instance EE_INSTANCES[];
+};
+
+
+layout(push_constant) uniform EE_PUSH_CONSTANTS{
+	uint EE_INSTANCE_INDEX;
+	uint EE_MATERIAL_INDEX;
+	uint EE_CAMERA_INDEX;
+};
 
 float EE_LINEARIZE_DEPTH(float ndcDepth);
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
@@ -125,59 +146,59 @@ vec3 EE_DEPTH_TO_VIEW_POS(vec2 texCoords, float ndcDepth);
 
 
 vec3 EE_CAMERA_LEFT() {
-	return EE_CAMERA_VIEW[0].xyz;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[0].xyz;
 }
 
 vec3 EE_CAMERA_RIGHT() {
-	return -EE_CAMERA_VIEW[0].xyz;
+	return -EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[0].xyz;
 }
 
 vec3 EE_CAMERA_UP() {
-	return EE_CAMERA_VIEW[1].xyz;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[1].xyz;
 }
 
 vec3 EE_CAMERA_DOWN() {
-	return -EE_CAMERA_VIEW[1].xyz;
+	return -EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[1].xyz;
 }
 
 vec3 EE_CAMERA_BACK() {
-	return EE_CAMERA_VIEW[2].xyz;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[2].xyz;
 }
 
 vec3 EE_CAMERA_FRONT() {
-	return -EE_CAMERA_VIEW[2].xyz;
+	return -EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW[2].xyz;
 }
 
 vec3 EE_CAMERA_POSITION() {
-	return EE_CAMERA_INVERSE_VIEW[3].xyz;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_INVERSE_VIEW[3].xyz;
 }
 
 float EE_CAMERA_NEAR() {
-	return EE_CAMERA_RESERVED1.x;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED1.x;
 }
 
 float EE_CAMERA_FAR() {
-	return EE_CAMERA_RESERVED1.y;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED1.y;
 }
 
 float EE_CAMERA_TAN_FOV() {
-	return EE_CAMERA_RESERVED1.z;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED1.z;
 }
 
 float EE_CAMERA_TAN_HALF_FOV() {
-	return EE_CAMERA_RESERVED1.w;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED1.w;
 }
 
 float EE_CAMERA_RESOLUTION_X() {
-	return EE_CAMERA_RESERVED2.x;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED2.x;
 }
 
 float EE_CAMERA_RESOLUTION_Y() {
-	return EE_CAMERA_RESERVED2.y;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED2.y;
 }
 
 float EE_CAMERA_RESOLUTION_RATIO() {
-	return EE_CAMERA_RESERVED2.z;
+	return EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_RESERVED2.z;
 }
 
 float EE_LINEARIZE_DEPTH(float ndcDepth)
@@ -190,14 +211,14 @@ float EE_LINEARIZE_DEPTH(float ndcDepth)
 
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth) {
 	vec4 viewPos = vec4(EE_DEPTH_TO_VIEW_POS(texCoords, ndcDepth), 1.0);
-	vec4 worldPos = EE_CAMERA_INVERSE_VIEW * viewPos;
+	vec4 worldPos = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_INVERSE_VIEW * viewPos;
 	worldPos = worldPos / worldPos.w;
 	return worldPos.xyz;
 }
 
 vec3 EE_DEPTH_TO_VIEW_POS(vec2 texCoords, float ndcDepth) {
 	vec4 clipPos = vec4(EE_DEPTH_TO_CLIP_POS(texCoords, ndcDepth), 1.0);
-	vec4 viewPos = EE_CAMERA_INVERSE_PROJECTION * clipPos;
+	vec4 viewPos = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_INVERSE_PROJECTION * clipPos;
 	viewPos = viewPos / viewPos.w;
 	return viewPos.xyz;
 }

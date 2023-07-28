@@ -1178,9 +1178,7 @@ void EditorLayer::RenderToSceneCamera()
 
 	if (m_sceneCamera->m_requireRendering)
 	{
-		GlobalTransform sceneCameraGT;
-		sceneCameraGT.SetValue(m_sceneCameraPosition, m_sceneCameraRotation, glm::vec3(1.0f));
-		renderLayer->RenderToCamera(m_sceneCamera, sceneCameraGT);
+		renderLayer->RenderToCamera(m_sceneCamera);
 	}
 }
 

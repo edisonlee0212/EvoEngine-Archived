@@ -5,18 +5,8 @@ namespace EvoEngine
 {
 	class Shader;
 
-	enum class DescriptorSetType
-	{
-		PerFrame,
-		PerPass,
-		PerGroup,
-		PerCommand,
-		Unknown
-	};
-
 	struct DescriptorSetLayoutBinding
 	{
-		DescriptorSetType m_type = DescriptorSetType::Unknown;
 		VkDescriptorSetLayoutBinding m_binding = {};
 		bool m_ready = false;
 	};
@@ -127,14 +117,11 @@ namespace EvoEngine
 	class GraphicsPipeline
 	{
 		friend class Graphics;
+		friend class RenderLayer;
 		friend class GraphicsGlobalStates;
-		std::vector<DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
-		bool m_containStandardBindings = false;
+		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
 
-		std::unique_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::unique_ptr<DescriptorSetLayout> m_perPassLayout = {};
-		std::unique_ptr<DescriptorSetLayout> m_perGroupLayout = {};
-		std::unique_ptr<DescriptorSetLayout> m_perCommandLayout = {};
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
 
@@ -144,10 +131,7 @@ namespace EvoEngine
 		 */
 		bool m_layoutReady = false;
 
-		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
 		std::vector<VkDescriptorSet> m_perPassDescriptorSets = {};
-		std::vector<VkDescriptorSet> m_perGroupDescriptorSets = {};
-		std::vector<VkDescriptorSet> m_perCommandDescriptorSets = {};
 
 		/**
 		 * \brief You can only bind shaders after the descriptor sets are ready.
@@ -170,22 +154,30 @@ namespace EvoEngine
 		VkFormat m_depthAttachmentFormat;
 		VkFormat m_stencilAttachmentFormat;
 
+		std::vector<VkPushConstantRange> m_pushConstantRanges;
 		void ClearDescriptorSets();
-		void InitializeStandardBindings();
-		[[nodiscard]] bool ContainStandardBindings() const;
 
-		[[maybe_unused]] uint32_t PushDescriptorBinding(DescriptorSetType setType, VkDescriptorType type, VkShaderStageFlags stageFlags);
+		[[maybe_unused]] void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		void PrepareLayouts();
+		void PreparePerPassLayouts();
 		[[nodiscard]] bool LayoutSetsReady() const;
 
-		void UpdateStandardBindings();
-		void UpdateBinding(uint32_t binding, const VkDescriptorBufferInfo& bufferInfo);
-		void UpdateBinding(uint32_t binding, const VkDescriptorImageInfo& imageInfo);
+		
+		void UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos);
+		void UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos);
 		[[nodiscard]] bool DescriptorSetsReady() const;
 
 		void PreparePipeline();
 		[[nodiscard]] bool PipelineReady() const;
 		void Bind(VkCommandBuffer commandBuffer) const;
+		template<typename T>
+		void PushConstant(VkCommandBuffer commandBuffer, size_t rangeIndex, const T& data);
 	};
+
+	template <typename T>
+	void GraphicsPipeline::PushConstant(const VkCommandBuffer commandBuffer, const size_t rangeIndex, const T& data)
+	{
+		vkCmdPushConstants(commandBuffer, m_pipelineLayout->GetVkPipelineLayout(), 
+			VK_SHADER_STAGE_ALL, m_pushConstantRanges[rangeIndex].offset, m_pushConstantRanges[rangeIndex].size, &data);
+	}
 }

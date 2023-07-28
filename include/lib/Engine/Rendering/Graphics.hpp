@@ -18,7 +18,7 @@ namespace EvoEngine
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
-	
+
 
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
@@ -78,9 +78,9 @@ namespace EvoEngine
 		alignas(4) float m_emissionVal = 0.0f;
 	};
 
-	struct ObjectInfoBlock
+	struct InstanceInfoBlock
 	{
-		glm::mat4 m_model;
+		GlobalTransform m_model;
 	};
 
 	class Graphics final : public ISingleton<Graphics>
@@ -142,13 +142,17 @@ namespace EvoEngine
 		size_t m_maxSpotLightAmount = 8;
 		size_t m_shadowCascadeAmount = 4;
 
-		friend class GraphicsPipeline;
-		std::vector<void*> m_renderInfoBlockMemory;
-		std::vector<void*> m_environmentalInfoBlockMemory;
-		std::vector<void*> m_cameraInfoBlockMemory;
-		std::vector<void*> m_materialInfoBlockMemory;
-		std::vector<void*> m_objectInfoBlockMemory;
-		std::vector<std::unique_ptr<Buffer>> m_standardDescriptorBuffers = {};
+		friend class RenderLayer;
+		std::vector<RenderInfoBlock*> m_renderInfoBlockMemory;
+		std::vector<EnvironmentInfoBlock*> m_environmentalInfoBlockMemory;
+		std::vector<CameraInfoBlock*> m_cameraInfoBlockMemory;
+		std::vector<MaterialInfoBlock*> m_materialInfoBlockMemory;
+		std::vector<InstanceInfoBlock*> m_instanceInfoBlockMemory;
+		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_objectInfoDescriptorBuffers = {};
 #pragma endregion
 
 
@@ -182,6 +186,15 @@ namespace EvoEngine
 		bool m_recreateSwapChain = false;
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+		class StorageSizes
+		{
+			friend class Graphics;
+			inline static uint32_t m_maxCameraSize = 64;
+			inline static uint32_t m_maxMaterialSize = 1024;
+			inline static uint32_t m_maxInstanceSize = 8192;
+		};
+
 	public:
 		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
 
@@ -199,6 +212,8 @@ namespace EvoEngine
 		};
 
 #pragma endregion
+
+
 		static const std::string& GetStandardShaderIncludes();
 		static size_t GetMaxBoneAmount();
 		static size_t GetMaxMaterialAmount();
@@ -208,11 +223,11 @@ namespace EvoEngine
 		static size_t GetMaxSpotLightAmount();
 		static size_t GetMaxShadowCascadeAmount();
 
-		static void UploadEnvironmentInfo(const EnvironmentInfoBlock& environmentInfoBlock);
-		static void UploadRenderInfo(const RenderInfoBlock& renderInfoBlock);
-		static void UploadCameraInfo(const CameraInfoBlock& cameraInfoBlock);
-		static void UploadMaterialInfo(const MaterialInfoBlock& materialInfoBlock);
-		static void UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock);
+		static void UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock);
+		static void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock);
+		static void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks);
+		static void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks);
+		static void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks);
 
 		static GraphicsGlobalStates& GlobalState();
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);

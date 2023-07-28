@@ -30,7 +30,7 @@ glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
 void RenderTask::Dispatch(
 	const std::function<void(const std::shared_ptr<Material>&)>&
 	beginCommandGroupAction,
-	const std::function<void(const RenderCommand&)>& commandAction) const
+	const std::function<void(const RenderInstance&)>& commandAction) const
 {
 	for (const auto& renderCollection : m_renderCommandsGroups)
 	{
@@ -48,9 +48,11 @@ void RenderTask::Dispatch(
 
 void RenderLayer::OnCreate()
 {
+	PreparePerFrameLayouts();
+
 	CreateGraphicsPipelines();
 
-	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
+	if (const auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
 		editorLayer->m_sceneCamera = Serialization::ProduceSerializable<Camera>();
 		editorLayer->m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
@@ -61,7 +63,7 @@ void RenderLayer::OnCreate()
 
 void RenderLayer::OnDestroy()
 {
-	
+
 }
 
 void RenderLayer::PreUpdate()
@@ -75,8 +77,8 @@ void RenderLayer::PreUpdate()
 	m_transparentRenderInstances.clear();
 	m_instancedTransparentRenderInstances.clear();
 
-	Graphics::UploadRenderInfo(m_renderInfoBlock);
-	Graphics::UploadEnvironmentInfo(m_environmentInfoBlock);
+	Graphics::UploadRenderInfoBlock(m_renderInfoBlock);
+	Graphics::UploadEnvironmentInfoBlock(m_environmentInfoBlock);
 
 	Bound worldBound;
 	std::vector<std::shared_ptr<Camera>> cameras;
@@ -92,7 +94,7 @@ void RenderLayer::PreUpdate()
 		camera->m_rendered = false;
 		if (camera->m_requireRendering)
 		{
-			RenderToCamera(camera, scene->GetDataComponent<GlobalTransform>(camera->GetOwner()));
+			RenderToCamera(camera);
 		}
 	}
 }
@@ -106,13 +108,16 @@ void RenderLayer::CreateGraphicsPipelines()
 	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 	standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
 	standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
-	standardDeferredPrepass->InitializeStandardBindings();
-	standardDeferredPrepass->PrepareLayouts();
-	standardDeferredPrepass->UpdateStandardBindings();
+	standardDeferredPrepass->PreparePerPassLayouts();
 
 	standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
 	standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
 	standardDeferredPrepass->m_colorAttachmentFormats = { 3, Graphics::ImageFormats::m_gBufferColor };
+
+	auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
+	pushConstantRange.size = sizeof(RenderInstancePushConstant);
+	pushConstantRange.offset = 0;
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 	standardDeferredPrepass->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
@@ -122,7 +127,7 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
 	standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
 	standardDeferredLighting->InitializeStandardBindings();
-	standardDeferredLighting->PrepareLayouts();
+	standardDeferredLighting->PreparePerPassLayouts();
 	standardDeferredLighting->UpdateStandardBindings();
 	standardDeferredLighting->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;*/
@@ -132,12 +137,28 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 {
 	auto scene = GetScene();
 	std::vector<std::pair<std::shared_ptr<Camera>, glm::vec3>> cameraPairs;
+
+	std::unordered_map<Handle, uint32_t> cameraIndices;
+	std::unordered_map<Handle, uint32_t> materialIndices;
+	std::unordered_map<Handle, uint32_t> entityIndices;
+	uint32_t cameraSize = 0;
+	uint32_t materialSize = 0;
+	uint32_t entitySize = 0;
+	std::vector<CameraInfoBlock> cameraInfoBlocks{};
+	std::vector<MaterialInfoBlock> materialInfoBlocks{};
+	std::vector<InstanceInfoBlock> instanceInfoBlocks{};
+
 	if (auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
 		auto& sceneCamera = editorLayer->GetSceneCamera();
 		if (sceneCamera && sceneCamera->IsEnabled())
 		{
 			cameraPairs.emplace_back(sceneCamera, editorLayer->m_sceneCameraPosition);
+			cameraIndices[sceneCamera->GetHandle()] = cameraSize++;
+			auto& cameraInfoBlock = cameraInfoBlocks.emplace_back();
+			GlobalTransform sceneCameraGT;
+			sceneCameraGT.SetValue(editorLayer->m_sceneCameraPosition, editorLayer->m_sceneCameraRotation, glm::vec3(1.0f));
+			sceneCamera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
 		}
 	}
 	if (const std::vector<Entity>* cameraEntities =
@@ -151,7 +172,11 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 			auto camera = scene->GetOrSetPrivateComponent<Camera>(i).lock();
 			if (!camera || !camera->IsEnabled())
 				continue;
-			cameraPairs.emplace_back(camera, scene->GetDataComponent<GlobalTransform>(i).GetPosition());
+			auto cameraGlobalTransform = scene->GetDataComponent<GlobalTransform>(i);
+			cameraPairs.emplace_back(camera, cameraGlobalTransform.GetPosition());
+			cameraIndices[camera->GetHandle()] = cameraSize++;
+			auto& cameraInfoBlock = cameraInfoBlocks.emplace_back();
+			camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraGlobalTransform);
 			cameras.emplace_back(camera);
 		}
 	}
@@ -189,6 +214,22 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				(glm::max)(maxBound.y, center.y + size.y),
 				(glm::max)(maxBound.z, center.z + size.z));
 
+			const auto materialSearch = materialIndices.find(material->GetHandle());
+			if (materialSearch == materialIndices.end())
+			{
+				materialIndices[material->GetHandle()] = materialSize++;
+				auto& materialInfoBlock = materialInfoBlocks.emplace_back();
+				material->UpdateMaterialInfoBlock(materialInfoBlock);
+			}
+			auto entityHandle = scene->GetEntityHandle(owner);
+			const auto entitySearch = entityIndices.find(entityHandle);
+			if (entitySearch == entityIndices.end())
+			{
+				entityIndices[entityHandle] = entitySize++;
+				auto& instanceInfoBlock = instanceInfoBlocks.emplace_back();
+				instanceInfoBlock.m_model = gt;
+			}
+
 			auto meshCenter = gt.m_value * glm::vec4(center, 1.0);
 			for (const auto& pair : cameraPairs)
 			{
@@ -206,18 +247,23 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				transparentRenderInstances.m_camera = pair.first;
 				instancedTransparentRenderInstances.m_camera = pair.first;
 
-				RenderCommand renderInstance;
+				RenderInstance renderInstance;
 				renderInstance.m_owner = owner;
-				renderInstance.m_globalTransform = gt;
 				renderInstance.m_renderGeometry = mesh;
 				renderInstance.m_castShadow = mmc->m_castShadow;
 				renderInstance.m_receiveShadow = mmc->m_receiveShadow;
 				renderInstance.m_geometryType = RenderGeometryType::Mesh;
+
+				renderInstance.m_pushConstant.m_cameraIndex = cameraIndices[pair.first->GetHandle()];
+				renderInstance.m_pushConstant.m_materialIndex = materialIndices[material->GetHandle()];
+				renderInstance.m_pushConstant.m_instanceIndex = entityIndices[entityHandle];
+
 				if (material->m_drawSettings.m_blending)
 				{
 					auto& group = transparentRenderInstances.m_renderCommandsGroups[material->GetHandle()];
 					group.m_material = material;
 					group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
+
 				}
 				else if (mmc->m_forwardRendering)
 				{
@@ -279,7 +325,7 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				transparentRenderInstances.m_camera = pair.first;
 				instancedTransparentRenderInstances.m_camera = pair.first;
 
-				RenderCommand renderInstance;
+				RenderInstance renderInstance;
 				renderInstance.m_owner = owner;
 				renderInstance.m_globalTransform = gt;
 				renderInstance.m_renderGeometry = mesh;
@@ -360,7 +406,7 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				transparentRenderInstances.m_camera = pair.first;
 				instancedTransparentRenderInstances.m_camera = pair.first;
 
-				RenderCommand renderInstance;
+				RenderInstance renderInstance;
 				renderInstance.m_owner = owner;
 				renderInstance.m_globalTransform = gt;
 				renderInstance.m_renderGeometry = skinnedMesh;
@@ -435,7 +481,7 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				transparentRenderInstances.m_camera = pair.first;
 				instancedTransparentRenderInstances.m_camera = pair.first;
 
-				RenderCommand renderInstance;
+				RenderInstance renderInstance;
 				renderInstance.m_owner = owner;
 				renderInstance.m_globalTransform = gt;
 				renderInstance.m_renderGeometry = strands;
@@ -464,16 +510,190 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 		}
 	}
 	*/
+
+
+	Graphics::UploadCameraInfoBlocks(cameraInfoBlocks);
+	Graphics::UploadMaterialInfoBlocks(materialInfoBlocks);
+	Graphics::UploadInstanceInfoBlocks(instanceInfoBlocks);
+
 }
 
-void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const GlobalTransform& cameraModel)
+void RenderLayer::UpdateStandardBindings()
 {
-	
-	CameraInfoBlock cameraInfoBlock = {};
-	camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraModel);
-	Graphics::UploadCameraInfo(cameraInfoBlock);
-	auto deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
-	auto deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
+	const auto& graphics = Graphics::GetInstance();
+	std::vector<VkDescriptorBufferInfo> tempBufferInfos;
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	tempBufferInfos.resize(maxFramesInFlight);
+	for (auto& i : tempBufferInfos)
+	{
+		i.offset = 0;
+		i.range = VK_WHOLE_SIZE;
+	}
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = graphics.m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(0, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = graphics.m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(1, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = graphics.m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(2, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = graphics.m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(3, tempBufferInfos);
+
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		tempBufferInfos[i].buffer = graphics.m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
+	}
+	UpdateBufferDescriptorBinding(4, tempBufferInfos);
+}
+
+
+
+void RenderLayer::ClearDescriptorSets()
+{
+	m_descriptorSetLayoutBindings.clear();
+
+	m_perFrameLayout.reset();
+
+	if (!m_perFrameDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
+
+	m_perFrameDescriptorSets.clear();
+
+	m_layoutReady = false;
+	m_descriptorSetsReady = false;
+}
+
+void RenderLayer::CheckDescriptorSetsReady()
+{
+	for (const auto& binding : m_descriptorSetLayoutBindings)
+	{
+		if (!binding.second.m_ready)
+		{
+			m_descriptorSetsReady = false;
+		}
+	}
+	m_descriptorSetsReady = true;
+}
+
+void RenderLayer::PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags)
+{
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.binding = binding;
+	bindingInfo.descriptorCount = 1;
+	bindingInfo.descriptorType = type;
+	bindingInfo.pImmutableSamplers = nullptr;
+	bindingInfo.stageFlags = stageFlags;
+	m_descriptorSetLayoutBindings[binding] = { bindingInfo, false };
+
+	m_descriptorSetsReady = false;
+	m_layoutReady = false;
+}
+
+void RenderLayer::UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos)
+{
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	assert(maxFramesInFlight == imageInfos.size());
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
+		VkWriteDescriptorSet writeInfo{};
+		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeInfo.dstSet = m_perFrameDescriptorSets[i];
+		writeInfo.dstBinding = binding;
+		writeInfo.dstArrayElement = 0;
+		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
+		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
+		writeInfo.pImageInfo = &imageInfos[i];
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+	}
+	m_descriptorSetLayoutBindings[binding].m_ready = true;
+	CheckDescriptorSetsReady();
+}
+
+void RenderLayer::UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos)
+{
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	assert(maxFramesInFlight == bufferInfos.size());
+	for (size_t i = 0; i < maxFramesInFlight; i++)
+	{
+		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
+		VkWriteDescriptorSet writeInfo{};
+		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeInfo.dstSet = m_perFrameDescriptorSets[i];
+		writeInfo.dstBinding = binding;
+		writeInfo.dstArrayElement = 0;
+		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
+		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
+		writeInfo.pBufferInfo = &bufferInfos[i];
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+	}
+	m_descriptorSetLayoutBindings[binding].m_ready = true;
+	CheckDescriptorSetsReady();
+}
+
+void RenderLayer::PreparePerFrameLayouts()
+{
+	if (!m_descriptorSetLayoutBindings.empty())
+	{
+		EVOENGINE_ERROR("Already contain bindings!");
+		return;
+	}
+	ClearDescriptorSets();
+
+	PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+
+	std::vector<VkDescriptorSetLayoutBinding> perFrameBindings;
+
+	for (const auto& bindingPair : m_descriptorSetLayoutBindings)
+	{
+		perFrameBindings.push_back(bindingPair.second.m_binding);
+	}
+
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	VkDescriptorSetLayoutCreateInfo perFrameLayoutInfo{};
+	perFrameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	perFrameLayoutInfo.bindingCount = static_cast<uint32_t>(perFrameBindings.size());
+	perFrameLayoutInfo.pBindings = perFrameBindings.data();
+	m_perFrameLayout = std::make_unique<DescriptorSetLayout>(perFrameLayoutInfo);
+
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
+
+	const std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
+	allocInfo.pSetLayouts = perFrameLayouts.data();
+	m_perFrameDescriptorSets.resize(maxFramesInFlight);
+	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, m_perFrameDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+	m_layoutReady = true;
+
+	UpdateStandardBindings();
+}
+
+void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
+{
+	const auto& deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
+	//const auto& deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
@@ -514,22 +734,19 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 			i.blendEnable = VK_FALSE;
 		}
 		globalPipelineState.ApplyAllStates(commandBuffer, true);
-		
+
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				MaterialInfoBlock materialInfoBlock = {};
 				material->m_drawSettings.ApplySettings(globalPipelineState);
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
 				//We should also bind textures here.
-			}, [&](const RenderCommand& renderCommand)
+			}, [&](const RenderInstance& renderCommand)
 			{
 				switch (renderCommand.m_geometryType)
 				{
 				case RenderGeometryType::Mesh: {
-					ObjectInfoBlock objectInfoBlock{};
-					objectInfoBlock.m_model = renderCommand.m_globalTransform.m_value;
-					Graphics::UploadObjectInfo(objectInfoBlock);
 					globalPipelineState.ApplyAllStates(commandBuffer);
+					deferredPrepassProgram->PushConstant(commandBuffer, 0, renderCommand.m_pushConstant);
 					const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, globalPipelineState);
@@ -538,7 +755,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera, const Gl
 				}
 			}
 			);
-		
+
 		vkCmdEndRendering(commandBuffer);
 		}
 	);

@@ -170,34 +170,34 @@ size_t Graphics::GetMaxSpotLightAmount()
 	return graphics.m_maxSpotLightAmount;
 }
 
-void Graphics::UploadEnvironmentInfo(const EnvironmentInfoBlock& environmentInfoBlock)
+void Graphics::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock)
 {
 	const auto& graphics = GetInstance();
 	memcpy(graphics.m_environmentalInfoBlockMemory[graphics.m_currentFrameIndex], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
 }
 
-void Graphics::UploadRenderInfo(const RenderInfoBlock& renderInfoBlock)
+void Graphics::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock)
 {
 	const auto& graphics = GetInstance();
 	memcpy(graphics.m_renderInfoBlockMemory[graphics.m_currentFrameIndex], &renderInfoBlock, sizeof(RenderInfoBlock));
 }
 
-void Graphics::UploadCameraInfo(const CameraInfoBlock& cameraInfoBlock)
+void Graphics::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks)
 {
 	const auto& graphics = GetInstance();
-	memcpy(graphics.m_cameraInfoBlockMemory[graphics.m_currentFrameIndex], &cameraInfoBlock, sizeof(CameraInfoBlock));
+	memcpy(graphics.m_cameraInfoBlockMemory[graphics.m_currentFrameIndex], cameraInfoBlocks.data(), sizeof(CameraInfoBlock) * cameraInfoBlocks.size());
 }
 
-void Graphics::UploadMaterialInfo(const MaterialInfoBlock& materialInfoBlock)
+void Graphics::UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks)
 {
 	const auto& graphics = GetInstance();
-	memcpy(graphics.m_materialInfoBlockMemory[graphics.m_currentFrameIndex], &materialInfoBlock, sizeof(MaterialInfoBlock));
+	memcpy(graphics.m_materialInfoBlockMemory[graphics.m_currentFrameIndex], materialInfoBlocks.data(), sizeof(MaterialInfoBlock) * materialInfoBlocks.size());
 }
 
-void Graphics::UploadObjectInfo(const ObjectInfoBlock& objectInfoBlock)
+void Graphics::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks)
 {
 	const auto& graphics = GetInstance();
-	memcpy(graphics.m_objectInfoBlockMemory[graphics.m_currentFrameIndex], &objectInfoBlock, sizeof(ObjectInfoBlock));
+	memcpy(graphics.m_instanceInfoBlockMemory[graphics.m_currentFrameIndex], objectInfoBlocks.data(), sizeof(InstanceInfoBlock) * objectInfoBlocks.size());
 }
 
 GraphicsGlobalStates& Graphics::GlobalState()
@@ -900,11 +900,15 @@ void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBu
 void Graphics::CreateStandardDescriptorLayout()
 {
 #pragma region Standard Descrioptor Layout
-	m_standardDescriptorBuffers.clear();
+	m_renderInfoDescriptorBuffers.clear();
+	m_environmentInfoDescriptorBuffers.clear();
+	m_cameraInfoDescriptorBuffers.clear();
+	m_materialInfoDescriptorBuffers.clear();
+	m_objectInfoDescriptorBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
@@ -914,24 +918,26 @@ void Graphics::CreateStandardDescriptorLayout()
 	m_environmentalInfoBlockMemory.resize(m_maxFrameInFlight);
 	m_cameraInfoBlockMemory.resize(m_maxFrameInFlight);
 	m_materialInfoBlockMemory.resize(m_maxFrameInFlight);
-	m_objectInfoBlockMemory.resize(m_maxFrameInFlight);
+	m_instanceInfoBlockMemory.resize(m_maxFrameInFlight);
 	for (size_t i = 0; i < m_maxFrameInFlight; i++) {
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
-		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		m_renderInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
-		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(CameraInfoBlock);
-		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(MaterialInfoBlock);
-		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(ObjectInfoBlock);
-		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		m_environmentInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(CameraInfoBlock) * StorageSizes::m_maxCameraSize;
+		m_cameraInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(MaterialInfoBlock) * StorageSizes::m_maxMaterialSize;
+		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * StorageSizes::m_maxInstanceSize;
+		m_objectInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 1]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 2]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 3]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 4]->GetVmaAllocation(), &m_objectInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_renderInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_renderInfoBlockMemory[i])));
+		vmaMapMemory(m_vmaAllocator, m_environmentInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_environmentalInfoBlockMemory[i])));
+		vmaMapMemory(m_vmaAllocator, m_cameraInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_cameraInfoBlockMemory[i])));
+		vmaMapMemory(m_vmaAllocator, m_materialInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_materialInfoBlockMemory[i])));
+		vmaMapMemory(m_vmaAllocator, m_objectInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_instanceInfoBlockMemory[i])));
 	}
 #pragma endregion
 }
@@ -1071,13 +1077,17 @@ void Graphics::OnDestroy()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 
-	m_standardDescriptorBuffers.clear();
-
 	m_renderInfoBlockMemory.clear();
 	m_environmentalInfoBlockMemory.clear();
 	m_cameraInfoBlockMemory.clear();
 	m_materialInfoBlockMemory.clear();
-	m_objectInfoBlockMemory.clear();
+	m_instanceInfoBlockMemory.clear();
+
+	m_renderInfoDescriptorBuffers.clear();
+	m_environmentInfoDescriptorBuffers.clear();
+	m_cameraInfoDescriptorBuffers.clear();
+	m_materialInfoDescriptorBuffers.clear();
+	m_objectInfoDescriptorBuffers.clear();
 
 	m_descriptorPool.reset();
 
