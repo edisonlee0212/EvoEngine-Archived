@@ -927,11 +927,11 @@ void Graphics::CreateStandardDescriptorLayout()
 		bufferCreateInfo.size = sizeof(ObjectInfoBlock);
 		m_standardDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 1]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 2]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 3]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
-		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 4 + 4]->GetVmaAllocation(), &m_objectInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 0]->GetVmaAllocation(), &m_renderInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 1]->GetVmaAllocation(), &m_environmentalInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 2]->GetVmaAllocation(), &m_cameraInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 3]->GetVmaAllocation(), &m_materialInfoBlockMemory[i]);
+		vmaMapMemory(m_vmaAllocator, m_standardDescriptorBuffers[i * 5 + 4]->GetVmaAllocation(), &m_objectInfoBlockMemory[i]);
 	}
 #pragma endregion
 }

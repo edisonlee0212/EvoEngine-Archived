@@ -225,11 +225,11 @@ void GraphicsPipeline::UpdateStandardBindings()
 	bufferInfos[4].offset = 0;
 	bufferInfos[4].range = VK_WHOLE_SIZE;
 	for (size_t i = 0; i < maxFramesInFlight; i++) {
-		bufferInfos[0].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 0]->GetVkBuffer();
-		bufferInfos[1].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 1]->GetVkBuffer();
-		bufferInfos[2].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 2]->GetVkBuffer();
-		bufferInfos[3].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 3]->GetVkBuffer();
-		bufferInfos[4].buffer = graphics.m_standardDescriptorBuffers[i * 4 + 4]->GetVkBuffer();
+		bufferInfos[0].buffer = graphics.m_standardDescriptorBuffers[i * 5 + 0]->GetVkBuffer();
+		bufferInfos[1].buffer = graphics.m_standardDescriptorBuffers[i * 5 + 1]->GetVkBuffer();
+		bufferInfos[2].buffer = graphics.m_standardDescriptorBuffers[i * 5 + 2]->GetVkBuffer();
+		bufferInfos[3].buffer = graphics.m_standardDescriptorBuffers[i * 5 + 3]->GetVkBuffer();
+		bufferInfos[4].buffer = graphics.m_standardDescriptorBuffers[i * 5 + 4]->GetVkBuffer();
 
 		VkWriteDescriptorSet renderInfo{};
 		renderInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
