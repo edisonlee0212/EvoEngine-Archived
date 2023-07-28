@@ -178,6 +178,6 @@ namespace EvoEngine
 	void GraphicsPipeline::PushConstant(const VkCommandBuffer commandBuffer, const size_t rangeIndex, const T& data)
 	{
 		vkCmdPushConstants(commandBuffer, m_pipelineLayout->GetVkPipelineLayout(), 
-			VK_SHADER_STAGE_ALL, m_pushConstantRanges[rangeIndex].offset, m_pushConstantRanges[rangeIndex].size, &data);
+			m_pushConstantRanges[rangeIndex].stageFlags, m_pushConstantRanges[rangeIndex].offset, m_pushConstantRanges[rangeIndex].size, &data);
 	}
 }

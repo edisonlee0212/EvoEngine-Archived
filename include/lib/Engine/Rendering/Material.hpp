@@ -5,6 +5,27 @@
 #include "MaterialProperties.hpp"
 namespace EvoEngine
 {
+	struct MaterialInfoBlock {
+		alignas(4) bool m_albedoEnabled = false;
+		alignas(4) bool m_normalEnabled = false;
+		alignas(4) bool m_metallicEnabled = false;
+		alignas(4) bool m_roughnessEnabled = false;
+
+		alignas(4) bool m_aoEnabled = false;
+		alignas(4) bool m_castShadow = true;
+		alignas(4) bool m_receiveShadow = true;
+		alignas(4) bool m_enableShadow = true;
+
+		glm::vec4 m_albedoColorVal = glm::vec4(1.0f);
+		glm::vec4 m_subsurfaceColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+		glm::vec4 m_subsurfaceRadius = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+
+		alignas(4) float m_metallicVal = 0.5f;
+		alignas(4) float m_roughnessVal = 0.5f;
+		alignas(4) float m_aoVal = 1.0f;
+		alignas(4) float m_emissionVal = 0.0f;
+	};
+
 	struct DrawSettings {
 		float m_lineWidth = 1.0f;
 		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;

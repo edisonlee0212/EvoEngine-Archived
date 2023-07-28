@@ -9,6 +9,20 @@
 #include "Scene.hpp"
 using namespace EvoEngine;
 
+
+glm::vec3 CameraInfoBlock::Project(const glm::vec3& position) const
+{
+	return m_projection * m_view * glm::vec4(position, 1.0f);
+}
+
+glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
+{
+	const glm::mat4 inverse = glm::inverse(m_projection * m_view);
+	auto start = glm::vec4(position, 1.0f);
+	start = inverse * start;
+	return start / start.w;
+}
+
 void Camera::UpdateGBuffer()
 {
 	m_gBufferDepthView.reset();

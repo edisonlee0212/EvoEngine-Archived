@@ -1166,19 +1166,6 @@ void EditorLayer::RenderToSceneCamera()
 	if (m_sceneCameraResolutionX != 0 && m_sceneCameraResolutionY != 0 &&
 		(resolution.x != m_sceneCameraResolutionX || resolution.y != m_sceneCameraResolutionY)) {
 		m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
-		/*
-		m_sceneCameraEntityRecorderTexture->ReSize(
-			0, GL_R32F, GL_RED, GL_FLOAT, 0, m_sceneCameraResolutionX, m_sceneCameraResolutionY);
-		m_sceneCameraEntityRecorderRenderBuffer->AllocateStorage(
-			GL_DEPTH24_STENCIL8, m_sceneCameraResolutionX, m_sceneCameraResolutionY);
-		m_sceneCameraEntityRecorder->SetResolution(m_sceneCameraResolutionX, m_sceneCameraResolutionY);
-		*/
-	}
-
-
-	if (m_sceneCamera->m_requireRendering)
-	{
-		renderLayer->RenderToCamera(m_sceneCamera);
 	}
 }
 

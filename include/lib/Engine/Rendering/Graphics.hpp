@@ -20,68 +20,7 @@ namespace EvoEngine
 
 
 
-	struct RenderInfoBlock {
-		glm::vec4 m_splitDistances = {};
-		alignas(4) int m_pcfSampleAmount = 64;
-		alignas(4) int m_blockerSearchAmount = 1;
-		alignas(4) float m_seamFixRatio = 0.05f;
-		alignas(4) float m_gamma = 2.2f;
-
-		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
-		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
-		alignas(4) int m_strandsSubdivisionMaxX = 15;
-		alignas(4) int m_strandsSubdivisionMaxY = 8;
-	};
-
-	struct EnvironmentInfoBlock {
-		glm::vec4 m_backgroundColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		alignas(4) float m_environmentalMapGamma = 1.0f;
-		alignas(4) float m_environmentalLightingIntensity = 1.0f;
-		alignas(4) float m_backgroundIntensity = 1.0f;
-		alignas(4) float m_environmentalPadding2 = 0.0f;
-	};
-
-	struct CameraInfoBlock
-	{
-		glm::mat4 m_projection = {};
-		glm::mat4 m_view = {};
-		glm::mat4 m_projectionView = {};
-		glm::mat4 m_inverseProjection = {};
-		glm::mat4 m_inverseView = {};
-		glm::mat4 m_inverseProjectionView = {};
-		glm::vec4 m_clearColor = {};
-		glm::vec4 m_reservedParameters1 = {};
-		glm::vec4 m_reservedParameters2 = {};
-
-		[[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
-		[[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
-	};
-
-	struct MaterialInfoBlock {
-		alignas(4) bool m_albedoEnabled = false;
-		alignas(4) bool m_normalEnabled = false;
-		alignas(4) bool m_metallicEnabled = false;
-		alignas(4) bool m_roughnessEnabled = false;
-
-		alignas(4) bool m_aoEnabled = false;
-		alignas(4) bool m_castShadow = true;
-		alignas(4) bool m_receiveShadow = true;
-		alignas(4) bool m_enableShadow = true;
-
-		glm::vec4 m_albedoColorVal = glm::vec4(1.0f);
-		glm::vec4 m_subsurfaceColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
-		glm::vec4 m_subsurfaceRadius = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
-
-		alignas(4) float m_metallicVal = 0.5f;
-		alignas(4) float m_roughnessVal = 0.5f;
-		alignas(4) float m_aoVal = 1.0f;
-		alignas(4) float m_emissionVal = 0.0f;
-	};
-
-	struct InstanceInfoBlock
-	{
-		GlobalTransform m_model;
-	};
+	
 
 	class Graphics final : public ISingleton<Graphics>
 	{
@@ -143,16 +82,7 @@ namespace EvoEngine
 		size_t m_shadowCascadeAmount = 4;
 
 		friend class RenderLayer;
-		std::vector<RenderInfoBlock*> m_renderInfoBlockMemory;
-		std::vector<EnvironmentInfoBlock*> m_environmentalInfoBlockMemory;
-		std::vector<CameraInfoBlock*> m_cameraInfoBlockMemory;
-		std::vector<MaterialInfoBlock*> m_materialInfoBlockMemory;
-		std::vector<InstanceInfoBlock*> m_instanceInfoBlockMemory;
-		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_objectInfoDescriptorBuffers = {};
+		
 #pragma endregion
 
 
@@ -171,7 +101,6 @@ namespace EvoEngine
 		void CreateSwapChain();
 
 		void CreateSwapChainSyncObjects();
-		void CreateStandardDescriptorLayout();
 
 		void RecreateSwapChain();
 
@@ -189,7 +118,7 @@ namespace EvoEngine
 
 		class StorageSizes
 		{
-			friend class Graphics;
+			friend class RenderLayer;
 			inline static uint32_t m_maxCameraSize = 64;
 			inline static uint32_t m_maxMaterialSize = 1024;
 			inline static uint32_t m_maxInstanceSize = 8192;
@@ -223,11 +152,7 @@ namespace EvoEngine
 		static size_t GetMaxSpotLightAmount();
 		static size_t GetMaxShadowCascadeAmount();
 
-		static void UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock);
-		static void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock);
-		static void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks);
-		static void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks);
-		static void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks);
+		
 
 		static GraphicsGlobalStates& GlobalState();
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);

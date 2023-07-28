@@ -7,6 +7,22 @@
 
 namespace EvoEngine
 {
+    struct CameraInfoBlock
+    {
+        glm::mat4 m_projection = {};
+        glm::mat4 m_view = {};
+        glm::mat4 m_projectionView = {};
+        glm::mat4 m_inverseProjection = {};
+        glm::mat4 m_inverseView = {};
+        glm::mat4 m_inverseProjectionView = {};
+        glm::vec4 m_clearColor = {};
+        glm::vec4 m_reservedParameters1 = {};
+        glm::vec4 m_reservedParameters2 = {};
+
+        [[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
+        [[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
+    };
+
     class Camera final : public IPrivateComponent
     {
         friend class Graphics;

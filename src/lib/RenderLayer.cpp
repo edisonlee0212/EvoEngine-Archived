@@ -12,21 +12,6 @@
 #include "Shader.hpp"
 using namespace EvoEngine;
 
-glm::vec3 CameraInfoBlock::Project(const glm::vec3& position) const
-{
-	return m_projection * m_view * glm::vec4(position, 1.0f);
-}
-
-glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
-{
-	const glm::mat4 inverse = glm::inverse(m_projection * m_view);
-	auto start = glm::vec4(position, 1.0f);
-	start = inverse * start;
-	return start / start.w;
-}
-
-
-
 void RenderTask::Dispatch(
 	const std::function<void(const std::shared_ptr<Material>&)>&
 	beginCommandGroupAction,
@@ -48,6 +33,8 @@ void RenderTask::Dispatch(
 
 void RenderLayer::OnCreate()
 {
+	CreateStandardDescriptorBuffers();
+
 	PreparePerFrameLayouts();
 
 	CreateGraphicsPipelines();
@@ -63,7 +50,17 @@ void RenderLayer::OnCreate()
 
 void RenderLayer::OnDestroy()
 {
+	m_renderInfoBlockMemory.clear();
+	m_environmentalInfoBlockMemory.clear();
+	m_cameraInfoBlockMemory.clear();
+	m_materialInfoBlockMemory.clear();
+	m_instanceInfoBlockMemory.clear();
 
+	m_renderInfoDescriptorBuffers.clear();
+	m_environmentInfoDescriptorBuffers.clear();
+	m_cameraInfoDescriptorBuffers.clear();
+	m_materialInfoDescriptorBuffers.clear();
+	m_objectInfoDescriptorBuffers.clear();
 }
 
 void RenderLayer::PreUpdate()
@@ -77,12 +74,24 @@ void RenderLayer::PreUpdate()
 	m_transparentRenderInstances.clear();
 	m_instancedTransparentRenderInstances.clear();
 
-	Graphics::UploadRenderInfoBlock(m_renderInfoBlock);
-	Graphics::UploadEnvironmentInfoBlock(m_environmentInfoBlock);
+	m_cameraIndices.clear();
+	m_materialIndices.clear();
+	m_instanceIndices.clear();
+	m_cameraInfoBlocks.clear();
+	m_materialInfoBlocks.clear();
+	m_instanceInfoBlocks.clear();
+
+	UploadRenderInfoBlock(m_renderInfoBlock);
+	UploadEnvironmentInfoBlock(m_environmentInfoBlock);
 
 	Bound worldBound;
 	std::vector<std::shared_ptr<Camera>> cameras;
 	CollectRenderTasks(worldBound, cameras);
+
+	UploadCameraInfoBlocks(m_cameraInfoBlocks);
+	UploadMaterialInfoBlocks(m_materialInfoBlocks);
+	UploadInstanceInfoBlocks(m_instanceInfoBlocks);
+
 	scene->SetBound(worldBound);
 
 	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
@@ -133,51 +142,139 @@ void RenderLayer::CreateGraphicsPipelines()
 	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;*/
 }
 
+uint32_t RenderLayer::GetCameraIndex(const Handle& handle)
+{
+	const auto search = m_cameraIndices.find(handle);
+	if (search == m_cameraIndices.end())
+	{
+		throw std::runtime_error("Unable to find camera!");
+	}
+	return search->second;
+}
+
+uint32_t RenderLayer::GetMaterialIndex(const Handle& handle)
+{
+	const auto search = m_materialIndices.find(handle);
+	if (search == m_materialIndices.end())
+	{
+		throw std::runtime_error("Unable to find material!");
+	}
+	return search->second;
+}
+
+uint32_t RenderLayer::GetInstanceIndex(const Handle& handle)
+{
+	const auto search = m_instanceIndices.find(handle);
+	if (search == m_instanceIndices.end())
+	{
+		throw std::runtime_error("Unable to find instance!");
+	}
+	return search->second;
+}
+
+void RenderLayer::UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock)
+{
+	const auto index = GetCameraIndex(handle);
+	memcpy(&m_cameraInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &cameraInfoBlock, sizeof(CameraInfoBlock));
+}
+
+void RenderLayer::UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock)
+{
+	const auto index = GetMaterialIndex(handle);
+	memcpy(&m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &materialInfoBlock, sizeof(MaterialInfoBlock));
+}
+
+void RenderLayer::UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock)
+{
+	const auto index = GetInstanceIndex(handle);
+	memcpy(&m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &instanceInfoBlock, sizeof(InstanceInfoBlock));
+}
+
+uint32_t RenderLayer::RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload)
+{
+	const auto search = m_cameraIndices.find(handle);
+	if (search == m_cameraIndices.end())
+	{
+		const uint32_t index = m_cameraInfoBlocks.size();
+		m_cameraIndices[handle] = index;
+		m_cameraInfoBlocks.emplace_back(cameraInfoBlock);
+		return index;
+	}
+	if(upload)
+	{
+		UploadCameraInfoBlock(handle, cameraInfoBlock);
+	}
+	return search->second;
+}
+
+uint32_t RenderLayer::RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload)
+{
+	const auto search = m_materialIndices.find(handle);
+	if (search == m_materialIndices.end())
+	{
+		const uint32_t index = m_materialInfoBlocks.size();
+		m_materialIndices[handle] = index;
+		m_materialInfoBlocks.emplace_back(materialInfoBlock);
+		return index;
+	}
+	if (upload)
+	{
+		UploadMaterialInfoBlock(handle, materialInfoBlock);
+	}
+	return search->second;
+}
+
+uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload)
+{
+	const auto search = m_instanceIndices.find(handle);
+	if (search == m_instanceIndices.end())
+	{
+		const uint32_t index = m_instanceInfoBlocks.size();
+		m_instanceIndices[handle] = index;
+		m_instanceInfoBlocks.emplace_back(instanceInfoBlock);
+		return index;
+	}
+	if (upload)
+	{
+		UploadInstanceInfoBlock(handle, instanceInfoBlock);
+	}
+	return search->second;
+}
+
 void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras)
 {
 	auto scene = GetScene();
 	std::vector<std::pair<std::shared_ptr<Camera>, glm::vec3>> cameraPairs;
 
-	std::unordered_map<Handle, uint32_t> cameraIndices;
-	std::unordered_map<Handle, uint32_t> materialIndices;
-	std::unordered_map<Handle, uint32_t> entityIndices;
-	uint32_t cameraSize = 0;
-	uint32_t materialSize = 0;
-	uint32_t entitySize = 0;
-	std::vector<CameraInfoBlock> cameraInfoBlocks{};
-	std::vector<MaterialInfoBlock> materialInfoBlocks{};
-	std::vector<InstanceInfoBlock> instanceInfoBlocks{};
-
 	if (auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
-		auto& sceneCamera = editorLayer->GetSceneCamera();
-		if (sceneCamera && sceneCamera->IsEnabled())
+		if (auto sceneCamera = editorLayer->GetSceneCamera(); sceneCamera || sceneCamera->IsEnabled() || sceneCamera->m_requireRendering)
 		{
 			cameraPairs.emplace_back(sceneCamera, editorLayer->m_sceneCameraPosition);
-			cameraIndices[sceneCamera->GetHandle()] = cameraSize++;
-			auto& cameraInfoBlock = cameraInfoBlocks.emplace_back();
+			CameraInfoBlock cameraInfoBlock;
 			GlobalTransform sceneCameraGT;
 			sceneCameraGT.SetValue(editorLayer->m_sceneCameraPosition, editorLayer->m_sceneCameraRotation, glm::vec3(1.0f));
 			sceneCamera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
+			RegisterCameraIndex(sceneCamera->GetHandle(), cameraInfoBlock);
+
+			cameras.push_back(sceneCamera);
 		}
 	}
-	if (const std::vector<Entity>* cameraEntities =
-		scene->UnsafeGetPrivateComponentOwnersList<Camera>())
+	if (const std::vector<Entity>* cameraEntities = scene->UnsafeGetPrivateComponentOwnersList<Camera>())
 	{
 		for (const auto& i : *cameraEntities)
 		{
-			if (!scene->IsEntityEnabled(i))
-				continue;
+			if (!scene->IsEntityEnabled(i)) continue;
 			assert(scene->HasPrivateComponent<Camera>(i));
 			auto camera = scene->GetOrSetPrivateComponent<Camera>(i).lock();
-			if (!camera || !camera->IsEnabled())
-				continue;
+			if (!camera || !camera->IsEnabled() || !camera->m_requireRendering) continue;
 			auto cameraGlobalTransform = scene->GetDataComponent<GlobalTransform>(i);
 			cameraPairs.emplace_back(camera, cameraGlobalTransform.GetPosition());
-			cameraIndices[camera->GetHandle()] = cameraSize++;
-			auto& cameraInfoBlock = cameraInfoBlocks.emplace_back();
+			CameraInfoBlock cameraInfoBlock;
 			camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraGlobalTransform);
-			cameras.emplace_back(camera);
+			RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
+
+			cameras.push_back(camera);
 		}
 	}
 	auto& minBound = worldBound.m_min;
@@ -214,23 +311,13 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				(glm::max)(maxBound.y, center.y + size.y),
 				(glm::max)(maxBound.z, center.z + size.z));
 
-			const auto materialSearch = materialIndices.find(material->GetHandle());
-			if (materialSearch == materialIndices.end())
-			{
-				materialIndices[material->GetHandle()] = materialSize++;
-				auto& materialInfoBlock = materialInfoBlocks.emplace_back();
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
-			}
+			MaterialInfoBlock materialInfoBlock;
+			material->UpdateMaterialInfoBlock(materialInfoBlock);
+			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+			InstanceInfoBlock instanceInfoBlock;
+			instanceInfoBlock.m_model = gt;
 			auto entityHandle = scene->GetEntityHandle(owner);
-			const auto entitySearch = entityIndices.find(entityHandle);
-			if (entitySearch == entityIndices.end())
-			{
-				entityIndices[entityHandle] = entitySize++;
-				auto& instanceInfoBlock = instanceInfoBlocks.emplace_back();
-				instanceInfoBlock.m_model = gt;
-			}
-
-			auto meshCenter = gt.m_value * glm::vec4(center, 1.0);
+			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 			for (const auto& pair : cameraPairs)
 			{
 				auto& deferredRenderInstances = m_deferredRenderInstances[pair.first->GetHandle()];
@@ -254,9 +341,9 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 				renderInstance.m_receiveShadow = mmc->m_receiveShadow;
 				renderInstance.m_geometryType = RenderGeometryType::Mesh;
 
-				renderInstance.m_pushConstant.m_cameraIndex = cameraIndices[pair.first->GetHandle()];
-				renderInstance.m_pushConstant.m_materialIndex = materialIndices[material->GetHandle()];
-				renderInstance.m_pushConstant.m_instanceIndex = entityIndices[entityHandle];
+				renderInstance.m_pushConstant.m_cameraIndex = GetCameraIndex(pair.first->GetHandle());
+				renderInstance.m_pushConstant.m_materialIndex = materialIndex;
+				renderInstance.m_pushConstant.m_instanceIndex = instanceIndex;
 
 				if (material->m_drawSettings.m_blending)
 				{
@@ -510,17 +597,55 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 		}
 	}
 	*/
+}
 
+void RenderLayer::CreateStandardDescriptorBuffers()
+{
+#pragma region Standard Descrioptor Layout
+	m_renderInfoDescriptorBuffers.clear();
+	m_environmentInfoDescriptorBuffers.clear();
+	m_cameraInfoDescriptorBuffers.clear();
+	m_materialInfoDescriptorBuffers.clear();
+	m_objectInfoDescriptorBuffers.clear();
 
-	Graphics::UploadCameraInfoBlocks(cameraInfoBlocks);
-	Graphics::UploadMaterialInfoBlocks(materialInfoBlocks);
-	Graphics::UploadInstanceInfoBlocks(instanceInfoBlocks);
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
+	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	bufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	const auto maxFrameInFlight = Graphics::GetMaxFramesInFlight();
+	m_renderInfoBlockMemory.resize(maxFrameInFlight);
+	m_environmentalInfoBlockMemory.resize(maxFrameInFlight);
+	m_cameraInfoBlockMemory.resize(maxFrameInFlight);
+	m_materialInfoBlockMemory.resize(maxFrameInFlight);
+	m_instanceInfoBlockMemory.resize(maxFrameInFlight);
+	for (size_t i = 0; i < maxFrameInFlight; i++) {
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(RenderInfoBlock);
+		m_renderInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
+		m_environmentInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(CameraInfoBlock) * Graphics::StorageSizes::m_maxCameraSize;
+		m_cameraInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(MaterialInfoBlock) * Graphics::StorageSizes::m_maxMaterialSize;
+		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::StorageSizes::m_maxInstanceSize;
+		m_objectInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_renderInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_renderInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_environmentInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_environmentalInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_cameraInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_cameraInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_materialInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_materialInfoBlockMemory[i])));
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_objectInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_instanceInfoBlockMemory[i])));
+	}
+#pragma endregion
 }
 
 void RenderLayer::UpdateStandardBindings()
 {
-	const auto& graphics = Graphics::GetInstance();
 	std::vector<VkDescriptorBufferInfo> tempBufferInfos;
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
 	tempBufferInfos.resize(maxFramesInFlight);
@@ -531,31 +656,31 @@ void RenderLayer::UpdateStandardBindings()
 	}
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		tempBufferInfos[i].buffer = graphics.m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
+		tempBufferInfos[i].buffer = m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(0, tempBufferInfos);
 
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		tempBufferInfos[i].buffer = graphics.m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
+		tempBufferInfos[i].buffer = m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(1, tempBufferInfos);
 
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		tempBufferInfos[i].buffer = graphics.m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
+		tempBufferInfos[i].buffer = m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(2, tempBufferInfos);
 
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		tempBufferInfos[i].buffer = graphics.m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
+		tempBufferInfos[i].buffer = m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(3, tempBufferInfos);
 
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		tempBufferInfos[i].buffer = graphics.m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
+		tempBufferInfos[i].buffer = m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
 	}
 	UpdateBufferDescriptorBinding(4, tempBufferInfos);
 }
@@ -587,6 +712,8 @@ void RenderLayer::CheckDescriptorSetsReady()
 	}
 	m_descriptorSetsReady = true;
 }
+
+
 
 void RenderLayer::PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags)
 {
@@ -690,6 +817,8 @@ void RenderLayer::PreparePerFrameLayouts()
 	UpdateStandardBindings();
 }
 
+
+
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
 	const auto& deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
@@ -763,4 +892,30 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
+}
+
+
+void RenderLayer::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock)
+{
+	memcpy(m_environmentalInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
+}
+
+void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock)
+{
+	memcpy(m_renderInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &renderInfoBlock, sizeof(RenderInfoBlock));
+}
+
+void RenderLayer::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks)
+{
+	memcpy(m_cameraInfoBlockMemory[Graphics::GetCurrentFrameIndex()], cameraInfoBlocks.data(), sizeof(CameraInfoBlock) * cameraInfoBlocks.size());
+}
+
+void RenderLayer::UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks)
+{
+	memcpy(m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()], materialInfoBlocks.data(), sizeof(MaterialInfoBlock) * materialInfoBlocks.size());
+}
+
+void RenderLayer::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks)
+{
+	memcpy(m_instanceInfoBlockMemory[Graphics::GetCurrentFrameIndex()], objectInfoBlocks.data(), sizeof(InstanceInfoBlock) * objectInfoBlocks.size());
 }
