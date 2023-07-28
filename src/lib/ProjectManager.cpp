@@ -3,6 +3,7 @@
 #include "Application.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
+#include "Prefab.hpp"
 #include "Resources.hpp"
 using namespace EvoEngine;
 
@@ -561,7 +562,7 @@ void Folder::RegisterAsset(
 	asset->m_saved = false;
 	record->Save();
 }
-bool Folder::HasAsset(const std::string& fileName, const std::string& extension)
+bool Folder::HasAsset(const std::string& fileName, const std::string& extension) const
 {
 	auto& projectManager = ProjectManager::GetInstance();
 	auto typeName = projectManager.GetTypeName(extension);
@@ -696,7 +697,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		}
 		SetStartScene(scene);
 		Application::Attach(scene);
-		/*
+		
 #pragma region Main Camera
 		const auto mainCameraEntity = scene->CreateEntity("Main Camera");
 		Transform cameraLtw;
@@ -705,9 +706,9 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		scene->SetDataComponent(mainCameraEntity, cameraLtw);
 		auto mainCameraComponent = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
 		scene->m_mainCamera = mainCameraComponent;
-		mainCameraComponent->m_skybox = DefaultResources::Environmental::DefaultBlurredSkybox;
+		//mainCameraComponent->m_skybox = DefaultResources::Environmental::DefaultBlurredSkybox;
 #pragma endregion
-		*/
+		
 		//scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);
 
 		if (projectManager.m_newSceneCustomizer.has_value())
@@ -851,10 +852,10 @@ void ProjectManager::SetScenePostLoadActions(const std::function<void()>& action
 }
 void ProjectManager::ScanProject()
 {
-	auto& projectManager = GetInstance();
+	const auto& projectManager = GetInstance();
 	if (!projectManager.m_projectFolder)
 		return;
-	auto directory = projectManager.m_projectPath.parent_path().parent_path();
+	const auto directory = projectManager.m_projectPath.parent_path().parent_path();
 	projectManager.m_projectFolder->m_handle = 0;
 	projectManager.m_projectFolder->m_name = projectManager.m_projectPath.parent_path().stem().string();
 	projectManager.m_projectFolder->Refresh(directory);
@@ -981,7 +982,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							}
 						}
 					}
-					/*
+					
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Entity"))
 					{
 						IM_ASSERT(payload->DataSize == sizeof(Handle));
@@ -996,11 +997,11 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							auto fileName = scene->GetEntityName(entity);
 							auto fileExtension = projectManager.m_assetExtensions["Prefab"].at(0);
 							auto filePath =
-								ProjectManager::GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
+								GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
 							prefab->SetPathAndSave(filePath);
 						}
 					}
-					*/
+					
 					ImGui::EndDragDropTarget();
 					
 				}
@@ -1197,7 +1198,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 								if (!record.expired())
 									record.lock()->GetFolder().lock()->MoveAsset(payload_n, i.second);
 							}
-							/*
+							
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Entity"))
 							{
 								IM_ASSERT(payload->DataSize == sizeof(Entity));
@@ -1210,10 +1211,10 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 								auto fileName = scene->GetEntityName(entity);
 								auto fileExtension = projectManager.m_assetExtensions["Prefab"].at(0);
 								auto filePath =
-									ProjectManager::GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
+									GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
 								prefab->SetPathAndSave(filePath);
 							}
-							*/
+							
 							ImGui::EndDragDropTarget();
 						}
 						bool itemHovered = false;

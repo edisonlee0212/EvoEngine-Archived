@@ -37,6 +37,7 @@ namespace EvoEngine
 			bool alphaChannel = false, unsigned quality = 100) const;
 		ImTextureID GetImTextureId() const;
 
+		[[nodiscard]] VkImageLayout GetLayout() const;
 		[[nodiscard]] VkImage GetVkImage() const;
 		[[nodiscard]] VkImageView GetVkImageView() const;
 		[[nodiscard]] VkSampler GetVkSampler() const;

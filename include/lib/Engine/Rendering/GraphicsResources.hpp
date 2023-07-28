@@ -218,7 +218,7 @@ namespace EvoEngine
 	public:
 		explicit DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo);
 		~DescriptorSetLayout() override;
-		[[nodiscard]] VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
+		[[nodiscard]] const VkDescriptorSetLayout& GetVkDescriptorSetLayout() const;
 	};
 
 	class DescriptorPool final : public IGraphicsResource

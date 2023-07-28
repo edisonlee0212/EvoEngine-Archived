@@ -119,29 +119,13 @@ namespace EvoEngine
 		friend class Graphics;
 		friend class RenderLayer;
 		friend class GraphicsGlobalStates;
-		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
-
-		std::unique_ptr<DescriptorSetLayout> m_perPassLayout = {};
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
 
-		/**
-		 * \brief You can link the shader with the layouts ready.
-		 * The actual descriptor set can be set later.
-		 */
-		bool m_layoutReady = false;
-
-		std::vector<VkDescriptorSet> m_perPassDescriptorSets = {};
-
-		/**
-		 * \brief You can only bind shaders after the descriptor sets are ready.
-		 */
-		bool m_descriptorSetsReady = false;
-		void CheckDescriptorSetsReady();
-
-
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
 	public:
+		std::vector<std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
+
 		std::shared_ptr<Shader> m_vertexShader;
 		std::shared_ptr<Shader> m_tessellationControlShader;
 		std::shared_ptr<Shader> m_tessellationEvaluationShader;
@@ -155,21 +139,12 @@ namespace EvoEngine
 		VkFormat m_stencilAttachmentFormat;
 
 		std::vector<VkPushConstantRange> m_pushConstantRanges;
-		void ClearDescriptorSets();
 
-		[[maybe_unused]] void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
-
-		void PreparePerPassLayouts();
-		[[nodiscard]] bool LayoutSetsReady() const;
-
-		
-		void UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos);
-		void UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos);
-		[[nodiscard]] bool DescriptorSetsReady() const;
 
 		void PreparePipeline();
 		[[nodiscard]] bool PipelineReady() const;
 		void Bind(VkCommandBuffer commandBuffer) const;
+		void BindDescriptorSet(VkCommandBuffer commandBuffer, uint32_t firstSet, VkDescriptorSet descriptorSet) const;
 		template<typename T>
 		void PushConstant(VkCommandBuffer commandBuffer, size_t rangeIndex, const T& data);
 	};

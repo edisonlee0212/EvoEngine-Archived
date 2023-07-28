@@ -83,6 +83,7 @@ namespace EvoEngine
 		friend class Resources;
 		friend class GraphicsPipeline;
 		friend class EditorLayer;
+		friend class Material;
 		size_t m_triangles = 0;
 		size_t m_strandsSegments = 0;
 		size_t m_drawCall = 0;
@@ -102,8 +103,10 @@ namespace EvoEngine
 		std::unordered_map<Handle, RenderTask> m_instancedTransparentRenderInstances;
 
 
-		std::unique_ptr<DescriptorSetLayout> m_perFrameLayout = {};
+		std::shared_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
+
+		std::shared_ptr<DescriptorSetLayout> m_materialLayout = {};
 
 		void CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras);
 
@@ -138,6 +141,8 @@ namespace EvoEngine
 		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks);
 		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks);
 		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks);
+
+		void PrepareMaterialLayout();
 	public:
 		uint32_t GetCameraIndex(const Handle& handle);
 		uint32_t GetMaterialIndex(const Handle& handle);
@@ -161,7 +166,8 @@ namespace EvoEngine
 		 */
 		void UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos);
 		void UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos);
-		void PreparePerFrameLayouts();
+		void PreparePerFrameLayout();
+
 		int m_mainCameraResolutionX = 1;
 		int m_mainCameraResolutionY = 1;
 		bool m_allowAutoResize = true;

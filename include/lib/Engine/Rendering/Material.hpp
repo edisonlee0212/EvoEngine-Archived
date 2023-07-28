@@ -43,7 +43,11 @@ namespace EvoEngine
 
 	class Material final : public IAsset
 	{
+		friend class RenderLayer;
+		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 	public:
+		void OnCreate() override;
+		~Material() override;
 		AssetRef m_albedoTexture;
 		AssetRef m_normalTexture;
 		AssetRef m_metallicTexture;
@@ -55,8 +59,7 @@ namespace EvoEngine
 		DrawSettings m_drawSettings;
 
 		void UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock);
-
-
+		void UpdateDescriptorBindings();
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void CollectAssetRef(std::vector<AssetRef>& list) override;
 		void Serialize(YAML::Emitter& out) override;

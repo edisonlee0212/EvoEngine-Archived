@@ -440,7 +440,7 @@ DescriptorSetLayout::~DescriptorSetLayout()
 	}
 }
 
-VkDescriptorSetLayout DescriptorSetLayout::GetVkDescriptorSetLayout() const
+const VkDescriptorSetLayout& DescriptorSetLayout::GetVkDescriptorSetLayout() const
 {
 	return m_vkDescriptorSetLayout;
 }

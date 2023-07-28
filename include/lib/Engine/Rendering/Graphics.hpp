@@ -72,7 +72,11 @@ namespace EvoEngine
 		GraphicsGlobalStates m_globalPipelineState = {};
 #pragma endregion
 #pragma region Shader related
-		std::unique_ptr<std::string> m_standardShaderIncludes;
+		std::string m_shaderBasic;
+		std::string m_shaderLight;
+		std::string m_shaderPBRTextures;
+		std::string m_shaderShadow;
+		std::string m_shaderSkybox;
 		size_t m_maxBoneAmount = 65536;
 		size_t m_maxMaterialAmount = 1;
 		size_t m_maxKernelAmount = 64;
@@ -142,8 +146,6 @@ namespace EvoEngine
 
 #pragma endregion
 
-
-		static const std::string& GetStandardShaderIncludes();
 		static size_t GetMaxBoneAmount();
 		static size_t GetMaxMaterialAmount();
 		static size_t GetMaxKernelAmount();

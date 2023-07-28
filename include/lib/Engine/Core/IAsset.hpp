@@ -35,7 +35,7 @@ namespace EvoEngine
 		unsigned m_version = 0;
 	public:
 		[[nodiscard]] unsigned GetVersion() const;
-		[[nodiscard]] bool SetPathAndSave(const std::filesystem::path& projectRelativePath);
+		[[maybe_unused]] bool SetPathAndSave(const std::filesystem::path& projectRelativePath);
 		[[nodiscard]] std::filesystem::path GetProjectRelativePath() const;
 		[[nodiscard]] std::filesystem::path GetAbsolutePath() const;
 		[[nodiscard]] std::string GetTitle() const;

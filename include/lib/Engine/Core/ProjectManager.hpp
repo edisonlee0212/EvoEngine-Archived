@@ -66,8 +66,8 @@ namespace EvoEngine
 
 		void MoveAsset(const Handle& assetHandle, const std::shared_ptr<Folder>& dest);
 		void DeleteAsset(const Handle& assetHandle);
-		[[nodiscard]] bool HasAsset(const std::string& fileName, const std::string& extension);
-		[[nodiscard]] std::shared_ptr<IAsset> GetOrCreateAsset(const std::string& fileName, const std::string& extension);
+		[[nodiscard]] bool HasAsset(const std::string& fileName, const std::string& extension) const;
+		[[maybe_unused]] std::shared_ptr<IAsset> GetOrCreateAsset(const std::string& fileName, const std::string& extension);
 		[[nodiscard]] std::shared_ptr<IAsset> GetAsset(const Handle& assetHandle);
 
 		void Save() const;

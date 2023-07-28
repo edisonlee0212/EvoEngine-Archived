@@ -269,6 +269,11 @@ ImTextureID Texture2D::GetImTextureId() const
 	return m_imTextureId;
 }
 
+VkImageLayout Texture2D::GetLayout() const
+{
+	return m_image->GetLayout();
+}
+
 VkImage Texture2D::GetVkImage() const
 {
 	if (m_image)

@@ -34,8 +34,8 @@ void RenderTask::Dispatch(
 void RenderLayer::OnCreate()
 {
 	CreateStandardDescriptorBuffers();
-
-	PreparePerFrameLayouts();
+	PrepareMaterialLayout();
+	PreparePerFrameLayout();
 
 	CreateGraphicsPipelines();
 
@@ -117,7 +117,9 @@ void RenderLayer::CreateGraphicsPipelines()
 	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 	standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
 	standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
-	standardDeferredPrepass->PreparePerPassLayouts();
+
+	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_materialLayout);
 
 	standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
 	standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
@@ -771,7 +773,35 @@ void RenderLayer::UpdateBufferDescriptorBinding(uint32_t binding, const std::vec
 	CheckDescriptorSetsReady();
 }
 
-void RenderLayer::PreparePerFrameLayouts()
+void RenderLayer::PrepareMaterialLayout()
+{
+	std::vector<VkDescriptorSetLayoutBinding> materialBindings;
+
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.binding = 10;
+	bindingInfo.descriptorCount = 1;
+	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	bindingInfo.pImmutableSamplers = nullptr;
+	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	materialBindings.emplace_back(bindingInfo);
+
+	bindingInfo.binding = 11;
+	materialBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 12;
+	materialBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 13;
+	materialBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 14;
+	materialBindings.emplace_back(bindingInfo);
+
+	VkDescriptorSetLayoutCreateInfo materialLayoutInfo{};
+	materialLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	materialLayoutInfo.bindingCount = static_cast<uint32_t>(materialBindings.size());
+	materialLayoutInfo.pBindings = materialBindings.data();
+	m_materialLayout = std::make_shared<DescriptorSetLayout>(materialLayoutInfo);
+}
+
+void RenderLayer::PreparePerFrameLayout()
 {
 	if (!m_descriptorSetLayoutBindings.empty())
 	{
@@ -798,7 +828,7 @@ void RenderLayer::PreparePerFrameLayouts()
 	perFrameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	perFrameLayoutInfo.bindingCount = static_cast<uint32_t>(perFrameBindings.size());
 	perFrameLayoutInfo.pBindings = perFrameBindings.data();
-	m_perFrameLayout = std::make_unique<DescriptorSetLayout>(perFrameLayoutInfo);
+	m_perFrameLayout = std::make_shared<DescriptorSetLayout>(perFrameLayoutInfo);
 
 
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -855,6 +885,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		globalPipelineState.m_viewPort = viewport;
 		globalPipelineState.m_scissor = scissor;
 		deferredPrepassProgram->Bind(commandBuffer);
+		deferredPrepassProgram->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+
 		globalPipelineState.m_colorBlendAttachmentStates.clear();
 		globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
 		for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
@@ -866,8 +898,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
 			{
-				MaterialInfoBlock materialInfoBlock = {};
-				material->m_drawSettings.ApplySettings(globalPipelineState);
+				deferredPrepassProgram->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet);
 				//We should also bind textures here.
 			}, [&](const RenderInstance& renderCommand)
 			{
@@ -919,3 +950,5 @@ void RenderLayer::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>&
 {
 	memcpy(m_instanceInfoBlockMemory[Graphics::GetCurrentFrameIndex()], objectInfoBlocks.data(), sizeof(InstanceInfoBlock) * objectInfoBlocks.size());
 }
+
+

@@ -20,16 +20,18 @@ void Resources::LoadShaders()
 		"\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::GetMaxKernelAmount()) +
 		"\n#define SPOT_LIGHTS_AMOUNT " + std::to_string(Graphics::GetMaxSpotLightAmount()) + "\n";
 
-	Graphics::GetInstance().m_standardShaderIncludes = std::make_unique<std::string>(
-		add +
-		FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Uniform.glsl"));
+	Graphics::GetInstance().m_shaderBasic = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Basic.glsl");
+	Graphics::GetInstance().m_shaderLight = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Light.glsl");
+	Graphics::GetInstance().m_shaderPBRTextures = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/PBRTextures.glsl");
+	Graphics::GetInstance().m_shaderShadow = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Shadow.glsl");
+	Graphics::GetInstance().m_shaderSkybox = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Skybox.glsl");
 
 #pragma endregion
 
 #pragma region Standard Shader
 	{
 		auto vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard.vert");
 		
 
@@ -131,14 +133,14 @@ void Resources::LoadShaders()
 #pragma region GBuffer
 	{
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 		
 		
-		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
+		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderPBRTextures + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferred.frag");
 

@@ -122,12 +122,6 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	);
 }
 
-const std::string& Graphics::GetStandardShaderIncludes()
-{
-	const auto& graphics = GetInstance();
-	return *graphics.m_standardShaderIncludes;
-}
-
 size_t Graphics::GetMaxBoneAmount()
 {
 	const auto& graphics = GetInstance();

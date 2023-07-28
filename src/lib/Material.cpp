@@ -2,6 +2,7 @@
 
 #include "Texture2D.hpp"
 #include "EditorLayer.hpp"
+#include "RenderLayer.hpp"
 using namespace EvoEngine;
 
 static const char* PolygonMode[]{ "Point", "Line", "Fill" };
@@ -121,45 +122,47 @@ void DrawSettings::Load(const std::string& name, const YAML::Node& in) {
     }
 }
 
+void Material::OnCreate()
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
+    const auto renderLayer = Application::GetLayer<RenderLayer>();
+
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &renderLayer->m_materialLayout->GetVkDescriptorSetLayout();
+    if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate descriptor sets!");
+    }
+}
+
+Material::~Material()
+{
+    if(m_descriptorSet != VK_NULL_HANDLE) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), 1, &m_descriptorSet);
+    m_descriptorSet = VK_NULL_HANDLE;
+}
+
 void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 {
-    bool hasAlbedo = false;
-
-    const auto albedoTexture = m_albedoTexture.Get<Texture2D>();
-    if (albedoTexture && albedoTexture->GetVkSampler())
+	if (const auto albedoTexture = m_albedoTexture.Get<Texture2D>(); albedoTexture && albedoTexture->GetVkSampler())
     {
-        hasAlbedo = true;
-        //albedoTexture->UnsafeGetGLTexture()->Bind(3);
         materialInfoBlock.m_albedoEnabled = true;
     }
-    const auto normalTexture = m_normalTexture.Get<Texture2D>();
-    if (normalTexture && normalTexture->GetVkSampler())
+	if (const auto normalTexture = m_normalTexture.Get<Texture2D>(); normalTexture && normalTexture->GetVkSampler())
     {
-        //normalTexture->UnsafeGetGLTexture()->Bind(4);
         materialInfoBlock.m_normalEnabled = true;
     }
-    const auto metallicTexture = m_metallicTexture.Get<Texture2D>();
-    if (metallicTexture && metallicTexture->GetVkSampler())
+	if (const auto metallicTexture = m_metallicTexture.Get<Texture2D>(); metallicTexture && metallicTexture->GetVkSampler())
     {
-        //metallicTexture->UnsafeGetGLTexture()->Bind(5);
         materialInfoBlock.m_metallicEnabled = true;
     }
-    const auto roughnessTexture = m_roughnessTexture.Get<Texture2D>();
-    if (roughnessTexture && roughnessTexture->GetVkSampler())
+	if (const auto roughnessTexture = m_roughnessTexture.Get<Texture2D>(); roughnessTexture && roughnessTexture->GetVkSampler())
     {
-        //roughnessTexture->UnsafeGetGLTexture()->Bind(6);
         materialInfoBlock.m_roughnessEnabled = true;
     }
-    const auto aoTexture = m_aoTexture.Get<Texture2D>();
-    if (aoTexture && aoTexture->GetVkSampler())
+	if (const auto aoTexture = m_aoTexture.Get<Texture2D>(); aoTexture && aoTexture->GetVkSampler())
     {
-        //aoTexture->UnsafeGetGLTexture()->Bind(7);
         materialInfoBlock.m_aoEnabled = true;
-    }
-
-    if (!hasAlbedo)
-    {
-        //DefaultResources::Textures::MissingTexture->UnsafeGetGLTexture()->Bind(3);
     }
     materialInfoBlock.m_castShadow = true;
     materialInfoBlock.m_subsurfaceColor = { m_materialProperties.m_subsurfaceColor, 0.0f };
@@ -169,6 +172,96 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
     materialInfoBlock.m_roughnessVal = m_materialProperties.m_roughness;
     materialInfoBlock.m_aoVal = 1.0f;
     materialInfoBlock.m_emissionVal = m_materialProperties.m_emission;
+
+    UpdateDescriptorBindings();
+}
+
+void Material::UpdateDescriptorBindings()
+{
+	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = texture->GetLayout();
+        imageInfo.imageView = texture->GetVkImageView();
+        imageInfo.sampler = texture->GetVkSampler();
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = m_descriptorSet;
+        writeInfo.dstBinding = 10;
+        writeInfo.dstArrayElement = 0;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeInfo.descriptorCount = 1;
+        writeInfo.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    if (const auto texture = m_normalTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = texture->GetLayout();
+        imageInfo.imageView = texture->GetVkImageView();
+        imageInfo.sampler = texture->GetVkSampler();
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = m_descriptorSet;
+        writeInfo.dstBinding = 11;
+        writeInfo.dstArrayElement = 0;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeInfo.descriptorCount = 1;
+        writeInfo.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    if (const auto texture = m_metallicTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = texture->GetLayout();
+        imageInfo.imageView = texture->GetVkImageView();
+        imageInfo.sampler = texture->GetVkSampler();
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = m_descriptorSet;
+        writeInfo.dstBinding = 12;
+        writeInfo.dstArrayElement = 0;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeInfo.descriptorCount = 1;
+        writeInfo.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    if (const auto texture = m_roughnessTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = texture->GetLayout();
+        imageInfo.imageView = texture->GetVkImageView();
+        imageInfo.sampler = texture->GetVkSampler();
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = m_descriptorSet;
+        writeInfo.dstBinding = 13;
+        writeInfo.dstArrayElement = 0;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeInfo.descriptorCount = 1;
+        writeInfo.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    if (const auto texture = m_aoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = texture->GetLayout();
+        imageInfo.imageView = texture->GetVkImageView();
+        imageInfo.sampler = texture->GetVkSampler();
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = m_descriptorSet;
+        writeInfo.dstBinding = 14;
+        writeInfo.dstArrayElement = 0;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeInfo.descriptorCount = 1;
+        writeInfo.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    }
 }
 
 void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {

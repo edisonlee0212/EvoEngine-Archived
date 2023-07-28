@@ -9,138 +9,15 @@
 
 using namespace EvoEngine;
 
-
-void GraphicsPipeline::CheckDescriptorSetsReady()
-{
-	for (const auto& binding : m_descriptorSetLayoutBindings)
-	{
-		if (!binding.second.m_ready)
-		{
-			m_descriptorSetsReady = false;
-		}
-	}
-	m_descriptorSetsReady = true;
-}
-
-void GraphicsPipeline::ClearDescriptorSets()
-{
-	m_descriptorSetLayoutBindings.clear();
-
-	m_perPassLayout.reset();
-
-	if (!m_perPassDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perPassDescriptorSets.size(), m_perPassDescriptorSets.data());
-
-	m_perPassDescriptorSets.clear();
-
-	m_layoutReady = false;
-	m_descriptorSetsReady = false;
-}
-
-void GraphicsPipeline::PushDescriptorBinding(uint32_t binding, const VkDescriptorType type, const VkShaderStageFlags stageFlags)
-{
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = binding;
-	bindingInfo.descriptorCount = 1;
-	bindingInfo.descriptorType = type;
-	bindingInfo.pImmutableSamplers = nullptr;
-	bindingInfo.stageFlags = stageFlags;
-	m_descriptorSetLayoutBindings[binding] = { bindingInfo, false };
-
-	m_descriptorSetsReady = false;
-	m_layoutReady = false;
-}
-
-void GraphicsPipeline::PreparePerPassLayouts()
-{
-	ClearDescriptorSets();
-
-	std::vector<VkDescriptorSetLayoutBinding> perPassBindings;
-
-	perPassBindings.reserve(m_descriptorSetLayoutBindings.size());
-	for (const auto& bindingPair : m_descriptorSetLayoutBindings)
-	{
-		perPassBindings.push_back(bindingPair.second.m_binding);
-		
-	}
-
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	
-	VkDescriptorSetLayoutCreateInfo perPassLayoutInfo{};
-	perPassLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	perPassLayoutInfo.bindingCount = static_cast<uint32_t>(perPassBindings.size());
-	perPassLayoutInfo.pBindings = perPassBindings.data();
-	m_perPassLayout = std::make_unique<DescriptorSetLayout>(perPassLayoutInfo);
-
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-
-	const std::vector perPassLayout(maxFramesInFlight, m_perPassLayout->GetVkDescriptorSetLayout());
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
-	allocInfo.pSetLayouts = perPassLayout.data();
-	m_perPassDescriptorSets.resize(maxFramesInFlight);
-	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, m_perPassDescriptorSets.data()) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-	m_layoutReady = true;
-}
-void GraphicsPipeline::UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos)
-{
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	assert(maxFramesInFlight == imageInfos.size());
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
-		VkWriteDescriptorSet writeInfo{};
-		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_perPassDescriptorSets[i];
-		writeInfo.dstBinding = binding;
-		writeInfo.dstArrayElement = 0;
-		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
-		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
-		writeInfo.pImageInfo = &imageInfos[i];
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-	}
-	m_descriptorSetLayoutBindings[binding].m_ready = true;
-	CheckDescriptorSetsReady();
-}
-
-void GraphicsPipeline::UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos)
-{
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	assert(maxFramesInFlight == bufferInfos.size());
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
-		VkWriteDescriptorSet writeInfo{};
-		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_perPassDescriptorSets[i];
-		writeInfo.dstBinding = binding;
-		writeInfo.dstArrayElement = 0;
-		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
-		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
-		writeInfo.pBufferInfo = &bufferInfos[i];
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-	}
-	m_descriptorSetLayoutBindings[binding].m_ready = true;
-	CheckDescriptorSetsReady();
-}
-
-bool GraphicsPipeline::LayoutSetsReady() const
-{
-	return m_layoutReady;
-}
-
-bool GraphicsPipeline::DescriptorSetsReady() const
-{
-	return m_descriptorSetsReady;
-}
-
 void GraphicsPipeline::PreparePipeline()
 {
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 
-	const std::vector setLayouts = { renderLayer->m_perFrameLayout->GetVkDescriptorSetLayout(), m_perPassLayout->GetVkDescriptorSetLayout() };
+	std::vector<VkDescriptorSetLayout> setLayouts = {};
+	for(const auto& i : m_descriptorSetLayouts)
+	{
+		setLayouts.push_back(i->GetVkDescriptorSetLayout());
+	}
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = setLayouts.size();
@@ -327,10 +204,11 @@ bool GraphicsPipeline::PipelineReady() const
 void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer) const
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkGraphicsPipeline);
-	const auto& renderLayer = Application::GetLayer<RenderLayer>();
-	const std::vector descriptorSets{renderLayer->m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()],
-		m_perPassDescriptorSets[Graphics::GetCurrentFrameIndex()]};
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout->GetVkPipelineLayout(), 0, descriptorSets.size(), descriptorSets.data(), 0, nullptr);
+}
+
+void GraphicsPipeline::BindDescriptorSet(VkCommandBuffer commandBuffer, uint32_t firstSet, VkDescriptorSet descriptorSet) const
+{
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout->GetVkPipelineLayout(), firstSet, 1, &descriptorSet, 0, nullptr);
 }
 
 #pragma region Pipeline Data
