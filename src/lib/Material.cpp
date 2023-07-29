@@ -147,22 +147,41 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 	if (const auto albedoTexture = m_albedoTexture.Get<Texture2D>(); albedoTexture && albedoTexture->GetVkSampler())
     {
         materialInfoBlock.m_albedoEnabled = true;
+    }else
+    {
+        materialInfoBlock.m_albedoEnabled = false;
     }
 	if (const auto normalTexture = m_normalTexture.Get<Texture2D>(); normalTexture && normalTexture->GetVkSampler())
     {
         materialInfoBlock.m_normalEnabled = true;
     }
+    else
+    {
+        materialInfoBlock.m_normalEnabled = false;
+    }
 	if (const auto metallicTexture = m_metallicTexture.Get<Texture2D>(); metallicTexture && metallicTexture->GetVkSampler())
     {
         materialInfoBlock.m_metallicEnabled = true;
+    }
+    else
+    {
+        materialInfoBlock.m_metallicEnabled = false;
     }
 	if (const auto roughnessTexture = m_roughnessTexture.Get<Texture2D>(); roughnessTexture && roughnessTexture->GetVkSampler())
     {
         materialInfoBlock.m_roughnessEnabled = true;
     }
+    else
+    {
+        materialInfoBlock.m_roughnessEnabled = false;
+    }
 	if (const auto aoTexture = m_aoTexture.Get<Texture2D>(); aoTexture && aoTexture->GetVkSampler())
     {
         materialInfoBlock.m_aoEnabled = true;
+    }
+    else
+    {
+        materialInfoBlock.m_aoEnabled = false;
     }
     materialInfoBlock.m_castShadow = true;
     materialInfoBlock.m_subsurfaceColor = { m_materialProperties.m_subsurfaceColor, 0.0f };

@@ -63,14 +63,17 @@ namespace EvoEngine
 
         glm::uvec2 m_size = glm::uvec2(1, 1);
 
+        VkDescriptorSet m_gBufferDescriptorSet = VK_NULL_HANDLE;
         void UpdateGBuffer();
     public:
+        void TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const;
+
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
-        void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const;
+        void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const;
         [[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo() const;
         [[nodiscard]] float GetSizeRatio() const;
 
-        [[nodiscard]] std::shared_ptr<RenderTexture> GetRenderTexture() const;
+        [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;
         [[nodiscard]] glm::vec2 GetSize() const;
         void Resize(const glm::uvec2& size);
         void OnCreate() override;

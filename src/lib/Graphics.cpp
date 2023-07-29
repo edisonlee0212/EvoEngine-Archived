@@ -1205,6 +1205,7 @@ void Graphics::PreUpdate()
 	AppendCommands([&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			globalPipelineState.ResetAllStates(commandBuffer, 1);
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
 		}
 	);
 }

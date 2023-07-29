@@ -342,8 +342,9 @@ Image::~Image()
 }
 
 
-void Image::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
+void Image::TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
 {
+	if(newLayout == m_layout) return;
 	Graphics::TransitImageLayout(commandBuffer, m_vkImage, m_format, m_layout, newLayout);
 	m_layout = newLayout;
 }

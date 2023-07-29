@@ -71,7 +71,7 @@ namespace EvoEngine
 		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 		bool HasStencilComponent() const;
 		~Image() override;
-		void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
+		void TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
 		void Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		[[nodiscard]] VkImage GetVkImage() const;

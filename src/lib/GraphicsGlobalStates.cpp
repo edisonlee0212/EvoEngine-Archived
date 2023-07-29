@@ -44,8 +44,6 @@ void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, s
 	m_blendConstants[1] = 0;
 	m_blendConstants[2] = 0;
 	m_blendConstants[3] = 0;
-
-	ApplyAllStates(commandBuffer, true);
 }
 
 void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)

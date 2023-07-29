@@ -51,6 +51,9 @@ namespace EvoEngine
 	struct RenderInstanceCollection
 	{
 		std::unordered_map<Handle, RenderInstanceGroup> m_renderInstanceGroups;
+
+		void Add(const std::shared_ptr<Material>& material, const RenderInstance& renderInstance);
+
 		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
 			const std::function<void(const RenderInstance&)>& commandAction) const;
 	};
@@ -86,15 +89,16 @@ namespace EvoEngine
 		GlobalTransform m_model;
 	};
 
-	class RenderLayer : public ILayer {
+	class RenderLayer final : public ILayer {
 		friend class Resources;
+		friend class Camera;
 		friend class GraphicsPipeline;
 		friend class EditorLayer;
 		friend class Material;
 		size_t m_triangles = 0;
 		size_t m_strandsSegments = 0;
 		size_t m_drawCall = 0;
-
+		//glm::vec3 ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b);
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
@@ -114,10 +118,14 @@ namespace EvoEngine
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
 
 		std::shared_ptr<DescriptorSetLayout> m_materialLayout = {};
-
-		void CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras);
+		std::shared_ptr<DescriptorSetLayout> m_cameraGBufferLayout = {};
+		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
-
+		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
+		void CollectPointLights();
+		void CollectSpotLights();
+		void PreparePointLightShadowMap();
+		void PrepareSpotLightShadowMap();
 		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
 		bool m_layoutReady = false;
 		bool m_descriptorSetsReady = false;
@@ -164,8 +172,19 @@ namespace EvoEngine
 		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const;
 		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const;
 
+		void UploadDirectionalLightInfoBlocks(const std::vector<DirectionalLightInfo>& directionalLightInfoBlocks) const;
+		void UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const;
+		void UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const;
+
 		void PrepareMaterialLayout();
+		void PrepareCameraGBufferLayout();
 	public:
+
+		bool m_stableFit = true;
+		float m_maxShadowDistance = 300;
+		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
+
+
 		uint32_t GetCameraIndex(const Handle& handle);
 		uint32_t GetMaterialIndex(const Handle& handle);
 		uint32_t GetInstanceIndex(const Handle& handle);
@@ -177,7 +196,7 @@ namespace EvoEngine
 		uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
 		uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
 
-		void UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
+		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
 		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
 
 		void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);

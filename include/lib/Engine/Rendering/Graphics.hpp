@@ -118,13 +118,17 @@ namespace EvoEngine
 		{
 			friend class RenderLayer;
 			friend class Resources;
-			inline static uint32_t m_maxCameraSize = 64;
+			inline static uint32_t m_maxCameraSize = 8;
 			inline static uint32_t m_maxMaterialSize = 1024;
 			inline static uint32_t m_maxInstanceSize = 8192;
 			inline static uint32_t m_maxKernelAmount = 64;
-			inline static uint32_t m_maxDirectionalLightSize = 8;
-			inline static uint32_t m_maxPointLightSize = 8;
+			inline static uint32_t m_maxDirectionalLightSize = 4;
+			inline static uint32_t m_maxPointLightSize = 4;
 			inline static uint32_t m_maxSpotLightSize = 4;
+
+			inline static uint32_t m_directionalLightShadowMapResolution = 4096;
+			inline static uint32_t m_pointLightShadowMapResolution = 4096;
+			inline static uint32_t m_spotLightShadowMapResolution = 4096;
 		};
 
 	public:

@@ -6,15 +6,15 @@
 namespace EvoEngine
 {
 	struct MaterialInfoBlock {
-		alignas(4) bool m_albedoEnabled = false;
-		alignas(4) bool m_normalEnabled = false;
-		alignas(4) bool m_metallicEnabled = false;
-		alignas(4) bool m_roughnessEnabled = false;
+		alignas(4) int m_albedoEnabled = false;
+		alignas(4) int m_normalEnabled = false;
+		alignas(4) int m_metallicEnabled = false;
+		alignas(4) int m_roughnessEnabled = false;
 
-		alignas(4) bool m_aoEnabled = false;
-		alignas(4) bool m_castShadow = true;
-		alignas(4) bool m_receiveShadow = true;
-		alignas(4) bool m_enableShadow = true;
+		alignas(4) int m_aoEnabled = false;
+		alignas(4) int m_castShadow = true;
+		alignas(4) int m_receiveShadow = true;
+		alignas(4) int m_enableShadow = true;
 
 		glm::vec4 m_albedoColorVal = glm::vec4(1.0f);
 		glm::vec4 m_subsurfaceColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);

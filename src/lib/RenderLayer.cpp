@@ -33,6 +33,7 @@ void RenderLayer::OnCreate()
 {
 	CreateStandardDescriptorBuffers();
 	PrepareMaterialLayout();
+	PrepareCameraGBufferLayout();
 	PreparePerFrameLayout();
 
 	std::vector<glm::vec4> kernels;
@@ -95,25 +96,36 @@ void RenderLayer::PreUpdate()
 	m_materialInfoBlocks.clear();
 	m_instanceInfoBlocks.clear();
 
-	UploadRenderInfoBlock(m_renderInfoBlock);
-	UploadEnvironmentInfoBlock(m_environmentInfoBlock);
-
 	Bound worldBound;
-	std::vector<std::shared_ptr<Camera>> cameras;
+	std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
 	CollectCameras(cameras);
 	CollectRenderInstances(worldBound);
+	scene->SetBound(worldBound);
+
+	CollectDirectionalLights(cameras);
+	CollectPointLights();
+	CollectSpotLights();
+
+	//The following data stays consistent during entire frame.
+	UploadRenderInfoBlock(m_renderInfoBlock);
+	UploadEnvironmentalInfoBlock(m_environmentInfoBlock);
+
+	UploadDirectionalLightInfoBlocks(m_directionalLightInfoBlocks);
+	UploadPointLightInfoBlocks(m_pointLightInfoBlocks);
+	UploadSpotLightInfoBlocks(m_spotLightInfoBlocks);
 
 	UploadCameraInfoBlocks(m_cameraInfoBlocks);
 	UploadMaterialInfoBlocks(m_materialInfoBlocks);
 	UploadInstanceInfoBlocks(m_instanceInfoBlocks);
 
-	scene->SetBound(worldBound);
+	//PreparePointLightShadowMap();
+	//PrepareSpotLightShadowMap();
 
 	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
 	{
 		if (m_allowAutoResize) mainCamera->Resize({ m_mainCameraResolutionX, m_mainCameraResolutionY });
 	}
-	for (const auto& camera : cameras)
+	for (const auto& [cameraGlobalTransform, camera] : cameras)
 	{
 		camera->m_rendered = false;
 		if (camera->m_requireRendering)
@@ -129,10 +141,10 @@ void RenderLayer::LateUpdate()
 
 void RenderLayer::CreateGraphicsPipelines()
 {
-	auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
+	const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 	standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
 	standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
-
+	standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
 	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
 	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_materialLayout);
 
@@ -148,15 +160,20 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredPrepass->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
 
-	/*
-	auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
+
+	const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 	standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
 	standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
-	standardDeferredLighting->InitializeStandardBindings();
-	standardDeferredLighting->PreparePerPassLayouts();
-	standardDeferredLighting->UpdateStandardBindings();
+	standardDeferredLighting->m_geometryType = GeometryType::Mesh;
+	standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+	standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_cameraGBufferLayout);
+	standardDeferredLighting->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+	standardDeferredLighting->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+
+	standardDeferredLighting->m_colorAttachmentFormats = { 1, Graphics::ImageFormats::m_renderTextureColor };
+
 	standardDeferredLighting->PreparePipeline();
-	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;*/
+	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
 }
 
 
@@ -260,7 +277,7 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 	return search->second;
 }
 
-void RenderLayer::CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras)
+void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
 {
 	auto scene = GetScene();
 	std::vector<std::pair<std::shared_ptr<Camera>, glm::vec3>> cameraPairs;
@@ -276,7 +293,7 @@ void RenderLayer::CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras)
 			sceneCamera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
 			RegisterCameraIndex(sceneCamera->GetHandle(), cameraInfoBlock);
 
-			cameras.push_back(sceneCamera);
+			cameras.emplace_back(sceneCameraGT, sceneCamera);
 		}
 	}
 	if (const std::vector<Entity>* cameraEntities = scene->UnsafeGetPrivateComponentOwnersList<Camera>())
@@ -293,9 +310,382 @@ void RenderLayer::CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras)
 			camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraGlobalTransform);
 			RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
 
-			cameras.push_back(camera);
+			cameras.emplace_back(cameraGlobalTransform, camera);
 		}
 	}
+}
+glm::vec3 ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b)
+{
+	const float lineLength = distance(a, b);
+	const glm::vec3 vector = point - a;
+	const glm::vec3 lineDirection = (b - a) / lineLength;
+
+	// Project Vector to LineDirection to get the distance of point from a
+	const float distance = dot(vector, lineDirection);
+	return a + lineDirection * distance;
+}
+void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
+{
+	const auto scene = GetScene();
+	auto sceneBound = scene->GetBound();
+	auto& minBound = sceneBound.m_min;
+	auto& maxBound = sceneBound.m_max;
+	
+	const std::vector<Entity>* directionalLightEntities =
+		scene->UnsafeGetPrivateComponentOwnersList<DirectionalLight>();
+	m_renderInfoBlock.m_directionalLightSize = 0;
+	if (directionalLightEntities && !directionalLightEntities->empty())
+	{
+		m_directionalLightInfoBlocks.resize(Graphics::StorageSizes::m_maxDirectionalLightSize * cameras.size());
+		for(const auto& [cameraGlobalTransform, camera] : cameras)
+		{
+			size_t directionalLightIndex = 0;
+			auto cameraIndex = GetCameraIndex(camera->GetHandle());
+			glm::vec3 mainCameraPos = cameraGlobalTransform.GetPosition();
+			glm::quat mainCameraRot = cameraGlobalTransform.GetRotation();
+			for(const auto& lightEntity : *directionalLightEntities)
+			{
+				if (!scene->IsEntityEnabled(lightEntity))
+					continue;
+				const auto dlc = scene->GetOrSetPrivateComponent<DirectionalLight>(lightEntity).lock();
+				if (!dlc->IsEnabled())
+					continue;
+				glm::quat rotation = scene->GetDataComponent<GlobalTransform>(lightEntity).GetRotation();
+				glm::vec3 lightDir = glm::normalize(rotation * glm::vec3(0, 0, 1));
+				float planeDistance = 0;
+				glm::vec3 center;
+				const auto blockIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + directionalLightIndex;
+				m_directionalLightInfoBlocks[blockIndex].m_direction = glm::vec4(lightDir, 0.0f);
+				m_directionalLightInfoBlocks[blockIndex].m_diffuse =
+					glm::vec4(dlc->m_diffuse * dlc->m_diffuseBrightness, dlc->m_castShadow);
+				m_directionalLightInfoBlocks[blockIndex].m_specular = glm::vec4(0.0f);
+				for (int split = 0; split < 4; split++)
+				{
+					float splitStart = 0;
+					float splitEnd = m_maxShadowDistance;
+					if (split != 0)
+						splitStart = m_maxShadowDistance * m_shadowCascadeSplit[split - 1];
+					if (split != 4 - 1)
+						splitEnd = m_maxShadowDistance * m_shadowCascadeSplit[split];
+					m_renderInfoBlock.m_splitDistances[split] = splitEnd;
+					glm::mat4 lightProjection, lightView;
+					float max = 0;
+					glm::vec3 lightPos;
+					glm::vec3 cornerPoints[8];
+					Camera::CalculateFrustumPoints(
+						camera, splitStart, splitEnd, mainCameraPos, mainCameraRot, cornerPoints);
+					glm::vec3 cameraFrustumCenter =
+						(mainCameraRot * glm::vec3(0, 0, -1)) * ((splitEnd - splitStart) / 2.0f + splitStart) +
+						mainCameraPos;
+					if (m_stableFit)
+					{
+						// Less detail but no shimmering when rotating the camera.
+						// max = glm::distance(cornerPoints[4], cameraFrustumCenter);
+						max = splitEnd;
+					}
+					else
+					{
+						// More detail but cause shimmering when rotating camera.
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[0],
+								ClosestPointOnLine(cornerPoints[0], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[1],
+								ClosestPointOnLine(cornerPoints[1], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[2],
+								ClosestPointOnLine(cornerPoints[2], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[3],
+								ClosestPointOnLine(cornerPoints[3], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[4],
+								ClosestPointOnLine(cornerPoints[4], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[5],
+								ClosestPointOnLine(cornerPoints[5], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[6],
+								ClosestPointOnLine(cornerPoints[6], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+						max = (glm::max)(
+							max,
+							glm::distance(
+								cornerPoints[7],
+								ClosestPointOnLine(cornerPoints[7], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+					}
+
+					glm::vec3 p0 = ClosestPointOnLine(
+						glm::vec3(maxBound.x, maxBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					glm::vec3 p7 = ClosestPointOnLine(
+						glm::vec3(minBound.x, minBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+
+					float d0 = glm::distance(p0, p7);
+
+					glm::vec3 p1 = ClosestPointOnLine(
+						glm::vec3(maxBound.x, maxBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					glm::vec3 p6 = ClosestPointOnLine(
+						glm::vec3(minBound.x, minBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+
+					float d1 = glm::distance(p1, p6);
+
+					glm::vec3 p2 = ClosestPointOnLine(
+						glm::vec3(maxBound.x, minBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					glm::vec3 p5 = ClosestPointOnLine(
+						glm::vec3(minBound.x, maxBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+
+					float d2 = glm::distance(p2, p5);
+
+					glm::vec3 p3 = ClosestPointOnLine(
+						glm::vec3(maxBound.x, minBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					glm::vec3 p4 = ClosestPointOnLine(
+						glm::vec3(minBound.x, maxBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+
+					float d3 = glm::distance(p3, p4);
+
+					center = ClosestPointOnLine(sceneBound.Center(), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					planeDistance = (glm::max)((glm::max)(d0, d1), (glm::max)(d2, d3));
+					lightPos = center - lightDir * planeDistance;
+					lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::normalize(rotation * glm::vec3(0, 1, 0)));
+					lightProjection = glm::ortho(-max, max, -max, max, 0.0f, planeDistance * 2.0f);
+					switch (blockIndex)
+					{
+					case 0:
+						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
+							0, 0, Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2, Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
+						break;
+					case 1:
+						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							0,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
+						break;
+					case 2:
+						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
+							0,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
+						break;
+					case 3:
+						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
+							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
+						break;
+					}
+
+#pragma region Fix Shimmering due to the movement of the camera
+
+					glm::mat4 shadowMatrix = lightProjection * lightView;
+					glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+					shadowOrigin = shadowMatrix * shadowOrigin;
+					GLfloat storedW = shadowOrigin.w;
+					shadowOrigin = shadowOrigin * (float)m_directionalLightInfoBlocks[blockIndex].m_viewPort.z / 2.0f;
+					glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+					glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+					roundOffset = roundOffset * 2.0f / (float)m_directionalLightInfoBlocks[blockIndex].m_viewPort.z;
+					roundOffset.z = 0.0f;
+					roundOffset.w = 0.0f;
+					glm::mat4 shadowProj = lightProjection;
+					shadowProj[3] += roundOffset;
+					lightProjection = shadowProj;
+#pragma endregion
+					m_directionalLightInfoBlocks[blockIndex].m_lightSpaceMatrix[split] = lightProjection * lightView;
+					m_directionalLightInfoBlocks[blockIndex].m_lightFrustumWidth[split] = max;
+					m_directionalLightInfoBlocks[blockIndex].m_lightFrustumDistance[split] = planeDistance;
+					if (split == 4 - 1)
+						m_directionalLightInfoBlocks[blockIndex].m_reservedParameters =
+						glm::vec4(dlc->m_lightSize, 0, dlc->m_bias, dlc->m_normalOffset);
+				}
+
+				directionalLightIndex++;
+			}
+
+			m_renderInfoBlock.m_directionalLightSize = directionalLightIndex;
+		}
+	}
+}
+
+void RenderLayer::CollectPointLights()
+{
+	const auto scene = GetScene();
+	const std::vector<Entity>* pointLightEntities =
+		scene->UnsafeGetPrivateComponentOwnersList<PointLight>();
+	m_renderInfoBlock.m_pointLightSize = 0;
+	if (pointLightEntities && !pointLightEntities->empty())
+	{
+		m_pointLightInfoBlocks.resize(pointLightEntities->size());
+		for (int i = 0; i < pointLightEntities->size(); i++)
+		{
+			Entity lightEntity = pointLightEntities->at(i);
+			if (!scene->IsEntityEnabled(lightEntity))
+				continue;
+			const auto plc = scene->GetOrSetPrivateComponent<PointLight>(lightEntity).lock();
+			if (!plc->IsEnabled())
+				continue;
+			glm::vec3 position = scene->GetDataComponent<GlobalTransform>(lightEntity).m_value[3];
+			m_pointLightInfoBlocks[i].m_position = glm::vec4(position, 0);
+			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.x = plc->m_constant;
+			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.y = plc->m_linear;
+			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.z = plc->m_quadratic;
+			m_pointLightInfoBlocks[i].m_diffuse =
+				glm::vec4(plc->m_diffuse * plc->m_diffuseBrightness, plc->m_castShadow);
+			m_pointLightInfoBlocks[i].m_specular = glm::vec4(0);
+			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.w = plc->GetFarPlane();
+
+			glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f,
+				1.0f,
+				m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.w);
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[0] =
+				shadowProj *
+				glm::lookAt(position, position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[1] =
+				shadowProj *
+				glm::lookAt(position, position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[2] =
+				shadowProj * glm::lookAt(position, position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[3] =
+				shadowProj *
+				glm::lookAt(position, position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[4] =
+				shadowProj *
+				glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[5] =
+				shadowProj *
+				glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+			m_pointLightInfoBlocks[i].m_reservedParameters = glm::vec4(plc->m_bias, plc->m_lightSize, 0, 0);
+
+			switch (i)
+			{
+			case 0:
+				m_pointLightInfoBlocks[i].m_viewPort =
+					glm::ivec4(0, 0, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
+				break;
+			case 1:
+				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					0,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
+				break;
+			case 2:
+				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					0,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
+				break;
+			case 3:
+				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
+				break;
+			}
+			m_renderInfoBlock.m_pointLightSize++;
+		}
+	}
+	m_pointLightInfoBlocks.resize(m_renderInfoBlock.m_pointLightSize);
+}
+
+void RenderLayer::CollectSpotLights()
+{
+	const auto scene = GetScene();
+	m_renderInfoBlock.m_spotLightSize = 0;
+	const std::vector<Entity>* spotLightEntities =
+		scene->UnsafeGetPrivateComponentOwnersList<SpotLight>();
+	if (spotLightEntities && !spotLightEntities->empty())
+	{
+		m_spotLightInfoBlocks.resize(spotLightEntities->size());
+		for (int i = 0; i < spotLightEntities->size(); i++)
+		{
+			Entity lightEntity = spotLightEntities->at(i);
+			if (!scene->IsEntityEnabled(lightEntity))
+				continue;
+			const auto slc = scene->GetOrSetPrivateComponent<SpotLight>(lightEntity).lock();
+			if (!slc->IsEnabled())
+				continue;
+			auto ltw = scene->GetDataComponent<GlobalTransform>(lightEntity);
+			glm::vec3 position = ltw.m_value[3];
+			glm::vec3 front = ltw.GetRotation() * glm::vec3(0, 0, -1);
+			glm::vec3 up = ltw.GetRotation() * glm::vec3(0, 1, 0);
+			m_spotLightInfoBlocks[i].m_position = glm::vec4(position, 0);
+			m_spotLightInfoBlocks[i].m_direction = glm::vec4(front, 0);
+			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.x = slc->m_constant;
+			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.y = slc->m_linear;
+			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.z = slc->m_quadratic;
+			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.w = slc->GetFarPlane();
+			m_spotLightInfoBlocks[i].m_diffuse =
+				glm::vec4(slc->m_diffuse * slc->m_diffuseBrightness, slc->m_castShadow);
+			m_spotLightInfoBlocks[i].m_specular = glm::vec4(0);
+
+			glm::mat4 shadowProj = glm::perspective(glm::radians(slc->m_outerDegrees * 2.0f), 1.0f,
+				1.0f,
+				m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.w);
+			m_spotLightInfoBlocks[i].m_lightSpaceMatrix = shadowProj * glm::lookAt(position, position + front, up);
+			m_spotLightInfoBlocks[i].m_cutOffOuterCutOffLightSizeBias = glm::vec4(
+				glm::cos(glm::radians(slc->m_innerDegrees)),
+				glm::cos(glm::radians(slc->m_outerDegrees)),
+				slc->m_lightSize,
+				slc->m_bias);
+
+			switch (i)
+			{
+			case 0:
+				m_spotLightInfoBlocks[i].m_viewPort =
+					glm::ivec4(0, 0, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
+				break;
+			case 1:
+				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					0,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
+				break;
+			case 2:
+				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					0,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
+				break;
+			case 3:
+				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
+					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
+				break;
+			}
+			m_renderInfoBlock.m_spotLightSize++;
+		}
+	}
+	m_spotLightInfoBlocks.resize(m_renderInfoBlock.m_spotLightSize);
+}
+
+void RenderLayer::PreparePointLightShadowMap()
+{
+}
+
+void RenderLayer::PrepareSpotLightShadowMap()
+{
 }
 
 void RenderLayer::CollectRenderInstances(Bound& worldBound)
@@ -606,6 +996,9 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 	*/
 }
 
+
+
+
 void RenderLayer::CreateStandardDescriptorBuffers()
 {
 #pragma region Standard Descrioptor Layout
@@ -653,7 +1046,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::StorageSizes::m_maxKernelAmount * 2;
 		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::StorageSizes::m_maxDirectionalLightSize;
+		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::StorageSizes::m_maxDirectionalLightSize * Graphics::StorageSizes::m_maxCameraSize;
 		m_directionalLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::StorageSizes::m_maxPointLightSize;
 		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
@@ -853,6 +1246,32 @@ void RenderLayer::PrepareMaterialLayout()
 	m_materialLayout = std::make_shared<DescriptorSetLayout>(materialLayoutInfo);
 }
 
+void RenderLayer::PrepareCameraGBufferLayout()
+{
+	std::vector<VkDescriptorSetLayoutBinding> gBufferBindings;
+
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.binding = 10;
+	bindingInfo.descriptorCount = 1;
+	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	bindingInfo.pImmutableSamplers = nullptr;
+	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	gBufferBindings.emplace_back(bindingInfo);
+
+	bindingInfo.binding = 11;
+	gBufferBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 12;
+	gBufferBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 13;
+	gBufferBindings.emplace_back(bindingInfo);
+
+	VkDescriptorSetLayoutCreateInfo gBufferLayoutInfo{};
+	gBufferLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	gBufferLayoutInfo.bindingCount = static_cast<uint32_t>(gBufferBindings.size());
+	gBufferLayoutInfo.pBindings = gBufferBindings.data();
+	m_cameraGBufferLayout = std::make_shared<DescriptorSetLayout>(gBufferLayoutInfo);
+}
+
 void RenderLayer::PreparePerFrameLayout()
 {
 	if (!m_descriptorSetLayoutBindings.empty())
@@ -909,25 +1328,14 @@ void RenderLayer::PreparePerFrameLayout()
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
 	auto cameraIndex = GetCameraIndex(camera->GetHandle());
-	const auto& deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
-	//const auto& deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
+	const auto& deferredPrepassPipeline = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
+	const auto& deferredLightingPipeline = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+#pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
 		renderArea.extent.width = camera->GetSize().x;
 		renderArea.extent.height = camera->GetSize().y;
-		std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
-		camera->AppendColorAttachmentInfos(colorAttachmentInfos);
-		const auto depthAttachment = camera->GetDepthAttachmentInfo();
-		VkRenderingInfo renderInfo{};
-		renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-		renderInfo.renderArea = renderArea;
-		renderInfo.layerCount = 1;
-		renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
-		renderInfo.pColorAttachments = colorAttachmentInfos.data();
-		renderInfo.pDepthAttachment = &depthAttachment;
-		vkCmdBeginRendering(commandBuffer, &renderInfo);
-
 		VkViewport viewport;
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -942,43 +1350,97 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		scissor.extent.height = camera->GetSize().y;
 		globalPipelineState.m_viewPort = viewport;
 		globalPipelineState.m_scissor = scissor;
-		deferredPrepassProgram->Bind(commandBuffer);
-		deferredPrepassProgram->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
-
-		globalPipelineState.m_colorBlendAttachmentStates.clear();
-		globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-		for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+#pragma endregion
+#pragma region Geometry pass
 		{
-			i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			i.blendEnable = VK_FALSE;
-		}
-		globalPipelineState.ApplyAllStates(commandBuffer, true);
+			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
+			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos);
+			const auto depthAttachment = camera->GetDepthAttachmentInfo();
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+			renderInfo.pColorAttachments = colorAttachmentInfos.data();
+			renderInfo.pDepthAttachment = &depthAttachment;
 
-		m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredPrepassPipeline->Bind(commandBuffer);
+			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
 			{
-				deferredPrepassProgram->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet);
-				//We should also bind textures here.
-			}, [&](const RenderInstance& renderCommand)
-			{
-				switch (renderCommand.m_geometryType)
-				{
-				case RenderGeometryType::Mesh: {
-					globalPipelineState.ApplyAllStates(commandBuffer);
-					RenderInstancePushConstant pushConstant;
-					pushConstant.m_cameraIndex = cameraIndex;
-					pushConstant.m_materialIndex = renderCommand.m_materialIndex;
-					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					deferredPrepassProgram->PushConstant(commandBuffer, 0, pushConstant);
-					const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
-					mesh->Bind(commandBuffer);
-					mesh->DrawIndexed(commandBuffer, globalPipelineState);
-					break;
-				}
-				}
+				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				i.blendEnable = VK_FALSE;
 			}
-			);
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
 
-		vkCmdEndRendering(commandBuffer);
+			m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+				{
+					deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet);
+					//We should also bind textures here.
+				}, [&](const RenderInstance& renderCommand)
+				{
+					switch (renderCommand.m_geometryType)
+					{
+					case RenderGeometryType::Mesh: {
+						globalPipelineState.ApplyAllStates(commandBuffer);
+						RenderInstancePushConstant pushConstant;
+						pushConstant.m_cameraIndex = cameraIndex;
+						pushConstant.m_materialIndex = renderCommand.m_materialIndex;
+						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+						const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+						mesh->Bind(commandBuffer);
+						mesh->DrawIndexed(commandBuffer, globalPipelineState);
+						break;
+					}
+					}
+				}
+				);
+
+			vkCmdEndRendering(commandBuffer);
+		}
+#pragma endregion
+
+
+#pragma region Lighting pass
+		{
+			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
+			camera->GetRenderTexture()->AppendColorAttachmentInfos(colorAttachmentInfos);
+			const auto depthAttachment = camera->GetRenderTexture()->GetDepthAttachmentInfo();
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+			renderInfo.pColorAttachments = colorAttachmentInfos.data();
+			renderInfo.pDepthAttachment = &depthAttachment;
+
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredLightingPipeline->Bind(commandBuffer);
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet);
+			globalPipelineState.m_depthTest = false;
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+			{
+				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				i.blendEnable = VK_FALSE;
+			}
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+			mesh->Bind(commandBuffer);
+			mesh->DrawIndexed(commandBuffer, globalPipelineState);
+			vkCmdEndRendering(commandBuffer);
+		}
+#pragma endregion
 		}
 	);
 
@@ -988,7 +1450,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 }
 
 
-void RenderLayer::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const
+void RenderLayer::UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const
 {
 	memcpy(m_environmentalInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
 }
@@ -996,6 +1458,21 @@ void RenderLayer::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environ
 void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const
 {
 	memcpy(m_renderInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &renderInfoBlock, sizeof(RenderInfoBlock));
+}
+
+void RenderLayer::UploadDirectionalLightInfoBlocks(const std::vector<DirectionalLightInfo>& directionalLightInfoBlocks) const
+{
+	memcpy(m_directionalLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], directionalLightInfoBlocks.data(), sizeof(DirectionalLightInfo) * directionalLightInfoBlocks.size());
+}
+
+void RenderLayer::UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const
+{
+	memcpy(m_pointLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], pointLightInfoBlocks.data(), sizeof(PointLightInfo) * pointLightInfoBlocks.size());
+}
+
+void RenderLayer::UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const
+{
+	memcpy(m_spotLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], spotLightInfoBlocks.data(), sizeof(SpotLightInfo) * spotLightInfoBlocks.size());
 }
 
 void RenderLayer::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const

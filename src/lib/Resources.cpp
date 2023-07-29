@@ -284,6 +284,33 @@ void Resources::LoadShaders()
 void Resources::LoadPrimitives() const
 {
 	{
+		VertexAttributes attributes {};
+		attributes.m_texCoord = true;
+		Vertex vertex{};
+		std::vector<Vertex> vertices;
+
+		vertex.m_position = { -1, 1, 0 };
+		vertex.m_texCoord = { 0, 1 };
+		vertices.emplace_back(vertex);
+
+		vertex.m_position = { 1, 1, 0 };
+		vertex.m_texCoord = { 1, 1 };
+		vertices.emplace_back(vertex);
+
+		vertex.m_position = { -1, -1, 0 };
+		vertex.m_texCoord = { 0, 0 };
+		vertices.emplace_back(vertex);
+
+		vertex.m_position = { 1, -1, 0 };
+		vertex.m_texCoord = { 1, 0 };
+		vertices.emplace_back(vertex);
+
+		std::vector<glm::uvec3> triangles = { {0,2,3}, {0,3,1} };
+		const auto texPassThrough = CreateResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
+		texPassThrough->SetVertices(attributes, vertices, triangles);
+	}
+
+	{
 		const auto quad = CreateResource<Mesh>("PRIMITIVE_QUAD");
 		quad->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/quad.uemesh");
 	}

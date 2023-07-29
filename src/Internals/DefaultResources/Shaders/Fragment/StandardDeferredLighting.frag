@@ -1,28 +1,28 @@
 precision highp float;
 
-layout (location = 1) out vec4 FragColor;
-
 layout (location = 0) in VS_OUT {
 	vec2 TexCoord;
 } fs_in;
 
-layout(input_attachment_index = 0, binding = 0) uniform subpassInput inDepth;
-layout(input_attachment_index = 1, binding = 1) uniform subpassInput inNormal;
-layout(input_attachment_index = 2, binding = 2) uniform subpassInput inAlbedo;
-layout(input_attachment_index = 3, binding = 3) uniform subpassInput inMaterial;
+layout(set = EE_PER_PASS_SET, binding = 10) uniform sampler2D inDepth;
+layout(set = EE_PER_PASS_SET, binding = 11) uniform sampler2D inNormal;
+layout(set = EE_PER_PASS_SET, binding = 12) uniform sampler2D inAlbedo;
+layout(set = EE_PER_PASS_SET, binding = 13) uniform sampler2D inMaterial;
+
+layout (location = 0) out vec4 FragColor;
 
 void main()
 {
-	vec3 normal = 		subpassLoad(inNormal).xyz;
-	float ndcDepth = 	subpassLoad(inDepth).x;
+	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
+	float ndcDepth = 	texture(inDepth, fs_in.TexCoord).x;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
-	float metallic = 	subpassLoad(inMaterial).x;
-	float roughness = 	subpassLoad(inMaterial).y;
-	float emission = 	subpassLoad(inMaterial).z;
-	float ao = 			subpassLoad(inMaterial).w;
+	float metallic = 	texture(inMaterial, fs_in.TexCoord).x;
+	float roughness = 	texture(inMaterial, fs_in.TexCoord).y;
+	float emission = 	texture(inMaterial, fs_in.TexCoord).z;
+	float ao = 			texture(inMaterial, fs_in.TexCoord).w;
 
-	vec3 albedo = 		subpassLoad(inAlbedo).xyz;
+	vec3 albedo = 		texture(inAlbedo, fs_in.TexCoord).xyz;
 
 	vec3 fragPos = EE_DEPTH_TO_WORLD_POS(fs_in.TexCoord, ndcDepth);
 
@@ -31,5 +31,5 @@ void main()
 	bool receiveShadow = true;
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, albedo, metallic);
-	FragColor = vec4(0.5, 0.3, 0.2, 1.0);
+	FragColor = vec4(albedo.xyz, 1.0);
 }

@@ -223,10 +223,7 @@ void Camera::UpdateGBuffer()
 	}
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
-			m_gBufferDepth->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			m_gBufferNormal->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			m_gBufferAlbedo->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			m_gBufferMaterial->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
 
 
@@ -239,6 +236,46 @@ void Camera::UpdateGBuffer()
 
 		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(), m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 	}
+
+	{
+		VkDescriptorImageInfo imageInfo{};
+		VkWriteDescriptorSet writeInfo{};
+		auto missingTexture = std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("TEXTURE_MISSING"));
+		
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_gBufferDepthView->GetVkImageView();
+		imageInfo.sampler = m_gBufferDepthSampler->GetVkSampler();
+
+		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeInfo.dstSet = m_gBufferDescriptorSet;
+		writeInfo.dstBinding = 10;
+		writeInfo.dstArrayElement = 0;
+		writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeInfo.descriptorCount = 1;
+		writeInfo.pImageInfo = &imageInfo;
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+
+		imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
+		imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
+		writeInfo.dstBinding = 11;
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+		imageInfo.imageView = m_gBufferAlbedoView->GetVkImageView();
+		imageInfo.sampler = m_gBufferAlbedoSampler->GetVkSampler();
+		writeInfo.dstBinding = 12;
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+		imageInfo.imageView = m_gBufferMaterialView->GetVkImageView();
+		imageInfo.sampler = m_gBufferMaterialSampler->GetVkSampler();
+		writeInfo.dstBinding = 13;
+		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+	}
+}
+
+void Camera::TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const
+{
+	m_gBufferDepth->TransitImageLayout(commandBuffer, targetLayout);
+	m_gBufferNormal->TransitImageLayout(commandBuffer, targetLayout);
+	m_gBufferAlbedo->TransitImageLayout(commandBuffer, targetLayout);
+	m_gBufferMaterial->TransitImageLayout(commandBuffer, targetLayout);
 }
 
 void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const
@@ -272,7 +309,7 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	}
 }
 
-void Camera::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
+void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -281,7 +318,7 @@ void Camera::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& 
 	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-	attachment.clearValue = {0, 0, 0, 1};
+	attachment.clearValue = { 0, 0, 0, 1 };
 	attachment.imageView = m_gBufferNormalView->GetVkImageView();
 	attachmentInfos.push_back(attachment);
 
@@ -315,7 +352,7 @@ float Camera::GetSizeRatio() const
 	return static_cast<float>(m_size.x) / static_cast<float>(m_size.y);
 }
 
-std::shared_ptr<RenderTexture> Camera::GetRenderTexture() const
+const std::shared_ptr<RenderTexture>& Camera::GetRenderTexture() const
 {
 	return m_renderTexture;
 }
@@ -343,6 +380,18 @@ void Camera::OnCreate()
 	extent.height = m_size.y;
 	extent.depth = 1;
 	m_renderTexture = std::make_unique<RenderTexture>(extent);
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
+	const auto renderLayer = Application::GetLayer<RenderLayer>();
+
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &renderLayer->m_cameraGBufferLayout->GetVkDescriptorSetLayout();
+	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_gBufferDescriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+
 	UpdateGBuffer();
 }
 
@@ -633,7 +682,7 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		//m_colorTexture->SetPathAndSave(filePath);
 		});
 
-	
+
 }
 
 void Camera::CollectAssetRef(std::vector<AssetRef>& list)

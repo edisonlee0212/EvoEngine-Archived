@@ -58,7 +58,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_colorImage = std::make_shared<Image>(imageInfo);
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
-			m_colorImage->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
 
 
@@ -92,7 +92,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_depthStencilImage = std::make_shared<Image>(depthStencilInfo);
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
-			m_depthStencilImage->TransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_depthStencilImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
 
 
