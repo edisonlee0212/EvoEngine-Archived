@@ -35,6 +35,7 @@ void RenderLayer::OnCreate()
 	PrepareMaterialLayout();
 	PrepareCameraGBufferLayout();
 	PreparePerFrameLayout();
+	PrepareLightingLayout();
 
 	std::vector<glm::vec4> kernels;
 	for (uint32_t i = 0; i < Graphics::StorageSizes::m_maxKernelAmount; i++)
@@ -61,6 +62,9 @@ void RenderLayer::OnCreate()
 		editorLayer->m_sceneCamera->m_useClearColor = false;
 		editorLayer->m_sceneCamera->OnCreate();
 	}
+
+	m_shadowMaps = std::make_unique<ShadowMaps>();
+	m_shadowMaps->Initialize();
 }
 
 void RenderLayer::OnDestroy()
@@ -118,8 +122,7 @@ void RenderLayer::PreUpdate()
 	UploadMaterialInfoBlocks(m_materialInfoBlocks);
 	UploadInstanceInfoBlocks(m_instanceInfoBlocks);
 
-	//PreparePointLightShadowMap();
-	//PrepareSpotLightShadowMap();
+	PreparePointAndSpotLightShadowMap();
 
 	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
 	{
@@ -141,39 +144,101 @@ void RenderLayer::LateUpdate()
 
 void RenderLayer::CreateGraphicsPipelines()
 {
-	const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-	standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
-	standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
-	standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
-	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
-	standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_materialLayout);
+	{
+		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
+		standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
+		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_materialLayout);
 
-	standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
-	standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
-	standardDeferredPrepass->m_colorAttachmentFormats = { 3, Graphics::ImageFormats::m_gBufferColor };
+		standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
+		standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
+		standardDeferredPrepass->m_colorAttachmentFormats = { 3, Graphics::ImageFormats::m_gBufferColor };
 
-	auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
-	pushConstantRange.size = sizeof(RenderInstancePushConstant);
-	pushConstantRange.offset = 0;
-	pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+		auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
-	standardDeferredPrepass->PreparePipeline();
-	m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
+		standardDeferredPrepass->PreparePipeline();
+		m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
+	}
+	{
+		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
+		standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+		standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
+		standardDeferredLighting->m_geometryType = GeometryType::Mesh;
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_cameraGBufferLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_lightingLayout);
 
+		standardDeferredLighting->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLighting->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
-	const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
-	standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
-	standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
-	standardDeferredLighting->m_geometryType = GeometryType::Mesh;
-	standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
-	standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_cameraGBufferLayout);
-	standardDeferredLighting->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
-	standardDeferredLighting->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLighting->m_colorAttachmentFormats = { 1, Graphics::ImageFormats::m_renderTextureColor };
 
-	standardDeferredLighting->m_colorAttachmentFormats = { 1, Graphics::ImageFormats::m_renderTextureColor };
+		auto& pushConstantRange = standardDeferredLighting->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
-	standardDeferredLighting->PreparePipeline();
-	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
+		standardDeferredLighting->PreparePipeline();
+		m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
+	}
+	{
+		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
+		directionalLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
+		directionalLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM"));
+		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
+		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		directionalLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		directionalLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+
+		auto& pushConstantRange = directionalLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		directionalLightShadowMap->PreparePipeline();
+		m_graphicsPipelines["DIRECTIONAL_LIGHT_SHADOW_MAP"] = directionalLightShadowMap;
+	}
+	{
+		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
+		pointLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
+		pointLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("POINT_LIGHT_SHADOW_MAP_GEOM"));
+		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
+		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		pointLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		pointLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+
+		auto& pushConstantRange = pointLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		pointLightShadowMap->PreparePipeline();
+		m_graphicsPipelines["POINT_LIGHT_SHADOW_MAP"] = pointLightShadowMap;
+	}
+	{
+		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
+		spotLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("SPOT_LIGHT_SHADOW_MAP_VERT"));
+		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		spotLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		spotLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+
+		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		spotLightShadowMap->PreparePipeline();
+		m_graphicsPipelines["SPOT_LIGHT_SHADOW_MAP"] = spotLightShadowMap;
+	}
 }
 
 
@@ -277,6 +342,20 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 	return search->second;
 }
 
+void RenderLayer::AllCommandsBarrier(VkCommandBuffer commandBuffer)
+{
+	VkMemoryBarrier2 memoryBarrier{};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	memoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+	VkDependencyInfo dependencyInfo{};
+	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfo.memoryBarrierCount = 1;
+	dependencyInfo.pMemoryBarriers = &memoryBarrier;
+
+	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+}
+
 void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
 {
 	auto scene = GetScene();
@@ -330,20 +409,20 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 	auto sceneBound = scene->GetBound();
 	auto& minBound = sceneBound.m_min;
 	auto& maxBound = sceneBound.m_max;
-	
+
 	const std::vector<Entity>* directionalLightEntities =
 		scene->UnsafeGetPrivateComponentOwnersList<DirectionalLight>();
 	m_renderInfoBlock.m_directionalLightSize = 0;
 	if (directionalLightEntities && !directionalLightEntities->empty())
 	{
 		m_directionalLightInfoBlocks.resize(Graphics::StorageSizes::m_maxDirectionalLightSize * cameras.size());
-		for(const auto& [cameraGlobalTransform, camera] : cameras)
+		for (const auto& [cameraGlobalTransform, camera] : cameras)
 		{
 			size_t directionalLightIndex = 0;
 			auto cameraIndex = GetCameraIndex(camera->GetHandle());
 			glm::vec3 mainCameraPos = cameraGlobalTransform.GetPosition();
 			glm::quat mainCameraRot = cameraGlobalTransform.GetRotation();
-			for(const auto& lightEntity : *directionalLightEntities)
+			for (const auto& lightEntity : *directionalLightEntities)
 			{
 				if (!scene->IsEntityEnabled(lightEntity))
 					continue;
@@ -680,18 +759,154 @@ void RenderLayer::CollectSpotLights()
 	m_spotLightInfoBlocks.resize(m_renderInfoBlock.m_spotLightSize);
 }
 
-void RenderLayer::PreparePointLightShadowMap()
+void RenderLayer::PreparePointAndSpotLightShadowMap()
 {
-}
+	const auto& pointLightShadowPipeline = m_graphicsPipelines["POINT_LIGHT_SHADOW_MAP"];
+	const auto& spotLightShadowPipeline = m_graphicsPipelines["SPOT_LIGHT_SHADOW_MAP"];
 
-void RenderLayer::PrepareSpotLightShadowMap()
-{
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+		{
+#pragma region Viewport and scissor
+			VkRect2D renderArea;
+			renderArea.offset = { 0, 0 };
+			renderArea.extent.width = m_shadowMaps->m_pointLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_shadowMaps->m_pointLightShadowMap->GetExtent().height;
+
+			VkViewport viewport;
+			viewport.x = 0;
+			viewport.y = 0;
+			viewport.width = renderArea.extent.width;
+			viewport.height = renderArea.extent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor;
+			scissor.offset = { 0, 0 };
+			scissor.extent.width = renderArea.extent.width;
+			scissor.extent.height = renderArea.extent.height;
+
+			globalPipelineState.m_scissor = scissor;
+#pragma endregion
+			m_shadowMaps->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			auto depthAttachment = m_shadowMaps->GetPointLightDepthAttachmentInfo();
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 0;
+			renderInfo.pColorAttachments = nullptr;
+			renderInfo.pDepthAttachment = &depthAttachment;
+
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			pointLightShadowPipeline->Bind(commandBuffer);
+			pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.m_viewPort = viewport;
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
+			{
+				const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
+				viewport.x = pointLightInfoBlock.m_viewPort.x;
+				viewport.y = pointLightInfoBlock.m_viewPort.y;
+				viewport.width = pointLightInfoBlock.m_viewPort.z;
+				viewport.height = pointLightInfoBlock.m_viewPort.w;
+				globalPipelineState.m_viewPort = viewport;
+				globalPipelineState.ApplyAllStates(commandBuffer);
+				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+					{}, [&](const RenderInstance& renderCommand)
+					{
+						switch (renderCommand.m_geometryType)
+						{
+						case RenderGeometryType::Mesh: {
+							
+							RenderInstancePushConstant pushConstant;
+							pushConstant.m_cameraIndex = 0;
+							pushConstant.m_materialIndex = i;
+							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
+							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+							mesh->Bind(commandBuffer);
+							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							break;
+						}
+						}
+					}
+				);
+			}
+			vkCmdEndRendering(commandBuffer);
+#pragma region Viewport and scissor
+
+			renderArea.offset = { 0, 0 };
+			renderArea.extent.width = m_shadowMaps->m_spotLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_shadowMaps->m_spotLightShadowMap->GetExtent().height;
+
+			viewport.x = 0;
+			viewport.y = 0;
+			viewport.width = renderArea.extent.width;
+			viewport.height = renderArea.extent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			scissor.offset = { 0, 0 };
+			scissor.extent.width = renderArea.extent.width;
+			scissor.extent.height = renderArea.extent.height;
+
+			globalPipelineState.m_scissor = scissor;
+#pragma endregion
+			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			depthAttachment = m_shadowMaps->GetSpotLightDepthAttachmentInfo();
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 0;
+			renderInfo.pColorAttachments = nullptr;
+			renderInfo.pDepthAttachment = &depthAttachment;
+
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			spotLightShadowPipeline->Bind(commandBuffer);
+			spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.m_viewPort = viewport;
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
+			{
+				const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
+				viewport.x = spotLightInfoBlock.m_viewPort.x;
+				viewport.y = spotLightInfoBlock.m_viewPort.y;
+				viewport.width = spotLightInfoBlock.m_viewPort.z;
+				viewport.height = spotLightInfoBlock.m_viewPort.w;
+				globalPipelineState.m_viewPort = viewport;
+				globalPipelineState.ApplyAllStates(commandBuffer);
+				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+					{}, [&](const RenderInstance& renderCommand)
+					{
+						switch (renderCommand.m_geometryType)
+						{
+						case RenderGeometryType::Mesh: {
+							RenderInstancePushConstant pushConstant;
+							pushConstant.m_cameraIndex = 0;
+							pushConstant.m_materialIndex = i;
+							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+							spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
+							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+							mesh->Bind(commandBuffer);
+							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							break;
+						}
+						}
+					}
+				);
+			}
+			vkCmdEndRendering(commandBuffer);
+		});
 }
 
 void RenderLayer::CollectRenderInstances(Bound& worldBound)
 {
 	auto scene = GetScene();
-	
+
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(INT_MAX);
@@ -1272,6 +1487,33 @@ void RenderLayer::PrepareCameraGBufferLayout()
 	m_cameraGBufferLayout = std::make_shared<DescriptorSetLayout>(gBufferLayoutInfo);
 }
 
+void RenderLayer::PrepareLightingLayout()
+{
+	std::vector<VkDescriptorSetLayoutBinding> lightBindings;
+
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.binding = 18;
+	bindingInfo.descriptorCount = 1;
+	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	bindingInfo.pImmutableSamplers = nullptr;
+	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	//gBufferBindings.emplace_back(bindingInfo);
+
+	bindingInfo.binding = 19;
+	lightBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 20;
+	lightBindings.emplace_back(bindingInfo);
+	bindingInfo.binding = 21;
+	lightBindings.emplace_back(bindingInfo);
+	
+
+	VkDescriptorSetLayoutCreateInfo lightLayoutInfo{};
+	lightLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	lightLayoutInfo.bindingCount = static_cast<uint32_t>(lightBindings.size());
+	lightLayoutInfo.pBindings = lightBindings.data();
+	m_lightingLayout = std::make_shared<DescriptorSetLayout>(lightLayoutInfo);
+}
+
 void RenderLayer::PreparePerFrameLayout()
 {
 	if (!m_descriptorSetLayoutBindings.empty())
@@ -1328,6 +1570,83 @@ void RenderLayer::PreparePerFrameLayout()
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
 	auto cameraIndex = GetCameraIndex(camera->GetHandle());
+
+	const auto& directionalLightShadowPipeline = m_graphicsPipelines["DIRECTIONAL_LIGHT_SHADOW_MAP"];
+
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+		{
+#pragma region Viewport and scissor
+			VkRect2D renderArea;
+			renderArea.offset = { 0, 0 };
+			renderArea.extent.width = m_shadowMaps->m_directionalLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_shadowMaps->m_directionalLightShadowMap->GetExtent().height;
+
+			VkViewport viewport;
+			viewport.x = 0;
+			viewport.y = 0;
+			viewport.width = renderArea.extent.width;
+			viewport.height = renderArea.extent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor;
+			scissor.offset = { 0, 0 };
+			scissor.extent.width = renderArea.extent.width;
+			scissor.extent.height = renderArea.extent.height;
+
+			globalPipelineState.m_scissor = scissor;
+#pragma endregion
+			m_shadowMaps->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			const auto depthAttachment = m_shadowMaps->GetDirectionalLightDepthAttachmentInfo();
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 0;
+			renderInfo.pColorAttachments = nullptr;
+			renderInfo.pDepthAttachment = &depthAttachment;
+
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			directionalLightShadowPipeline->Bind(commandBuffer);
+			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			globalPipelineState.m_viewPort = viewport;
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			for (int i = 0; i < m_directionalLightInfoBlocks.size(); i++)
+			{
+				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[i];
+				viewport.x = directionalLightInfoBlock.m_viewPort.x;
+				viewport.y = directionalLightInfoBlock.m_viewPort.y;
+				viewport.width = directionalLightInfoBlock.m_viewPort.z;
+				viewport.height = directionalLightInfoBlock.m_viewPort.w;
+				globalPipelineState.m_viewPort = viewport;
+				globalPipelineState.ApplyAllStates(commandBuffer);
+				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+					{}, [&](const RenderInstance& renderCommand)
+					{
+						switch (renderCommand.m_geometryType)
+						{
+						case RenderGeometryType::Mesh: {
+							
+							RenderInstancePushConstant pushConstant;
+							pushConstant.m_cameraIndex = cameraIndex;
+							pushConstant.m_materialIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i;
+							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
+							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+							mesh->Bind(commandBuffer);
+							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							break;
+						}
+						}
+					}
+				);
+			}
+			vkCmdEndRendering(commandBuffer);
+		}
+	);
+
+	
 	const auto& deferredPrepassPipeline = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
 	const auto& deferredLightingPipeline = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
@@ -1368,7 +1687,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
-			
+
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
 			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
@@ -1406,7 +1725,6 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		}
 #pragma endregion
 
-
 #pragma region Lighting pass
 		{
 			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -1421,11 +1739,15 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 			renderInfo.pDepthAttachment = &depthAttachment;
+			m_shadowMaps->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_shadowMaps->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->Bind(commandBuffer);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet);
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet);
 			globalPipelineState.m_depthTest = false;
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
@@ -1435,6 +1757,11 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 				i.blendEnable = VK_FALSE;
 			}
 			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			RenderInstancePushConstant pushConstant;
+			pushConstant.m_cameraIndex = cameraIndex;
+			pushConstant.m_materialIndex = 0;
+			pushConstant.m_instanceIndex = 0;
+			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
 			mesh->Bind(commandBuffer);
 			mesh->DrawIndexed(commandBuffer, globalPipelineState);

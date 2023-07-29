@@ -652,6 +652,8 @@ void Graphics::CreateLogicalDevice()
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.geometryShader = VK_TRUE;
+
 	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
 	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
 	physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;

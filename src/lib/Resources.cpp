@@ -129,7 +129,7 @@ void Resources::LoadShaders()
 #pragma region GBuffer
 	{
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLight + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
@@ -279,6 +279,45 @@ void Resources::LoadShaders()
 #pragma endregion
 #pragma endregion
 */
+
+#pragma region Shadow Maps
+	{
+		auto vertShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/LightShadowMap.vert");
+
+		auto vertShader = CreateResource<Shader>("LIGHT_SHADOW_MAP_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/SpotLightShadowMap.vert");
+
+		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto geomShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/PointLightShadowMap.geom");
+
+		auto geomShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		geomShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/DirectionalLightShadowMap.geom");
+
+		geomShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		auto fragShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Empty.frag");
+		auto fragShader = CreateResource<Shader>("EMPTY_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
+	}
+#pragma endregion
 }
 
 void Resources::LoadPrimitives() const

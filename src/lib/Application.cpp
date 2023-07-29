@@ -11,6 +11,7 @@
 #include "Jobs.hpp"
 #include "TransformGraph.hpp"
 #include "Input.hpp"
+#include "Lights.hpp"
 #include "Mesh.hpp"
 #include "MeshRenderer.hpp"
 #include "Resources.hpp"
@@ -364,7 +365,9 @@ void Application::InitializeRegistry()
 	//ClassRegistry::RegisterPrivateComponent<PostProcessing>("PostProcessing");
 	ClassRegistry::RegisterPrivateComponent<SkinnedMeshRenderer>("SkinnedMeshRenderer");
 	ClassRegistry::RegisterPrivateComponent<Animator>("Animator");
-
+	ClassRegistry::RegisterPrivateComponent<PointLight>("PointLight");
+	ClassRegistry::RegisterPrivateComponent<SpotLight>("SpotLight");
+	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
 	//ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
 	//ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");

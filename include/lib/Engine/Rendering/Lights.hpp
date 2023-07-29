@@ -1,4 +1,5 @@
 #pragma once
+#include "GraphicsResources.hpp"
 #include "IPrivateComponent.hpp"
 
 namespace EvoEngine
@@ -90,5 +91,33 @@ namespace EvoEngine
         [[nodiscard]] float GetFarPlane() const;
 
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
+    };
+
+    class ShadowMaps
+    {
+        std::shared_ptr<Image> m_environmentalBRDFLut = {};
+        std::shared_ptr<ImageView> m_environmentalBRDFView = {};
+        std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
+
+        std::shared_ptr<Image> m_directionalLightShadowMap = {};
+        std::shared_ptr<ImageView> m_directionalLightShadowMapView = {};
+        std::shared_ptr<Sampler> m_directionalShadowMapSampler = {};
+
+        std::shared_ptr<Image> m_pointLightShadowMap = {};
+        std::shared_ptr<ImageView> m_pointLightShadowMapView = {};
+        std::shared_ptr<Sampler> m_pointLightShadowMapSampler = {};
+
+        std::shared_ptr<Image> m_spotLightShadowMap = {};
+        std::shared_ptr<ImageView> m_spotLightShadowMapView = {};
+        std::shared_ptr<Sampler> m_spotLightShadowMapSampler = {};
+        friend class RenderLayer;
+
+        VkDescriptorSet m_lightingDescriptorSet = VK_NULL_HANDLE;
+    public:
+        ShadowMaps();
+        void Initialize();
+        [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo() const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetPointLightDepthAttachmentInfo() const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetSpotLightDepthAttachmentInfo() const;
     };
 }

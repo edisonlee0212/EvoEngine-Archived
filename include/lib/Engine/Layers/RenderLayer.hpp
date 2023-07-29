@@ -95,6 +95,7 @@ namespace EvoEngine
 		friend class GraphicsPipeline;
 		friend class EditorLayer;
 		friend class Material;
+		friend class ShadowMaps;
 		size_t m_triangles = 0;
 		size_t m_strandsSegments = 0;
 		size_t m_drawCall = 0;
@@ -112,20 +113,20 @@ namespace EvoEngine
 		RenderInstanceCollection m_forwardInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
 		RenderInstanceCollection m_instancedTransparentRenderInstances;
-
+		static void AllCommandsBarrier(VkCommandBuffer commandBuffer);
 
 		std::shared_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
 
 		std::shared_ptr<DescriptorSetLayout> m_materialLayout = {};
 		std::shared_ptr<DescriptorSetLayout> m_cameraGBufferLayout = {};
+		std::shared_ptr<DescriptorSetLayout> m_lightingLayout = {};
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();
 		void CollectSpotLights();
-		void PreparePointLightShadowMap();
-		void PrepareSpotLightShadowMap();
+		void PreparePointAndSpotLightShadowMap();
 		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
 		bool m_layoutReady = false;
 		bool m_descriptorSetsReady = false;
@@ -178,6 +179,8 @@ namespace EvoEngine
 
 		void PrepareMaterialLayout();
 		void PrepareCameraGBufferLayout();
+		void PrepareLightingLayout();
+		std::unique_ptr<ShadowMaps> m_shadowMaps;
 	public:
 
 		bool m_stableFit = true;

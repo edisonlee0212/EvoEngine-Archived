@@ -49,8 +49,8 @@ void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, s
 void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
 {
 	m_viewPortApplied = m_viewPort;
-	m_viewPort.width = glm::max(1.0f, m_viewPort.width);
-	m_viewPort.height = glm::max(1.0f, m_viewPort.height);
+	m_viewPortApplied.width = glm::max(1.0f, m_viewPort.width);
+	m_viewPortApplied.height = glm::max(1.0f, m_viewPort.height);
 	m_scissorApplied = m_scissor;
 	vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
 	vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
@@ -173,7 +173,7 @@ void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, c
 		{
 			colorWriteMasks.push_back(i.colorWriteMask);
 		}
-		vkCmdSetColorWriteMaskEXT(commandBuffer, 0, colorWriteMasks.size(), colorWriteMasks.data());
+		if(!colorWriteMasks.empty()) vkCmdSetColorWriteMaskEXT(commandBuffer, 0, colorWriteMasks.size(), colorWriteMasks.data());
 	}
 
 	if (forceSet || updateBlendingStates)
@@ -184,7 +184,7 @@ void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, c
 		{
 			colorBlendEnable.push_back(i.blendEnable);
 		}
-		vkCmdSetColorBlendEnableEXT(commandBuffer, 0, colorBlendEnable.size(), colorBlendEnable.data());
+		if (!colorBlendEnable.empty()) vkCmdSetColorBlendEnableEXT(commandBuffer, 0, colorBlendEnable.size(), colorBlendEnable.data());
 	}
 	if (forceSet || updateBlendingStates)
 	{
@@ -200,7 +200,7 @@ void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, c
 			equation.alphaBlendOp = i.alphaBlendOp;
 			equations.emplace_back(equation);
 		}
-		vkCmdSetColorBlendEquationEXT(commandBuffer, 0, equations.size(), equations.data());
+		if (!equations.empty()) vkCmdSetColorBlendEquationEXT(commandBuffer, 0, equations.size(), equations.data());
 	}
 
 	if (forceSet

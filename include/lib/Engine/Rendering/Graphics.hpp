@@ -26,6 +26,9 @@ namespace EvoEngine
 	{
 		friend class Application;
 		friend class Resources;
+		friend class ShadowMaps;
+		friend class PointLightShadowMap;
+		friend class SpotLightShadowMap;
 #pragma region Vulkan
 		VkInstance m_vkInstance = VK_NULL_HANDLE;
 		std::vector<std::string> m_requiredDeviceExtensions = {};
@@ -118,6 +121,9 @@ namespace EvoEngine
 		{
 			friend class RenderLayer;
 			friend class Resources;
+			friend class ShadowMaps;
+			friend class PointLightShadowMap;
+			friend class SpotLightShadowMap;
 			inline static uint32_t m_maxCameraSize = 8;
 			inline static uint32_t m_maxMaterialSize = 1024;
 			inline static uint32_t m_maxInstanceSize = 8192;
@@ -145,6 +151,7 @@ namespace EvoEngine
 			inline static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
+			inline static VkFormat m_shadowMap = VK_FORMAT_D24_UNORM_S8_UINT;
 		};
 
 #pragma endregion

@@ -31,5 +31,9 @@ void main()
 	bool receiveShadow = true;
 	vec3 F0 = vec3(0.04); 
 	F0 = mix(F0, albedo, metallic);
-	FragColor = vec4(albedo.xyz, 1.0);
+	vec3 result = EE_FUNC_CALCULATE_LIGHTS(receiveShadow, albedo, 1.0, depth, normal, viewDir, fragPos, metallic, roughness, F0);
+	//vec3 ambient = EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(albedo, normal, viewDir, metallic, roughness, F0);
+	vec3 color = result + emission * normalize(albedo.xyz);// + ambient * ao;
+	color = pow(color, vec3(1.0 / EE_GAMMA));
+	FragColor = vec4(color, 1.0);
 }
