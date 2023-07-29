@@ -12,16 +12,14 @@
 #include "Shader.hpp"
 using namespace EvoEngine;
 
-void RenderTask::Dispatch(
+void RenderInstanceCollection::Dispatch(
 	const std::function<void(const std::shared_ptr<Material>&)>&
 	beginCommandGroupAction,
 	const std::function<void(const RenderInstance&)>& commandAction) const
 {
-	for (const auto& renderCollection : m_renderCommandsGroups)
-	{
-		const auto& material = renderCollection.second.m_material;
-		beginCommandGroupAction(material);
-		for (const auto& renderCommands : renderCollection.second.m_renderCommands)
+	for (auto& renderInstanceGroup : m_renderInstanceGroups) {
+		beginCommandGroupAction(renderInstanceGroup.second.m_material);
+		for (const auto& renderCommands : renderInstanceGroup.second.m_renderCommands)
 		{
 			for (const auto& renderCommand : renderCommands.second)
 			{
@@ -83,12 +81,12 @@ void RenderLayer::PreUpdate()
 {
 	const auto scene = GetScene();
 	if (!scene) return;
-	m_deferredRenderInstances.clear();
-	m_deferredInstancedRenderInstances.clear();
-	m_forwardRenderInstances.clear();
-	m_forwardInstancedRenderInstances.clear();
-	m_transparentRenderInstances.clear();
-	m_instancedTransparentRenderInstances.clear();
+	m_deferredRenderInstances.m_renderInstanceGroups.clear();
+	m_deferredInstancedRenderInstances.m_renderInstanceGroups.clear();
+	m_forwardRenderInstances.m_renderInstanceGroups.clear();
+	m_forwardInstancedRenderInstances.m_renderInstanceGroups.clear();
+	m_transparentRenderInstances.m_renderInstanceGroups.clear();
+	m_instancedTransparentRenderInstances.m_renderInstanceGroups.clear();
 
 	m_cameraIndices.clear();
 	m_materialIndices.clear();
@@ -102,7 +100,8 @@ void RenderLayer::PreUpdate()
 
 	Bound worldBound;
 	std::vector<std::shared_ptr<Camera>> cameras;
-	CollectRenderTasks(worldBound, cameras);
+	CollectCameras(cameras);
+	CollectRenderInstances(worldBound);
 
 	UploadCameraInfoBlocks(m_cameraInfoBlocks);
 	UploadMaterialInfoBlocks(m_materialInfoBlocks);
@@ -159,6 +158,8 @@ void RenderLayer::CreateGraphicsPipelines()
 	standardDeferredLighting->PreparePipeline();
 	m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;*/
 }
+
+
 
 uint32_t RenderLayer::GetCameraIndex(const Handle& handle)
 {
@@ -218,7 +219,7 @@ uint32_t RenderLayer::RegisterCameraIndex(const Handle& handle, const CameraInfo
 		m_cameraInfoBlocks.emplace_back(cameraInfoBlock);
 		return index;
 	}
-	if(upload)
+	if (upload)
 	{
 		UploadCameraInfoBlock(handle, cameraInfoBlock);
 	}
@@ -259,7 +260,7 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 	return search->second;
 }
 
-void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras)
+void RenderLayer::CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras)
 {
 	auto scene = GetScene();
 	std::vector<std::pair<std::shared_ptr<Camera>, glm::vec3>> cameraPairs;
@@ -295,6 +296,12 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 			cameras.push_back(camera);
 		}
 	}
+}
+
+void RenderLayer::CollectRenderInstances(Bound& worldBound)
+{
+	auto scene = GetScene();
+	
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(INT_MAX);
@@ -336,52 +343,34 @@ void RenderLayer::CollectRenderTasks(Bound& worldBound, std::vector<std::shared_
 			instanceInfoBlock.m_model = gt;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-			for (const auto& pair : cameraPairs)
+			RenderInstance renderInstance;
+			renderInstance.m_owner = owner;
+			renderInstance.m_renderGeometry = mesh;
+			renderInstance.m_castShadow = mmc->m_castShadow;
+			renderInstance.m_receiveShadow = mmc->m_receiveShadow;
+			renderInstance.m_geometryType = RenderGeometryType::Mesh;
+
+			renderInstance.m_materialIndex = materialIndex;
+			renderInstance.m_instanceIndex = instanceIndex;
+
+			if (material->m_drawSettings.m_blending)
 			{
-				auto& deferredRenderInstances = m_deferredRenderInstances[pair.first->GetHandle()];
-				auto& deferredInstancedRenderInstances = m_deferredInstancedRenderInstances[pair.first->GetHandle()];
-				auto& forwardRenderInstances = m_forwardRenderInstances[pair.first->GetHandle()];
-				auto& forwardInstancedRenderInstances = m_forwardInstancedRenderInstances[pair.first->GetHandle()];
-				auto& transparentRenderInstances = m_transparentRenderInstances[pair.first->GetHandle()];
-				auto& instancedTransparentRenderInstances = m_instancedTransparentRenderInstances[pair.first->GetHandle()];
+				auto& group = m_transparentRenderInstances.m_renderInstanceGroups[material->GetHandle()];
+				group.m_material = material;
+				group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
 
-				deferredRenderInstances.m_camera = pair.first;
-				deferredInstancedRenderInstances.m_camera = pair.first;
-				forwardRenderInstances.m_camera = pair.first;
-				forwardInstancedRenderInstances.m_camera = pair.first;
-				transparentRenderInstances.m_camera = pair.first;
-				instancedTransparentRenderInstances.m_camera = pair.first;
-
-				RenderInstance renderInstance;
-				renderInstance.m_owner = owner;
-				renderInstance.m_renderGeometry = mesh;
-				renderInstance.m_castShadow = mmc->m_castShadow;
-				renderInstance.m_receiveShadow = mmc->m_receiveShadow;
-				renderInstance.m_geometryType = RenderGeometryType::Mesh;
-
-				renderInstance.m_pushConstant.m_cameraIndex = GetCameraIndex(pair.first->GetHandle());
-				renderInstance.m_pushConstant.m_materialIndex = materialIndex;
-				renderInstance.m_pushConstant.m_instanceIndex = instanceIndex;
-
-				if (material->m_drawSettings.m_blending)
-				{
-					auto& group = transparentRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
-
-				}
-				else if (mmc->m_forwardRendering)
-				{
-					auto& group = forwardRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
-				}
-				else
-				{
-					auto& group = deferredRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
-				}
+			}
+			else if (mmc->m_forwardRendering)
+			{
+				auto& group = m_forwardRenderInstances.m_renderInstanceGroups[material->GetHandle()];
+				group.m_material = material;
+				group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
+			}
+			else
+			{
+				auto& group = m_deferredRenderInstances.m_renderInstanceGroups[material->GetHandle()];
+				group.m_material = material;
+				group.m_renderCommands[mesh->GetHandle()].push_back(renderInstance);
 			}
 		}
 	}
@@ -919,6 +908,7 @@ void RenderLayer::PreparePerFrameLayout()
 
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
+	auto cameraIndex = GetCameraIndex(camera->GetHandle());
 	const auto& deferredPrepassProgram = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
 	//const auto& deferredLightingProgram = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
@@ -964,7 +954,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		}
 		globalPipelineState.ApplyAllStates(commandBuffer, true);
 
-		m_deferredRenderInstances[camera->GetHandle()].Dispatch([&](const std::shared_ptr<Material>& material)
+		m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 			{
 				deferredPrepassProgram->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet);
 				//We should also bind textures here.
@@ -974,7 +964,11 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 				{
 				case RenderGeometryType::Mesh: {
 					globalPipelineState.ApplyAllStates(commandBuffer);
-					deferredPrepassProgram->PushConstant(commandBuffer, 0, renderCommand.m_pushConstant);
+					RenderInstancePushConstant pushConstant;
+					pushConstant.m_cameraIndex = cameraIndex;
+					pushConstant.m_materialIndex = renderCommand.m_materialIndex;
+					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredPrepassProgram->PushConstant(commandBuffer, 0, pushConstant);
 					const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, globalPipelineState);
@@ -994,27 +988,27 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 }
 
 
-void RenderLayer::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock)
+void RenderLayer::UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const
 {
 	memcpy(m_environmentalInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
 }
 
-void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock)
+void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const
 {
 	memcpy(m_renderInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &renderInfoBlock, sizeof(RenderInfoBlock));
 }
 
-void RenderLayer::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks)
+void RenderLayer::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const
 {
 	memcpy(m_cameraInfoBlockMemory[Graphics::GetCurrentFrameIndex()], cameraInfoBlocks.data(), sizeof(CameraInfoBlock) * cameraInfoBlocks.size());
 }
 
-void RenderLayer::UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks)
+void RenderLayer::UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const
 {
 	memcpy(m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()], materialInfoBlocks.data(), sizeof(MaterialInfoBlock) * materialInfoBlocks.size());
 }
 
-void RenderLayer::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks)
+void RenderLayer::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const
 {
 	memcpy(m_instanceInfoBlockMemory[Graphics::GetCurrentFrameIndex()], objectInfoBlocks.data(), sizeof(InstanceInfoBlock) * objectInfoBlocks.size());
 }

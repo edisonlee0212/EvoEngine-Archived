@@ -30,7 +30,8 @@ namespace EvoEngine
 	};
 
 	struct RenderInstance {
-		RenderInstancePushConstant m_pushConstant;
+		uint32_t m_instanceIndex = 0;
+		uint32_t m_materialIndex = 0;
 		RenderCommandType m_commandType = RenderCommandType::None;
 		RenderGeometryType m_geometryType = RenderGeometryType::None;
 		Entity m_owner = Entity();
@@ -41,18 +42,18 @@ namespace EvoEngine
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
 	};
 
-	struct RenderCommandGroup {
+	struct RenderInstanceGroup {
 		std::shared_ptr<Material> m_material;
 		std::unordered_map<Handle, std::vector<RenderInstance>> m_renderCommands;
+		
 	};
 
-	struct RenderTask {
-		std::shared_ptr<Camera> m_camera;
-		std::unordered_map<Handle, RenderCommandGroup> m_renderCommandsGroups;
+	struct RenderInstanceCollection
+	{
+		std::unordered_map<Handle, RenderInstanceGroup> m_renderInstanceGroups;
 		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
 			const std::function<void(const RenderInstance&)>& commandAction) const;
 	};
-
 
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
@@ -100,13 +101,13 @@ namespace EvoEngine
 		void LateUpdate() override;
 		void CreateGraphicsPipelines();
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
-
-		std::unordered_map<Handle, RenderTask> m_deferredRenderInstances;
-		std::unordered_map<Handle, RenderTask> m_deferredInstancedRenderInstances;
-		std::unordered_map<Handle, RenderTask> m_forwardRenderInstances;
-		std::unordered_map<Handle, RenderTask> m_forwardInstancedRenderInstances;
-		std::unordered_map<Handle, RenderTask> m_transparentRenderInstances;
-		std::unordered_map<Handle, RenderTask> m_instancedTransparentRenderInstances;
+		
+		RenderInstanceCollection m_deferredRenderInstances;
+		RenderInstanceCollection m_deferredInstancedRenderInstances;
+		RenderInstanceCollection m_forwardRenderInstances;
+		RenderInstanceCollection m_forwardInstancedRenderInstances;
+		RenderInstanceCollection m_transparentRenderInstances;
+		RenderInstanceCollection m_instancedTransparentRenderInstances;
 
 
 		std::shared_ptr<DescriptorSetLayout> m_perFrameLayout = {};
@@ -114,7 +115,8 @@ namespace EvoEngine
 
 		std::shared_ptr<DescriptorSetLayout> m_materialLayout = {};
 
-		void CollectRenderTasks(Bound& worldBound, std::vector<std::shared_ptr<Camera>>& cameras);
+		void CollectCameras(std::vector<std::shared_ptr<Camera>>& cameras);
+		void CollectRenderInstances(Bound& worldBound);
 
 		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
 		bool m_layoutReady = false;
@@ -158,9 +160,9 @@ namespace EvoEngine
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;
 		std::vector<SpotLightInfo> m_spotLightInfoBlocks;
 
-		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks);
-		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks);
-		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks);
+		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const;
+		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const;
+		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const;
 
 		void PrepareMaterialLayout();
 	public:
@@ -175,8 +177,8 @@ namespace EvoEngine
 		uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
 		uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
 
-		void UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock);
-		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock);
+		void UploadEnvironmentInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
+		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
 
 		void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
 		/**
