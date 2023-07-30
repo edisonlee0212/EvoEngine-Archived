@@ -13,61 +13,6 @@ namespace EvoEngine
 {
 	class EditorLayer : public ILayer
 	{
-#pragma region Registrations
-		friend class ClassRegistry;
-		friend class RenderLayer;
-		friend class Application;
-		friend class DefaultResources;
-		friend class ProjectManager;
-		friend class Scene;
-		std::map<std::string, std::shared_ptr<Texture2D>> m_assetsIcons;
-		bool m_enabled = false;
-		std::map<size_t, std::function<bool(Entity entity, IDataComponent* data, bool isRoot)>> m_componentDataInspectorMap;
-		std::vector<std::pair<size_t, std::function<void(Entity owner)>>> m_privateComponentMenuList;
-		std::vector<std::pair<size_t, std::function<void(float rank)>>> m_systemMenuList;
-		std::vector<std::pair<size_t, std::function<void(Entity owner)>>> m_componentDataMenuList;
-		template <typename T1 = IPrivateComponent>  void RegisterPrivateComponent();
-		template <typename T1 = ISystem>  void RegisterSystem();
-		template <typename T1 = IDataComponent>  void RegisterDataComponent();
-
-		std::vector<std::weak_ptr<AssetRecord>> m_assetRecordBus;
-		std::map<std::string, std::vector<AssetRef>> m_assetRefBus;
-		std::map<std::string, std::vector<PrivateComponentRef>> m_privateComponentRefBus;
-		std::map<std::string, std::vector<EntityRef>> m_entityRefBus;
-#pragma endregion
-
-		EntityArchetype m_basicEntityArchetype;
-
-		glm::vec3 m_previouslyStoredPosition;
-		glm::vec3 m_previouslyStoredRotation;
-		glm::vec3 m_previouslyStoredScale;
-		bool m_localPositionSelected = true;
-		bool m_localRotationSelected = false;
-		bool m_localScaleSelected = false;
-
-		bool m_sceneCameraWindowFocused = false;
-		bool m_mainCameraWindowFocused = false;
-#pragma region Transfer
-
-		glm::quat m_previousRotation;
-		glm::vec3 m_previousPosition;
-		glm::quat m_targetRotation;
-		glm::vec3 m_targetPosition;
-		float m_transitionTime;
-		float m_transitionTimer;
-#pragma endregion
-		std::vector<Entity> m_selectedEntityHierarchyList;
-
-		int m_sceneCameraResolutionX = 1;
-		int m_sceneCameraResolutionY = 1;
-		
-		bool m_lockEntitySelection = false;
-
-		bool m_highlightSelection = true;
-		Entity m_selectedEntity;
-
-		glm::vec2 m_mouseScreenPosition;
-
 
 		void LoadIcons();
 		void OnCreate() override;
@@ -76,13 +21,6 @@ namespace EvoEngine
 		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-
-
-		[[nodiscard]] bool DrawEntityMenu(const bool& enabled, const Entity& entity) const;
-
-		void DrawEntityNode(const Entity& entity, const unsigned& hierarchyLevel);
-
-		void InspectComponentData(Entity entity, IDataComponent* data, DataComponentType type, bool isRoot);
 
 		std::shared_ptr<Camera> m_sceneCamera;
 
@@ -95,10 +33,7 @@ namespace EvoEngine
 		void MoveCamera(
 			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
 
-
-		void CameraWindowDragAndDrop();
-
-		[[nodiscard]] void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout) const;
+		void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout) const;
 
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;
@@ -128,6 +63,10 @@ namespace EvoEngine
 		glm::vec3 m_defaultSceneCameraPosition = glm::vec3(0, 2, 5);
 
 #pragma region ImGui Helpers
+		void CameraWindowDragAndDrop();
+		[[nodiscard]] bool DrawEntityMenu(const bool& enabled, const Entity& entity) const;
+		void DrawEntityNode(const Entity& entity, const unsigned& hierarchyLevel);
+		void InspectComponentData(Entity entity, IDataComponent* data, DataComponentType type, bool isRoot);
 
 		std::map<std::string, std::shared_ptr<Texture2D>>& AssetIcons();
 
@@ -178,6 +117,60 @@ namespace EvoEngine
 		[[nodiscard]] bool Remove(EntityRef& entityRef);
 
 #pragma endregion
+	private:
+		EntityArchetype m_basicEntityArchetype;
+		glm::vec3 m_previouslyStoredPosition;
+		glm::vec3 m_previouslyStoredRotation;
+		glm::vec3 m_previouslyStoredScale;
+		bool m_localPositionSelected = true;
+		bool m_localRotationSelected = false;
+		bool m_localScaleSelected = false;
+
+		bool m_sceneCameraWindowFocused = false;
+		bool m_mainCameraWindowFocused = false;
+#pragma region Registrations
+		friend class ClassRegistry;
+		friend class RenderLayer;
+		friend class Application;
+		friend class DefaultResources;
+		friend class ProjectManager;
+		friend class Scene;
+		std::map<std::string, std::shared_ptr<Texture2D>> m_assetsIcons;
+		bool m_enabled = false;
+		std::map<size_t, std::function<bool(Entity entity, IDataComponent* data, bool isRoot)>> m_componentDataInspectorMap;
+		std::vector<std::pair<size_t, std::function<void(Entity owner)>>> m_privateComponentMenuList;
+		std::vector<std::pair<size_t, std::function<void(float rank)>>> m_systemMenuList;
+		std::vector<std::pair<size_t, std::function<void(Entity owner)>>> m_componentDataMenuList;
+		template <typename T1 = IPrivateComponent>  void RegisterPrivateComponent();
+		template <typename T1 = ISystem>  void RegisterSystem();
+		template <typename T1 = IDataComponent>  void RegisterDataComponent();
+
+		std::vector<std::weak_ptr<AssetRecord>> m_assetRecordBus;
+		std::map<std::string, std::vector<AssetRef>> m_assetRefBus;
+		std::map<std::string, std::vector<PrivateComponentRef>> m_privateComponentRefBus;
+		std::map<std::string, std::vector<EntityRef>> m_entityRefBus;
+#pragma endregion
+#pragma region Transfer
+
+		glm::quat m_previousRotation;
+		glm::vec3 m_previousPosition;
+		glm::quat m_targetRotation;
+		glm::vec3 m_targetPosition;
+		float m_transitionTime;
+		float m_transitionTimer;
+#pragma endregion
+		std::vector<Entity> m_selectedEntityHierarchyList;
+
+		int m_sceneCameraResolutionX = 1;
+		int m_sceneCameraResolutionY = 1;
+
+		bool m_lockEntitySelection = false;
+
+		bool m_highlightSelection = true;
+		Entity m_selectedEntity;
+
+		glm::vec2 m_mouseScreenPosition;
+
 	};
 
 #pragma region ImGui Helpers

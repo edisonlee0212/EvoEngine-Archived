@@ -8,6 +8,7 @@
 #include "SkinnedMeshRenderer.hpp"
 namespace EvoEngine
 {
+#pragma region Enums Structs
 	enum class RenderCommandType {
 		None,
 		FromRenderer,
@@ -88,6 +89,7 @@ namespace EvoEngine
 	{
 		GlobalTransform m_model;
 	};
+#pragma endregion
 
 	class RenderLayer final : public ILayer {
 		friend class Resources;
@@ -100,25 +102,70 @@ namespace EvoEngine
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-		void CreateGraphicsPipelines();
+		
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
-		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorLayouts;
+		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
+
+		void PreparePointAndSpotLightShadowMap();
+		void CreateGraphicsPipelines();
+		void PrepareDescriptorSetLayouts();
+		void PrepareEnvironmentalBrdfLut();
+
+	public:
+		void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
+		[[nodiscard]] const std::shared_ptr<GraphicsPipeline>& GetGraphicsPipeline(const std::string& name);
+		void RegisterDescriptorSetLayout(const std::string& name, const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout);
+		[[nodiscard]] const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
+		bool m_stableFit = true;
+		float m_maxShadowDistance = 300;
+		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
+
+		uint32_t GetCameraIndex(const Handle& handle);
+		uint32_t GetMaterialIndex(const Handle& handle);
+		uint32_t GetInstanceIndex(const Handle& handle);
+		void UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
+		void UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
+		void UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
+
+		uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload = false);
+		uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
+		uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
+
+		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
+		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
+
+		
+		int m_mainCameraResolutionX = 1;
+		int m_mainCameraResolutionY = 1;
+		bool m_allowAutoResize = true;
+		float m_mainCameraResolutionMultiplier = 1.0f;
+
+		RenderInfoBlock m_renderInfoBlock = {};
+		EnvironmentInfoBlock m_environmentInfoBlock = {};
+
+		void RenderToCamera(const std::shared_ptr<Camera>& camera);
+
+	private:
+#pragma region Render procedure
 		RenderInstanceCollection m_deferredRenderInstances;
 		RenderInstanceCollection m_deferredInstancedRenderInstances;
 		RenderInstanceCollection m_forwardRenderInstances;
 		RenderInstanceCollection m_forwardInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
 		RenderInstanceCollection m_instancedTransparentRenderInstances;
-
-		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
-
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();
 		void CollectSpotLights();
-		void PreparePointAndSpotLightShadowMap();
 
+		std::unique_ptr<ShadowMaps> m_shadowMaps;
+		std::shared_ptr<Image> m_environmentalBRDFLut = {};
+		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
+		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
+#pragma endregion
+#pragma region Per Frame Descriptor Sets
+		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
 		std::vector<RenderInfoBlock*> m_renderInfoBlockMemory;
 		std::vector<EnvironmentInfoBlock*> m_environmentalInfoBlockMemory;
 		std::vector<CameraInfoBlock*> m_cameraInfoBlockMemory;
@@ -138,11 +185,9 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_spotLightInfoDescriptorBuffers = {};
-		
-
 		void CreateStandardDescriptorBuffers();
 		void UpdateStandardBindings();
-		
+
 		std::unordered_map<Handle, uint32_t> m_cameraIndices;
 		std::unordered_map<Handle, uint32_t> m_materialIndices;
 		std::unordered_map<Handle, uint32_t> m_instanceIndices;
@@ -154,7 +199,6 @@ namespace EvoEngine
 		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;
 		std::vector<SpotLightInfo> m_spotLightInfoBlocks;
-
 		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const;
 		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const;
 		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const;
@@ -163,46 +207,6 @@ namespace EvoEngine
 		void UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const;
 		void UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const;
 
-		void PrepareDescriptorLayouts();
-
-		void PrepareEnvironmentalBrdfLut();
-		std::unique_ptr<ShadowMaps> m_shadowMaps;
-		std::shared_ptr<Image> m_environmentalBRDFLut = {};
-		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
-		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
-	public:
-		[[nodiscard]] const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
-		bool m_stableFit = true;
-		float m_maxShadowDistance = 300;
-		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
-
-
-		uint32_t GetCameraIndex(const Handle& handle);
-		uint32_t GetMaterialIndex(const Handle& handle);
-		uint32_t GetInstanceIndex(const Handle& handle);
-		void UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
-		void UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
-		void UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
-
-		uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload = false);
-		uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
-		uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
-
-		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
-		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
-
-		
-
-		int m_mainCameraResolutionX = 1;
-		int m_mainCameraResolutionY = 1;
-		bool m_allowAutoResize = true;
-		float m_mainCameraResolutionMultiplier = 1.0f;
-
-		RenderInfoBlock m_renderInfoBlock = {};
-		EnvironmentInfoBlock m_environmentInfoBlock = {};
-
-		void RenderToCamera(const std::shared_ptr<Camera>& camera);
-
-
+#pragma endregion
 	};
 }

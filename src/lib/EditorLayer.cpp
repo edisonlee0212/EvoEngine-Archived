@@ -1414,73 +1414,73 @@ bool EditorLayer::DragAndDropButton(
 
 void EditorLayer::LoadIcons()
 {
-	m_assetsIcons["Project"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Project"] = Resources::CreateResource<Texture2D>("PROJECT_ICON");
 	m_assetsIcons["Project"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/project.png");
 
-	m_assetsIcons["Scene"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Scene"] = Resources::CreateResource<Texture2D>("SCENE_ICON");
 	m_assetsIcons["Scene"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/scene.png");
 
-	m_assetsIcons["Binary"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Binary"] = Resources::CreateResource<Texture2D>("BINARY_ICON");
 	m_assetsIcons["Binary"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/binary.png");
 
-	m_assetsIcons["Folder"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Folder"] = Resources::CreateResource<Texture2D>("FOLDER_ICON");
 	m_assetsIcons["Folder"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/folder.png");
 
-	m_assetsIcons["Material"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Material"] = Resources::CreateResource<Texture2D>("MATERIAL_ICON");
 	m_assetsIcons["Material"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/material.png");
 
 
-	m_assetsIcons["Mesh"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Mesh"] = Resources::CreateResource<Texture2D>("MESH_ICON");
 	m_assetsIcons["Mesh"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/mesh.png");
 
 
-	m_assetsIcons["Prefab"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Prefab"] = Resources::CreateResource<Texture2D>("PREFAB_ICON");
 	m_assetsIcons["Prefab"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/prefab.png");
 
-	m_assetsIcons["Texture2D"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["Texture2D"] = Resources::CreateResource<Texture2D>("TEXTURE2D_ICON");
 	m_assetsIcons["Texture2D"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Assets/texture2d.png");
 
 
-	m_assetsIcons["PlayButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["PlayButton"] = Resources::CreateResource<Texture2D>("PLAY_BUTTON_ICON");
 	m_assetsIcons["PlayButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PlayButton.png");
 
 
-	m_assetsIcons["PauseButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["PauseButton"] = Resources::CreateResource<Texture2D>("PAUSE_BUTTON_ICON");
 	m_assetsIcons["PauseButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/PauseButton.png");
 
 
-	m_assetsIcons["StopButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["StopButton"] = Resources::CreateResource<Texture2D>("STOP_BUTTON_ICON");
 	m_assetsIcons["StopButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StopButton.png");
 
 
-	m_assetsIcons["StepButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["StepButton"] = Resources::CreateResource<Texture2D>("STEP_BUTTON_ICON");
 	m_assetsIcons["StepButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/StepButton.png");
 
 
-	m_assetsIcons["BackButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["BackButton"] = Resources::CreateResource<Texture2D>("BACK_BUTTON_ICON");
 	m_assetsIcons["BackButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/back.png");
 
 
-	m_assetsIcons["LeftButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["LeftButton"] = Resources::CreateResource<Texture2D>("LEFT_BUTTON_ICON");
 	m_assetsIcons["LeftButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/left.png");
 
 
-	m_assetsIcons["RightButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["RightButton"] = Resources::CreateResource<Texture2D>("RIGHT_BUTTON_ICON");
 	m_assetsIcons["RightButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/right.png");
 
 
-	m_assetsIcons["RefreshButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["RefreshButton"] = Resources::CreateResource<Texture2D>("REFRESH_BUTTON_ICON");
 	m_assetsIcons["RefreshButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Navigation/refresh.png");
 
 
-	m_assetsIcons["InfoButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["InfoButton"] = Resources::CreateResource<Texture2D>("INFO_BUTTON_ICON");
 	m_assetsIcons["InfoButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/InfoButton.png");
 
 
-	m_assetsIcons["ErrorButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["ErrorButton"] = Resources::CreateResource<Texture2D>("ERROR_BUTTON_ICON");
 	m_assetsIcons["ErrorButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/ErrorButton.png");
 
-	m_assetsIcons["WarningButton"] = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	m_assetsIcons["WarningButton"] = Resources::CreateResource<Texture2D>("WARNING_BUTTON_ICON");
 	m_assetsIcons["WarningButton"]->LoadInternal(std::filesystem::path("./DefaultResources") / "Editor/Console/WarningButton.png");
 
 }
