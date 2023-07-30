@@ -31,15 +31,19 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
 	float actualGamma = 1.0f;
+	bool hdr = false;
 	if (path.extension() == ".hdr")
 	{
 		actualGamma = 2.2f;
+		hdr = true;
 	}
 
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
-	float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+	void* data;
+	if(hdr) data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+	else data = stbi_load(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
 		VkImageCreateInfo imageInfo{};
@@ -50,7 +54,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = Graphics::ImageFormats::m_texture2D;
+		imageInfo.format = hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -58,7 +62,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		m_image = std::make_unique<Image>(imageInfo);
-		const auto imageSize = width * height * sizeof(float) * 4;
+		const auto imageSize = width * height * 4 * (hdr ? sizeof(float): sizeof(byte));
 		VkBufferCreateInfo stagingBufferCreateInfo{};
 		stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		stagingBufferCreateInfo.size = imageSize;
@@ -80,15 +84,11 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			});
 
-		
-		stbi_image_free(data);
-
-
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::ImageFormats::m_texture2D;
+		viewInfo.format = hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -121,9 +121,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	else
 	{
 		EVOENGINE_ERROR("Texture failed to load at path: " + path.filename().string());
-		stbi_image_free(data);
 		return false;
 	}
+	stbi_image_free(data);
 	m_gamma = actualGamma;
 	return true;
 }

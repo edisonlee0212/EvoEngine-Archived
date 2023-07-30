@@ -322,7 +322,6 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
     writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     m_needUpdate = false;
-    //vkUpdateDescriptorSets(Graphics::GetVkDevice(), writeInfos.size(), writeInfos.data(), 0, nullptr);
 }
 
 void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {

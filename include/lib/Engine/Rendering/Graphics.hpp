@@ -148,7 +148,8 @@ namespace EvoEngine
 		class ImageFormats
 		{
 		public:
-			inline static VkFormat m_texture2D = VK_FORMAT_R32G32B32A32_SFLOAT;
+			inline static VkFormat m_texture2D = VK_FORMAT_R8G8B8A8_SRGB;
+			inline static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
