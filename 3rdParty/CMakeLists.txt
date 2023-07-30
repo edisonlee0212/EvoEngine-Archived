@@ -71,21 +71,6 @@ add_subdirectory(${VULKAN_MEMORY_ALLOCATOR_DIR} EXCLUDE_FROM_ALL)
 set(STB_DIR ${3RD_PARTY_DIR}/stb/ PARENT_SCOPE)
 
 # ------------------------------------------------------------------
-# glad
-# ------------------------------------------------------------------
-set(LOCAL_GLAD_DIR
-        ${CMAKE_CURRENT_SOURCE_DIR}/glad/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/glad
-        ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/KHR
-        )
-set(GLAD_SOURCE ${3RD_PARTY_DIR}/glad/src/glad.cpp PARENT_SCOPE)
-set(GLAD_DIR
-        ${3RD_PARTY_DIR}/glad/include
-        ${3RD_PARTY_DIR}/glad/include/glad
-        ${3RD_PARTY_DIR}/glad/include/KHR
-        PARENT_SCOPE)
-
-# ------------------------------------------------------------------
 # ImGui & ImGuizmo
 # ------------------------------------------------------------------
 set(LOCAL_IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ImGui)
