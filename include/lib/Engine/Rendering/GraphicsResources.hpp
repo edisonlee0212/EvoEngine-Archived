@@ -74,6 +74,8 @@ namespace EvoEngine
 		void TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
 		void Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
+		void GenerateMipmaps(VkCommandBuffer commandBuffer);
+
 		[[nodiscard]] VkImage GetVkImage() const;
 		[[nodiscard]] VkFormat GetFormat() const;
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;

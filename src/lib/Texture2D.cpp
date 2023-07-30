@@ -28,45 +28,54 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path)
 
 bool Texture2D::LoadInternal(const std::filesystem::path& path)
 {
+	if (m_imTextureId != nullptr) {
+		ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(m_imTextureId));
+		m_imTextureId = nullptr;
+	}
+	m_sampler.reset();
+	m_imageView.reset();
+	m_image.reset();
+
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
 	float actualGamma = 1.0f;
-	bool hdr = false;
+	m_hdr = false;
 	if (path.extension() == ".hdr")
 	{
 		actualGamma = 2.2f;
-		hdr = true;
+		m_hdr = true;
 	}
 
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
 	void* data;
-	if(hdr) data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+	if(m_hdr) data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	else data = stbi_load(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
+		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
+		imageInfo.format = m_hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		m_image = std::make_unique<Image>(imageInfo);
-		const auto imageSize = width * height * 4 * (hdr ? sizeof(float): sizeof(byte));
+		const auto imageSize = width * height * 4 * (m_hdr ? sizeof(float): sizeof(byte));
 		VkBufferCreateInfo stagingBufferCreateInfo{};
 		stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		stagingBufferCreateInfo.size = imageSize;
-		stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
 		stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
@@ -81,6 +90,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 			{
 				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 				m_image->Copy(commandBuffer, stagingBuffer.GetVkBuffer());
+				m_image->GenerateMipmaps(commandBuffer);
 				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			});
 
@@ -88,10 +98,10 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
+		viewInfo.format = m_hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
@@ -112,6 +122,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		samplerInfo.compareEnable = VK_FALSE;
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.minLod = 0;
+		samplerInfo.maxLod = static_cast<float>(mipLevels);
+		samplerInfo.mipLodBias = 0.0f;
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
 		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {

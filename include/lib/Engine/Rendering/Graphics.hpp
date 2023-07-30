@@ -117,30 +117,35 @@ namespace EvoEngine
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
+		
+
+	public:
 		class StorageSizes
 		{
+		public:
 			friend class RenderLayer;
 			friend class Resources;
 			friend class ShadowMaps;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
-			inline static uint32_t m_maxCameraSize = 8;
-			inline static uint32_t m_maxMaterialSize = 1024;
-			inline static uint32_t m_maxInstanceSize = 8192;
-			inline static uint32_t m_maxKernelAmount = 64;
-			inline static uint32_t m_maxDirectionalLightSize = 4;
-			inline static uint32_t m_maxPointLightSize = 4;
-			inline static uint32_t m_maxSpotLightSize = 4;
+			inline const static uint32_t m_maxCameraSize = 8;
+			inline const static uint32_t m_maxMaterialSize = 1024;
+			inline const static uint32_t m_maxInstanceSize = 8192;
+			inline const static uint32_t m_maxKernelAmount = 64;
+			inline const static uint32_t m_maxDirectionalLightSize = 4;
+			inline const static uint32_t m_maxPointLightSize = 4;
+			inline const static uint32_t m_maxSpotLightSize = 4;
 
-			inline static uint32_t m_directionalLightShadowMapResolution = 1024;
-			inline static uint32_t m_pointLightShadowMapResolution = 1024;
-			inline static uint32_t m_spotLightShadowMapResolution = 1024;
+			inline const static uint32_t m_directionalLightShadowMapResolution = 1024;
+			inline const static uint32_t m_pointLightShadowMapResolution = 1024;
+			inline const static uint32_t m_spotLightShadowMapResolution = 1024;
+
+			inline const static uint32_t m_cubemapResolution = 1024;
 		};
 
-	public:
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);
 
-		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 		static std::string StringifyResultVk(const VkResult& result);
 		static void CheckVk(const VkResult& result);
@@ -148,13 +153,13 @@ namespace EvoEngine
 		class ImageFormats
 		{
 		public:
-			inline static VkFormat m_texture2D = VK_FORMAT_R8G8B8A8_SRGB;
-			inline static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
-			inline static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
-			inline static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
-			inline static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline static VkFormat m_shadowMap = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline const static VkFormat m_texture2D = VK_FORMAT_R8G8B8A8_SRGB;
+			inline const static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
+			inline const static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline const static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
+			inline const static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline const static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
+			inline const static VkFormat m_shadowMap = VK_FORMAT_D24_UNORM_S8_UINT;
 		};
 
 #pragma endregion
