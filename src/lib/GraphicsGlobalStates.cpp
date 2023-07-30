@@ -48,12 +48,28 @@ void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, s
 
 void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
 {
-	m_viewPortApplied = m_viewPort;
-	m_viewPortApplied.width = glm::max(1.0f, m_viewPort.width);
-	m_viewPortApplied.height = glm::max(1.0f, m_viewPort.height);
-	m_scissorApplied = m_scissor;
-	vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
-	vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
+	if (forceSet
+		|| m_viewPortApplied.x != m_viewPort.x
+		|| m_viewPortApplied.y != m_viewPort.y
+		|| m_viewPortApplied.width != m_viewPort.width
+		|| m_viewPortApplied.height != m_viewPort.height
+		|| m_viewPortApplied.maxDepth != m_viewPort.maxDepth
+		|| m_viewPortApplied.minDepth != m_viewPort.minDepth) {
+		m_viewPortApplied = m_viewPort;
+		m_viewPortApplied.width = m_viewPort.width = glm::max(1.0f, m_viewPort.width);
+		m_viewPortApplied.height = m_viewPort.height = glm::max(1.0f, m_viewPort.height);
+		vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
+		
+	}
+	if (forceSet
+		|| m_scissorApplied.extent.height != m_scissor.extent.height
+		|| m_scissorApplied.extent.width != m_scissor.extent.width
+		|| m_scissorApplied.offset.x != m_scissor.offset.x
+		|| m_scissorApplied.offset.y != m_scissor.offset.y) {
+		m_scissorApplied = m_scissor;
+		vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
+	}
+	
 	if (forceSet || m_patchControlPointsApplied != m_patchControlPoints) {
 		m_patchControlPointsApplied = m_patchControlPoints;
 		vkCmdSetPatchControlPointsEXT(commandBuffer, m_patchControlPointsApplied);

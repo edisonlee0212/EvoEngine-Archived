@@ -3,6 +3,7 @@
 #include "Graphics.hpp"
 #include "IAsset.hpp"
 #include "MaterialProperties.hpp"
+#include "Texture2D.hpp"
 namespace EvoEngine
 {
 	struct MaterialInfoBlock {
@@ -45,21 +46,29 @@ namespace EvoEngine
 	{
 		friend class RenderLayer;
 		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-	public:
-		void OnCreate() override;
-		~Material() override;
+		bool m_needUpdate = true;
 		AssetRef m_albedoTexture;
 		AssetRef m_normalTexture;
 		AssetRef m_metallicTexture;
 		AssetRef m_roughnessTexture;
 		AssetRef m_aoTexture;
+	public:
+		void SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture);
+		void SetNormalTexture(const std::shared_ptr<Texture2D>& texture);
+		void SetMetallicTexture(const std::shared_ptr<Texture2D>& texture);
+		void SetRoughnessTexture(const std::shared_ptr<Texture2D>& texture);
+		void SetAOTexture(const std::shared_ptr<Texture2D>& texture);
+
+		void OnCreate() override;
+		~Material() override;
+		
 
 		bool m_vertexColorOnly = false;
 		MaterialProperties m_materialProperties;
 		DrawSettings m_drawSettings;
 
 		void UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock);
-		void UpdateDescriptorBindings();
+		void UpdateDescriptorBindings(bool forceUpdate = false);
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void CollectAssetRef(std::vector<AssetRef>& list) override;
 		void Serialize(YAML::Emitter& out) override;

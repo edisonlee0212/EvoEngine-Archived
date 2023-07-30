@@ -13,7 +13,7 @@ void Resources::LoadShaders()
 	std::string add;
 
 	add += "\n#define MAX_BONES_AMOUNT " + std::to_string(Graphics::GetMaxBoneAmount()) +
-		"\n#define SHADOW_CASCADE_AMOUNT " + std::to_string(Graphics::GetMaxShadowCascadeAmount()) +
+		"\n#define MAX_DIRECTIONAL_LIGHT_SIZE " + std::to_string(Graphics::StorageSizes::m_maxDirectionalLightSize) +
 		"\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::StorageSizes::m_maxKernelAmount) + "\n";
 
 	Graphics::GetInstance().m_shaderBasic = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Basic.glsl");

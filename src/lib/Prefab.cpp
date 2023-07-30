@@ -198,7 +198,7 @@ void AssimpNode::AttachChild(std::shared_ptr<Bone>& parent, size_t& index)
         i->AttachChild(m_bone, index);
     }
 }
-bool AssimpNode::NecessaryWalker(std::map<std::string, std::shared_ptr<Bone>>& boneMap)
+bool AssimpNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap)
 {
     bool necessary = false;
     for (int i = 0; i < m_children.size(); i++)
@@ -271,7 +271,7 @@ void Prefab::ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channe
 void Prefab::ReadAnimations(
     const aiScene* importerScene,
     std::shared_ptr<Animation>& animator,
-    std::map<std::string, std::shared_ptr<Bone>>& bonesMap)
+    std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap)
 {
     for (int i = 0; i < importerScene->mNumAnimations; i++)
     {
@@ -298,7 +298,7 @@ void Prefab::ReadAnimations(
 std::shared_ptr<Texture2D> Prefab::CollectTexture(
     const std::string& directory,
     const std::string& path,
-    std::map<std::string, std::shared_ptr<Texture2D>>& loadedTextures)
+    std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures)
 {
     const std::string fileName = directory + "/" + path;
     if (const auto search = loadedTextures.find(fileName); search != loadedTextures.end())
@@ -312,7 +312,7 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 }
 std::shared_ptr<Material> Prefab::ReadMaterial(
     const std::string& directory,
-    std::map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+    std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
     aiMaterial* importerMaterial)
 {
     auto targetMaterial = ProjectManager::CreateTemporaryAsset<Material>();
@@ -323,43 +323,43 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &str);
-            targetMaterial->m_albedoTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &str);
-            targetMaterial->m_albedoTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_NORMAL_CAMERA) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &str);
-            targetMaterial->m_normalTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_METALNESS) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_METALNESS, 0, &str);
-            targetMaterial->m_metallicTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetMetallicTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &str);
-            targetMaterial->m_roughnessTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetRoughnessTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &str);
-            targetMaterial->m_aoTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         if (importerMaterial->GetTextureCount(aiTextureType_HEIGHT) > 0)
         {
             aiString str;
             importerMaterial->GetTexture(aiTextureType_HEIGHT, 0, &str);
-            targetMaterial->m_normalTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+            targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
         }
         aiColor3D color;
         if (importerMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color) == aiReturn_SUCCESS)
@@ -389,9 +389,9 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 bool Prefab::ProcessNode(
     const std::string& directory,
     Prefab* modelNode,
-    std::map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
-    std::map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-    std::map<std::string, std::shared_ptr<Bone>>& boneMaps,
+    std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
+    std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+    std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap,
     aiNode* importerNode,
     std::shared_ptr<AssimpNode> assimpNode,
     const aiScene* importerScene,
@@ -419,6 +419,7 @@ bool Prefab::ProcessNode(
             material = ReadMaterial(
                 directory, texture2DsLoaded,
                 importerMaterial);
+            loadedMaterials[importerMesh->mMaterialIndex] = material;
         }
         else
         {
@@ -429,7 +430,7 @@ bool Prefab::ProcessNode(
         {
             auto skinnedMeshRenderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
             skinnedMeshRenderer->m_material.Set<Material>(material);
-            skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(ReadSkinnedMesh(boneMaps, importerMesh));
+            skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(ReadSkinnedMesh(boneMap, importerMesh));
             if (!skinnedMeshRenderer->m_skinnedMesh.Get())
                 continue;
             addedMeshRenderer = true;
@@ -475,7 +476,7 @@ bool Prefab::ProcessNode(
             childNode.get(),
             loadedMaterials,
             texture2DsLoaded,
-            boneMaps,
+            boneMap,
             importerNode->mChildren[i],
             childAssimpNode,
             importerScene,
@@ -571,7 +572,7 @@ std::shared_ptr<Mesh> Prefab::ReadMesh(aiMesh* importerMesh)
     return mesh;
 }
 std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
-    std::map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh)
+    std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh)
 {
     unsigned mask = 1;
     std::vector<SkinnedVertex> vertices;
@@ -995,11 +996,11 @@ void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     // retrieve the directory path of the filepath
     auto temp = path;
     const std::string directory = temp.remove_filename().string();
-    std::map<std::string, std::shared_ptr<Texture2D>> texture2DsLoaded;
+    std::unordered_map<std::string, std::shared_ptr<Texture2D>> texture2DsLoaded;
     m_name = path.filename().string();
-    std::map<unsigned, std::shared_ptr<Material>> loadedMaterials;
-    std::map<std::string, std::shared_ptr<Bone>> bonesMap;
-    std::shared_ptr<Animation> animation;
+    std::unordered_map<unsigned, std::shared_ptr<Material>> loadedMaterials;
+    std::unordered_map<std::string, std::shared_ptr<Bone>> bonesMap;
+	std::shared_ptr<Animation> animation;
     if (!bonesMap.empty() || scene->HasAnimations())
     {
         animation = ProjectManager::CreateTemporaryAsset<Animation>();

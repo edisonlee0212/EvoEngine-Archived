@@ -318,7 +318,6 @@ void EditorLayer::PreUpdate()
 
 void EditorLayer::Update()
 {
-	ImGui::ShowDemoWindow();
 }
 static const char* HierarchyDisplayMode[]{ "Archetype", "Hierarchy" };
 void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -587,21 +586,10 @@ void EditorLayer::LateUpdate()
 
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
+			Graphics::EverythingBarrier(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
 			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-			VkMemoryBarrier2 memoryBarrier {};
-			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-			memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			memoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
-			VkDependencyInfo dependencyInfo{};
-			dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-			dependencyInfo.memoryBarrierCount = 1;
-			dependencyInfo.pMemoryBarriers = &memoryBarrier;
-			
-			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
-
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
 
 			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 			VkRect2D renderArea;
@@ -623,17 +611,17 @@ void EditorLayer::LateUpdate()
 			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = 1;
 			renderInfo.pColorAttachments = &colorAttachmentInfo;
-
+			
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-
+			
 			ImGui::Render();
 			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-
-			vkCmdEndRendering(commandBuffer);
 			
+			vkCmdEndRendering(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
 				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+				VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		
 			
 		});
 }
@@ -817,7 +805,7 @@ void EditorLayer::SceneCameraWindow()
 				if (m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
 					m_mouseScreenPosition.x > viewPortSize.x ||
 					m_mouseScreenPosition.y > viewPortSize.y ||
-					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) != KeyActionType::Hold) {
+					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) == KeyActionType::Release) {
 					mouseDrag = false;
 				}
 				static float prevX = 0;

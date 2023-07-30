@@ -12,7 +12,7 @@
 
 namespace EvoEngine
 {
-    struct  AssimpNode
+    struct AssimpNode
     {
         aiNode* m_correspondingNode = nullptr;
         std::string m_name;
@@ -23,11 +23,11 @@ namespace EvoEngine
         std::shared_ptr<Bone> m_bone;
         bool m_hasMesh;
 
-        bool NecessaryWalker(std::map<std::string, std::shared_ptr<Bone>>& boneMap);
+        bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap);
         void AttachToAnimator(std::shared_ptr<Animation>& animation, size_t& index);
         void AttachChild(std::shared_ptr<Bone>& parent, size_t& index);
     };
-    struct  DataComponentHolder
+    struct DataComponentHolder
     {
         DataComponentType m_type;
         std::shared_ptr<IDataComponent> m_data;
@@ -36,7 +36,7 @@ namespace EvoEngine
         bool Deserialize(const YAML::Node& in);
     };
 
-    struct  PrivateComponentHolder
+    struct PrivateComponentHolder
     {
         bool m_enabled;
         std::shared_ptr<IPrivateComponent> m_data;
@@ -45,7 +45,7 @@ namespace EvoEngine
         void Deserialize(const YAML::Node& in);
     };
 
-    class  Prefab : public IAsset
+    class Prefab : public IAsset
     {
         std::string m_name;
         bool m_enabled = true;
@@ -56,31 +56,31 @@ namespace EvoEngine
         std::shared_ptr<Texture2D> CollectTexture(
             const std::string& directory,
             const std::string& path,
-            std::map<std::string, std::shared_ptr<Texture2D>>& loadedTextures);
+            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures);
 
         void ApplyBoneIndices(Prefab* node);
         void ReadAnimations(
             const aiScene* importerScene,
             std::shared_ptr<Animation>& animator,
-            std::map<std::string, std::shared_ptr<Bone>>& bonesMap);
+            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap);
         void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel);
         std::shared_ptr<Material> ReadMaterial(
             const std::string& directory,
-            std::map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
             aiMaterial* importerMaterial);
         bool ProcessNode(
             const std::string& directory,
             Prefab* modelNode,
-            std::map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
-            std::map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-            std::map<std::string, std::shared_ptr<Bone>>& bonesMap,
+            std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
+            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
             aiNode* importerNode,
             std::shared_ptr<AssimpNode> assimpNode,
             const aiScene* importerScene,
             const std::shared_ptr<Animation>& animation);
         std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh);
         std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
-            std::map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh);
+            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh);
         void AttachChildren(const std::shared_ptr<Scene>& scene,
             const std::shared_ptr<Prefab>& modelNode,
             Entity parentEntity,

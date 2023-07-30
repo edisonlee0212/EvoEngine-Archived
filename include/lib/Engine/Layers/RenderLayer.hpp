@@ -24,9 +24,9 @@ namespace EvoEngine
 
 	struct RenderInstancePushConstant
 	{
-		uint32_t m_instanceIndex = 0;
-		uint32_t m_materialIndex = 0;
-		uint32_t m_cameraIndex = 0;
+		int m_instanceIndex = 0;
+		int m_materialIndex = 0;
+		int m_cameraIndex = 0;
 	};
 
 	struct RenderInstance {
@@ -103,7 +103,6 @@ namespace EvoEngine
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-		void LateUpdate() override;
 		void CreateGraphicsPipelines();
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
 		
@@ -113,7 +112,7 @@ namespace EvoEngine
 		RenderInstanceCollection m_forwardInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
 		RenderInstanceCollection m_instancedTransparentRenderInstances;
-		static void AllCommandsBarrier(VkCommandBuffer commandBuffer);
+		
 
 		std::shared_ptr<DescriptorSetLayout> m_perFrameLayout = {};
 		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};

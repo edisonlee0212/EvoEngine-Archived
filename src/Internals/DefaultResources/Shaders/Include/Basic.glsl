@@ -88,9 +88,9 @@ layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
 
 
 layout(push_constant) uniform EE_PUSH_CONSTANTS{
-	uint EE_INSTANCE_INDEX;
-	uint EE_MATERIAL_INDEX;
-	uint EE_CAMERA_INDEX;
+	int EE_INSTANCE_INDEX;
+	int EE_MATERIAL_INDEX;
+	int EE_CAMERA_INDEX;
 };
 
 //Lights

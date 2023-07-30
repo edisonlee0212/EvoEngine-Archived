@@ -117,7 +117,7 @@ const VkImage& Swapchain::GetVkImage() const
 
 const VkImageView& Swapchain::GetVkImageView() const
 {
-	return m_vkImageViews[Graphics::GetNextImageIndex()]->GetVkImageView();
+	return m_vkImageViews[Graphics::GetNextImageIndex()]->m_vkImageView;
 }
 
 const std::vector<std::shared_ptr<ImageView>>& Swapchain::GetAllImageViews() const

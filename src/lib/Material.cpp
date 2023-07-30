@@ -122,6 +122,37 @@ void DrawSettings::Load(const std::string& name, const YAML::Node& in) {
     }
 }
 
+void Material::SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture)
+{
+    m_albedoTexture = texture;
+    m_needUpdate = true;
+}
+
+void Material::SetNormalTexture(const std::shared_ptr<Texture2D>& texture)
+{
+    m_normalTexture = texture;
+    m_needUpdate = true;
+}
+
+void Material::SetMetallicTexture(const std::shared_ptr<Texture2D>& texture)
+{
+    m_metallicTexture = texture;
+    m_needUpdate = true;
+}
+
+void Material::SetRoughnessTexture(const std::shared_ptr<Texture2D>& texture)
+{
+    m_roughnessTexture = texture;
+    m_needUpdate = true;
+}
+
+void Material::SetAOTexture(const std::shared_ptr<Texture2D>& texture)
+{
+    m_aoTexture = texture;
+    m_needUpdate = true;
+}
+
+
 void Material::OnCreate()
 {
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -191,13 +222,14 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
     materialInfoBlock.m_roughnessVal = m_materialProperties.m_roughness;
     materialInfoBlock.m_aoVal = 1.0f;
     materialInfoBlock.m_emissionVal = m_materialProperties.m_emission;
-
     UpdateDescriptorBindings();
 }
 
-void Material::UpdateDescriptorBindings()
+void Material::UpdateDescriptorBindings(bool forceUpdate)
 {
+    if(!m_needUpdate) return;
     VkDescriptorImageInfo imageInfo;
+    std::vector<VkWriteDescriptorSet> writeInfos;
     VkWriteDescriptorSet writeInfo{};
     auto missingTexture = std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("TEXTURE_MISSING"));
 	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
@@ -219,8 +251,8 @@ void Material::UpdateDescriptorBindings()
     writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     writeInfo.descriptorCount = 1;
     writeInfo.pImageInfo = &imageInfo;
+    writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-
     if (const auto texture = m_normalTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -236,8 +268,8 @@ void Material::UpdateDescriptorBindings()
     writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeInfo.dstBinding = 11;
     writeInfo.pImageInfo = &imageInfo;
+    writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-
     if (const auto texture = m_metallicTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -253,8 +285,8 @@ void Material::UpdateDescriptorBindings()
     writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeInfo.dstBinding = 12;
     writeInfo.pImageInfo = &imageInfo;
+    writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-
     if (const auto texture = m_roughnessTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -270,8 +302,8 @@ void Material::UpdateDescriptorBindings()
     writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeInfo.dstBinding = 13;
     writeInfo.pImageInfo = &imageInfo;
+    writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-
     if (const auto texture = m_aoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -287,7 +319,10 @@ void Material::UpdateDescriptorBindings()
     writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeInfo.dstBinding = 14;
     writeInfo.pImageInfo = &imageInfo;
+    writeInfos.emplace_back(writeInfo);
     vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    m_needUpdate = false;
+    //vkUpdateDescriptorSets(Graphics::GetVkDevice(), writeInfos.size(), writeInfos.data(), 0, nullptr);
 }
 
 void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
@@ -378,6 +413,7 @@ void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
         ImGui::TreePop();
     }
     if (changed) {
+        m_needUpdate = true;
         m_saved = false;
         m_version++;
     }

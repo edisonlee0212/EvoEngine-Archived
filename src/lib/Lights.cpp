@@ -243,7 +243,7 @@ void ShadowMaps::Initialize()
         imageInfo.extent.depth = 4;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;
-        imageInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        imageInfo.format = Graphics::ImageFormats::m_shadowMap;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -256,7 +256,7 @@ void ShadowMaps::Initialize()
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = m_directionalLightShadowMap->GetVkImage();
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        viewInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        viewInfo.format = Graphics::ImageFormats::m_shadowMap;
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
@@ -296,7 +296,7 @@ void ShadowMaps::Initialize()
         imageInfo.extent.depth = 6;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;
-        imageInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        imageInfo.format = Graphics::ImageFormats::m_shadowMap;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -309,7 +309,7 @@ void ShadowMaps::Initialize()
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = m_pointLightShadowMap->GetVkImage();
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        viewInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        viewInfo.format = Graphics::ImageFormats::m_shadowMap;
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
@@ -349,7 +349,7 @@ void ShadowMaps::Initialize()
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;
-        imageInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        imageInfo.format = Graphics::ImageFormats::m_shadowMap;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -362,7 +362,7 @@ void ShadowMaps::Initialize()
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = m_spotLightShadowMap->GetVkImage();
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format = Graphics::ImageFormats::m_gBufferDepth;
+        viewInfo.format = Graphics::ImageFormats::m_shadowMap;
         viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;

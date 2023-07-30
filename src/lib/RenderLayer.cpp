@@ -100,6 +100,10 @@ void RenderLayer::PreUpdate()
 	m_materialInfoBlocks.clear();
 	m_instanceInfoBlocks.clear();
 
+	m_directionalLightInfoBlocks.clear();
+	m_pointLightInfoBlocks.clear();
+	m_spotLightInfoBlocks.clear();
+
 	Bound worldBound;
 	std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
 	CollectCameras(cameras);
@@ -136,10 +140,6 @@ void RenderLayer::PreUpdate()
 			RenderToCamera(camera);
 		}
 	}
-}
-
-void RenderLayer::LateUpdate()
-{
 }
 
 void RenderLayer::CreateGraphicsPipelines()
@@ -342,19 +342,7 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 	return search->second;
 }
 
-void RenderLayer::AllCommandsBarrier(VkCommandBuffer commandBuffer)
-{
-	VkMemoryBarrier2 memoryBarrier{};
-	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	memoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
-	VkDependencyInfo dependencyInfo{};
-	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-	dependencyInfo.memoryBarrierCount = 1;
-	dependencyInfo.pMemoryBarriers = &memoryBarrier;
 
-	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
-}
 
 void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
 {
@@ -619,59 +607,59 @@ void RenderLayer::CollectPointLights()
 			if (!plc->IsEnabled())
 				continue;
 			glm::vec3 position = scene->GetDataComponent<GlobalTransform>(lightEntity).m_value[3];
-			m_pointLightInfoBlocks[i].m_position = glm::vec4(position, 0);
-			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.x = plc->m_constant;
-			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.y = plc->m_linear;
-			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.z = plc->m_quadratic;
-			m_pointLightInfoBlocks[i].m_diffuse =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_position = glm::vec4(position, 0);
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_constantLinearQuadFarPlane.x = plc->m_constant;
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_constantLinearQuadFarPlane.y = plc->m_linear;
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_constantLinearQuadFarPlane.z = plc->m_quadratic;
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_diffuse =
 				glm::vec4(plc->m_diffuse * plc->m_diffuseBrightness, plc->m_castShadow);
-			m_pointLightInfoBlocks[i].m_specular = glm::vec4(0);
-			m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.w = plc->GetFarPlane();
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_specular = glm::vec4(0);
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_constantLinearQuadFarPlane.w = plc->GetFarPlane();
 
 			glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f,
 				1.0f,
-				m_pointLightInfoBlocks[i].m_constantLinearQuadFarPlane.w);
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[0] =
+				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_constantLinearQuadFarPlane.w);
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[0] =
 				shadowProj *
 				glm::lookAt(position, position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[1] =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[1] =
 				shadowProj *
 				glm::lookAt(position, position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[2] =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[2] =
 				shadowProj * glm::lookAt(position, position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[3] =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[3] =
 				shadowProj *
 				glm::lookAt(position, position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[4] =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[4] =
 				shadowProj *
 				glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-			m_pointLightInfoBlocks[i].m_lightSpaceMatrix[5] =
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_lightSpaceMatrix[5] =
 				shadowProj *
 				glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-			m_pointLightInfoBlocks[i].m_reservedParameters = glm::vec4(plc->m_bias, plc->m_lightSize, 0, 0);
+			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_reservedParameters = glm::vec4(plc->m_bias, plc->m_lightSize, 0, 0);
 
-			switch (i)
+			switch (m_renderInfoBlock.m_pointLightSize)
 			{
 			case 0:
-				m_pointLightInfoBlocks[i].m_viewPort =
+				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort =
 					glm::ivec4(0, 0, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
 				break;
 			case 1:
-				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					0,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
 				break;
 			case 2:
-				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
 					0,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
 				break;
 			case 3:
-				m_pointLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
@@ -705,48 +693,48 @@ void RenderLayer::CollectSpotLights()
 			glm::vec3 position = ltw.m_value[3];
 			glm::vec3 front = ltw.GetRotation() * glm::vec3(0, 0, -1);
 			glm::vec3 up = ltw.GetRotation() * glm::vec3(0, 1, 0);
-			m_spotLightInfoBlocks[i].m_position = glm::vec4(position, 0);
-			m_spotLightInfoBlocks[i].m_direction = glm::vec4(front, 0);
-			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.x = slc->m_constant;
-			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.y = slc->m_linear;
-			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.z = slc->m_quadratic;
-			m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.w = slc->GetFarPlane();
-			m_spotLightInfoBlocks[i].m_diffuse =
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_position = glm::vec4(position, 0);
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_direction = glm::vec4(front, 0);
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_constantLinearQuadFarPlane.x = slc->m_constant;
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_constantLinearQuadFarPlane.y = slc->m_linear;
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_constantLinearQuadFarPlane.z = slc->m_quadratic;
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_constantLinearQuadFarPlane.w = slc->GetFarPlane();
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_diffuse =
 				glm::vec4(slc->m_diffuse * slc->m_diffuseBrightness, slc->m_castShadow);
-			m_spotLightInfoBlocks[i].m_specular = glm::vec4(0);
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_specular = glm::vec4(0);
 
 			glm::mat4 shadowProj = glm::perspective(glm::radians(slc->m_outerDegrees * 2.0f), 1.0f,
 				1.0f,
-				m_spotLightInfoBlocks[i].m_constantLinearQuadFarPlane.w);
-			m_spotLightInfoBlocks[i].m_lightSpaceMatrix = shadowProj * glm::lookAt(position, position + front, up);
-			m_spotLightInfoBlocks[i].m_cutOffOuterCutOffLightSizeBias = glm::vec4(
+				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_constantLinearQuadFarPlane.w);
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_lightSpaceMatrix = shadowProj * glm::lookAt(position, position + front, up);
+			m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_cutOffOuterCutOffLightSizeBias = glm::vec4(
 				glm::cos(glm::radians(slc->m_innerDegrees)),
 				glm::cos(glm::radians(slc->m_outerDegrees)),
 				slc->m_lightSize,
 				slc->m_bias);
 
-			switch (i)
+			switch (m_renderInfoBlock.m_spotLightSize)
 			{
 			case 0:
-				m_spotLightInfoBlocks[i].m_viewPort =
+				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort =
 					glm::ivec4(0, 0, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
 				break;
 			case 1:
-				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					0,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
 				break;
 			case 2:
-				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
 					0,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
 				break;
 			case 3:
-				m_spotLightInfoBlocks[i].m_viewPort = glm::ivec4(
+				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
 					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
@@ -909,12 +897,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
-	minBound = glm::vec3(INT_MAX);
-	maxBound = glm::vec3(INT_MIN);
+	minBound = glm::vec3(FLT_MAX);
+	maxBound = glm::vec3(FLT_MIN);
 
-	const std::vector<Entity>* owners =
-		scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>();
-	if (owners)
+	if (const std::vector<Entity>* owners =
+		scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>())
 	{
 		for (auto owner : *owners)
 		{
@@ -1612,9 +1599,9 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			globalPipelineState.m_viewPort = viewport;
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.ApplyAllStates(commandBuffer, true);
-			for (int i = 0; i < m_directionalLightInfoBlocks.size(); i++)
+			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 			{
-				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[i];
+				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i];
 				viewport.x = directionalLightInfoBlock.m_viewPort.x;
 				viewport.y = directionalLightInfoBlock.m_viewPort.y;
 				viewport.width = directionalLightInfoBlock.m_viewPort.z;

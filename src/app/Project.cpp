@@ -9,7 +9,7 @@ int main() {
     Application::PushLayer<WindowLayer>();
     Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
-    Application::PushLayer<AnimationLayer>();
+    //Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;
     const std::filesystem::path resourceFolderPath("../../../Resources");

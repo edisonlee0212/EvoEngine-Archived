@@ -712,13 +712,9 @@ void Graphics::CreateLogicalDevice()
 
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = cRequiredDeviceExtensions.data();
-
-#ifndef NDEBUG
+	
 	deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_requiredLayers.size());
 	deviceCreateInfo.ppEnabledLayerNames = cRequiredLayers.data();
-#else
-	deviceCreateInfo.enabledLayerCount = 0;
-#endif
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
 	}
@@ -727,6 +723,21 @@ void Graphics::CreateLogicalDevice()
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 
 #pragma endregion
+}
+
+
+void Graphics::EverythingBarrier(VkCommandBuffer commandBuffer)
+{
+	VkMemoryBarrier2 memoryBarrier{};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+	memoryBarrier.srcStageMask = memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	memoryBarrier.srcAccessMask = memoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+	VkDependencyInfo dependencyInfo{};
+	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfo.memoryBarrierCount = 1;
+	dependencyInfo.pMemoryBarriers = &memoryBarrier;
+
+	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 }
 
 void Graphics::SetupVmaAllocator()
@@ -994,7 +1005,13 @@ void Graphics::OnDestroy()
 void Graphics::SwapChainSwapImage()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
+	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0))
+	{
+		for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
+		{
+			if (commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
+		}
+	}
 	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
 	vkDeviceWaitIdle(m_vkDevice);
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };

@@ -132,12 +132,14 @@ namespace EvoEngine
 			inline static uint32_t m_maxPointLightSize = 4;
 			inline static uint32_t m_maxSpotLightSize = 4;
 
-			inline static uint32_t m_directionalLightShadowMapResolution = 4096;
-			inline static uint32_t m_pointLightShadowMapResolution = 4096;
-			inline static uint32_t m_spotLightShadowMapResolution = 4096;
+			inline static uint32_t m_directionalLightShadowMapResolution = 1024;
+			inline static uint32_t m_pointLightShadowMapResolution = 1024;
+			inline static uint32_t m_spotLightShadowMapResolution = 1024;
 		};
 
 	public:
+		static void EverythingBarrier(VkCommandBuffer commandBuffer);
+
 		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 		static std::string StringifyResultVk(const VkResult& result);

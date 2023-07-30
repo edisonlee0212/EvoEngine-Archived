@@ -94,37 +94,38 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular,
 	// phase 1: directional lighting
 	for (int i = 0; i < EE_DIRECTIONAL_LIGHT_AMOUNT; i++) {
 		float shadow = 1.0;
-		if (calculateShadow && EE_DIRECTIONAL_LIGHTS[i].diffuse.w == 1.0) {
+		int lightIndex = EE_CAMERA_INDEX * MAX_DIRECTIONAL_LIGHT_SIZE + i;
+		if (calculateShadow && EE_DIRECTIONAL_LIGHTS[lightIndex].diffuse.w == 1.0) {
 			int split = 0;
 			if (dist < EE_SHADOW_SPLIT_0 - EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 0, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal);
 			}
 			else if (dist < EE_SHADOW_SPLIT_0) {
 				//Blend between split 1 & 2
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 0, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 1, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_0 - EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_0 - dist)) / (EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_1 - EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 1, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
 			}
 			else if (dist < EE_SHADOW_SPLIT_1) {
 				//Blend between split 2 & 3
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 1, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 2, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_1 - EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_1 - dist)) / (EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_2 - EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 2, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
 			}
 			else if (dist < EE_SHADOW_SPLIT_2) {
 				//Blend between split 3 & 4
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 2, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 3, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_2 - EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_2 - dist)) / (EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_3) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(i, 3, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal);
 			}
 			else {
 				shadow = 1.0;
