@@ -146,6 +146,9 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	}else if(imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}else
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
 
 	barrier.subresourceRange.baseMipLevel = 0;
@@ -187,9 +190,9 @@ GraphicsGlobalStates& Graphics::GlobalState()
 	return graphics.m_globalPipelineState;
 }
 
-void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action)
+void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
 {
-	const auto& graphics = GetInstance();
+	auto& graphics = GetInstance();
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -204,7 +207,7 @@ void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandB
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-	action(commandBuffer);
+	action(commandBuffer, graphics.m_globalPipelineState);
 	vkEndCommandBuffer(commandBuffer);
 
 	VkSubmitInfo submitInfo{};
@@ -1190,7 +1193,7 @@ void Graphics::Initialize()
 		ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
 		ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
 		ImGui::StyleColorsDark();
-		ImmediateSubmit([&](const VkCommandBuffer cmd) {
+		ImmediateSubmit([&](const VkCommandBuffer cmd, GraphicsGlobalStates& globalPipelineState) {
 			ImGui_ImplVulkan_CreateFontsTexture(cmd);
 			});
 		//clear font textures from cpu data

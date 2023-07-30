@@ -95,9 +95,8 @@ namespace EvoEngine
 
     class ShadowMaps
     {
-        std::shared_ptr<Image> m_environmentalBRDFLut = {};
-        std::shared_ptr<ImageView> m_environmentalBRDFView = {};
-        std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
+        
+        
 
         std::shared_ptr<Image> m_directionalLightShadowMap = {};
         std::shared_ptr<ImageView> m_directionalLightShadowMapView = {};

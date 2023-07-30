@@ -79,7 +79,7 @@ namespace EvoEngine
 	struct EnvironmentInfoBlock {
 		glm::vec4 m_backgroundColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		alignas(4) float m_environmentalMapGamma = 1.0f;
-		alignas(4) float m_environmentalLightingIntensity = 1.0f;
+		alignas(4) float m_environmentalLightingIntensity = 0.8f;
 		alignas(4) float m_backgroundIntensity = 1.0f;
 		alignas(4) float m_environmentalPadding2 = 0.0f;
 	};
@@ -179,7 +179,12 @@ namespace EvoEngine
 		void PrepareMaterialLayout();
 		void PrepareCameraGBufferLayout();
 		void PrepareLightingLayout();
+
+		void PrepareEnvironmentalBrdfLut();
 		std::unique_ptr<ShadowMaps> m_shadowMaps;
+		std::shared_ptr<Image> m_environmentalBRDFLut = {};
+		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
+		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
 	public:
 
 		bool m_stableFit = true;

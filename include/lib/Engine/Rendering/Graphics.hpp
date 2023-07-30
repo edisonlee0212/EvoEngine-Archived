@@ -168,7 +168,7 @@ namespace EvoEngine
 		static size_t GetMaxShadowCascadeAmount();
 		static GraphicsGlobalStates& GlobalState();
 		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
-		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
+		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
 		static QueueFamilyIndices GetQueueFamilyIndices();
 		static int GetMaxFramesInFlight();
 		static void NotifyRecreateSwapChain();

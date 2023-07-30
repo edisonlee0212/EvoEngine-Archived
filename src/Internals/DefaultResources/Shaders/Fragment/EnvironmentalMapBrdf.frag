@@ -1,5 +1,5 @@
-out vec2 FragColor;
-in vec2 TexCoord;
+layout (location = 0) out vec2 FragColor;
+layout (location = 0) in vec2 TexCoord;
 
 const float PI = 3.14159265359;
 // ----------------------------------------------------------------------------

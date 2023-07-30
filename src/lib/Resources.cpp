@@ -318,6 +318,15 @@ void Resources::LoadShaders()
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
+#pragma region Environmental
+	{
+		auto fragShaderCode =
+			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapBrdf.frag");
+		auto fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
+	}
+#pragma endregion
 }
 
 void Resources::LoadPrimitives() const

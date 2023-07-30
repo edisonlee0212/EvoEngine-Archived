@@ -63,6 +63,8 @@ void RenderLayer::OnCreate()
 		editorLayer->m_sceneCamera->OnCreate();
 	}
 
+	PrepareEnvironmentalBrdfLut();
+
 	m_shadowMaps = std::make_unique<ShadowMaps>();
 	m_shadowMaps->Initialize();
 }
@@ -238,6 +240,20 @@ void RenderLayer::CreateGraphicsPipelines()
 
 		spotLightShadowMap->PreparePipeline();
 		m_graphicsPipelines["SPOT_LIGHT_SHADOW_MAP"] = spotLightShadowMap;
+	}
+	{
+		const auto brdfLut = std::make_shared<GraphicsPipeline>();
+		brdfLut->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+		brdfLut->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("ENVIRONMENTAL_MAP_BRDF_FRAG"));
+		brdfLut->m_geometryType = GeometryType::Mesh;
+
+		brdfLut->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		brdfLut->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+
+		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
+
+		brdfLut->PreparePipeline();
+		m_graphicsPipelines["ENVIRONMENTAL_MAP_BRDF"] = brdfLut;
 	}
 }
 
@@ -807,7 +823,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 						switch (renderCommand.m_geometryType)
 						{
 						case RenderGeometryType::Mesh: {
-							
+
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = 0;
 							pushConstant.m_materialIndex = i;
@@ -1484,7 +1500,7 @@ void RenderLayer::PrepareLightingLayout()
 	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	bindingInfo.pImmutableSamplers = nullptr;
 	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	//gBufferBindings.emplace_back(bindingInfo);
+	lightBindings.emplace_back(bindingInfo);
 
 	bindingInfo.binding = 19;
 	lightBindings.emplace_back(bindingInfo);
@@ -1492,13 +1508,134 @@ void RenderLayer::PrepareLightingLayout()
 	lightBindings.emplace_back(bindingInfo);
 	bindingInfo.binding = 21;
 	lightBindings.emplace_back(bindingInfo);
-	
+
 
 	VkDescriptorSetLayoutCreateInfo lightLayoutInfo{};
 	lightLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	lightLayoutInfo.bindingCount = static_cast<uint32_t>(lightBindings.size());
 	lightLayoutInfo.pBindings = lightBindings.data();
 	m_lightingLayout = std::make_shared<DescriptorSetLayout>(lightLayoutInfo);
+}
+
+void RenderLayer::PrepareEnvironmentalBrdfLut()
+{
+	m_environmentalBRDFSampler.reset();
+	m_environmentalBRDFView.reset();
+	m_environmentalBRDFLut.reset();
+	auto brdfLutResolution = 512;
+	{
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = brdfLutResolution;
+		imageInfo.extent.height = brdfLutResolution;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.format = VK_FORMAT_R16G16_SFLOAT;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		m_environmentalBRDFLut = std::make_shared<Image>(imageInfo);
+
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_environmentalBRDFLut->GetVkImage();
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = VK_FORMAT_R16G16_SFLOAT;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		m_environmentalBRDFView = std::make_shared<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_environmentalBRDFSampler = std::make_shared<Sampler>(samplerInfo);
+	}
+	
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+		m_environmentalBRDFLut->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+#pragma region Viewport and scissor
+		VkRect2D renderArea;
+		renderArea.offset = { 0, 0 };
+		renderArea.extent.width = brdfLutResolution;
+		renderArea.extent.height = brdfLutResolution;
+		VkViewport viewport;
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = brdfLutResolution;
+		viewport.height = brdfLutResolution;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor;
+		scissor.offset = { 0, 0 };
+		scissor.extent.width = brdfLutResolution;
+		scissor.extent.height = brdfLutResolution;
+		globalPipelineState.m_viewPort = viewport;
+		globalPipelineState.m_scissor = scissor;
+#pragma endregion
+#pragma region Lighting pass
+		{
+			VkRenderingAttachmentInfo attachment{};
+			attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+			attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+			attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+			attachment.clearValue = { 0, 0, 0, 1 };
+			attachment.imageView = m_environmentalBRDFView->GetVkImageView();
+
+			//const auto depthAttachment = camera->GetRenderTexture()->GetDepthAttachmentInfo();
+			VkRenderingInfo renderInfo{};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.renderArea = renderArea;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 1;
+			renderInfo.pColorAttachments = &attachment;
+			//renderInfo.pDepthAttachment = &depthAttachment;
+			
+			
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			m_graphicsPipelines["ENVIRONMENTAL_MAP_BRDF"]->Bind(commandBuffer);
+			globalPipelineState.m_depthTest = false;
+			globalPipelineState.m_colorBlendAttachmentStates.clear();
+			globalPipelineState.m_colorBlendAttachmentStates.resize(1);
+			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+			{
+				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT;
+				i.blendEnable = VK_FALSE;
+			}
+			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+			mesh->Bind(commandBuffer);
+			mesh->DrawIndexed(commandBuffer, globalPipelineState);
+			vkCmdEndRendering(commandBuffer);
+#pragma endregion
+		}
+		m_environmentalBRDFLut->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
+	);
 }
 
 void RenderLayer::PreparePerFrameLayout()
@@ -1614,7 +1751,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 						switch (renderCommand.m_geometryType)
 						{
 						case RenderGeometryType::Mesh: {
-							
+
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = cameraIndex;
 							pushConstant.m_materialIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i;
@@ -1633,7 +1770,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		}
 	);
 
-	
+
 	const auto& deferredPrepassPipeline = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
 	const auto& deferredLightingPipeline = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {

@@ -478,7 +478,7 @@ Buffer::~Buffer()
 
 void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
 {
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			VkBufferCopy copyRegion{};
 			copyRegion.size = size;

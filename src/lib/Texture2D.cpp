@@ -86,7 +86,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		memcpy(deviceData, data, imageSize);
 		vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
-		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 			{
 				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 				m_image->Copy(commandBuffer, stagingBuffer.GetVkBuffer());

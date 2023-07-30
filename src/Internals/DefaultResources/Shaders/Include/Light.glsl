@@ -1,6 +1,6 @@
 //layout(set = EE_PER_GROUP_SET, binding = 16) uniform samplerCube EE_ENVIRONMENTAL_IRRADIANCE;
 //layout(set = EE_PER_GROUP_SET, binding = 17) uniform samplerCube EE_ENVIRONMENTAL_PREFILERED;
-//layout(set = EE_PER_GROUP_SET, binding = 18) uniform sampler2D EE_ENVIRONMENTAL_BRDFLUT;
+layout(set = EE_PER_GROUP_SET, binding = 18) uniform sampler2D EE_ENVIRONMENTAL_BRDFLUT;
 layout(set = EE_PER_GROUP_SET, binding = 19) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
 layout(set = EE_PER_GROUP_SET, binding = 20) uniform sampler2DArray EE_POINT_LIGHT_SM;
 layout(set = EE_PER_GROUP_SET, binding = 21) uniform sampler2D EE_SPOT_LIGHT_SM;
@@ -67,26 +67,28 @@ vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_VIEW_POS(vec2 texCoords, float ndcDepth);
 
-//vec3 EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(vec3 albedo, vec3 normal, vec3 viewDir, float metallic, float roughness, vec3 F0)
-//{
+vec3 EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(vec3 albedo, vec3 normal, vec3 viewDir, float metallic, float roughness, vec3 F0)
+{
 	// ambient lighting (we now use IBL as the ambient term)
-//	vec3 F = EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(max(dot(normal, viewDir), 0.0), F0, roughness);
-//	vec3 R = reflect(-viewDir, normal);
-//	vec3 kS = F;
-//	vec3 kD = 1.0 - kS;
-//	kD *= 1.0 - metallic;
+	vec3 F = EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(max(dot(normal, viewDir), 0.0), F0, roughness);
+	vec3 R = reflect(-viewDir, normal);
+	vec3 kS = F;
+	vec3 kD = 1.0 - kS;
+	kD *= 1.0 - metallic;
 
-//	vec3 irradiance = EE_ENVIRONMENTAL_BACKGROUND_COLOR.w == 1.0 ? EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY : pow(texture(EE_ENVIRONMENTAL_IRRADIANCE, normal).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
-//	vec3 diffuse = irradiance * albedo;
+	//vec3 irradiance = EE_ENVIRONMENTAL_BACKGROUND_COLOR.w == 1.0 ? EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY : pow(texture(EE_ENVIRONMENTAL_IRRADIANCE, normal).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
+	vec3 irradiance = EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
+	vec3 diffuse = irradiance * albedo;
 
 	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
-//	const float MAX_REFLECTION_LOD = 4.0;
-//	vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.w == 1.0 ? EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY : pow(textureLod(EE_ENVIRONMENTAL_PREFILERED, R, roughness * MAX_REFLECTION_LOD).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
-//	vec2 brdf = texture(EE_ENVIRONMENTAL_BRDFLUT, vec2(max(dot(normal, viewDir), 0.0), roughness)).rg;
-//	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-//	vec3 ambient = kD * diffuse + specular;
-//	return ambient;
-//}
+	const float MAX_REFLECTION_LOD = 4.0;
+	//vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.w == 1.0 ? EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY : pow(textureLod(EE_ENVIRONMENTAL_PREFILERED, R, roughness * MAX_REFLECTION_LOD).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
+	vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
+	vec2 brdf = texture(EE_ENVIRONMENTAL_BRDFLUT, vec2(max(dot(normal, viewDir), 0.0), roughness)).rg;
+	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+	vec3 ambient = kD * diffuse + specular;
+	return ambient;
+}
 
 vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular, float dist, vec3 normal, vec3 viewDir, vec3 fragPos, float metallic, float roughness, vec3 F0) {
 	vec3 result = vec3(0.0, 0.0, 0.0);

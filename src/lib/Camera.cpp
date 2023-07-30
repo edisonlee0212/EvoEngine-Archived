@@ -221,7 +221,7 @@ void Camera::UpdateGBuffer()
 		m_gBufferMaterialSampler = std::make_unique<Sampler>(samplerInfo);
 
 	}
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
 			TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
