@@ -255,6 +255,9 @@ void RenderLayer::CreateGraphicsPipelines()
 		brdfLut->PreparePipeline();
 		m_graphicsPipelines["ENVIRONMENTAL_MAP_BRDF"] = brdfLut;
 	}
+	{
+		
+	}
 }
 
 

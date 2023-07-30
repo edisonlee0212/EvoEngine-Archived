@@ -14,6 +14,5 @@ namespace EvoEngine
 		//ImTextureID m_imTextureId = VK_NULL_HANDLE;
 	public:
 		void ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture);
-
 	};
 }
