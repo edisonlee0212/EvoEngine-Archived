@@ -1,3 +1,4 @@
+//layout(set = EE_PER_GROUP_SET, binding = 15) uniform samplerCube UE_SKYBOX;
 //layout(set = EE_PER_GROUP_SET, binding = 16) uniform samplerCube EE_ENVIRONMENTAL_IRRADIANCE;
 //layout(set = EE_PER_GROUP_SET, binding = 17) uniform samplerCube EE_ENVIRONMENTAL_PREFILERED;
 layout(set = EE_PER_GROUP_SET, binding = 18) uniform sampler2D EE_ENVIRONMENTAL_BRDFLUT;

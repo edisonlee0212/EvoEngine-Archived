@@ -126,6 +126,41 @@ void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkAccessFlags& 
 }
 
 
+void Graphics::RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline)
+{
+	auto& graphics = GetInstance();
+	if (graphics.m_graphicsPipelines.find(name) != graphics.m_graphicsPipelines.end())
+	{
+		EVOENGINE_ERROR("GraphicsPipeline with same name exists!");
+		return;
+	}
+	graphics.m_graphicsPipelines[name] = graphicsPipeline;
+}
+
+const std::shared_ptr<GraphicsPipeline>& Graphics::GetGraphicsPipeline(const std::string& name)
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_graphicsPipelines.at(name);
+}
+
+const std::shared_ptr<DescriptorSetLayout>& Graphics::GetDescriptorSetLayout(const std::string& name)
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_descriptorSetLayouts.at(name);
+}
+
+void Graphics::RegisterDescriptorSetLayout(const std::string& name,
+	const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout)
+{
+	auto& graphics = GetInstance();
+	if (graphics.m_descriptorSetLayouts.find(name) != graphics.m_descriptorSetLayouts.end())
+	{
+		EVOENGINE_ERROR("GraphicsPipeline with same name exists!");
+		return;
+	}
+	graphics.m_descriptorSetLayouts[name] = descriptorSetLayout;
+}
+
 void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout,
 	VkImageLayout newLayout, uint32_t mipLevels)
 {

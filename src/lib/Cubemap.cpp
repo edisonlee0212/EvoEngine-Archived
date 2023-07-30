@@ -1,8 +1,9 @@
 #include "Cubemap.hpp"
 
+#include "Application.hpp"
 #include "Console.hpp"
 #include "Graphics.hpp"
-
+#include "RenderLayer.hpp"
 using namespace EvoEngine;
 
 void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture)
@@ -62,4 +63,12 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	m_sampler = std::make_unique<Sampler>(samplerInfo);
+
+	std::unique_ptr<DescriptorSet> tempSet = std::make_unique<DescriptorSet>(Graphics::GetDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT"));
+	VkDescriptorImageInfo descriptorImageInfo{};
+	descriptorImageInfo.imageView = targetTexture->GetVkImageView();
+	descriptorImageInfo.imageLayout = targetTexture->GetLayout();
+	descriptorImageInfo.sampler = targetTexture->GetVkSampler();
+	
+	tempSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
 }

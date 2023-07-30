@@ -155,7 +155,7 @@ void Material::SetAOTexture(const std::shared_ptr<Texture2D>& texture)
 
 void Material::OnCreate()
 {
-    m_descriptorSet = std::make_shared<DescriptorSet>(Application::GetLayer<RenderLayer>()->GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT"));
+    m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT"));
 }
 
 Material::~Material()

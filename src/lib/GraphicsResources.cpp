@@ -550,6 +550,15 @@ const VkDescriptorSet& DescriptorSet::GetVkDescriptorSet() const
 	return m_descriptorSet;
 }
 
+DescriptorSet::~DescriptorSet()
+{
+	if(m_descriptorSet != VK_NULL_HANDLE)
+	{
+		Graphics::CheckVk(vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), 1, &m_descriptorSet));
+		m_descriptorSet = VK_NULL_HANDLE;
+	}
+}
+
 DescriptorSet::DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout)
 {
 	VkDescriptorSetAllocateInfo allocInfo{};

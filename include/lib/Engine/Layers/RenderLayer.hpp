@@ -103,8 +103,7 @@ namespace EvoEngine
 		void OnDestroy() override;
 		void PreUpdate() override;
 		
-		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
-		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
+		
 
 		void PreparePointAndSpotLightShadowMap();
 		void CreateGraphicsPipelines();
@@ -112,10 +111,7 @@ namespace EvoEngine
 		void PrepareEnvironmentalBrdfLut();
 
 	public:
-		void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
-		[[nodiscard]] const std::shared_ptr<GraphicsPipeline>& GetGraphicsPipeline(const std::string& name);
-		void RegisterDescriptorSetLayout(const std::string& name, const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout);
-		[[nodiscard]] const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
+		
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 300;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };

@@ -162,8 +162,7 @@ void SpotLight::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target
 
 ShadowMaps::ShadowMaps()
 {
-    const auto renderLayer = Application::GetLayer<RenderLayer>();
-    m_lightingDescriptorSet = std::make_shared<DescriptorSet>(renderLayer->GetDescriptorSetLayout("LIGHTING_LAYOUT"));
+    m_lightingDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("LIGHTING_LAYOUT"));
 }
 
 void ShadowMaps::Initialize()

@@ -144,13 +144,17 @@ void RenderLayer::PreUpdate()
 
 void RenderLayer::CreateGraphicsPipelines()
 {
+	auto perFrameLayout = Graphics::GetDescriptorSetLayout("PER_FRAME_LAYOUT");
+	auto pbrTextureLayout = Graphics::GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT");
+	auto cameraGBufferLayout = Graphics::GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT");
+	auto lightingLayout = Graphics::GetDescriptorSetLayout("LIGHTING_LAYOUT");
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
 		standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
 		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
-		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
-		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PBR_TEXTURE_LAYOUT"]);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
 
 		standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
 		standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
@@ -162,16 +166,16 @@ void RenderLayer::CreateGraphicsPipelines()
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		standardDeferredPrepass->PreparePipeline();
-		m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"] = standardDeferredPrepass;
+		Graphics::RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS", standardDeferredPrepass);
 	}
 	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 		standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
 		standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
 		standardDeferredLighting->m_geometryType = GeometryType::Mesh;
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["CAMERA_GBUFFER_LAYOUT"]);
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["LIGHTING_LAYOUT"]);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
 		standardDeferredLighting->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		standardDeferredLighting->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
@@ -184,7 +188,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		standardDeferredLighting->PreparePipeline();
-		m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"] = standardDeferredLighting;
+		Graphics::RegisterGraphicsPipeline("STANDARD_DEFERRED_LIGHTING", standardDeferredLighting);
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
@@ -192,7 +196,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		directionalLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM"));
 		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
-		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
+		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		directionalLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		directionalLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -202,7 +206,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		directionalLightShadowMap->PreparePipeline();
-		m_graphicsPipelines["DIRECTIONAL_LIGHT_SHADOW_MAP"] = directionalLightShadowMap;
+		Graphics::RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP", directionalLightShadowMap);
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
@@ -210,7 +214,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		pointLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("POINT_LIGHT_SHADOW_MAP_GEOM"));
 		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
-		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
+		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		pointLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		pointLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -220,14 +224,14 @@ void RenderLayer::CreateGraphicsPipelines()
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		pointLightShadowMap->PreparePipeline();
-		m_graphicsPipelines["POINT_LIGHT_SHADOW_MAP"] = pointLightShadowMap;
+		Graphics::RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP", pointLightShadowMap);
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
 		spotLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("SPOT_LIGHT_SHADOW_MAP_VERT"));
 		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
-		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		spotLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		spotLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -237,7 +241,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		spotLightShadowMap->PreparePipeline();
-		m_graphicsPipelines["SPOT_LIGHT_SHADOW_MAP"] = spotLightShadowMap;
+		Graphics::RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP", spotLightShadowMap);
 	}
 	{
 		const auto brdfLut = std::make_shared<GraphicsPipeline>();
@@ -251,7 +255,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
 
 		brdfLut->PreparePipeline();
-		m_graphicsPipelines["ENVIRONMENTAL_MAP_BRDF"] = brdfLut;
+		Graphics::RegisterGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF", brdfLut);
 	}
 	{
 		
@@ -259,10 +263,6 @@ void RenderLayer::CreateGraphicsPipelines()
 }
 
 
-const std::shared_ptr<DescriptorSetLayout>& RenderLayer::GetDescriptorSetLayout(const std::string& name)
-{
-	return m_descriptorSetLayouts.at(name);
-}
 
 uint32_t RenderLayer::GetCameraIndex(const Handle& handle)
 {
@@ -761,8 +761,8 @@ void RenderLayer::CollectSpotLights()
 
 void RenderLayer::PreparePointAndSpotLightShadowMap()
 {
-	const auto& pointLightShadowPipeline = m_graphicsPipelines["POINT_LIGHT_SHADOW_MAP"];
-	const auto& spotLightShadowPipeline = m_graphicsPipelines["SPOT_LIGHT_SHADOW_MAP"];
+	const auto& pointLightShadowPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
+	const auto& spotLightShadowPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
 
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
@@ -1290,7 +1290,7 @@ void RenderLayer::UpdateStandardBindings()
 	m_perFrameDescriptorSets.clear();
 	for(size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		auto descriptorSet = std::make_shared<DescriptorSet>(m_descriptorSetLayouts["PER_FRAME_LAYOUT"]);
+		auto descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("PER_FRAME_LAYOUT"));
 		
 		VkDescriptorBufferInfo bufferInfo;
 		bufferInfo.offset = 0;
@@ -1418,7 +1418,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			
 			
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			m_graphicsPipelines["ENVIRONMENTAL_MAP_BRDF"]->Bind(commandBuffer);
+			Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF")->Bind(commandBuffer);
 			globalPipelineState.m_depthTest = false;
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_colorBlendAttachmentStates.resize(1);
@@ -1441,8 +1441,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 
 void RenderLayer::PrepareDescriptorSetLayouts()
 {
-	m_descriptorSetLayouts["PER_FRAME_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
-	const auto& perFrameLayout = m_descriptorSetLayouts["PER_FRAME_LAYOUT"];
+	const auto perFrameLayout = std::make_shared<DescriptorSetLayout>();
 	perFrameLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
@@ -1453,34 +1452,37 @@ void RenderLayer::PrepareDescriptorSetLayouts()
 	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->Initialize();
+	Graphics::RegisterDescriptorSetLayout("PER_FRAME_LAYOUT", perFrameLayout);
 
-	m_descriptorSetLayouts["PBR_TEXTURE_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
-
-	const auto& pbrTextureLayout = m_descriptorSetLayouts["PBR_TEXTURE_LAYOUT"];
+	const auto pbrTextureLayout = std::make_shared<DescriptorSetLayout>();
 	pbrTextureLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	pbrTextureLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	pbrTextureLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	pbrTextureLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	pbrTextureLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	pbrTextureLayout->Initialize();
+	Graphics::RegisterDescriptorSetLayout("PBR_TEXTURE_LAYOUT", pbrTextureLayout);
 
-	m_descriptorSetLayouts["CAMERA_GBUFFER_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
-	const auto& cameraGBufferLayout = m_descriptorSetLayouts["CAMERA_GBUFFER_LAYOUT"];
+	const auto cameraGBufferLayout = std::make_shared<DescriptorSetLayout>();
 	cameraGBufferLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	cameraGBufferLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	cameraGBufferLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	cameraGBufferLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	cameraGBufferLayout->Initialize();
+	Graphics::RegisterDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT", cameraGBufferLayout);
 
-	m_descriptorSetLayouts["LIGHTING_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
-	const auto& lightLayout = m_descriptorSetLayouts["LIGHTING_LAYOUT"];
+	const auto lightLayout = std::make_shared<DescriptorSetLayout>();
 	lightLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->PushDescriptorBinding(19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->PushDescriptorBinding(21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->Initialize();
+	Graphics::RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);\
 
-
+	const auto equirectangularToCubeLayout = std::make_shared<DescriptorSetLayout>();
+	equirectangularToCubeLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	equirectangularToCubeLayout->Initialize();
+	Graphics::RegisterDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT", equirectangularToCubeLayout);
 }
 
 
@@ -1489,7 +1491,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
 	auto cameraIndex = GetCameraIndex(camera->GetHandle());
 
-	const auto& directionalLightShadowPipeline = m_graphicsPipelines["DIRECTIONAL_LIGHT_SHADOW_MAP"];
+	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
 		{
@@ -1565,8 +1567,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 	);
 
 
-	const auto& deferredPrepassPipeline = m_graphicsPipelines["STANDARD_DEFERRED_PREPASS"];
-	const auto& deferredLightingPipeline = m_graphicsPipelines["STANDARD_DEFERRED_LIGHTING"];
+	const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
+	const auto& deferredLightingPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1705,31 +1707,6 @@ void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) 
 	memcpy(m_renderInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &renderInfoBlock, sizeof(RenderInfoBlock));
 }
 
-void RenderLayer::RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline)
-{
-	if(m_graphicsPipelines.find(name) != m_graphicsPipelines.end())
-	{
-		EVOENGINE_ERROR("GraphicsPipeline with same name exists!");
-		return;
-	}
-	m_graphicsPipelines[name] = graphicsPipeline;
-}
-
-const std::shared_ptr<GraphicsPipeline>& RenderLayer::GetGraphicsPipeline(const std::string& name)
-{
-	return m_graphicsPipelines.at(name);
-}
-
-void RenderLayer::RegisterDescriptorSetLayout(const std::string& name,
-	const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout)
-{
-	if (m_descriptorSetLayouts.find(name) != m_descriptorSetLayouts.end())
-	{
-		EVOENGINE_ERROR("GraphicsPipeline with same name exists!");
-		return;
-	}
-	m_descriptorSetLayouts[name] = descriptorSetLayout;
-}
 
 void RenderLayer::UploadDirectionalLightInfoBlocks(const std::vector<DirectionalLightInfo>& directionalLightInfoBlocks) const
 {

@@ -1,1 +1,0 @@
-layout(set = EE_PER_PASS_SET, binding = 15) uniform samplerCube UE_SKYBOX;

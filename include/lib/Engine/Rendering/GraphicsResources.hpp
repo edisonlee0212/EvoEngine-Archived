@@ -233,8 +233,8 @@ namespace EvoEngine
 		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 	public:
 		[[nodiscard]] const VkDescriptorSet& GetVkDescriptorSet() const;
-
-		explicit DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout);
+		~DescriptorSet() override;
+		DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout);
 		/**
 		 * \brief UpdateImageDescriptorBinding
 		 * \param binding Target binding

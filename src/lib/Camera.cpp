@@ -367,8 +367,7 @@ void Camera::OnCreate()
 	extent.depth = 1;
 	m_renderTexture = std::make_unique<RenderTexture>(extent);
 
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	m_gBufferDescriptorSet = std::make_shared<DescriptorSet>(renderLayer->GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
+	m_gBufferDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
 	UpdateGBuffer();
 }
 

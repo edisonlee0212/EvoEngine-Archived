@@ -115,8 +115,15 @@ namespace EvoEngine
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 		
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
+		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
 
 	public:
+		static void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
+		[[nodiscard]] static const std::shared_ptr<GraphicsPipeline>& GetGraphicsPipeline(const std::string& name);
+		static void RegisterDescriptorSetLayout(const std::string& name, const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout);
+		[[nodiscard]] static const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
+
 		size_t m_triangles = 0;
 		size_t m_strandsSegments = 0;
 		size_t m_drawCall = 0;
