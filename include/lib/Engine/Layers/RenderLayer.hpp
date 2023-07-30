@@ -96,10 +96,7 @@ namespace EvoEngine
 		friend class EditorLayer;
 		friend class Material;
 		friend class ShadowMaps;
-		size_t m_triangles = 0;
-		size_t m_strandsSegments = 0;
-		size_t m_drawCall = 0;
-		//glm::vec3 ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b);
+		
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;

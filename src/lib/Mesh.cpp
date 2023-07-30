@@ -13,8 +13,13 @@ void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 
 }
 
-void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState, bool enableMetrics) const
 {
+	auto& graphics = Graphics::GetInstance();
+	if (enableMetrics) {
+		graphics.m_drawCall++;
+		graphics.m_triangles += m_triangles.size();
+	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
 }

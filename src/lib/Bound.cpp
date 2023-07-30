@@ -212,6 +212,17 @@ glm::vec3 Ray::GetEnd() const
     return m_start + m_direction * m_length;
 }
 
+glm::vec3 Ray::ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b)
+{
+    const float lineLength = distance(a, b);
+    const glm::vec3 vector = point - a;
+    const glm::vec3 lineDirection = (b - a) / lineLength;
+
+    // Project Vector to LineDirection to get the distance of point from a
+    const float distance = dot(vector, lineDirection);
+    return a + lineDirection * distance;
+}
+
 Plane::Plane() : m_a(0), m_b(0), m_c(0), m_d(0)
 {
 }

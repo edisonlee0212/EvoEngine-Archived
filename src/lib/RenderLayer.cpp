@@ -397,16 +397,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 		}
 	}
 }
-glm::vec3 ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b)
-{
-	const float lineLength = distance(a, b);
-	const glm::vec3 vector = point - a;
-	const glm::vec3 lineDirection = (b - a) / lineLength;
 
-	// Project Vector to LineDirection to get the distance of point from a
-	const float distance = dot(vector, lineDirection);
-	return a + lineDirection * distance;
-}
 void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
 {
 	const auto scene = GetScene();
@@ -473,73 +464,73 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 							max,
 							glm::distance(
 								cornerPoints[0],
-								ClosestPointOnLine(cornerPoints[0], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[0], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[1],
-								ClosestPointOnLine(cornerPoints[1], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[1], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[2],
-								ClosestPointOnLine(cornerPoints[2], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[2], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[3],
-								ClosestPointOnLine(cornerPoints[3], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[3], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[4],
-								ClosestPointOnLine(cornerPoints[4], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[4], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[5],
-								ClosestPointOnLine(cornerPoints[5], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[5], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[6],
-								ClosestPointOnLine(cornerPoints[6], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[6], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 						max = (glm::max)(
 							max,
 							glm::distance(
 								cornerPoints[7],
-								ClosestPointOnLine(cornerPoints[7], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
+								Ray::ClosestPointOnLine(cornerPoints[7], cameraFrustumCenter, cameraFrustumCenter - lightDir)));
 					}
 
-					glm::vec3 p0 = ClosestPointOnLine(
+					glm::vec3 p0 = Ray::ClosestPointOnLine(
 						glm::vec3(maxBound.x, maxBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
-					glm::vec3 p7 = ClosestPointOnLine(
+					glm::vec3 p7 = Ray::ClosestPointOnLine(
 						glm::vec3(minBound.x, minBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
 
 					float d0 = glm::distance(p0, p7);
 
-					glm::vec3 p1 = ClosestPointOnLine(
+					glm::vec3 p1 = Ray::ClosestPointOnLine(
 						glm::vec3(maxBound.x, maxBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
-					glm::vec3 p6 = ClosestPointOnLine(
+					glm::vec3 p6 = Ray::ClosestPointOnLine(
 						glm::vec3(minBound.x, minBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
 
 					float d1 = glm::distance(p1, p6);
 
-					glm::vec3 p2 = ClosestPointOnLine(
+					glm::vec3 p2 = Ray::ClosestPointOnLine(
 						glm::vec3(maxBound.x, minBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
-					glm::vec3 p5 = ClosestPointOnLine(
+					glm::vec3 p5 = Ray::ClosestPointOnLine(
 						glm::vec3(minBound.x, maxBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
 
 					float d2 = glm::distance(p2, p5);
 
-					glm::vec3 p3 = ClosestPointOnLine(
+					glm::vec3 p3 = Ray::ClosestPointOnLine(
 						glm::vec3(maxBound.x, minBound.y, minBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
-					glm::vec3 p4 = ClosestPointOnLine(
+					glm::vec3 p4 = Ray::ClosestPointOnLine(
 						glm::vec3(minBound.x, maxBound.y, maxBound.z), cameraFrustumCenter, cameraFrustumCenter + lightDir);
 
 					float d3 = glm::distance(p3, p4);
 
-					center = ClosestPointOnLine(sceneBound.Center(), cameraFrustumCenter, cameraFrustumCenter + lightDir);
+					center = Ray::ClosestPointOnLine(sceneBound.Center(), cameraFrustumCenter, cameraFrustumCenter + lightDir);
 					planeDistance = (glm::max)((glm::max)(d0, d1), (glm::max)(d2, d3));
 					lightPos = center - lightDir * planeDistance;
 					lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::normalize(rotation * glm::vec3(0, 1, 0)));
@@ -1888,7 +1879,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
 			mesh->Bind(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, globalPipelineState);
+			mesh->DrawIndexed(commandBuffer, globalPipelineState, false);
 			vkCmdEndRendering(commandBuffer);
 		}
 #pragma endregion

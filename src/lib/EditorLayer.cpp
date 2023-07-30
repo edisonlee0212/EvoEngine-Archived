@@ -11,6 +11,7 @@
 #include "Scene.hpp"
 #include "Time.hpp"
 #include "RenderLayer.hpp"
+#include "Cubemap.hpp"
 using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
@@ -723,6 +724,7 @@ void EditorLayer::SceneCameraWindow()
 {
 	const auto scene = GetScene();
 	auto windowLayer = Application::GetLayer<WindowLayer>();
+	const auto& graphics = Graphics::GetInstance();
 #pragma region Scene Window
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	if (ImGui::Begin("Scene")) {
@@ -768,7 +770,17 @@ void EditorLayer::SceneCameraWindow()
 				if (ImGui::BeginChild("Info", ImVec2(200, 300), true, windowFlags)) {
 					ImGui::Text("_");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-					std::string triangleInfo = {};
+					std::string drawCallInfo = {};
+					if (graphics.m_triangles < 999)
+						drawCallInfo += std::to_string(graphics.m_triangles);
+					else if (graphics.m_triangles < 999999)
+						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000)) + "K";
+					else
+						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000000)) + "M";
+					drawCallInfo += " tris";
+					ImGui::Text(drawCallInfo.c_str());
+					ImGui::Text("%d drawcall", graphics.m_drawCall);
+					ImGui::Separator();
 					if (ImGui::IsMousePosValid()) {
 						const auto pos = Input::GetMousePosition();
 						ImGui::Text("Mouse Pos: (%.1f,%.1f)", pos.x, pos.y);
@@ -793,7 +805,7 @@ void EditorLayer::SceneCameraWindow()
 					ImGui::DragFloat("Sensitivity", &m_sensitivity, 0.1f, 0, 0, "%.1f");
 					ImGui::Checkbox("Apply transform to main camera", &m_applyTransformToMainCamera);
 					ImGui::DragFloat("Resolution multiplier", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
-					//Editor::DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
+					DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
 					ImGui::PopItemWidth();
 				}
 				ImGui::EndChild();
@@ -963,7 +975,7 @@ void EditorLayer::MainCameraWindow()
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (!renderLayer)
 		return;
-
+	const auto& graphics = Graphics::GetInstance();
 	const auto scene = GetScene();
 #pragma region Window
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -1022,15 +1034,15 @@ void EditorLayer::MainCameraWindow()
 					}
 					ImGui::PopItemWidth();
 					std::string drawCallInfo = {};
-					if (renderLayer->m_triangles < 999)
-						drawCallInfo += std::to_string(renderLayer->m_triangles);
-					else if (renderLayer->m_triangles < 999999)
-						drawCallInfo += std::to_string((int)(renderLayer->m_triangles / 1000)) + "K";
+					if (graphics.m_triangles < 999)
+						drawCallInfo += std::to_string(graphics.m_triangles);
+					else if (graphics.m_triangles < 999999)
+						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000)) + "K";
 					else
-						drawCallInfo += std::to_string((int)(renderLayer->m_triangles / 1000000)) + "M";
+						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000000)) + "M";
 					drawCallInfo += " tris";
 					ImGui::Text(drawCallInfo.c_str());
-					ImGui::Text("%d drawcall", renderLayer->m_drawCall);
+					ImGui::Text("%d drawcall", graphics.m_drawCall);
 					ImGui::Separator();
 					if (ImGui::IsMousePosValid()) {
 						const auto pos = Input::GetMousePosition();

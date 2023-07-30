@@ -18,12 +18,9 @@ namespace EvoEngine
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
-
-
-	
-
 	class Graphics final : public ISingleton<Graphics>
 	{
+		
 		friend class Application;
 		friend class Resources;
 		friend class ShadowMaps;
@@ -120,6 +117,11 @@ namespace EvoEngine
 		
 
 	public:
+		size_t m_triangles = 0;
+		size_t m_strandsSegments = 0;
+		size_t m_drawCall = 0;
+
+
 		class StorageSizes
 		{
 		public:

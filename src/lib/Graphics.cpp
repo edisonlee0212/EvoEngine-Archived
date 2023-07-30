@@ -1229,6 +1229,9 @@ void Graphics::PreUpdate()
 			globalPipelineState.ApplyAllStates(commandBuffer, true);
 		}
 	);
+	graphics.m_triangles = 0;
+	graphics.m_strandsSegments = 0;
+	graphics.m_drawCall = 0;
 }
 
 void Graphics::LateUpdate()

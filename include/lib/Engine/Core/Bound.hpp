@@ -24,6 +24,7 @@ namespace EvoEngine
 		[[nodiscard]] bool Intersect(const glm::vec3& position, float radius) const;
 		[[nodiscard]] bool Intersect(const glm::mat4& transform, const Bound& bound) const;
 		[[nodiscard]] glm::vec3 GetEnd() const;
+		[[nodiscard]] static glm::vec3 ClosestPointOnLine(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b);
 	};
 	struct Plane
 	{

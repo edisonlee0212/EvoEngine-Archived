@@ -32,7 +32,7 @@ namespace EvoEngine
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
 
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState) const override;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState, bool enableMetrics = true) const override;
 		void Bind(VkCommandBuffer vkCommandBuffer) const;
 
 		void UploadData();
