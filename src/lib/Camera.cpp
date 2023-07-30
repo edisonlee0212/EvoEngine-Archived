@@ -239,33 +239,20 @@ void Camera::UpdateGBuffer()
 
 	{
 		VkDescriptorImageInfo imageInfo{};
-		VkWriteDescriptorSet writeInfo{};
-		
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 		imageInfo.imageView = m_gBufferDepthView->GetVkImageView();
 		imageInfo.sampler = m_gBufferDepthSampler->GetVkSampler();
-
-		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_gBufferDescriptorSet->GetVkDescriptorSet();
-		writeInfo.dstBinding = 10;
-		writeInfo.dstArrayElement = 0;
-		writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		writeInfo.descriptorCount = 1;
-		writeInfo.pImageInfo = &imageInfo;
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(10, imageInfo);
 		imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
 		imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
-		writeInfo.dstBinding = 11;
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(11, imageInfo);
 		imageInfo.imageView = m_gBufferAlbedoView->GetVkImageView();
 		imageInfo.sampler = m_gBufferAlbedoSampler->GetVkSampler();
-		writeInfo.dstBinding = 12;
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(12, imageInfo);
 		imageInfo.imageView = m_gBufferMaterialView->GetVkImageView();
 		imageInfo.sampler = m_gBufferMaterialSampler->GetVkSampler();
-		writeInfo.dstBinding = 13;
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(13, imageInfo);
 	}
 }
 

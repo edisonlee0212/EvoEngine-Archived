@@ -13,8 +13,10 @@ layout (location = 0) out vec4 FragColor;
 
 void main()
 {
-	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	float ndcDepth = 	texture(inDepth, fs_in.TexCoord).x;
+	if(ndcDepth == 1.0) discard;
+
+	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
 	float metallic = 	texture(inMaterial, fs_in.TexCoord).x;
