@@ -246,7 +246,7 @@ void Camera::UpdateGBuffer()
 		imageInfo.sampler = m_gBufferDepthSampler->GetVkSampler();
 
 		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_gBufferDescriptorSet;
+		writeInfo.dstSet = m_gBufferDescriptorSet->GetVkDescriptorSet();
 		writeInfo.dstBinding = 10;
 		writeInfo.dstArrayElement = 0;
 		writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -380,17 +380,8 @@ void Camera::OnCreate()
 	extent.depth = 1;
 	m_renderTexture = std::make_unique<RenderTexture>(extent);
 
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
-
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &renderLayer->m_cameraGBufferLayout->GetVkDescriptorSetLayout();
-	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_gBufferDescriptorSet) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-
+	m_gBufferDescriptorSet = std::make_shared<DescriptorSet>(renderLayer->GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
 	UpdateGBuffer();
 }
 

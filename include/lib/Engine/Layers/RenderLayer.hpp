@@ -102,30 +102,22 @@ namespace EvoEngine
 		void PreUpdate() override;
 		void CreateGraphicsPipelines();
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
-		
+		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorLayouts;
 		RenderInstanceCollection m_deferredRenderInstances;
 		RenderInstanceCollection m_deferredInstancedRenderInstances;
 		RenderInstanceCollection m_forwardRenderInstances;
 		RenderInstanceCollection m_forwardInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
 		RenderInstanceCollection m_instancedTransparentRenderInstances;
-		
 
-		std::shared_ptr<DescriptorSetLayout> m_perFrameLayout = {};
-		std::vector<VkDescriptorSet> m_perFrameDescriptorSets = {};
+		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
 
-		std::shared_ptr<DescriptorSetLayout> m_materialLayout = {};
-		std::shared_ptr<DescriptorSetLayout> m_cameraGBufferLayout = {};
-		std::shared_ptr<DescriptorSetLayout> m_lightingLayout = {};
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();
 		void CollectSpotLights();
 		void PreparePointAndSpotLightShadowMap();
-		std::unordered_map<uint32_t, DescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
-		bool m_layoutReady = false;
-		bool m_descriptorSetsReady = false;
 
 		std::vector<RenderInfoBlock*> m_renderInfoBlockMemory;
 		std::vector<EnvironmentInfoBlock*> m_environmentalInfoBlockMemory;
@@ -150,9 +142,7 @@ namespace EvoEngine
 
 		void CreateStandardDescriptorBuffers();
 		void UpdateStandardBindings();
-		void ClearDescriptorSets();
-		void CheckDescriptorSetsReady();
-
+		
 		std::unordered_map<Handle, uint32_t> m_cameraIndices;
 		std::unordered_map<Handle, uint32_t> m_materialIndices;
 		std::unordered_map<Handle, uint32_t> m_instanceIndices;
@@ -173,9 +163,7 @@ namespace EvoEngine
 		void UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const;
 		void UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const;
 
-		void PrepareMaterialLayout();
-		void PrepareCameraGBufferLayout();
-		void PrepareLightingLayout();
+		void PrepareDescriptorLayouts();
 
 		void PrepareEnvironmentalBrdfLut();
 		std::unique_ptr<ShadowMaps> m_shadowMaps;
@@ -183,7 +171,7 @@ namespace EvoEngine
 		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
 		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
 	public:
-
+		[[nodiscard]] const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 300;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
@@ -203,15 +191,7 @@ namespace EvoEngine
 		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
 		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
 
-		void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
-		/**
-		 * \brief UpdateImageDescriptorBinding
-		 * \param binding Target binding
-		 * \param imageInfos The image info for update. Make sure the size is max frame size.
-		 */
-		void UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos);
-		void UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos);
-		void PreparePerFrameLayout();
+		
 
 		int m_mainCameraResolutionX = 1;
 		int m_mainCameraResolutionY = 1;

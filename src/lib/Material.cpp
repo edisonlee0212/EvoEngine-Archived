@@ -155,21 +155,12 @@ void Material::SetAOTexture(const std::shared_ptr<Texture2D>& texture)
 
 void Material::OnCreate()
 {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-    const auto renderLayer = Application::GetLayer<RenderLayer>();
-
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &renderLayer->m_materialLayout->GetVkDescriptorSetLayout();
-    if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
+    m_descriptorSet = std::make_shared<DescriptorSet>(Application::GetLayer<RenderLayer>()->GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT"));
 }
 
 Material::~Material()
 {
-    if(m_descriptorSet != VK_NULL_HANDLE) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), 1, &m_descriptorSet);
+    if(m_descriptorSet != VK_NULL_HANDLE) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), 1, &m_descriptorSet->GetVkDescriptorSet());
     m_descriptorSet = VK_NULL_HANDLE;
 }
 
@@ -229,8 +220,6 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
 {
     if(!m_needUpdate) return;
     VkDescriptorImageInfo imageInfo;
-    std::vector<VkWriteDescriptorSet> writeInfos;
-    VkWriteDescriptorSet writeInfo{};
     auto missingTexture = std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("TEXTURE_MISSING"));
 	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
@@ -243,16 +232,8 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
         imageInfo.imageView = missingTexture->GetVkImageView();
         imageInfo.sampler = missingTexture->GetVkSampler();
     }
+    m_descriptorSet->UpdateImageDescriptorBinding(10, imageInfo);
     
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstSet = m_descriptorSet;
-    writeInfo.dstBinding = 10;
-    writeInfo.dstArrayElement = 0;
-    writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeInfo.descriptorCount = 1;
-    writeInfo.pImageInfo = &imageInfo;
-    writeInfos.emplace_back(writeInfo);
-    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
     if (const auto texture = m_normalTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -265,11 +246,8 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
         imageInfo.imageView = missingTexture->GetVkImageView();
         imageInfo.sampler = missingTexture->GetVkSampler();
     }
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstBinding = 11;
-    writeInfo.pImageInfo = &imageInfo;
-    writeInfos.emplace_back(writeInfo);
-    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    m_descriptorSet->UpdateImageDescriptorBinding(11, imageInfo);
+
     if (const auto texture = m_metallicTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -282,11 +260,8 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
         imageInfo.imageView = missingTexture->GetVkImageView();
         imageInfo.sampler = missingTexture->GetVkSampler();
     }
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstBinding = 12;
-    writeInfo.pImageInfo = &imageInfo;
-    writeInfos.emplace_back(writeInfo);
-    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    m_descriptorSet->UpdateImageDescriptorBinding(12, imageInfo);
+
     if (const auto texture = m_roughnessTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -299,11 +274,8 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
         imageInfo.imageView = missingTexture->GetVkImageView();
         imageInfo.sampler = missingTexture->GetVkSampler();
     }
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstBinding = 13;
-    writeInfo.pImageInfo = &imageInfo;
-    writeInfos.emplace_back(writeInfo);
-    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    m_descriptorSet->UpdateImageDescriptorBinding(13, imageInfo);
+
     if (const auto texture = m_aoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();
@@ -316,11 +288,8 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
         imageInfo.imageView = missingTexture->GetVkImageView();
         imageInfo.sampler = missingTexture->GetVkSampler();
     }
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstBinding = 14;
-    writeInfo.pImageInfo = &imageInfo;
-    writeInfos.emplace_back(writeInfo);
-    vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+    m_descriptorSet->UpdateImageDescriptorBinding(14, imageInfo);
+
     m_needUpdate = false;
 }
 

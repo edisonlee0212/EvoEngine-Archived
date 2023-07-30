@@ -45,7 +45,7 @@ namespace EvoEngine
 	class Material final : public IAsset
 	{
 		friend class RenderLayer;
-		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+		std::shared_ptr<DescriptorSet> m_descriptorSet = VK_NULL_HANDLE;
 		bool m_needUpdate = true;
 		AssetRef m_albedoTexture;
 		AssetRef m_normalTexture;

@@ -31,11 +31,9 @@ void RenderInstanceCollection::Dispatch(
 
 void RenderLayer::OnCreate()
 {
+	PrepareDescriptorLayouts();
 	CreateStandardDescriptorBuffers();
-	PrepareMaterialLayout();
-	PrepareCameraGBufferLayout();
-	PreparePerFrameLayout();
-	PrepareLightingLayout();
+	UpdateStandardBindings();
 
 	std::vector<glm::vec4> kernels;
 	for (uint32_t i = 0; i < Graphics::StorageSizes::m_maxKernelAmount; i++)
@@ -151,8 +149,8 @@ void RenderLayer::CreateGraphicsPipelines()
 		standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
 		standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
 		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
-		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
-		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_materialLayout);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PBR_TEXTURE_LAYOUT"]);
 
 		standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
 		standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
@@ -171,9 +169,9 @@ void RenderLayer::CreateGraphicsPipelines()
 		standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
 		standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
 		standardDeferredLighting->m_geometryType = GeometryType::Mesh;
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_cameraGBufferLayout);
-		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_lightingLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["CAMERA_GBUFFER_LAYOUT"]);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["LIGHTING_LAYOUT"]);
 
 		standardDeferredLighting->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		standardDeferredLighting->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
@@ -194,7 +192,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		directionalLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM"));
 		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
-		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
 		directionalLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		directionalLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -212,7 +210,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		pointLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("POINT_LIGHT_SHADOW_MAP_GEOM"));
 		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
-		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
 		pointLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		pointLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -229,7 +227,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		spotLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("SPOT_LIGHT_SHADOW_MAP_VERT"));
 		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
-		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(m_perFrameLayout);
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
 		spotLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 		spotLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
 
@@ -261,6 +259,10 @@ void RenderLayer::CreateGraphicsPipelines()
 }
 
 
+const std::shared_ptr<DescriptorSetLayout>& RenderLayer::GetDescriptorSetLayout(const std::string& name)
+{
+	return m_descriptorLayouts.at(name);
+}
 
 uint32_t RenderLayer::GetCameraIndex(const Handle& handle)
 {
@@ -797,7 +799,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			pointLightShadowPipeline->Bind(commandBuffer);
-			pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_viewPort = viewport;
@@ -863,7 +865,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			spotLightShadowPipeline->Bind(commandBuffer);
-			spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_viewPort = viewport;
@@ -1279,236 +1281,41 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 #pragma endregion
 }
 
+
+
 void RenderLayer::UpdateStandardBindings()
 {
-	std::vector<VkDescriptorBufferInfo> tempBufferInfos;
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	tempBufferInfos.resize(maxFramesInFlight);
-	for (auto& i : tempBufferInfos)
-	{
-		i.offset = 0;
-		i.range = VK_WHOLE_SIZE;
-	}
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(0, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(1, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(2, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(3, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(4, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_kernelDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(6, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_directionalLightInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(7, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_pointLightInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(8, tempBufferInfos);
-
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		tempBufferInfos[i].buffer = m_spotLightInfoDescriptorBuffers[i]->GetVkBuffer();
-	}
-	UpdateBufferDescriptorBinding(9, tempBufferInfos);
-}
-
-
-
-void RenderLayer::ClearDescriptorSets()
-{
-	m_descriptorSetLayoutBindings.clear();
-
-	m_perFrameLayout.reset();
-
-	if (!m_perFrameDescriptorSets.empty()) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
-
+	
 	m_perFrameDescriptorSets.clear();
-
-	m_layoutReady = false;
-	m_descriptorSetsReady = false;
-}
-
-void RenderLayer::CheckDescriptorSetsReady()
-{
-	for (const auto& binding : m_descriptorSetLayoutBindings)
+	for(size_t i = 0; i < maxFramesInFlight; i++)
 	{
-		if (!binding.second.m_ready)
-		{
-			m_descriptorSetsReady = false;
-		}
+		auto descriptorSet = std::make_shared<DescriptorSet>(m_descriptorLayouts["PER_FRAME_LAYOUT"]);
+		
+		VkDescriptorBufferInfo bufferInfo;
+		bufferInfo.offset = 0;
+		bufferInfo.range = VK_WHOLE_SIZE;
+
+		bufferInfo.buffer = m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(0, bufferInfo);
+		bufferInfo.buffer = m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(1, bufferInfo);
+		bufferInfo.buffer = m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(2, bufferInfo);
+		bufferInfo.buffer = m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(3, bufferInfo);
+		bufferInfo.buffer = m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(4, bufferInfo);
+		bufferInfo.buffer = m_kernelDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(6, bufferInfo);
+		bufferInfo.buffer = m_directionalLightInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(7, bufferInfo);
+		bufferInfo.buffer = m_pointLightInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(8, bufferInfo);
+		bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[i]->GetVkBuffer();
+		descriptorSet->UpdateBufferDescriptorBinding(9, bufferInfo);
+		m_perFrameDescriptorSets.emplace_back(descriptorSet);
 	}
-	m_descriptorSetsReady = true;
-}
-
-
-
-void RenderLayer::PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags)
-{
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = binding;
-	bindingInfo.descriptorCount = 1;
-	bindingInfo.descriptorType = type;
-	bindingInfo.pImmutableSamplers = nullptr;
-	bindingInfo.stageFlags = stageFlags;
-	m_descriptorSetLayoutBindings[binding] = { bindingInfo, false };
-
-	m_descriptorSetsReady = false;
-	m_layoutReady = false;
-}
-
-void RenderLayer::UpdateImageDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorImageInfo>& imageInfos)
-{
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	assert(maxFramesInFlight == imageInfos.size());
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
-		VkWriteDescriptorSet writeInfo{};
-		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_perFrameDescriptorSets[i];
-		writeInfo.dstBinding = binding;
-		writeInfo.dstArrayElement = 0;
-		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
-		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
-		writeInfo.pImageInfo = &imageInfos[i];
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-	}
-	m_descriptorSetLayoutBindings[binding].m_ready = true;
-	CheckDescriptorSetsReady();
-}
-
-void RenderLayer::UpdateBufferDescriptorBinding(uint32_t binding, const std::vector<VkDescriptorBufferInfo>& bufferInfos)
-{
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	assert(maxFramesInFlight == bufferInfos.size());
-	for (size_t i = 0; i < maxFramesInFlight; i++)
-	{
-		const auto& descriptorBinding = m_descriptorSetLayoutBindings[binding];
-		VkWriteDescriptorSet writeInfo{};
-		writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeInfo.dstSet = m_perFrameDescriptorSets[i];
-		writeInfo.dstBinding = binding;
-		writeInfo.dstArrayElement = 0;
-		writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
-		writeInfo.descriptorCount = descriptorBinding.m_binding.descriptorCount;
-		writeInfo.pBufferInfo = &bufferInfos[i];
-		vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
-	}
-	m_descriptorSetLayoutBindings[binding].m_ready = true;
-	CheckDescriptorSetsReady();
-}
-
-void RenderLayer::PrepareMaterialLayout()
-{
-	std::vector<VkDescriptorSetLayoutBinding> materialBindings;
-
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = 10;
-	bindingInfo.descriptorCount = 1;
-	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	bindingInfo.pImmutableSamplers = nullptr;
-	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	materialBindings.emplace_back(bindingInfo);
-
-	bindingInfo.binding = 11;
-	materialBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 12;
-	materialBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 13;
-	materialBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 14;
-	materialBindings.emplace_back(bindingInfo);
-
-	VkDescriptorSetLayoutCreateInfo materialLayoutInfo{};
-	materialLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	materialLayoutInfo.bindingCount = static_cast<uint32_t>(materialBindings.size());
-	materialLayoutInfo.pBindings = materialBindings.data();
-	m_materialLayout = std::make_shared<DescriptorSetLayout>(materialLayoutInfo);
-}
-
-void RenderLayer::PrepareCameraGBufferLayout()
-{
-	std::vector<VkDescriptorSetLayoutBinding> gBufferBindings;
-
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = 10;
-	bindingInfo.descriptorCount = 1;
-	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	bindingInfo.pImmutableSamplers = nullptr;
-	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	gBufferBindings.emplace_back(bindingInfo);
-
-	bindingInfo.binding = 11;
-	gBufferBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 12;
-	gBufferBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 13;
-	gBufferBindings.emplace_back(bindingInfo);
-
-	VkDescriptorSetLayoutCreateInfo gBufferLayoutInfo{};
-	gBufferLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	gBufferLayoutInfo.bindingCount = static_cast<uint32_t>(gBufferBindings.size());
-	gBufferLayoutInfo.pBindings = gBufferBindings.data();
-	m_cameraGBufferLayout = std::make_shared<DescriptorSetLayout>(gBufferLayoutInfo);
-}
-
-void RenderLayer::PrepareLightingLayout()
-{
-	std::vector<VkDescriptorSetLayoutBinding> lightBindings;
-
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = 18;
-	bindingInfo.descriptorCount = 1;
-	bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	bindingInfo.pImmutableSamplers = nullptr;
-	bindingInfo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	lightBindings.emplace_back(bindingInfo);
-
-	bindingInfo.binding = 19;
-	lightBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 20;
-	lightBindings.emplace_back(bindingInfo);
-	bindingInfo.binding = 21;
-	lightBindings.emplace_back(bindingInfo);
-
-
-	VkDescriptorSetLayoutCreateInfo lightLayoutInfo{};
-	lightLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	lightLayoutInfo.bindingCount = static_cast<uint32_t>(lightBindings.size());
-	lightLayoutInfo.pBindings = lightBindings.data();
-	m_lightingLayout = std::make_shared<DescriptorSetLayout>(lightLayoutInfo);
 }
 
 void RenderLayer::PrepareEnvironmentalBrdfLut()
@@ -1632,55 +1439,46 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 	);
 }
 
-void RenderLayer::PreparePerFrameLayout()
+void RenderLayer::PrepareDescriptorLayouts()
 {
-	if (!m_descriptorSetLayoutBindings.empty())
-	{
-		EVOENGINE_ERROR("Already contain bindings!");
-		return;
-	}
-	ClearDescriptorSets();
+	m_descriptorLayouts["PER_FRAME_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
+	const auto& perFrameLayout = m_descriptorLayouts["PER_FRAME_LAYOUT"];
+	perFrameLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->Initialize();
 
-	PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	m_descriptorLayouts["PBR_TEXTURE_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
 
-	PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	const auto& pbrTextureLayout = m_descriptorLayouts["PBR_TEXTURE_LAYOUT"];
+	pbrTextureLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->Initialize();
 
-	std::vector<VkDescriptorSetLayoutBinding> perFrameBindings;
+	m_descriptorLayouts["CAMERA_GBUFFER_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
+	const auto& cameraGBufferLayout = m_descriptorLayouts["CAMERA_GBUFFER_LAYOUT"];
+	cameraGBufferLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->Initialize();
 
-	for (const auto& bindingPair : m_descriptorSetLayoutBindings)
-	{
-		perFrameBindings.push_back(bindingPair.second.m_binding);
-	}
-
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	VkDescriptorSetLayoutCreateInfo perFrameLayoutInfo{};
-	perFrameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	perFrameLayoutInfo.bindingCount = static_cast<uint32_t>(perFrameBindings.size());
-	perFrameLayoutInfo.pBindings = perFrameBindings.data();
-	m_perFrameLayout = std::make_shared<DescriptorSetLayout>(perFrameLayoutInfo);
-
-
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
-
-	const std::vector perFrameLayouts(maxFramesInFlight, m_perFrameLayout->GetVkDescriptorSetLayout());
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(maxFramesInFlight);
-	allocInfo.pSetLayouts = perFrameLayouts.data();
-	m_perFrameDescriptorSets.resize(maxFramesInFlight);
-	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, m_perFrameDescriptorSets.data()) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-	m_layoutReady = true;
-
-	UpdateStandardBindings();
+	m_descriptorLayouts["LIGHTING_LAYOUT"] = std::make_shared<DescriptorSetLayout>();
+	const auto& lightLayout = m_descriptorLayouts["LIGHTING_LAYOUT"];
+	lightLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->Initialize();
 }
 
 
@@ -1726,7 +1524,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			directionalLightShadowPipeline->Bind(commandBuffer);
-			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			globalPipelineState.m_viewPort = viewport;
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.ApplyAllStates(commandBuffer, true);
@@ -1804,7 +1602,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
-			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
+			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
@@ -1817,7 +1615,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 			m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 				{
-					deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet);
+					deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet->GetVkDescriptorSet());
 					//We should also bind textures here.
 				}, [&](const RenderInstance& renderCommand)
 				{
@@ -1863,9 +1661,9 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->Bind(commandBuffer);
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]);
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet);
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet);
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet->GetVkDescriptorSet());
 			globalPipelineState.m_depthTest = false;
 			globalPipelineState.m_colorBlendAttachmentStates.clear();
 			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());

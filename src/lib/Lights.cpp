@@ -162,16 +162,8 @@ void SpotLight::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target
 
 ShadowMaps::ShadowMaps()
 {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
     const auto renderLayer = Application::GetLayer<RenderLayer>();
-
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &renderLayer->m_lightingLayout->GetVkDescriptorSetLayout();
-    if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_lightingDescriptorSet) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
+    m_lightingDescriptorSet = std::make_shared<DescriptorSet>(renderLayer->GetDescriptorSetLayout("LIGHTING_LAYOUT"));
 }
 
 void ShadowMaps::Initialize()
@@ -348,7 +340,7 @@ void ShadowMaps::Initialize()
         imageInfo.sampler = renderLayer->m_environmentalBRDFSampler->GetVkSampler();
 
         writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_lightingDescriptorSet;
+        writeInfo.dstSet = m_lightingDescriptorSet->GetVkDescriptorSet();
         writeInfo.dstBinding = 18;
         writeInfo.dstArrayElement = 0;
         writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

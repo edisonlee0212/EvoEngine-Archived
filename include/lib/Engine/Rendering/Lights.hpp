@@ -111,7 +111,7 @@ namespace EvoEngine
         std::shared_ptr<Sampler> m_spotLightShadowMapSampler = {};
         friend class RenderLayer;
 
-        VkDescriptorSet m_lightingDescriptorSet = VK_NULL_HANDLE;
+        std::shared_ptr<DescriptorSet> m_lightingDescriptorSet = VK_NULL_HANDLE;
     public:
         ShadowMaps();
         void Initialize();

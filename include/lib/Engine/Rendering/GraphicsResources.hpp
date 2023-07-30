@@ -216,11 +216,32 @@ namespace EvoEngine
 
 	class DescriptorSetLayout final : public IGraphicsResource
 	{
+		friend class DescriptorSet;
+		std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
 		VkDescriptorSetLayout m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	public:
-		explicit DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo);
 		~DescriptorSetLayout() override;
 		[[nodiscard]] const VkDescriptorSetLayout& GetVkDescriptorSetLayout() const;
+
+		void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
+		void Initialize();
+	};
+
+	class DescriptorSet final : public IGraphicsResource
+	{
+		std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
+		VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+	public:
+		[[nodiscard]] const VkDescriptorSet& GetVkDescriptorSet() const;
+
+		explicit DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout);
+		/**
+		 * \brief UpdateImageDescriptorBinding
+		 * \param binding Target binding
+		 * \param imageInfos The image info for update. Make sure the size is max frame size.
+		 */
+		void UpdateImageDescriptorBinding(uint32_t binding, const VkDescriptorImageInfo& imageInfo) const;
+		void UpdateBufferDescriptorBinding(uint32_t binding, const VkDescriptorBufferInfo& bufferInfo) const;
 	};
 
 	class DescriptorPool final : public IGraphicsResource

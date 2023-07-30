@@ -1,5 +1,6 @@
 #include "GraphicsResources.hpp"
 
+#include "Application.hpp"
 #include "Console.hpp"
 #include "Graphics.hpp"
 #include "Utilities.hpp"
@@ -503,11 +504,6 @@ const VmaAllocationInfo& Buffer::GetVmaAllocationInfo() const
 	return m_vmaAllocationInfo;
 }
 
-DescriptorSetLayout::DescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& descriptorSetLayoutCreateInfo)
-{
-	Graphics::CheckVk(vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout));
-}
-
 DescriptorSetLayout::~DescriptorSetLayout()
 {
 	if (m_vkDescriptorSetLayout != VK_NULL_HANDLE)
@@ -515,6 +511,84 @@ DescriptorSetLayout::~DescriptorSetLayout()
 		vkDestroyDescriptorSetLayout(Graphics::GetVkDevice(), m_vkDescriptorSetLayout, nullptr);
 		m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	}
+}
+
+void DescriptorSetLayout::PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags)
+{
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.binding = binding;
+	bindingInfo.descriptorCount = 1;
+	bindingInfo.descriptorType = type;
+	bindingInfo.pImmutableSamplers = nullptr;
+	bindingInfo.stageFlags = stageFlags;
+	m_descriptorSetLayoutBindings[binding] = bindingInfo;
+}
+
+void DescriptorSetLayout::Initialize()
+{
+	if(m_vkDescriptorSetLayout != VK_NULL_HANDLE)
+	{
+		vkDestroyDescriptorSetLayout(Graphics::GetVkDevice(), m_vkDescriptorSetLayout, nullptr);
+		m_vkDescriptorSetLayout = VK_NULL_HANDLE;
+	}
+	VkDescriptorSetLayoutBinding bindingInfo{};
+	bindingInfo.pImmutableSamplers = nullptr;
+	std::vector<VkDescriptorSetLayoutBinding> listOfBindings;
+	for(const auto& binding : m_descriptorSetLayoutBindings)
+	{
+		listOfBindings.emplace_back(binding.second);
+	}
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
+	descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(listOfBindings.size());
+	descriptorSetLayoutCreateInfo.pBindings = listOfBindings.data();
+	Graphics::CheckVk(vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout));
+}
+
+const VkDescriptorSet& DescriptorSet::GetVkDescriptorSet() const
+{
+	return m_descriptorSet;
+}
+
+DescriptorSet::DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout)
+{
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &targetLayout->GetVkDescriptorSetLayout();
+	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+	m_descriptorSetLayout = targetLayout;
+}
+
+void DescriptorSet::UpdateImageDescriptorBinding(const uint32_t binding, const VkDescriptorImageInfo& imageInfo) const
+{
+	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[binding];
+	VkWriteDescriptorSet writeInfo{};
+	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeInfo.dstSet = m_descriptorSet;
+	writeInfo.dstBinding = binding;
+	writeInfo.dstArrayElement = 0;
+	writeInfo.descriptorType = descriptorBinding.descriptorType;
+	writeInfo.descriptorCount = descriptorBinding.descriptorCount;
+	writeInfo.pImageInfo = &imageInfo;
+	vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+}
+
+void DescriptorSet::UpdateBufferDescriptorBinding(const uint32_t binding, const VkDescriptorBufferInfo& bufferInfo) const
+{
+	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[binding];
+	VkWriteDescriptorSet writeInfo{};
+	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeInfo.dstSet = m_descriptorSet;
+	writeInfo.dstBinding = binding;
+	writeInfo.dstArrayElement = 0;
+	writeInfo.descriptorType = descriptorBinding.descriptorType;
+	writeInfo.descriptorCount = descriptorBinding.descriptorCount;
+	writeInfo.pBufferInfo = &bufferInfo;
+	vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 }
 
 const VkDescriptorSetLayout& DescriptorSetLayout::GetVkDescriptorSetLayout() const
@@ -698,12 +772,6 @@ void CommandBuffer::Submit(const VkSemaphore& waitSemaphore, const VkSemaphore& 
 	{
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &signalSemaphore;
-	}
-
-	if (fence != VK_NULL_HANDLE)
-	{
-		//Graphics::CheckVk(vkResetFences(Graphics::GetVkDevice(), 1, &fence));
-		//Renderer::CheckVk(vkWaitForFences(*logicalDevice, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max()));
 	}
 
 	Graphics::CheckVk(vkQueueSubmit(Graphics::GetGraphicsVkQueue(), 1, &submitInfo, fence));

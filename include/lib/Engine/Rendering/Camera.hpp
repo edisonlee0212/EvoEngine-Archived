@@ -63,7 +63,7 @@ namespace EvoEngine
 
         glm::uvec2 m_size = glm::uvec2(1, 1);
 
-        VkDescriptorSet m_gBufferDescriptorSet = VK_NULL_HANDLE;
+        std::shared_ptr<DescriptorSet> m_gBufferDescriptorSet = VK_NULL_HANDLE;
         void UpdateGBuffer();
     public:
         void TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const;

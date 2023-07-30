@@ -5,12 +5,6 @@ namespace EvoEngine
 {
 	class Shader;
 
-	struct DescriptorSetLayoutBinding
-	{
-		VkDescriptorSetLayoutBinding m_binding = {};
-		bool m_ready = false;
-	};
-
 #pragma region Pipeline Data
 
 	struct PipelineShaderStage
