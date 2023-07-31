@@ -145,9 +145,9 @@ namespace EvoEngine
 			inline const static uint32_t m_maxPointLightSize = 4;
 			inline const static uint32_t m_maxSpotLightSize = 4;
 
-			inline const static uint32_t m_directionalLightShadowMapResolution = 4096;
-			inline const static uint32_t m_pointLightShadowMapResolution = 2048;
-			inline const static uint32_t m_spotLightShadowMapResolution = 2048;
+			inline const static uint32_t m_directionalLightShadowMapResolution = 1024;
+			inline const static uint32_t m_pointLightShadowMapResolution = 1024;
+			inline const static uint32_t m_spotLightShadowMapResolution = 1024;
 
 			inline const static uint32_t m_cubemapResolution = 1024;
 		};

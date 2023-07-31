@@ -602,7 +602,19 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 
 				directionalLightIndex++;
 			}
-
+			std::vector<glm::uvec3> viewPortResults;
+			ShadowMaps::AllocateAtlas(directionalLightIndex, Graphics::StorageSizes::m_directionalLightShadowMapResolution, viewPortResults);
+			int allocationIndex = 0;
+			for (int i = 0; i < directionalLightIndex; i++)
+			{
+				const auto blockIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + directionalLightIndex;
+				auto& viewPort = m_directionalLightInfoBlocks[blockIndex].m_viewPort;
+				viewPort.x = viewPortResults[allocationIndex].x;
+				viewPort.y = viewPortResults[allocationIndex].y;
+				viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
+				viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+				allocationIndex++;
+			}
 			m_renderInfoBlock.m_directionalLightSize = directionalLightIndex;
 		}
 	}
@@ -611,12 +623,19 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 void RenderLayer::CollectPointLights()
 {
 	const auto scene = GetScene();
+	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	glm::vec3 mainCameraPosition = {0, 0, 0};
+	if(mainCamera)
+	{
+		mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCamera->GetOwner()).GetPosition();
+	}
 	const std::vector<Entity>* pointLightEntities =
 		scene->UnsafeGetPrivateComponentOwnersList<PointLight>();
 	m_renderInfoBlock.m_pointLightSize = 0;
 	if (pointLightEntities && !pointLightEntities->empty())
 	{
 		m_pointLightInfoBlocks.resize(pointLightEntities->size());
+		std::multimap<float, size_t> sortedPointLightIndices;
 		for (int i = 0; i < pointLightEntities->size(); i++)
 		{
 			Entity lightEntity = pointLightEntities->at(i);
@@ -657,35 +676,20 @@ void RenderLayer::CollectPointLights()
 				glm::lookAt(position, position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 			m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_reservedParameters = glm::vec4(plc->m_bias, plc->m_lightSize, 0, 0);
 
-			switch (m_renderInfoBlock.m_pointLightSize)
-			{
-			case 0:
-				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort =
-					glm::ivec4(0, 0, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2, Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
-				break;
-			case 1:
-				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					0,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
-				break;
-			case 2:
-				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
-					0,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
-				break;
-			case 3:
-				m_pointLightInfoBlocks[m_renderInfoBlock.m_pointLightSize].m_viewPort = glm::ivec4(
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_pointLightShadowMapResolution / 2);
-				break;
-			}
+			sortedPointLightIndices.insert({ glm::distance(mainCameraPosition, position), m_renderInfoBlock.m_pointLightSize });
 			m_renderInfoBlock.m_pointLightSize++;
+		}
+		std::vector<glm::uvec3> viewPortResults;
+		ShadowMaps::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::StorageSizes::m_pointLightShadowMapResolution, viewPortResults);
+		int allocationIndex = 0;
+		for(const auto& pointLightIndex : sortedPointLightIndices)
+		{
+			auto& viewPort = m_pointLightInfoBlocks[pointLightIndex.second].m_viewPort;
+			viewPort.x = viewPortResults[allocationIndex].x;
+			viewPort.y = viewPortResults[allocationIndex].y;
+			viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
+			viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+			allocationIndex++;
 		}
 	}
 	m_pointLightInfoBlocks.resize(m_renderInfoBlock.m_pointLightSize);
@@ -694,12 +698,20 @@ void RenderLayer::CollectPointLights()
 void RenderLayer::CollectSpotLights()
 {
 	const auto scene = GetScene();
+	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	glm::vec3 mainCameraPosition = { 0, 0, 0 };
+	if (mainCamera)
+	{
+		mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCamera->GetOwner()).GetPosition();
+	}
+
 	m_renderInfoBlock.m_spotLightSize = 0;
 	const std::vector<Entity>* spotLightEntities =
 		scene->UnsafeGetPrivateComponentOwnersList<SpotLight>();
 	if (spotLightEntities && !spotLightEntities->empty())
 	{
 		m_spotLightInfoBlocks.resize(spotLightEntities->size());
+		std::multimap<float, size_t> sortedSpotLightIndices;
 		for (int i = 0; i < spotLightEntities->size(); i++)
 		{
 			Entity lightEntity = spotLightEntities->at(i);
@@ -732,35 +744,20 @@ void RenderLayer::CollectSpotLights()
 				slc->m_lightSize,
 				slc->m_bias);
 
-			switch (m_renderInfoBlock.m_spotLightSize)
-			{
-			case 0:
-				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort =
-					glm::ivec4(0, 0, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2, Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
-				break;
-			case 1:
-				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					0,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
-				break;
-			case 2:
-				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
-					0,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
-				break;
-			case 3:
-				m_spotLightInfoBlocks[m_renderInfoBlock.m_spotLightSize].m_viewPort = glm::ivec4(
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2,
-					Graphics::StorageSizes::m_spotLightShadowMapResolution / 2);
-				break;
-			}
+			sortedSpotLightIndices.insert({ glm::distance(mainCameraPosition, position), m_renderInfoBlock.m_spotLightSize });
 			m_renderInfoBlock.m_spotLightSize++;
+		}
+		std::vector<glm::uvec3> viewPortResults;
+		ShadowMaps::AllocateAtlas(m_renderInfoBlock.m_spotLightSize, Graphics::StorageSizes::m_spotLightShadowMapResolution, viewPortResults);
+		int allocationIndex = 0;
+		for (const auto& spotLightIndex : sortedSpotLightIndices)
+		{
+			auto& viewPort = m_spotLightInfoBlocks[spotLightIndex.second].m_viewPort;
+			viewPort.x = viewPortResults[allocationIndex].x;
+			viewPort.y = viewPortResults[allocationIndex].y;
+			viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
+			viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+			allocationIndex++;
 		}
 	}
 	m_spotLightInfoBlocks.resize(m_renderInfoBlock.m_spotLightSize);

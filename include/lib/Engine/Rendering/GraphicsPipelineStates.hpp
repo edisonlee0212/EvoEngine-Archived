@@ -32,18 +32,6 @@ namespace EvoEngine
 
 		bool m_logicOpEnableApplied = VK_FALSE;
 		VkLogicOp m_logicOpApplied = VK_LOGIC_OP_COPY;
-		/*
-		typedef struct VkPipelineColorBlendAttachmentState {
-			VkBool32                 blendEnable;
-			VkBlendFactor            srcColorBlendFactor;
-			VkBlendFactor            dstColorBlendFactor;
-			VkBlendOp                colorBlendOp;
-			VkBlendFactor            srcAlphaBlendFactor;
-			VkBlendFactor            dstAlphaBlendFactor;
-			VkBlendOp                alphaBlendOp;
-			VkColorComponentFlags    colorWriteMask;
-		} VkPipelineColorBlendAttachmentState;
-		*/
 		
 		std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachmentStatesApplied = {};
 		float m_blendConstantsApplied[4] = { 0, 0, 0, 0 };

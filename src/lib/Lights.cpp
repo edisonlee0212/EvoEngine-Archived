@@ -160,6 +160,45 @@ void SpotLight::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target
 {
 }
 
+void ShadowMaps::Consume(glm::vec2 location, uint32_t resolution, uint32_t remainingSize,
+	std::vector<glm::uvec3>& results)
+{
+    assert(resolution > 1);
+    results.emplace_back(location.x, location.y, resolution / 2);
+    results.emplace_back( location.x + resolution / 2, location.y, resolution / 2);
+    results.emplace_back(location.x, location.y + resolution / 2, resolution / 2);
+    results.emplace_back(location.x + resolution / 2, location.y + resolution / 2, resolution / 2);
+    if(remainingSize > 4)
+    {
+        results.pop_back();
+        Consume({ location.x + resolution / 2, location.y + resolution / 2 },
+            resolution / 2, remainingSize - 3, results);
+    }
+}
+
+void ShadowMaps::AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results)
+{
+    results.clear();
+    if(size == 1)
+    {
+        results.emplace_back(0, 0, maxResolution);
+    }
+    else {
+        results.emplace_back(0, 0, maxResolution / 2);
+        results.emplace_back(maxResolution / 2, 0, maxResolution / 2);
+        results.emplace_back(0, maxResolution / 2, maxResolution / 2);
+        results.emplace_back(maxResolution / 2, maxResolution / 2, maxResolution / 2);
+        if (size > 4) {
+            results.pop_back();
+            Consume(
+                { maxResolution / 2, maxResolution / 2 },
+                maxResolution / 2,
+                size - 3,
+                results);
+        }
+    }
+}
+
 ShadowMaps::ShadowMaps()
 {
     m_lightingDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("LIGHTING_LAYOUT"));

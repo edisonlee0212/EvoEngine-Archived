@@ -95,9 +95,6 @@ namespace EvoEngine
 
     class ShadowMaps
     {
-        
-        
-
         std::shared_ptr<Image> m_directionalLightShadowMap = {};
         std::shared_ptr<ImageView> m_directionalLightShadowMapView = {};
         std::shared_ptr<Sampler> m_directionalShadowMapSampler = {};
@@ -112,7 +109,13 @@ namespace EvoEngine
         friend class RenderLayer;
 
         std::shared_ptr<DescriptorSet> m_lightingDescriptorSet = VK_NULL_HANDLE;
+
+        static void Consume(glm::vec2 location, uint32_t resolution, uint32_t remainingSize, std::vector<glm::uvec3>& results);
+
     public:
+
+        static void AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results);
+
         ShadowMaps();
         void Initialize();
         [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo() const;
