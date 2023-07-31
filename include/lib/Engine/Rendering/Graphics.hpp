@@ -106,6 +106,7 @@ namespace EvoEngine
 		void SwapChainSwapImage();
 		void SubmitPresent();
 		static void Initialize();
+		static void PostResourceLoadingInitialization();
 		static void Destroy();
 		static void PreUpdate();
 		static void LateUpdate();
@@ -117,6 +118,8 @@ namespace EvoEngine
 		
 		std::unordered_map<std::string, std::shared_ptr<GraphicsPipeline>> m_graphicsPipelines;
 		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
+		void CreateGraphicsPipelines() const;
+		void PrepareDescriptorSetLayouts() const;
 
 	public:
 		static void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
@@ -148,8 +151,6 @@ namespace EvoEngine
 			inline const static uint32_t m_directionalLightShadowMapResolution = 1024;
 			inline const static uint32_t m_pointLightShadowMapResolution = 1024;
 			inline const static uint32_t m_spotLightShadowMapResolution = 1024;
-
-			inline const static uint32_t m_cubemapResolution = 1024;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);
@@ -162,7 +163,6 @@ namespace EvoEngine
 		class ImageFormats
 		{
 		public:
-			inline const static VkFormat m_texture2D = VK_FORMAT_R8G8B8A8_SRGB;
 			inline const static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline const static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline const static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;

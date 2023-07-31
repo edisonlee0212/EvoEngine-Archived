@@ -226,6 +226,9 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	TransformGraph::Initialize();
 	Graphics::Initialize();
 	Resources::Initialize();
+	Graphics::PostResourceLoadingInitialization();
+	Resources::LateInitialization();
+
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();

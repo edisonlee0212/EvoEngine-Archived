@@ -108,11 +108,12 @@ namespace EvoEngine
         std::shared_ptr<Sampler> m_spotLightShadowMapSampler = {};
         friend class RenderLayer;
 
-        std::shared_ptr<DescriptorSet> m_lightingDescriptorSet = VK_NULL_HANDLE;
+        
 
         static void Consume(glm::vec2 location, uint32_t resolution, uint32_t remainingSize, std::vector<glm::uvec3>& results);
 
     public:
+        std::shared_ptr<DescriptorSet> m_lightingDescriptorSet = VK_NULL_HANDLE;
 
         static void AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results);
 

@@ -39,19 +39,16 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
 	float actualGamma = 1.0f;
-	m_hdr = false;
 	if (path.extension() == ".hdr")
 	{
 		actualGamma = 2.2f;
-		m_hdr = true;
 	}
 
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
 	void* data;
-	if(m_hdr) data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
-	else data = stbi_load(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+	data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
 		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
@@ -63,7 +60,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = m_hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
+		imageInfo.format = Graphics::ImageFormats::m_texture2DHDR;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -71,7 +68,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		m_image = std::make_unique<Image>(imageInfo);
-		const auto imageSize = width * height * 4 * (m_hdr ? sizeof(float): sizeof(byte));
+		const auto imageSize = width * height * 4 * sizeof(float);
 		VkBufferCreateInfo stagingBufferCreateInfo{};
 		stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		stagingBufferCreateInfo.size = imageSize;
@@ -98,7 +95,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = m_hdr ? Graphics::ImageFormats::m_texture2DHDR : Graphics::ImageFormats::m_texture2D;
+		viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;

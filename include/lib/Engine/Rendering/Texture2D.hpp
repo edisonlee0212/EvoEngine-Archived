@@ -19,7 +19,6 @@ namespace EvoEngine
 		std::unique_ptr<ImageView> m_imageView = {};
 		std::unique_ptr<Sampler> m_sampler = {};
 		ImTextureID m_imTextureId = VK_NULL_HANDLE;
-		bool m_hdr = false;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 		bool LoadInternal(const std::filesystem::path& path) override;

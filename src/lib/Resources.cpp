@@ -1,4 +1,6 @@
 #include "Resources.hpp"
+
+#include "Cubemap.hpp"
 #include "RenderLayer.hpp"
 #include "Utilities.hpp"
 #include "ProjectManager.hpp"
@@ -381,7 +383,48 @@ void Resources::LoadPrimitives() const
 		const auto texPassThrough = CreateResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 		texPassThrough->SetVertices(attributes, vertices, triangles);
 	}
+	{
+		VertexAttributes attributes{};
+		Vertex vertex{};
+		std::vector<Vertex> vertices;
 
+		vertex.m_position = { -1, -1, -1 };
+		vertices.emplace_back(vertex);//0: 
+
+		vertex.m_position = { 1, 1, -1 };
+		vertices.emplace_back(vertex);//1: 
+
+		vertex.m_position = { 1, -1, -1};
+		vertices.emplace_back(vertex);//2: 
+
+		vertex.m_position = { -1, 1, -1};
+		vertices.emplace_back(vertex);//3: 
+
+
+		vertex.m_position = { -1, -1, 1 };
+		vertices.emplace_back(vertex);//4: 
+
+		vertex.m_position = {1, -1,1 };
+		vertices.emplace_back(vertex);//5: 
+
+		vertex.m_position = { 1, 1, 1 };
+		vertices.emplace_back(vertex);//6: 
+
+		vertex.m_position = { -1, 1, 1 };
+		vertices.emplace_back(vertex);//7: 
+
+
+		std::vector<glm::uvec3> triangles = {
+			{0,1,2}, {1, 0, 3},//OK
+			{4,5,6}, {6, 7, 4},//OK
+			{7,3,0}, {0, 4, 7},
+			{6,2,1}, {2, 6, 5},
+			{0,2,5}, {5, 4, 0},
+			{3,6,1}, {6, 3, 7},
+		};
+		const auto renderingCube = CreateResource<Mesh>("PRIMITIVE_RENDERING_CUBE");
+		renderingCube->SetVertices(attributes, vertices, triangles);
+	}
 	{
 		const auto quad = CreateResource<Mesh>("PRIMITIVE_QUAD");
 		quad->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/quad.uemesh");
@@ -430,6 +473,20 @@ void Resources::Initialize()
 
 	const auto missingTexture = CreateResource<Texture2D>("TEXTURE_MISSING");
 	missingTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/texture-missing.png");
+
+}
+
+void Resources::LateInitialization()
+{
+	const auto defaultSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_TEXTURE");
+	defaultSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
+	const auto defaultSkybox = CreateResource<Cubemap>("DEFAULT_SKYBOX");
+	defaultSkybox->ConvertFromEquirectangularTexture(defaultSkyboxTexture);
+
+	const auto defaultBlurredSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_BLURRED_TEXTURE");
+	defaultBlurredSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_Env.hdr");
+	const auto defaultSkyboxBlurred = CreateResource<Cubemap>("DEFAULT_SKYBOX_BLURRED");
+	defaultSkyboxBlurred->ConvertFromEquirectangularTexture(defaultBlurredSkyboxTexture);
 }
 
 Handle Resources::GenerateNewHandle()

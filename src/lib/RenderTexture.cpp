@@ -15,6 +15,8 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_stencilImageView.reset();
 	m_depthStencilImage.reset();
 
+	int layerCount = imageViewType == VK_IMAGE_VIEW_TYPE_CUBE ? 6 : 1;
+
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	switch (imageViewType)
@@ -32,13 +34,13 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		break;
 	case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.imageType = VK_IMAGE_TYPE_1D;
 		break;
 	case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-		imageInfo.imageType = VK_IMAGE_TYPE_3D;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		break;
 	case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-		imageInfo.imageType = VK_IMAGE_TYPE_3D;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		break;
 	case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
 		EVOENGINE_ERROR("Wrong imageViewType!");
@@ -47,7 +49,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	imageInfo.extent = extent;
 	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = 1;
+	imageInfo.arrayLayers = layerCount;
 	imageInfo.format = Graphics::ImageFormats::m_renderTextureColor;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -72,7 +74,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.layerCount = layerCount;
 
 	m_colorImageView = std::make_shared<ImageView>(viewInfo);
 
@@ -81,7 +83,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthStencilInfo.imageType = imageInfo.imageType;
 	depthStencilInfo.extent = extent;
 	depthStencilInfo.mipLevels = 1;
-	depthStencilInfo.arrayLayers = 1;
+	depthStencilInfo.arrayLayers = layerCount;
 	depthStencilInfo.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
 	depthStencilInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthStencilInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -105,7 +107,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthViewInfo.subresourceRange.baseMipLevel = 0;
 	depthViewInfo.subresourceRange.levelCount = 1;
 	depthViewInfo.subresourceRange.baseArrayLayer = 0;
-	depthViewInfo.subresourceRange.layerCount = 1;
+	depthViewInfo.subresourceRange.layerCount = layerCount;
 
 	m_depthImageView = std::make_shared<ImageView>(depthViewInfo);
 
@@ -118,7 +120,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	stencilViewInfo.subresourceRange.baseMipLevel = 0;
 	stencilViewInfo.subresourceRange.levelCount = 1;
 	stencilViewInfo.subresourceRange.baseArrayLayer = 0;
-	stencilViewInfo.subresourceRange.layerCount = 1;
+	stencilViewInfo.subresourceRange.layerCount = layerCount;
 
 	m_stencilImageView = std::make_shared<ImageView>(stencilViewInfo);
 

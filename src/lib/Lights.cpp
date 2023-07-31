@@ -371,32 +371,21 @@ void ShadowMaps::Initialize()
 
     {
         VkDescriptorImageInfo imageInfo{};
-        VkWriteDescriptorSet writeInfo{};
         auto renderLayer = Application::GetLayer<RenderLayer>();
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = renderLayer->m_environmentalBRDFView->GetVkImageView();
         imageInfo.sampler = renderLayer->m_environmentalBRDFSampler->GetVkSampler();
 
-        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeInfo.dstSet = m_lightingDescriptorSet->GetVkDescriptorSet();
-        writeInfo.dstBinding = 18;
-        writeInfo.dstArrayElement = 0;
-        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeInfo.descriptorCount = 1;
-        writeInfo.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
         imageInfo.imageView = m_directionalLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_directionalShadowMapSampler->GetVkSampler();
-        writeInfo.dstBinding = 19;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
         imageInfo.imageView = m_pointLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_pointLightShadowMapSampler->GetVkSampler();
-        writeInfo.dstBinding = 20;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
         imageInfo.imageView = m_spotLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_spotLightShadowMapSampler->GetVkSampler();
-        writeInfo.dstBinding = 21;
-        vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(21, imageInfo);
     }
 }
 

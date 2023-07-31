@@ -106,8 +106,7 @@ namespace EvoEngine
 		
 
 		void PreparePointAndSpotLightShadowMap();
-		void CreateGraphicsPipelines();
-		void PrepareDescriptorSetLayouts();
+		
 		void PrepareEnvironmentalBrdfLut();
 
 	public:

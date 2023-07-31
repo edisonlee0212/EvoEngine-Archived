@@ -3,7 +3,7 @@
 #include "Application.hpp"
 #include "Utilities.hpp"
 #include "WindowLayer.hpp"
-
+#include "Shader.hpp"
 #include "Mesh.hpp"
 #include "ProjectManager.hpp"
 #include "Vertex.hpp"
@@ -171,7 +171,7 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = targetImage;
-	if (imageFormat == ImageFormats::m_texture2D || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
+	if (imageFormat == ImageFormats::m_texture2DHDR || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
@@ -1130,6 +1130,190 @@ void Graphics::SubmitPresent()
 
 #pragma endregion
 
+void Graphics::PrepareDescriptorSetLayouts() const
+{
+	const auto perFrameLayout = std::make_shared<DescriptorSetLayout>();
+	perFrameLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->Initialize();
+	RegisterDescriptorSetLayout("PER_FRAME_LAYOUT", perFrameLayout);
+
+	const auto pbrTextureLayout = std::make_shared<DescriptorSetLayout>();
+	pbrTextureLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	pbrTextureLayout->Initialize();
+	RegisterDescriptorSetLayout("PBR_TEXTURE_LAYOUT", pbrTextureLayout);
+
+	const auto cameraGBufferLayout = std::make_shared<DescriptorSetLayout>();
+	cameraGBufferLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->Initialize();
+	RegisterDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT", cameraGBufferLayout);
+
+	const auto lightLayout = std::make_shared<DescriptorSetLayout>();
+	lightLayout->PushDescriptorBinding(15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->Initialize();
+	RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);
+
+	const auto equirectangularToCubeLayout = std::make_shared<DescriptorSetLayout>();
+	equirectangularToCubeLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	equirectangularToCubeLayout->Initialize();
+	RegisterDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT", equirectangularToCubeLayout);
+}
+
+void Graphics::CreateGraphicsPipelines() const
+{
+	auto perFrameLayout = GetDescriptorSetLayout("PER_FRAME_LAYOUT");
+	auto pbrTextureLayout = GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT");
+	auto cameraGBufferLayout = GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT");
+	auto lightingLayout = GetDescriptorSetLayout("LIGHTING_LAYOUT");
+	{
+		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
+		standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
+		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
+
+		standardDeferredPrepass->m_depthAttachmentFormat = ImageFormats::m_gBufferDepth;
+		standardDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		standardDeferredPrepass->m_colorAttachmentFormats = { 3, ImageFormats::m_gBufferColor };
+
+		auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		standardDeferredPrepass->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS", standardDeferredPrepass);
+	}
+	{
+		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
+		standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+		standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
+		standardDeferredLighting->m_geometryType = GeometryType::Mesh;
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
+		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(lightingLayout);
+
+		standardDeferredLighting->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLighting->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+
+		standardDeferredLighting->m_colorAttachmentFormats = { 1, ImageFormats::m_renderTextureColor };
+
+		auto& pushConstantRange = standardDeferredLighting->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		standardDeferredLighting->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_DEFERRED_LIGHTING", standardDeferredLighting);
+	}
+	{
+		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
+		directionalLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
+		directionalLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM"));
+		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
+		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		directionalLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		directionalLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = directionalLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		directionalLightShadowMap->PreparePipeline();
+		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP", directionalLightShadowMap);
+	}
+	{
+		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
+		pointLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
+		pointLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("POINT_LIGHT_SHADOW_MAP_GEOM"));
+		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
+		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		pointLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		pointLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = pointLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		pointLightShadowMap->PreparePipeline();
+		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP", pointLightShadowMap);
+	}
+	{
+		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
+		spotLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("SPOT_LIGHT_SHADOW_MAP_VERT"));
+		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		spotLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		spotLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		spotLightShadowMap->PreparePipeline();
+		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP", spotLightShadowMap);
+	}
+	{
+		const auto brdfLut = std::make_shared<GraphicsPipeline>();
+		brdfLut->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+		brdfLut->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("ENVIRONMENTAL_MAP_BRDF_FRAG"));
+		brdfLut->m_geometryType = GeometryType::Mesh;
+
+		brdfLut->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		brdfLut->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+
+		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
+
+		brdfLut->PreparePipeline();
+		RegisterGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF", brdfLut);
+	}
+	{
+		const auto equirectangularToCubemap = std::make_shared<GraphicsPipeline>();
+		equirectangularToCubemap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
+		equirectangularToCubemap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG"));
+		equirectangularToCubemap->m_geometryType = GeometryType::Mesh;
+
+		equirectangularToCubemap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		equirectangularToCubemap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		equirectangularToCubemap->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2DHDR };
+		equirectangularToCubemap->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT"));
+
+		auto& pushConstantRange = equirectangularToCubemap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(glm::mat4) * 2;
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		equirectangularToCubemap->PreparePipeline();
+		RegisterGraphicsPipeline("EQUIRECTANGULAR_TO_CUBEMAP", equirectangularToCubemap);
+	}
+}
+
 void Graphics::Initialize()
 {
 	auto& graphics = GetInstance();
@@ -1233,7 +1417,16 @@ void Graphics::Initialize()
 		//clear font textures from cpu data
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
+
+
 	
+}
+
+void Graphics::PostResourceLoadingInitialization()
+{
+	const auto& graphics = GetInstance();
+	graphics.PrepareDescriptorSetLayouts();
+	graphics.CreateGraphicsPipelines();
 }
 
 void Graphics::Destroy()
