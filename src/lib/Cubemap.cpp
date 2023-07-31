@@ -12,24 +12,20 @@ struct EquirectangularToCubemapConstant
 	glm::mat4 m_projection;
 	glm::mat4 m_view;
 };
-void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture)
+
+void Cubemap::Initialize(uint32_t resolution)
 {
-	if (!targetTexture->m_image) {
-		EVOENGINE_ERROR("Target texture doesn't contain any content!");
-		return;
-	}
-#pragma region Create image
 	m_sampler.reset();
 	m_imageView.reset();
 	m_image.reset();
 
-	m_debugImageViews.clear();
-	size_t cubemapResolution = glm::min(targetTexture->m_image->GetExtent().height, targetTexture->m_image->GetExtent().width);
+	m_faceViews.clear();
+
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = cubemapResolution;
-	imageInfo.extent.height = cubemapResolution;
+	imageInfo.extent.width = resolution;
+	imageInfo.extent.height = resolution;
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 6;
@@ -72,14 +68,53 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	m_sampler = std::make_unique<Sampler>(samplerInfo);
-#pragma endregion
 
+#pragma endregion
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
+		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
+	);
+
+	for (int i = 0; i < 6; i++)
+	{
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_image->GetVkImage();
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = i;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		m_faceViews.emplace_back(std::make_shared<ImageView>(viewInfo));
+	}
+
+	m_imTextureIds.resize(6);
+	for (int i = 0; i < 6; i++)
+	{
+		Application::GetLayer<EditorLayer>()->UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
+}
+
+void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture)
+{
+	if (!m_image) Initialize(1024);
+
+	if (!targetTexture->m_image) {
+		EVOENGINE_ERROR("Target texture doesn't contain any content!");
+		return;
+	}
+#pragma region Create image
+	
 #pragma region Depth
 	VkImageCreateInfo depthImageInfo{};
 	depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	depthImageInfo.imageType = imageInfo.imageType;
-	depthImageInfo.extent.width = cubemapResolution;
-	depthImageInfo.extent.height = cubemapResolution;
+	depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
+	depthImageInfo.extent.width = m_image->GetExtent().width;
+	depthImageInfo.extent.height = m_image->GetExtent().height;
 	depthImageInfo.extent.depth = 1;
 	depthImageInfo.mipLevels = 1;
 	depthImageInfo.arrayLayers = 1;
@@ -118,21 +153,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	
 	tempSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
 
-	for(int i = 0; i < 6; i++)
-	{
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_image->GetVkImage();
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = i;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		m_debugImageViews.emplace_back(std::make_shared<ImageView>(viewInfo));
-	}
+	
 	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	glm::mat4 captureViews[] = {
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
@@ -149,20 +170,20 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
 			renderArea.offset = { 0, 0 };
-			renderArea.extent.width = cubemapResolution;
-			renderArea.extent.height = cubemapResolution;
+			renderArea.extent.width = m_image->GetExtent().width;
+			renderArea.extent.height = m_image->GetExtent().height;
 			VkViewport viewport;
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = cubemapResolution;
-			viewport.height = cubemapResolution;
+			viewport.width = m_image->GetExtent().width;
+			viewport.height = m_image->GetExtent().height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 
 			VkRect2D scissor;
 			scissor.offset = { 0, 0 };
-			scissor.extent.width = cubemapResolution;
-			scissor.extent.height = cubemapResolution;
+			scissor.extent.width = m_image->GetExtent().width;
+			scissor.extent.height = m_image->GetExtent().height;
 			equirectangularToCubemap->m_states.m_viewPort = viewport;
 			equirectangularToCubemap->m_states.m_scissor = scissor;
 #pragma endregion
@@ -176,7 +197,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 				attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 				attachment.clearValue = { 0, 0, 0, 1 };
-				attachment.imageView = m_debugImageViews[i]->GetVkImageView();
+				attachment.imageView = m_faceViews[i]->GetVkImageView();
 
 				VkRenderingAttachmentInfo depthAttachment{};
 				depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -221,11 +242,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
-	m_imTextureIds.resize(6);
-	for(int i = 0; i < 6; i++)
-	{
-		Application::GetLayer<EditorLayer>()->UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_debugImageViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	}
+	
 }
 void Cubemap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {

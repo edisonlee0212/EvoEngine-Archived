@@ -102,15 +102,15 @@ namespace EvoEngine
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-		
-		
+
+		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
 		void PreparePointAndSpotLightShadowMap();
 		
 		void PrepareEnvironmentalBrdfLut();
 
 	public:
-		
+		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 300;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };

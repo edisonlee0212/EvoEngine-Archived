@@ -183,7 +183,57 @@ void RenderLayer::PreUpdate()
 	}
 }
 
+void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("View"))
+		{
+			ImGui::Checkbox("Render Settings", &m_enableRenderMenu);
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
 
+	if (m_enableRenderMenu)
+	{
+		ImGui::Begin("Render Settings");
+		ImGui::DragFloat("Gamma", &m_renderInfoBlock.m_gamma, 0.01f, 1.0f, 3.0f);
+		if (ImGui::CollapsingHeader("Shadow", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			if (ImGui::TreeNode("Distance"))
+			{
+				ImGui::DragFloat("Max shadow distance", &m_maxShadowDistance, 1.0f, 0.1f);
+				ImGui::DragFloat("Split 1", &m_shadowCascadeSplit[0], 0.01f, 0.0f, m_shadowCascadeSplit[1]);
+				ImGui::DragFloat(
+					"Split 2", &m_shadowCascadeSplit[1], 0.01f, m_shadowCascadeSplit[0], m_shadowCascadeSplit[2]);
+				ImGui::DragFloat(
+					"Split 3", &m_shadowCascadeSplit[2], 0.01f, m_shadowCascadeSplit[1], m_shadowCascadeSplit[3]);
+				ImGui::DragFloat("Split 4", &m_shadowCascadeSplit[3], 0.01f, m_shadowCascadeSplit[2], 1.0f);
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("PCSS"))
+			{
+				ImGui::DragInt("Blocker search side amount", &m_renderInfoBlock.m_blockerSearchAmount, 1, 1, 8);
+				ImGui::DragInt("PCF Sample Size", &m_renderInfoBlock.m_pcfSampleAmount, 1, 1, 64);
+				ImGui::TreePop();
+			}
+			ImGui::DragFloat("Seam fix ratio", &m_renderInfoBlock.m_seamFixRatio, 0.001f, 0.0f, 0.1f);
+			ImGui::Checkbox("Stable fit", &m_stableFit);
+		}
+
+		if (ImGui::TreeNodeEx("Strands settings", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::DragFloat("Curve subdivision factor", &m_renderInfoBlock.m_strandsSubdivisionXFactor, 1.0f, 1.0f, 1000.0f);
+			ImGui::DragFloat("Ring subdivision factor", &m_renderInfoBlock.m_strandsSubdivisionYFactor, 1.0f, 1.0f, 1000.0f);
+			ImGui::DragInt("Max curve subdivision", &m_renderInfoBlock.m_strandsSubdivisionMaxX, 1, 1, 15);
+			ImGui::DragInt("Max ring subdivision", &m_renderInfoBlock.m_strandsSubdivisionMaxY, 1, 1, 15);
+
+			ImGui::TreePop();
+		}
+		ImGui::End();
+	}
+}
 
 
 uint32_t RenderLayer::GetCameraIndex(const Handle& handle)
