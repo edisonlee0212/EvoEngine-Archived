@@ -84,7 +84,7 @@ vec3 EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(vec3 albedo, vec3 normal, vec3 viewDi
 	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
 	const float MAX_REFLECTION_LOD = 4.0;
 	//vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.w == 1.0 ? EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY : pow(textureLod(EE_ENVIRONMENTAL_PREFILERED, R, roughness * MAX_REFLECTION_LOD).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
-	vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * EE_ENVIRONMENTAL_LIGHTING_INTENSITY;
+	vec3 prefilteredColor = EE_ENVIRONMENTAL_BACKGROUND_COLOR.xyz * pow(EE_ENVIRONMENTAL_LIGHTING_INTENSITY, EE_GAMMA);
 	vec2 brdf = texture(EE_ENVIRONMENTAL_BRDFLUT, vec2(max(dot(normal, viewDir), 0.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 	vec3 ambient = kD * diffuse + specular;
@@ -161,7 +161,7 @@ vec3 EE_FUNC_DIRECTIONAL_LIGHT(vec3 albedo, float specular, int i, vec3 normal, 
 	DirectionalLight light = EE_DIRECTIONAL_LIGHTS[i];
 	vec3 lightDir = normalize(-light.direction);
 	vec3 H = normalize(viewDir + lightDir);
-	vec3 radiance = light.diffuse.xyz;
+	vec3 radiance = pow(light.diffuse.xyz, vec3(EE_GAMMA));
 	float normalDF = EE_FUNC_DISTRIBUTION_GGX(normal, H, roughness);
 	float G = EE_FUNC_GEOMETRY_SMITH(normal, viewDir, lightDir, roughness);
 	vec3 F = EE_FUNC_FRESNEL_SCHLICK(clamp(dot(H, viewDir), 0.0, 1.0), F0);
@@ -183,7 +183,7 @@ vec3 EE_FUNC_POINT_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 f
 	vec3 H = normalize(viewDir + lightDir);
 	float distance = length(light.position - fragPos);
 	float attenuation = 1.0 / (light.constantLinearQuadFarPlane.x + light.constantLinearQuadFarPlane.y * distance + light.constantLinearQuadFarPlane.z * (distance * distance));
-	vec3 radiance = light.diffuse.xyz * attenuation;
+	vec3 radiance = pow(light.diffuse.xyz, vec3(EE_GAMMA)) * attenuation;
 	float normalDF = EE_FUNC_DISTRIBUTION_GGX(normal, H, roughness);
 	float G = EE_FUNC_GEOMETRY_SMITH(normal, viewDir, lightDir, roughness);
 	vec3 F = EE_FUNC_FRESNEL_SCHLICK(clamp(dot(H, viewDir), 0.0, 1.0), F0);
@@ -211,7 +211,7 @@ vec3 EE_FUNC_SPOT_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 fr
 	float epsilon = light.cutOffOuterCutOffLightSizeBias.x - light.cutOffOuterCutOffLightSizeBias.y;
 	float intensity = clamp((theta - light.cutOffOuterCutOffLightSizeBias.y) / epsilon, 0.0, 1.0);
 
-	vec3 radiance = light.diffuse.xyz * attenuation * intensity;
+	vec3 radiance = pow(light.diffuse.xyz, vec3(EE_GAMMA)) * attenuation * intensity;
 	float normalDF = EE_FUNC_DISTRIBUTION_GGX(normal, H, roughness);
 	float G = EE_FUNC_GEOMETRY_SMITH(normal, viewDir, lightDir, roughness);
 	vec3 F = EE_FUNC_FRESNEL_SCHLICK(clamp(dot(H, viewDir), 0.0, 1.0), F0);

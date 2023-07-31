@@ -17,6 +17,7 @@ void main()
     vec2 texCoord = fs_in.TexCoord;
     vec4 albedo = materialProperties.EE_PBR_ALBEDO;
     if (materialProperties.EE_ALBEDO_MAP_ENABLED) albedo = texture(EE_ALBEDO_MAP, texCoord);
+    if (albedo.a < 0.1) discard;
 
     vec3 B = cross(fs_in.Normal, fs_in.Tangent);
     mat3 TBN = mat3(fs_in.Tangent, B, fs_in.Normal);
@@ -34,9 +35,9 @@ void main()
 
     // also store the per-fragment normals into the gbuffer
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
-    outNormal.a = 1.0;
+    outNormal.a = EE_INSTANCE_INDEX;
     outAlbedo = albedo;
-    outAlbedo.a = 1.0;
+    outAlbedo.a = EE_MATERIAL_INDEX;
 
     outMaterial = vec4(metallic, roughness, emission, ao);
 }

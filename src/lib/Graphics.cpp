@@ -848,6 +848,7 @@ std::string Graphics::StringifyResultVk(const VkResult& result)
 	default:
 		return "Unknown Vulkan error";
 	}
+
 }
 
 

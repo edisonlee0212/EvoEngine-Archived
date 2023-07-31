@@ -38,11 +38,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
-	float actualGamma = 1.0f;
-	if (path.extension() == ".hdr")
-	{
-		actualGamma = 2.2f;
-	}
+
+
+	float actualGamma = 2.2f;
 
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
@@ -134,7 +132,6 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		return false;
 	}
 	stbi_image_free(data);
-	m_gamma = actualGamma;
 	return true;
 }
 

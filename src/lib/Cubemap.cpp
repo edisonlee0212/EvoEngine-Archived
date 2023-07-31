@@ -11,6 +11,7 @@ struct EquirectangularToCubemapConstant
 {
 	glm::mat4 m_projection;
 	glm::mat4 m_view;
+
 };
 
 void Cubemap::Initialize(uint32_t resolution)
@@ -18,6 +19,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	m_sampler.reset();
 	m_imageView.reset();
 	m_image.reset();
+
 
 	m_faceViews.clear();
 

@@ -576,8 +576,8 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 				auto& viewPort = m_directionalLightInfoBlocks[blockIndex].m_viewPort;
 				viewPort.x = viewPortResults[allocationIndex].x;
 				viewPort.y = viewPortResults[allocationIndex].y;
-				viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
-				viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+				viewPort.z = viewPortResults[allocationIndex].z;
+				viewPort.w = viewPortResults[allocationIndex].z;
 				allocationIndex++;
 			}
 			m_renderInfoBlock.m_directionalLightSize = directionalLightIndex;
@@ -652,8 +652,9 @@ void RenderLayer::CollectPointLights()
 			auto& viewPort = m_pointLightInfoBlocks[pointLightIndex.second].m_viewPort;
 			viewPort.x = viewPortResults[allocationIndex].x;
 			viewPort.y = viewPortResults[allocationIndex].y;
-			viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
-			viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+			viewPort.z = viewPortResults[allocationIndex].z;
+			viewPort.w = viewPortResults[allocationIndex].z;
+
 			allocationIndex++;
 		}
 	}
@@ -720,8 +721,8 @@ void RenderLayer::CollectSpotLights()
 			auto& viewPort = m_spotLightInfoBlocks[spotLightIndex.second].m_viewPort;
 			viewPort.x = viewPortResults[allocationIndex].x;
 			viewPort.y = viewPortResults[allocationIndex].y;
-			viewPort.z = viewPortResults[allocationIndex].z + viewPort.x;
-			viewPort.w = viewPortResults[allocationIndex].z + viewPort.y;
+			viewPort.z = viewPortResults[allocationIndex].z;
+			viewPort.w = viewPortResults[allocationIndex].z;
 			allocationIndex++;
 		}
 	}

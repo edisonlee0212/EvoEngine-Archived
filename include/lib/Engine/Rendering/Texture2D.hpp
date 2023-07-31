@@ -24,7 +24,6 @@ namespace EvoEngine
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-		float m_gamma = 1.0f;
 		[[nodiscard]] glm::vec2 GetResolution() const;
 		void StoreToPng(
 			const std::string& path,

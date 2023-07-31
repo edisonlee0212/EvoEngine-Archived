@@ -197,6 +197,7 @@ void ShadowMaps::AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vecto
                 results);
         }
     }
+    results.resize(size);
 }
 
 ShadowMaps::ShadowMaps()
