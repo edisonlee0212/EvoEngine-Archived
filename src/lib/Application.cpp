@@ -132,14 +132,14 @@ void Application::LateUpdateInternal()
 			ImGui::EndMainMenuBar();
 		}
 
-		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer)
 			{
 				constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 				VkRect2D renderArea;
 				renderArea.offset = { 0, 0 };
 				renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
 				Graphics::TransitImageLayout(commandBuffer,
-					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
 					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 				VkRenderingAttachmentInfo colorAttachmentInfo{};
@@ -164,7 +164,7 @@ void Application::LateUpdateInternal()
 
 				vkCmdEndRendering(commandBuffer);
 				Graphics::TransitImageLayout(commandBuffer,
-					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+					Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
 					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			});
 

@@ -3,7 +3,7 @@
 #include "Vertex.hpp"
 namespace EvoEngine
 {
-	class GraphicsGlobalStates;
+	class GraphicsPipelineStates;
 
 	enum class GeometryType
 	{
@@ -12,7 +12,7 @@ namespace EvoEngine
 	class IGeometry
 	{
 	public:
-		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState, bool enableMetrics = true) const = 0;
+		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const = 0;
 		//virtual void DrawInstanced(const std::vector<glm::mat4>& matrices) const {}
 		//virtual void DrawInstanced(const std::vector<GlobalTransform>& matrices) const {}
 		//virtual void DrawInstanced(const std::shared_ptr<ParticleMatrices>& matrices) const {}

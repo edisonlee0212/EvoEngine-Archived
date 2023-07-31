@@ -1,10 +1,7 @@
 #pragma once
-#include "GraphicsPipeline.hpp"
-#include "Transform.hpp"
-#include "Vertex.hpp"
 namespace EvoEngine
 {
-	class GraphicsGlobalStates
+	class GraphicsPipelineStates
 	{
 		friend class Graphics;
 		VkViewport m_viewPortApplied = {};

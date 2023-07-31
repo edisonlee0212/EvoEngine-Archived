@@ -115,6 +115,13 @@ void RenderLayer::PreUpdate()
 	CollectSpotLights();
 
 	//The following data stays consistent during entire frame.
+
+	{
+		m_renderInfoBlock.m_splitDistances[0] = m_maxShadowDistance * m_shadowCascadeSplit[0];
+		m_renderInfoBlock.m_splitDistances[1] = m_maxShadowDistance * m_shadowCascadeSplit[1];
+		m_renderInfoBlock.m_splitDistances[2] = m_maxShadowDistance * m_shadowCascadeSplit[2];
+		m_renderInfoBlock.m_splitDistances[3] = m_maxShadowDistance * m_shadowCascadeSplit[3];
+	}
 	UploadRenderInfoBlock(m_renderInfoBlock);
 	UploadEnvironmentalInfoBlock(m_environmentInfoBlock);
 
@@ -157,7 +164,7 @@ void RenderLayer::CreateGraphicsPipelines()
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
 
 		standardDeferredPrepass->m_depthAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
-		standardDeferredPrepass->m_stencilAttachmentFormat = Graphics::ImageFormats::m_gBufferDepth;
+		standardDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 		standardDeferredPrepass->m_colorAttachmentFormats = { 3, Graphics::ImageFormats::m_gBufferColor };
 
 		auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
@@ -197,8 +204,8 @@ void RenderLayer::CreateGraphicsPipelines()
 		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		directionalLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
-		directionalLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		directionalLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_shadowMap;
+		directionalLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = directionalLightShadowMap->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -215,8 +222,8 @@ void RenderLayer::CreateGraphicsPipelines()
 		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		pointLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
-		pointLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		pointLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_shadowMap;
+		pointLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = pointLightShadowMap->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -232,8 +239,8 @@ void RenderLayer::CreateGraphicsPipelines()
 		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
 		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		spotLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
-		spotLightShadowMap->m_stencilAttachmentFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		spotLightShadowMap->m_depthAttachmentFormat = Graphics::ImageFormats::m_shadowMap;
+		spotLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -540,7 +547,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 					lightPos = center - lightDir * planeDistance;
 					lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::normalize(rotation * glm::vec3(0, 1, 0)));
 					lightProjection = glm::ortho(-max, max, -max, max, 0.0f, planeDistance * 2.0f);
-					switch (blockIndex)
+					switch (directionalLightIndex)
 					{
 					case 0:
 						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
@@ -764,7 +771,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 	const auto& pointLightShadowPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
 	const auto& spotLightShadowPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
 
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
@@ -785,25 +792,23 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
 
-			globalPipelineState.m_scissor = scissor;
+			pointLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_shadowMaps->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			auto depthAttachment = m_shadowMaps->GetPointLightDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 1;
+			renderInfo.layerCount = 6;
 			renderInfo.colorAttachmentCount = 0;
 			renderInfo.pColorAttachments = nullptr;
 			renderInfo.pDepthAttachment = &depthAttachment;
+			pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			pointLightShadowPipeline->m_states.m_viewPort = viewport;
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			pointLightShadowPipeline->Bind(commandBuffer);
 			pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.m_viewPort = viewport;
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
 			for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 			{
 				const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -811,8 +816,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 				viewport.y = pointLightInfoBlock.m_viewPort.y;
 				viewport.width = pointLightInfoBlock.m_viewPort.z;
 				viewport.height = pointLightInfoBlock.m_viewPort.w;
-				globalPipelineState.m_viewPort = viewport;
-				globalPipelineState.ApplyAllStates(commandBuffer);
+				pointLightShadowPipeline->m_states.m_viewPort = viewport;
 				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 					{}, [&](const RenderInstance& renderCommand)
 					{
@@ -827,7 +831,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states);
 							break;
 						}
 						}
@@ -852,7 +856,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
 
-			globalPipelineState.m_scissor = scissor;
+			spotLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			depthAttachment = m_shadowMaps->GetSpotLightDepthAttachmentInfo();
@@ -862,14 +866,12 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 			renderInfo.colorAttachmentCount = 0;
 			renderInfo.pColorAttachments = nullptr;
 			renderInfo.pDepthAttachment = &depthAttachment;
+			spotLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			spotLightShadowPipeline->m_states.m_viewPort = viewport;
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			spotLightShadowPipeline->Bind(commandBuffer);
 			spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.m_viewPort = viewport;
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
 			for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 			{
 				const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -877,8 +879,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 				viewport.y = spotLightInfoBlock.m_viewPort.y;
 				viewport.width = spotLightInfoBlock.m_viewPort.z;
 				viewport.height = spotLightInfoBlock.m_viewPort.w;
-				globalPipelineState.m_viewPort = viewport;
-				globalPipelineState.ApplyAllStates(commandBuffer);
+				spotLightShadowPipeline->m_states.m_viewPort = viewport;
 				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 					{}, [&](const RenderInstance& renderCommand)
 					{
@@ -892,7 +893,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 							spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states);
 							break;
 						}
 						}
@@ -1372,8 +1373,8 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 
 		m_environmentalBRDFSampler = std::make_shared<Sampler>(samplerInfo);
 	}
-	
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+	auto environmentalBrdfPipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
 		m_environmentalBRDFLut->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1392,8 +1393,8 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = brdfLutResolution;
 		scissor.extent.height = brdfLutResolution;
-		globalPipelineState.m_viewPort = viewport;
-		globalPipelineState.m_scissor = scissor;
+		environmentalBrdfPipeline->m_states.m_viewPort = viewport;
+		environmentalBrdfPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 #pragma region Lighting pass
 		{
@@ -1415,22 +1416,19 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			renderInfo.colorAttachmentCount = 1;
 			renderInfo.pColorAttachments = &attachment;
 			//renderInfo.pDepthAttachment = &depthAttachment;
-			
-			
-			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF")->Bind(commandBuffer);
-			globalPipelineState.m_depthTest = false;
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.m_colorBlendAttachmentStates.resize(1);
-			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+			environmentalBrdfPipeline->m_states.m_depthTest = false;
+			environmentalBrdfPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			environmentalBrdfPipeline->m_states.m_colorBlendAttachmentStates.resize(1);
+			for (auto& i : environmentalBrdfPipeline->m_states.m_colorBlendAttachmentStates)
 			{
 				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT;
 				i.blendEnable = VK_FALSE;
 			}
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			environmentalBrdfPipeline->Bind(commandBuffer);
 			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
 			mesh->Bind(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, globalPipelineState);
+			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states);
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
@@ -1477,7 +1475,7 @@ void RenderLayer::PrepareDescriptorSetLayouts()
 	lightLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->PushDescriptorBinding(21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	lightLayout->Initialize();
-	Graphics::RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);\
+	Graphics::RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);
 
 	const auto equirectangularToCubeLayout = std::make_shared<DescriptorSetLayout>();
 	equirectangularToCubeLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -1489,11 +1487,11 @@ void RenderLayer::PrepareDescriptorSetLayouts()
 
 void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 {
-	auto cameraIndex = GetCameraIndex(camera->GetHandle());
+	const int cameraIndex = GetCameraIndex(camera->GetHandle());
 
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
@@ -1514,24 +1512,24 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
 
-			globalPipelineState.m_scissor = scissor;
+			directionalLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_shadowMaps->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			const auto depthAttachment = m_shadowMaps->GetDirectionalLightDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 1;
+			renderInfo.layerCount = 4;
 			renderInfo.colorAttachmentCount = 0;
 			renderInfo.pColorAttachments = nullptr;
 			renderInfo.pDepthAttachment = &depthAttachment;
+			directionalLightShadowPipeline->m_states.m_viewPort = viewport;
+			directionalLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			directionalLightShadowPipeline->Bind(commandBuffer);
 			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			globalPipelineState.m_viewPort = viewport;
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			
 			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 			{
 				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i];
@@ -1539,8 +1537,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 				viewport.y = directionalLightInfoBlock.m_viewPort.y;
 				viewport.width = directionalLightInfoBlock.m_viewPort.z;
 				viewport.height = directionalLightInfoBlock.m_viewPort.w;
-				globalPipelineState.m_viewPort = viewport;
-				globalPipelineState.ApplyAllStates(commandBuffer);
+				directionalLightShadowPipeline->m_states.m_viewPort = viewport;
+				directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
 				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 					{}, [&](const RenderInstance& renderCommand)
 					{
@@ -1555,7 +1553,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, globalPipelineState);
+							mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states);
 							break;
 						}
 						}
@@ -1569,7 +1567,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 	const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
 	const auto& deferredLightingPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState) {
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
@@ -1587,8 +1585,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = camera->GetSize().x;
 		scissor.extent.height = camera->GetSize().y;
-		globalPipelineState.m_viewPort = viewport;
-		globalPipelineState.m_scissor = scissor;
+		
 #pragma endregion
 #pragma region Geometry pass
 		{
@@ -1603,19 +1600,18 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 			renderInfo.pDepthAttachment = &depthAttachment;
-
-			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			deferredPrepassPipeline->Bind(commandBuffer);
-			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+			deferredPrepassPipeline->m_states.m_viewPort = viewport;
+			deferredPrepassPipeline->m_states.m_scissor = scissor;
+			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates)
 			{
 				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 				i.blendEnable = VK_FALSE;
 			}
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredPrepassPipeline->Bind(commandBuffer);
+			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
 			m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 				{
@@ -1626,7 +1622,6 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 					switch (renderCommand.m_geometryType)
 					{
 					case RenderGeometryType::Mesh: {
-						globalPipelineState.ApplyAllStates(commandBuffer);
 						RenderInstancePushConstant pushConstant;
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_materialIndex = renderCommand.m_materialIndex;
@@ -1634,7 +1629,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 						mesh->Bind(commandBuffer);
-						mesh->DrawIndexed(commandBuffer, globalPipelineState);
+						mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states);
 						break;
 					}
 					}
@@ -1664,19 +1659,22 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			deferredLightingPipeline->Bind(commandBuffer);
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet->GetVkDescriptorSet());
-			globalPipelineState.m_depthTest = false;
-			globalPipelineState.m_colorBlendAttachmentStates.clear();
-			globalPipelineState.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+			deferredLightingPipeline->m_states.m_depthTest = false;
+			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : deferredLightingPipeline->m_states.m_colorBlendAttachmentStates)
 			{
 				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 				i.blendEnable = VK_FALSE;
 			}
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
+
+			deferredLightingPipeline->Bind(commandBuffer);
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet->GetVkDescriptorSet());
+
+			deferredLightingPipeline->m_states.m_viewPort = viewport;
+			deferredLightingPipeline->m_states.m_scissor = scissor;
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
 			pushConstant.m_materialIndex = 0;
@@ -1684,7 +1682,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
 			mesh->Bind(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, globalPipelineState, false);
+			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, false);
 			vkCmdEndRendering(commandBuffer);
 		}
 #pragma endregion

@@ -177,12 +177,12 @@ void ShadowMaps::Initialize()
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageInfo.imageType = VK_IMAGE_TYPE_3D;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.extent.width = Graphics::StorageSizes::m_directionalLightShadowMapResolution;
         imageInfo.extent.height = Graphics::StorageSizes::m_directionalLightShadowMapResolution;
-        imageInfo.extent.depth = 4;
+        imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
-        imageInfo.arrayLayers = 1;
+        imageInfo.arrayLayers = 4;
         imageInfo.format = Graphics::ImageFormats::m_shadowMap;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -201,7 +201,7 @@ void ShadowMaps::Initialize()
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.layerCount = 4;
 
         m_directionalLightShadowMapView = std::make_shared<ImageView>(viewInfo);
 
@@ -230,12 +230,12 @@ void ShadowMaps::Initialize()
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageInfo.imageType = VK_IMAGE_TYPE_3D;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.extent.width = Graphics::StorageSizes::m_pointLightShadowMapResolution;
         imageInfo.extent.height = Graphics::StorageSizes::m_pointLightShadowMapResolution;
-        imageInfo.extent.depth = 6;
+        imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
-        imageInfo.arrayLayers = 1;
+        imageInfo.arrayLayers = 6;
         imageInfo.format = Graphics::ImageFormats::m_shadowMap;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -254,7 +254,7 @@ void ShadowMaps::Initialize()
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
+        viewInfo.subresourceRange.layerCount = 6;
 
         m_pointLightShadowMapView = std::make_shared<ImageView>(viewInfo);
 

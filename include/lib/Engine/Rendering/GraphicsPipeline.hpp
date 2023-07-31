@@ -1,4 +1,5 @@
 #pragma once
+#include "GraphicsPipelineStates.hpp"
 #include "GraphicsResources.hpp"
 #include "IGeometry.hpp"
 namespace EvoEngine
@@ -112,12 +113,14 @@ namespace EvoEngine
 	{
 		friend class Graphics;
 		friend class RenderLayer;
-		friend class GraphicsGlobalStates;
+		friend class GraphicsPipelineStates;
 
 		std::unique_ptr<PipelineLayout> m_pipelineLayout = {};
 
 		VkPipeline m_vkGraphicsPipeline = VK_NULL_HANDLE;
 	public:
+		GraphicsPipelineStates m_states {};
+
 		std::vector<std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
 
 		std::shared_ptr<Shader> m_vertexShader;
@@ -137,7 +140,7 @@ namespace EvoEngine
 
 		void PreparePipeline();
 		[[nodiscard]] bool PipelineReady() const;
-		void Bind(VkCommandBuffer commandBuffer) const;
+		void Bind(VkCommandBuffer commandBuffer);
 		void BindDescriptorSet(VkCommandBuffer commandBuffer, uint32_t firstSet, VkDescriptorSet descriptorSet) const;
 		template<typename T>
 		void PushConstant(VkCommandBuffer commandBuffer, size_t rangeIndex, const T& data);

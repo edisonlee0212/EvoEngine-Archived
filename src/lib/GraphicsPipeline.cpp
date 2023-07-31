@@ -201,9 +201,10 @@ bool GraphicsPipeline::PipelineReady() const
 	return m_vkGraphicsPipeline != VK_NULL_HANDLE;;
 }
 
-void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer) const
+void GraphicsPipeline::Bind(const VkCommandBuffer commandBuffer)
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkGraphicsPipeline);
+	m_states.ApplyAllStates(commandBuffer, true);
 }
 
 void GraphicsPipeline::BindDescriptorSet(VkCommandBuffer commandBuffer, uint32_t firstSet, VkDescriptorSet descriptorSet) const

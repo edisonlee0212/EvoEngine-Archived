@@ -585,11 +585,11 @@ void EditorLayer::LateUpdate()
 	for (const auto& layer : layers) layer->OnInspect(Application::GetLayer<EditorLayer>());
 
 
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 			Graphics::EverythingBarrier(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
-			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
 
 			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
@@ -620,7 +620,7 @@ void EditorLayer::LateUpdate()
 			
 			vkCmdEndRendering(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
-				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(),
+				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
 				VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		
 			

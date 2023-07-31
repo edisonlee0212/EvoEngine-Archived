@@ -420,10 +420,10 @@ Image::~Image()
 }
 
 
-void Image::TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
+void Image::TransitImageLayout(const VkCommandBuffer commandBuffer, const VkImageLayout newLayout)
 {
 	if (newLayout == m_layout) return;
-	Graphics::TransitImageLayout(commandBuffer, m_vkImage, m_format, m_layout, newLayout, m_mipLevels);
+	Graphics::TransitImageLayout(commandBuffer, m_vkImage, m_format, m_arrayLayers, m_layout, newLayout, m_mipLevels);
 	m_layout = newLayout;
 }
 
@@ -479,7 +479,7 @@ Buffer::~Buffer()
 
 void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
 {
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			VkBufferCopy copyRegion{};
 			copyRegion.size = size;

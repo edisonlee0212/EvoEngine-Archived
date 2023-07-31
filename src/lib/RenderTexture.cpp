@@ -56,7 +56,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	m_colorImage = std::make_shared<Image>(imageInfo);
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
@@ -90,7 +90,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthStencilInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	m_depthStencilImage = std::make_shared<Image>(depthStencilInfo);
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			m_depthStencilImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});

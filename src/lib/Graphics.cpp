@@ -161,7 +161,7 @@ void Graphics::RegisterDescriptorSetLayout(const std::string& name,
 	graphics.m_descriptorSetLayouts[name] = descriptorSetLayout;
 }
 
-void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout,
+void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, uint32_t layerCount, VkImageLayout oldLayout,
 	VkImageLayout newLayout, uint32_t mipLevels)
 {
 	VkImageMemoryBarrier barrier{};
@@ -175,13 +175,17 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
-	else if (imageFormat == ImageFormats::m_gBufferDepth || imageFormat == ImageFormats::m_renderTextureDepthStencil)
+	else if (imageFormat == ImageFormats::m_renderTextureDepthStencil)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	}else if(imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	}else
+	}else if(imageFormat == ImageFormats::m_gBufferDepth || imageFormat == ImageFormats::m_shadowMap)
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
@@ -189,7 +193,7 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = mipLevels;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layerCount;
 
 	VkPipelineStageFlags sourceStage;
 	VkPipelineStageFlags destinationStage;
@@ -219,15 +223,9 @@ size_t Graphics::GetMaxShadowCascadeAmount()
 	return graphics.m_maxShadowCascadeAmount;
 }
 
-GraphicsGlobalStates& Graphics::GlobalState()
+void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action)
 {
-	auto& graphics = GetInstance();
-	return graphics.m_globalPipelineState;
-}
-
-void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
-{
-	auto& graphics = GetInstance();
+	const auto& graphics = GetInstance();
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -242,7 +240,7 @@ void Graphics::ImmediateSubmit(const std::function<void(VkCommandBuffer commandB
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-	action(commandBuffer, graphics.m_globalPipelineState);
+	action(commandBuffer);
 	vkEndCommandBuffer(commandBuffer);
 
 	VkSubmitInfo submitInfo{};
@@ -865,7 +863,7 @@ void Graphics::CheckVk(const VkResult& result)
 	throw std::runtime_error("Vulkan error: " + failure);
 }
 
-void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action)
+void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action)
 {
 	auto& graphics = GetInstance();
 	const unsigned commandBufferIndex = graphics.m_usedCommandBufferSize;
@@ -876,7 +874,8 @@ void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBu
 	}
 	auto& commandBuffer = graphics.m_commandBufferPool[graphics.m_currentFrameIndex][commandBufferIndex];
 	commandBuffer.Begin();
-	action(commandBuffer.GetVkCommandBuffer(), graphics.m_globalPipelineState);
+	GraphicsPipelineStates graphicsGlobalState {};
+	action(commandBuffer.GetVkCommandBuffer());
 	commandBuffer.End();
 	graphics.m_usedCommandBufferSize++;
 }
@@ -1228,7 +1227,7 @@ void Graphics::Initialize()
 		ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
 		ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
 		ImGui::StyleColorsDark();
-		ImmediateSubmit([&](const VkCommandBuffer cmd, GraphicsGlobalStates& globalPipelineState) {
+		ImmediateSubmit([&](const VkCommandBuffer cmd) {
 			ImGui_ImplVulkan_CreateFontsTexture(cmd);
 			});
 		//clear font textures from cpu data
@@ -1258,12 +1257,6 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	AppendCommands([&](const VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)
-		{
-			globalPipelineState.ResetAllStates(commandBuffer, 1);
-			globalPipelineState.ApplyAllStates(commandBuffer, true);
-		}
-	);
 	graphics.m_triangles = 0;
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;

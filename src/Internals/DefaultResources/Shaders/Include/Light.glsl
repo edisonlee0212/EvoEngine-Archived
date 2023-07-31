@@ -134,7 +134,7 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular,
 				shadow = 1.0;
 			}
 		}
-		result += EE_FUNC_DIRECTIONAL_LIGHT(albedo, specular, i, normal, viewDir, metallic, roughness, F0) * shadow;
+		result += EE_FUNC_DIRECTIONAL_LIGHT(albedo, specular, lightIndex, normal, viewDir, metallic, roughness, F0) * shadow;
 	}
 	// phase 2: point lights
 	for (int i = 0; i < EE_POINT_LIGHT_AMOUNT; i++) {
@@ -243,22 +243,25 @@ float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3
 	DirectionalLight light = EE_DIRECTIONAL_LIGHTS[i];
 	vec3 lightDir = light.direction;
 	if (dot(lightDir, normal) > -0.02) return 1.0;
-	vec4 fragPosLightSpace = light.lightSpaceMatrix[splitIndex] * vec4(fragPos, 1.0);
 	float bias = light.ReservedParameters.z * light.lightFrustumWidth[splitIndex] / light.viewPortXSize;
 	float normalOffset = light.ReservedParameters.w * light.lightFrustumWidth[splitIndex] / light.viewPortXSize;
+
+	fragPos = fragPos + normal * normalOffset;
+	vec4 fragPosLightSpace = light.lightSpaceMatrix[splitIndex] * vec4(fragPos, 1.0);
 	// perform perspective divide
-	vec3 projCoords = (fragPosLightSpace.xyz + normal * normalOffset) / fragPosLightSpace.w;
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	//
 	if (projCoords.z > 1.0) {
 		return 0.0;
 	}
 	// transform to [0,1] range
-	projCoords = projCoords * 0.5 + 0.5;
+	projCoords.x = projCoords.x * 0.5 + 0.5;
+	projCoords.y = projCoords.y * 0.5 + 0.5;
+
 	// get depth of current fragment from light's perspective
 	projCoords = vec3(projCoords.xy, projCoords.z - bias);
 	float shadow = 0.0;
 	float lightSize = light.ReservedParameters.x;
-
 
 	int blockers = 0;
 	float avgDistance = 0;
@@ -268,7 +271,6 @@ float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3
 
 	float texScale = float(light.viewPortXSize) / float(textureSize(EE_DIRECTIONAL_LIGHT_SM, 0).x);
 	vec2 texBase = vec2(float(light.viewPortXStart) / float(textureSize(EE_DIRECTIONAL_LIGHT_SM, 0).y), float(light.viewPortYStart) / float(textureSize(EE_DIRECTIONAL_LIGHT_SM, 0).y));
-
 
 	for (int i = -sampleAmount; i <= sampleAmount; i++)
 	{
@@ -304,7 +306,10 @@ float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal) {
 	vec4 fragPosLightSpace = light.lightSpaceMatrix * vec4(fragPos, 1.0);
 	fragPosLightSpace.z -= bias;
 	vec3 projCoords = (fragPosLightSpace.xyz) / fragPosLightSpace.w;
-	projCoords = projCoords * 0.5 + 0.5;
+	
+	projCoords.x = projCoords.x * 0.5 + 0.5;
+	projCoords.y = projCoords.y * 0.5 + 0.5;
+
 	float texScale = float(light.viewPortXSize) / float(textureSize(EE_SPOT_LIGHT_SM, 0).x);
 	vec2 texBase = vec2(float(light.viewPortXStart) / float(textureSize(EE_SPOT_LIGHT_SM, 0).y), float(light.viewPortYStart) / float(textureSize(EE_SPOT_LIGHT_SM, 0).y));
 
@@ -379,7 +384,10 @@ float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal)
 	vec4 fragPosLightSpace = light.lightSpaceMatrix[slice] * vec4(fragPos, 1.0);
 	fragPosLightSpace.z -= bias;
 	vec3 projCoords = (fragPosLightSpace.xyz) / fragPosLightSpace.w;
-	projCoords = projCoords * 0.5 + 0.5;
+	
+	projCoords.x = projCoords.x * 0.5 + 0.5;
+	projCoords.y = projCoords.y * 0.5 + 0.5;
+
 	float texScale = float(light.viewPortXSize) / float(textureSize(EE_POINT_LIGHT_SM, 0).x);
 	vec2 texBase = vec2(float(light.viewPortXStart) / float(textureSize(EE_POINT_LIGHT_SM, 0).y), float(light.viewPortYStart) / float(textureSize(EE_POINT_LIGHT_SM, 0).y));
 

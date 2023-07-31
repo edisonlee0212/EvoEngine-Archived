@@ -71,4 +71,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	descriptorImageInfo.sampler = targetTexture->GetVkSampler();
 	
 	tempSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
+
+
+
 }

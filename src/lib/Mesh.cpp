@@ -13,7 +13,7 @@ void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 
 }
 
-void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsGlobalStates& globalPipelineState, bool enableMetrics) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {

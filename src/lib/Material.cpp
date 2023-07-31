@@ -90,7 +90,7 @@ bool DrawSettings::OnInspect() {
     return changed;
 }
 
-void DrawSettings::ApplySettings(GraphicsGlobalStates& globalPipelineState) const
+void DrawSettings::ApplySettings(GraphicsPipelineStates& globalPipelineState) const
 {
     globalPipelineState.m_cullMode = m_cullMode;
     globalPipelineState.m_polygonMode = m_polygonMode;
@@ -160,8 +160,7 @@ void Material::OnCreate()
 
 Material::~Material()
 {
-    if(m_descriptorSet != VK_NULL_HANDLE) vkFreeDescriptorSets(Graphics::GetVkDevice(), Graphics::GetDescriptorPool()->GetVkDescriptorPool(), 1, &m_descriptorSet->GetVkDescriptorSet());
-    m_descriptorSet = VK_NULL_HANDLE;
+    m_descriptorSet.reset();
 }
 
 void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)

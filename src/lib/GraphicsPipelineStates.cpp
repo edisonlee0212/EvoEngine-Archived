@@ -1,10 +1,10 @@
-#include "GraphicsGlobalStates.hpp"
+#include "GraphicsPipelineStates.hpp"
 
 using namespace EvoEngine;
 
 
 
-void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, size_t colorAttachmentSize)
+void GraphicsPipelineStates::ResetAllStates(const VkCommandBuffer commandBuffer, size_t colorAttachmentSize)
 {
 	m_viewPort = {};
 	m_viewPort.width = 1;
@@ -46,7 +46,7 @@ void GraphicsGlobalStates::ResetAllStates(const VkCommandBuffer commandBuffer, s
 	m_blendConstants[3] = 0;
 }
 
-void GraphicsGlobalStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
+void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
 {
 	if (forceSet
 		|| m_viewPortApplied.x != m_viewPort.x

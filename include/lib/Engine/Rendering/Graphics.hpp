@@ -1,7 +1,8 @@
 #pragma once
+#include "GraphicsPipeline.hpp"
 #include "ISingleton.hpp"
 #include "GraphicsResources.hpp"
-#include "GraphicsGlobalStates.hpp"
+#include "GraphicsPipelineStates.hpp"
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {
@@ -68,8 +69,7 @@ namespace EvoEngine
 		uint32_t m_currentFrameIndex = 0;
 
 		uint32_t m_nextImageIndex = 0;
-
-		GraphicsGlobalStates m_globalPipelineState = {};
+		
 #pragma endregion
 #pragma region Shader related
 		std::string m_shaderBasic;
@@ -145,16 +145,16 @@ namespace EvoEngine
 			inline const static uint32_t m_maxPointLightSize = 4;
 			inline const static uint32_t m_maxSpotLightSize = 4;
 
-			inline const static uint32_t m_directionalLightShadowMapResolution = 1024;
-			inline const static uint32_t m_pointLightShadowMapResolution = 1024;
-			inline const static uint32_t m_spotLightShadowMapResolution = 1024;
+			inline const static uint32_t m_directionalLightShadowMapResolution = 4096;
+			inline const static uint32_t m_pointLightShadowMapResolution = 2048;
+			inline const static uint32_t m_spotLightShadowMapResolution = 2048;
 
 			inline const static uint32_t m_cubemapResolution = 1024;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);
 
-		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
+		static void TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetImage, VkFormat imageFormat, uint32_t layerCount, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 		static std::string StringifyResultVk(const VkResult& result);
 		static void CheckVk(const VkResult& result);
@@ -166,18 +166,17 @@ namespace EvoEngine
 			inline const static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline const static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline const static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline const static VkFormat m_gBufferDepth = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline const static VkFormat m_gBufferDepth = VK_FORMAT_D32_SFLOAT;
 			inline const static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline const static VkFormat m_shadowMap = VK_FORMAT_D24_UNORM_S8_UINT;
+			inline const static VkFormat m_shadowMap = VK_FORMAT_D32_SFLOAT;
 		};
 
 #pragma endregion
 
 		static size_t GetMaxBoneAmount();		
 		static size_t GetMaxShadowCascadeAmount();
-		static GraphicsGlobalStates& GlobalState();
-		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
-		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer, GraphicsGlobalStates& globalPipelineState)>& action);
+		static void AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action);
+		static void ImmediateSubmit(const std::function<void(VkCommandBuffer commandBuffer)>& action);
 		static QueueFamilyIndices GetQueueFamilyIndices();
 		static int GetMaxFramesInFlight();
 		static void NotifyRecreateSwapChain();

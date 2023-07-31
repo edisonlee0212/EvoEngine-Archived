@@ -36,7 +36,7 @@ namespace EvoEngine
 		VkBlendFactor m_blendingSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		VkBlendFactor m_blendingDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		bool OnInspect();
-		void ApplySettings(GraphicsGlobalStates& globalPipelineState) const;
+		void ApplySettings(GraphicsPipelineStates& globalPipelineState) const;
 
 		void Save(const std::string& name, YAML::Emitter& out) const;
 		void Load(const std::string& name, const YAML::Node& in);
