@@ -515,7 +515,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 						ImGui::Checkbox(
 							data.m_privateComponentData->GetTypeName().c_str(),
 							&data.m_privateComponentData->m_enabled);
-						EditorLayer::DraggablePrivateComponent(data.m_privateComponentData);
+						DraggablePrivateComponent(data.m_privateComponentData);
 						const std::string tag = "##" + data.m_privateComponentData->GetTypeName() +
 							std::to_string(data.m_privateComponentData->GetHandle());
 						if (ImGui::BeginPopupContextItem(tag.c_str())) {

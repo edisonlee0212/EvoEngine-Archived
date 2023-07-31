@@ -22,7 +22,9 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	m_sampler.reset();
 	m_imageView.reset();
 	m_image.reset();
-	size_t cubemapResolution = 1024;
+
+	m_debugImageViews.clear();
+	size_t cubemapResolution = glm::min(targetTexture->m_image->GetExtent().height, targetTexture->m_image->GetExtent().width);
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -193,6 +195,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 				renderInfo.colorAttachmentCount = 1;
 				renderInfo.pColorAttachments = &attachment;
 				renderInfo.pDepthAttachment = &depthAttachment;
+				equirectangularToCubemap->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				equirectangularToCubemap->m_states.m_colorBlendAttachmentStates.clear();
 				equirectangularToCubemap->m_states.m_colorBlendAttachmentStates.resize(1);
 				for (auto& i : equirectangularToCubemap->m_states.m_colorBlendAttachmentStates)

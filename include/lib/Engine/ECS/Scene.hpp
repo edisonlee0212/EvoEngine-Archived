@@ -34,7 +34,7 @@ namespace EvoEngine
         float m_environmentGamma = 2.2f;
         float m_ambientLightIntensity = 0.8f;
         EnvironmentType m_environmentType = EnvironmentType::EnvironmentalMap;
-
+        float m_backgroundIntensity = 1.0f;
         void Serialize(YAML::Emitter& out);
         void Deserialize(const YAML::Node& in);
     };

@@ -14,7 +14,17 @@ layout (location = 0) out vec4 FragColor;
 void main()
 {
 	float ndcDepth = 	texture(inDepth, fs_in.TexCoord).x;
-	if(ndcDepth == 1.0) discard;
+	vec3 fragPos = EE_DEPTH_TO_WORLD_POS(fs_in.TexCoord, ndcDepth);
+
+	if(ndcDepth == 1.0) {
+		vec3 cameraPosition = EE_CAMERA_POSITION();
+		Camera camera = EE_CAMERAS[EE_CAMERA_INDEX];
+		vec3 envColor = camera.EE_CAMERA_CLEAR_COLOR.w == 1.0 ? 
+			camera.EE_CAMERA_CLEAR_COLOR.xyz * EE_BACKGROUND_INTENSITY 
+			: pow(texture(UE_SKYBOX, normalize(fragPos - cameraPosition)).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_BACKGROUND_INTENSITY;
+		FragColor = vec4(envColor, 1.0);
+		return;
+	}
 
 	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
@@ -26,7 +36,7 @@ void main()
 
 	vec3 albedo = 		texture(inAlbedo, fs_in.TexCoord).xyz;
 
-	vec3 fragPos = EE_DEPTH_TO_WORLD_POS(fs_in.TexCoord, ndcDepth);
+	
 
 	vec3 cameraPosition = EE_CAMERA_POSITION();
 	vec3 viewDir = normalize(cameraPosition - fragPos);

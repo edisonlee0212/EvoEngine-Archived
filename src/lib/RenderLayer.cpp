@@ -31,7 +31,7 @@ void RenderInstanceCollection::Dispatch(
 
 void RenderLayer::OnCreate()
 {
-	
+
 	CreateStandardDescriptorBuffers();
 	UpdateStandardBindings();
 
@@ -51,7 +51,7 @@ void RenderLayer::OnCreate()
 	for (int i = 0; i < Graphics::GetMaxFramesInFlight(); i++) {
 		memcpy(m_cameraInfoBlockMemory[i], kernels.data(), sizeof(glm::vec4) * kernels.size());
 	}
-	
+
 
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
@@ -84,6 +84,10 @@ void RenderLayer::OnDestroy()
 
 void RenderLayer::PreUpdate()
 {
+	/*
+	auto defaultCubemap = std::dynamic_pointer_cast<Cubemap>(Resources::GetResource("DEFAULT_SKYBOX_BLURRED"));
+	defaultCubemap->ConvertFromEquirectangularTexture(std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("DEFAULT_SKYBOX_BLURRED_TEXTURE")));
+	*/
 	const auto scene = GetScene();
 	if (!scene) return;
 	m_deferredRenderInstances.m_renderInstanceGroups.clear();
@@ -122,6 +126,36 @@ void RenderLayer::PreUpdate()
 		m_renderInfoBlock.m_splitDistances[2] = m_maxShadowDistance * m_shadowCascadeSplit[2];
 		m_renderInfoBlock.m_splitDistances[3] = m_maxShadowDistance * m_shadowCascadeSplit[3];
 	}
+	
+	{
+		/*
+		switch (scene->m_environmentSettings.m_environmentType)
+		{
+		
+		case EnvironmentType::EnvironmentalMap: {
+			if (!environmentalMap || !environmentalMap->m_ready)
+			{
+				environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
+				m_environmentInfoBlock.m_backgroundColor.w = 1.0f;
+			}
+			else
+			{
+				m_environmentInfoBlock.m_backgroundColor.w = 0.0f;
+			}
+		}
+											  break;
+		case EnvironmentType::Color: {
+			environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
+			m_environmentInfoBlock.m_backgroundColor = glm::vec4(scene->m_environmentSettings.m_backgroundColor, 1.0f);
+		}
+		break;
+		}
+		*/
+		m_environmentInfoBlock.m_environmentalMapGamma = scene->m_environmentSettings.m_environmentGamma;
+		m_environmentInfoBlock.m_environmentalLightingIntensity = scene->m_environmentSettings.m_ambientLightIntensity;
+		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environmentSettings.m_backgroundIntensity;
+	}
+	
 	UploadRenderInfoBlock(m_renderInfoBlock);
 	UploadEnvironmentalInfoBlock(m_environmentInfoBlock);
 
@@ -505,8 +539,8 @@ void RenderLayer::CollectPointLights()
 {
 	const auto scene = GetScene();
 	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
-	glm::vec3 mainCameraPosition = {0, 0, 0};
-	if(mainCamera)
+	glm::vec3 mainCameraPosition = { 0, 0, 0 };
+	if (mainCamera)
 	{
 		mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCamera->GetOwner()).GetPosition();
 	}
@@ -563,7 +597,7 @@ void RenderLayer::CollectPointLights()
 		std::vector<glm::uvec3> viewPortResults;
 		ShadowMaps::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::StorageSizes::m_pointLightShadowMapResolution, viewPortResults);
 		int allocationIndex = 0;
-		for(const auto& pointLightIndex : sortedPointLightIndices)
+		for (const auto& pointLightIndex : sortedPointLightIndices)
 		{
 			auto& viewPort = m_pointLightInfoBlocks[pointLightIndex.second].m_viewPort;
 			viewPort.x = viewPortResults[allocationIndex].x;
@@ -1165,12 +1199,12 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 void RenderLayer::UpdateStandardBindings()
 {
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	
+
 	m_perFrameDescriptorSets.clear();
-	for(size_t i = 0; i < maxFramesInFlight; i++)
+	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
 		auto descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("PER_FRAME_LAYOUT"));
-		
+
 		VkDescriptorBufferInfo bufferInfo;
 		bufferInfo.offset = 0;
 		bufferInfo.range = VK_WHOLE_SIZE;
@@ -1324,7 +1358,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 	VkDescriptorImageInfo skyboxInfo{};
 	skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	if(const auto cameraSkybox = camera->m_skybox.Get<Cubemap>())
+	if (const auto cameraSkybox = camera->m_skybox.Get<Cubemap>())
 	{
 		skyboxInfo.imageView = cameraSkybox->m_imageView->GetVkImageView();
 		skyboxInfo.sampler = cameraSkybox->m_sampler->GetVkSampler();
@@ -1376,7 +1410,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			directionalLightShadowPipeline->Bind(commandBuffer);
 			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			
+
 			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 			{
 				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i];
@@ -1432,7 +1466,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = camera->GetSize().x;
 		scissor.extent.height = camera->GetSize().y;
-		
+
 #pragma endregion
 #pragma region Geometry pass
 		{

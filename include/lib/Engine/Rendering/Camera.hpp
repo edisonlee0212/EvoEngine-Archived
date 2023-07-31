@@ -85,7 +85,6 @@ namespace EvoEngine
         float m_fov = 120;
         bool m_useClearColor = false;
         glm::vec3 m_clearColor = glm::vec3(0.0f);
-        float m_backgroundIntensity = 1.0f;
         AssetRef m_skybox;
 
         static void CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view);

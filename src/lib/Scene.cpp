@@ -186,9 +186,8 @@ void Scene::FixedUpdate()
 static const char* EnvironmentTypes[]{ "Environmental Map", "Color" };
 void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    /*
     if (this == Application::GetActiveScene().get())
-        if (Editor::DragAndDropButton<Camera>(m_mainCamera, "Main Camera", true))
+        if (editorLayer->DragAndDropButton<Camera>(m_mainCamera, "Main Camera", true))
             m_saved = false;
     if (ImGui::TreeNodeEx("Environment Settings", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -201,9 +200,11 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
         switch (m_environmentSettings.m_environmentType)
         {
         case EnvironmentType::EnvironmentalMap: {
-            if (Editor::DragAndDropButton<EnvironmentalMap>(
+            /*
+        		if (editorLayer->DragAndDropButton<EnvironmentalMap>(
                 m_environmentSettings.m_environmentalMap, "Environmental Map"))
                 m_saved = false;
+                */
         }
                                               break;
         case EnvironmentType::Color: {
@@ -229,7 +230,7 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             ImGui::Separator();
             static float rank = 0.0f;
             ImGui::DragFloat("Rank", &rank, 1.0f, 0.0f, 999.0f);
-            for (auto& i : Editor::GetInstance().m_systemMenuList)
+            for (auto& i : editorLayer->m_systemMenuList)
             {
                 i.second(rank);
             }
@@ -255,12 +256,12 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                         }
                     }
                 }
-                i.second->OnInspect();
+                i.second->OnInspect(editorLayer);
             }
         }
         ImGui::TreePop();
     }
-    */
+    
 }
 
 std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName, float order)
