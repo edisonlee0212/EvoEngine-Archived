@@ -15,7 +15,7 @@ namespace EvoEngine
 		void LoadPrimitives() const;
 		bool m_showLoadedAssets = false;
 		static void Initialize();
-		static void LateInitialization();
+		static void InitializeEnvironmentalMap();
 		[[nodiscard]] Handle GenerateNewHandle();
 		friend class ProjectManager;
 		friend class Application;

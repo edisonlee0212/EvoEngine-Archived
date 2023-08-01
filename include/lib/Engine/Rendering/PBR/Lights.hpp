@@ -93,7 +93,7 @@ namespace EvoEngine
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
     };
 
-    class ShadowMaps
+    class Lighting
     {
         std::shared_ptr<Image> m_directionalLightShadowMap = {};
         std::shared_ptr<ImageView> m_directionalLightShadowMapView = {};
@@ -117,7 +117,7 @@ namespace EvoEngine
 
         static void AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results);
 
-        ShadowMaps();
+        Lighting();
         void Initialize();
         [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo() const;
         [[nodiscard]] VkRenderingAttachmentInfo GetPointLightDepthAttachmentInfo() const;

@@ -97,7 +97,7 @@ namespace EvoEngine
 		friend class GraphicsPipeline;
 		friend class EditorLayer;
 		friend class Material;
-		friend class ShadowMaps;
+		friend class Lighting;
 		
 		void OnCreate() override;
 		void OnDestroy() override;
@@ -135,7 +135,7 @@ namespace EvoEngine
 		RenderInfoBlock m_renderInfoBlock = {};
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
 
-		void RenderToCamera(const std::shared_ptr<Camera>& camera);
+		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	private:
 #pragma region Render procedure
@@ -151,7 +151,7 @@ namespace EvoEngine
 		void CollectPointLights();
 		void CollectSpotLights();
 
-		std::unique_ptr<ShadowMaps> m_shadowMaps;
+		std::unique_ptr<Lighting> m_lighting;
 		std::shared_ptr<Image> m_environmentalBRDFLut = {};
 		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
 		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};

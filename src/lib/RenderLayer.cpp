@@ -63,8 +63,8 @@ void RenderLayer::OnCreate()
 
 	PrepareEnvironmentalBrdfLut();
 
-	m_shadowMaps = std::make_unique<ShadowMaps>();
-	m_shadowMaps->Initialize();
+	m_lighting = std::make_unique<Lighting>();
+	m_lighting->Initialize();
 }
 
 void RenderLayer::OnDestroy()
@@ -128,37 +128,26 @@ void RenderLayer::PreUpdate()
 				splitEnd = m_maxShadowDistance * m_shadowCascadeSplit[split];
 			m_renderInfoBlock.m_splitDistances[split] = splitEnd;
 		}
-		}
-	
+	}
+
 	{
-		/*
-		switch (scene->m_environmentSettings.m_environmentType)
+		switch (scene->m_environment.m_environmentType)
 		{
-		
+
 		case EnvironmentType::EnvironmentalMap: {
-			if (!environmentalMap || !environmentalMap->m_ready)
-			{
-				environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
-				m_environmentInfoBlock.m_backgroundColor.w = 1.0f;
-			}
-			else
-			{
-				m_environmentInfoBlock.m_backgroundColor.w = 0.0f;
-			}
+			m_environmentInfoBlock.m_backgroundColor.w = 0.0f;
 		}
 											  break;
 		case EnvironmentType::Color: {
-			environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
-			m_environmentInfoBlock.m_backgroundColor = glm::vec4(scene->m_environmentSettings.m_backgroundColor, 1.0f);
+			m_environmentInfoBlock.m_backgroundColor = glm::vec4(scene->m_environment.m_backgroundColor, 1.0f);
 		}
-		break;
+								   break;
 		}
-		*/
-		m_environmentInfoBlock.m_environmentalMapGamma = scene->m_environmentSettings.m_environmentGamma;
-		m_environmentInfoBlock.m_environmentalLightingIntensity = scene->m_environmentSettings.m_ambientLightIntensity;
-		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environmentSettings.m_backgroundIntensity;
+		m_environmentInfoBlock.m_environmentalMapGamma = scene->m_environment.m_environmentGamma;
+		m_environmentInfoBlock.m_environmentalLightingIntensity = scene->m_environment.m_ambientLightIntensity;
+		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environment.m_backgroundIntensity;
 	}
-	
+
 	UploadRenderInfoBlock(m_renderInfoBlock);
 	UploadEnvironmentalInfoBlock(m_environmentInfoBlock);
 
@@ -177,7 +166,7 @@ void RenderLayer::PreUpdate()
 		camera->m_rendered = false;
 		if (camera->m_requireRendering)
 		{
-			RenderToCamera(camera);
+			RenderToCamera(cameraGlobalTransform, camera);
 		}
 	}
 }
@@ -567,7 +556,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 				directionalLightIndex++;
 			}
 			std::vector<glm::uvec3> viewPortResults;
-			ShadowMaps::AllocateAtlas(directionalLightIndex, Graphics::StorageSizes::m_directionalLightShadowMapResolution, viewPortResults);
+			Lighting::AllocateAtlas(directionalLightIndex, Graphics::StorageSizes::m_directionalLightShadowMapResolution, viewPortResults);
 			int allocationIndex = 0;
 			for (int i = 0; i < directionalLightIndex; i++)
 			{
@@ -644,7 +633,7 @@ void RenderLayer::CollectPointLights()
 			m_renderInfoBlock.m_pointLightSize++;
 		}
 		std::vector<glm::uvec3> viewPortResults;
-		ShadowMaps::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::StorageSizes::m_pointLightShadowMapResolution, viewPortResults);
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::StorageSizes::m_pointLightShadowMapResolution, viewPortResults);
 		int allocationIndex = 0;
 		for (const auto& pointLightIndex : sortedPointLightIndices)
 		{
@@ -713,7 +702,7 @@ void RenderLayer::CollectSpotLights()
 			m_renderInfoBlock.m_spotLightSize++;
 		}
 		std::vector<glm::uvec3> viewPortResults;
-		ShadowMaps::AllocateAtlas(m_renderInfoBlock.m_spotLightSize, Graphics::StorageSizes::m_spotLightShadowMapResolution, viewPortResults);
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_spotLightSize, Graphics::StorageSizes::m_spotLightShadowMapResolution, viewPortResults);
 		int allocationIndex = 0;
 		for (const auto& spotLightIndex : sortedSpotLightIndices)
 		{
@@ -738,8 +727,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
 			renderArea.offset = { 0, 0 };
-			renderArea.extent.width = m_shadowMaps->m_pointLightShadowMap->GetExtent().width;
-			renderArea.extent.height = m_shadowMaps->m_pointLightShadowMap->GetExtent().height;
+			renderArea.extent.width = m_lighting->m_pointLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_lighting->m_pointLightShadowMap->GetExtent().height;
 
 			VkViewport viewport;
 			viewport.x = 0;
@@ -756,8 +745,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 
 			pointLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
-			m_shadowMaps->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			auto depthAttachment = m_shadowMaps->GetPointLightDepthAttachmentInfo();
+			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			auto depthAttachment = m_lighting->GetPointLightDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
@@ -804,8 +793,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 #pragma region Viewport and scissor
 
 			renderArea.offset = { 0, 0 };
-			renderArea.extent.width = m_shadowMaps->m_spotLightShadowMap->GetExtent().width;
-			renderArea.extent.height = m_shadowMaps->m_spotLightShadowMap->GetExtent().height;
+			renderArea.extent.width = m_lighting->m_spotLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_lighting->m_spotLightShadowMap->GetExtent().height;
 
 			viewport.x = 0;
 			viewport.y = 0;
@@ -820,8 +809,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 
 			spotLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
-			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			depthAttachment = m_shadowMaps->GetSpotLightDepthAttachmentInfo();
+			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo();
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
 			renderInfo.layerCount = 1;
@@ -1402,23 +1391,42 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 
 
 
-void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
+void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera)
 {
 	const int cameraIndex = GetCameraIndex(camera->GetHandle());
 
-	VkDescriptorImageInfo skyboxInfo{};
-	skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	VkDescriptorImageInfo imageInfo;
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	if (const auto cameraSkybox = camera->m_skybox.Get<Cubemap>())
 	{
-		skyboxInfo.imageView = cameraSkybox->m_imageView->GetVkImageView();
-		skyboxInfo.sampler = cameraSkybox->m_sampler->GetVkSampler();
+		imageInfo.imageView = cameraSkybox->m_imageView->GetVkImageView();
+		imageInfo.sampler = cameraSkybox->m_sampler->GetVkSampler();
 	}
 	else {
-		auto defaultCubemap = std::dynamic_pointer_cast<Cubemap>(Resources::GetResource("DEFAULT_SKYBOX_BLURRED"));
-		skyboxInfo.imageView = defaultCubemap->m_imageView->GetVkImageView();
-		skyboxInfo.sampler = defaultCubemap->m_sampler->GetVkSampler();
+		auto defaultCubemap = std::dynamic_pointer_cast<Cubemap>(Resources::GetResource("DEFAULT_SKYBOX"));
+		imageInfo.imageView = defaultCubemap->m_imageView->GetVkImageView();
+		imageInfo.sampler = defaultCubemap->m_sampler->GetVkSampler();
 	}
-	m_shadowMaps->m_lightingDescriptorSet->UpdateImageDescriptorBinding(15, skyboxInfo);
+	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(15, imageInfo);
+
+	const auto cameraPosition = cameraGlobalTransform.GetPosition();
+	const auto scene = Application::GetActiveScene();
+	auto lightProbe = scene->m_environment.GetLightProbe(cameraPosition);
+	auto reflectionProbe = scene->m_environment.GetReflectionProbe(cameraPosition);
+	if (!lightProbe)
+	{
+		lightProbe = std::dynamic_pointer_cast<EnvironmentalMap>(Resources::GetResource("DEFAULT_ENVIRONMENTAL_MAP"))->m_lightProbe.Get<LightProbe>();
+	}
+	imageInfo.imageView = lightProbe->m_imageView->GetVkImageView();
+	imageInfo.sampler = lightProbe->m_sampler->GetVkSampler();
+	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(16, imageInfo);
+	if (!reflectionProbe)
+	{
+		reflectionProbe = std::dynamic_pointer_cast<EnvironmentalMap>(Resources::GetResource("DEFAULT_ENVIRONMENTAL_MAP"))->m_reflectionProbe.Get<ReflectionProbe>();
+	}
+	imageInfo.imageView = reflectionProbe->m_imageView->GetVkImageView();
+	imageInfo.sampler = reflectionProbe->m_sampler->GetVkSampler();
+	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(17, imageInfo);
 
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 
@@ -1427,8 +1435,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
 			renderArea.offset = { 0, 0 };
-			renderArea.extent.width = m_shadowMaps->m_directionalLightShadowMap->GetExtent().width;
-			renderArea.extent.height = m_shadowMaps->m_directionalLightShadowMap->GetExtent().height;
+			renderArea.extent.width = m_lighting->m_directionalLightShadowMap->GetExtent().width;
+			renderArea.extent.height = m_lighting->m_directionalLightShadowMap->GetExtent().height;
 
 			VkViewport viewport;
 			viewport.x = 0;
@@ -1445,8 +1453,8 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 
 			directionalLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
-			m_shadowMaps->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			const auto depthAttachment = m_shadowMaps->GetDirectionalLightDepthAttachmentInfo();
+			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			const auto depthAttachment = m_lighting->GetDirectionalLightDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
@@ -1585,9 +1593,9 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 			renderInfo.pDepthAttachment = &depthAttachment;
-			m_shadowMaps->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			m_shadowMaps->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			m_shadowMaps->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->m_states.m_depthTest = false;
@@ -1602,7 +1610,7 @@ void RenderLayer::RenderToCamera(const std::shared_ptr<Camera>& camera)
 			deferredLightingPipeline->Bind(commandBuffer);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
-			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_shadowMaps->m_lightingDescriptorSet->GetVkDescriptorSet());
+			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_lighting->m_lightingDescriptorSet->GetVkDescriptorSet());
 
 			deferredLightingPipeline->m_states.m_viewPort = viewport;
 			deferredLightingPipeline->m_states.m_scissor = scissor;

@@ -230,7 +230,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	Graphics::Initialize();
 	Resources::Initialize();
 	Graphics::PostResourceLoadingInitialization();
-	Resources::LateInitialization();
+	Resources::InitializeEnvironmentalMap();
 
 	for (const auto& layer : application.m_layers)
 	{

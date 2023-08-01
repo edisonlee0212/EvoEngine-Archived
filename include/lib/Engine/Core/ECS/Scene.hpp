@@ -10,7 +10,9 @@
 #include "Utilities.hpp"
 #include "Bound.hpp"
 #include "Input.hpp"
-
+#include "ReflectionProbe.hpp"
+#include "LightProbe.hpp"
+#include "EnvironmentalMap.hpp"
 namespace EvoEngine
 {
 
@@ -27,9 +29,12 @@ namespace EvoEngine
         Color
     };
 
-    struct EnvironmentSettings
+    class Environment
     {
         AssetRef m_environmentalMap;
+    public:
+        [[nodiscard]] std::shared_ptr<LightProbe> GetLightProbe(const glm::vec3& position);
+        [[nodiscard]] std::shared_ptr<ReflectionProbe> GetReflectionProbe(const glm::vec3& position);
         glm::vec3 m_backgroundColor = glm::vec3(1.0f, 1.0f, 1.0f);
         float m_environmentGamma = 2.2f;
         float m_ambientLightIntensity = 0.8f;
@@ -232,7 +237,7 @@ namespace EvoEngine
         template <typename T = ISystem> bool HasSystem();
         std::shared_ptr<ISystem> GetOrCreateSystem(const std::string& systemName, float order);
 
-        EnvironmentSettings m_environmentSettings;
+        Environment m_environment;
         PrivateComponentRef m_mainCamera;
         void Purge();
         void OnCreate() override;

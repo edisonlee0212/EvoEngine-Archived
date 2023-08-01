@@ -1,10 +1,6 @@
-#include "Engine/ECS/Entities.hpp"
-#include "Application.hpp"
-#include "Console.hpp"
-//#include "ProjectManager.hpp"
-#include <Entity.hpp>
-//#include "PhysicsLayer.hpp"
-#include <Scene.hpp>
+#include "Entities.hpp"
+#include "Entity.hpp"
+#include "Scene.hpp"
 using namespace EvoEngine;
 
 #pragma region EntityManager

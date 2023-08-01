@@ -160,7 +160,7 @@ void SpotLight::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target
 {
 }
 
-void ShadowMaps::Consume(glm::vec2 location, uint32_t resolution, uint32_t remainingSize,
+void Lighting::Consume(glm::vec2 location, uint32_t resolution, uint32_t remainingSize,
 	std::vector<glm::uvec3>& results)
 {
     assert(resolution > 1);
@@ -176,7 +176,7 @@ void ShadowMaps::Consume(glm::vec2 location, uint32_t resolution, uint32_t remai
     }
 }
 
-void ShadowMaps::AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results)
+void Lighting::AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vector<glm::uvec3>& results)
 {
     results.clear();
     if(size == 1)
@@ -200,12 +200,12 @@ void ShadowMaps::AllocateAtlas(uint32_t size, uint32_t maxResolution, std::vecto
     results.resize(size);
 }
 
-ShadowMaps::ShadowMaps()
+Lighting::Lighting()
 {
     m_lightingDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("LIGHTING_LAYOUT"));
 }
 
-void ShadowMaps::Initialize()
+void Lighting::Initialize()
 {
     
    
@@ -390,7 +390,7 @@ void ShadowMaps::Initialize()
     }
 }
 
-VkRenderingAttachmentInfo ShadowMaps::GetDirectionalLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetDirectionalLightDepthAttachmentInfo() const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -404,7 +404,7 @@ VkRenderingAttachmentInfo ShadowMaps::GetDirectionalLightDepthAttachmentInfo() c
     return attachment;
 }
 
-VkRenderingAttachmentInfo ShadowMaps::GetPointLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetPointLightDepthAttachmentInfo() const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -418,7 +418,7 @@ VkRenderingAttachmentInfo ShadowMaps::GetPointLightDepthAttachmentInfo() const
     return attachment;
 }
 
-VkRenderingAttachmentInfo ShadowMaps::GetSpotLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetSpotLightDepthAttachmentInfo() const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;

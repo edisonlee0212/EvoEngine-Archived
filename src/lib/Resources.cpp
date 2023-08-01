@@ -483,19 +483,19 @@ void Resources::Initialize()
 
 }
 
-void Resources::LateInitialization()
+void Resources::InitializeEnvironmentalMap()
 {
+	const auto defaultEnvironmentalMapTexture = CreateResource<Texture2D>("DEFAULT_ENVIRONMENTAL_MAP_TEXTURE");
+	defaultEnvironmentalMapTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
+	
 	const auto defaultSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_TEXTURE");
-	defaultSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
+	defaultSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_Env.hdr");
 	const auto defaultSkybox = CreateResource<Cubemap>("DEFAULT_SKYBOX");
-	defaultSkybox->Initialize(1024);
+	defaultSkybox->Initialize(256);
 	defaultSkybox->ConvertFromEquirectangularTexture(defaultSkyboxTexture);
 
-	const auto defaultBlurredSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_BLURRED_TEXTURE");
-	defaultBlurredSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_Env.hdr");
-	const auto defaultSkyboxBlurred = CreateResource<Cubemap>("DEFAULT_SKYBOX_BLURRED");
-	defaultSkyboxBlurred->Initialize(256);
-	defaultSkyboxBlurred->ConvertFromEquirectangularTexture(defaultBlurredSkyboxTexture);
+	const auto defaultEnvironmentalMap = CreateResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP");
+	defaultEnvironmentalMap->ConstructFromTexture2D(defaultEnvironmentalMapTexture);
 }
 
 Handle Resources::GenerateNewHandle()

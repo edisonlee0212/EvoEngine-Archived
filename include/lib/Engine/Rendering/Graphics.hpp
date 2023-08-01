@@ -24,7 +24,7 @@ namespace EvoEngine
 		
 		friend class Application;
 		friend class Resources;
-		friend class ShadowMaps;
+		friend class Lighting;
 		friend class PointLightShadowMap;
 		friend class SpotLightShadowMap;
 #pragma region Vulkan
@@ -137,7 +137,7 @@ namespace EvoEngine
 		public:
 			friend class RenderLayer;
 			friend class Resources;
-			friend class ShadowMaps;
+			friend class Lighting;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
 			inline const static uint32_t m_maxCameraSize = 8;

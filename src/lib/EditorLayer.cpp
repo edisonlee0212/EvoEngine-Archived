@@ -1506,7 +1506,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			strandsRenderer->m_material.Set<Material>(material);
 		}
 		else if (asset->GetTypeName() == "EnvironmentalMap") {
-			scene->m_environmentSettings.m_environmentalMap =
+			scene->m_environment.m_environmentalMap =
 				std::dynamic_pointer_cast<EnvironmentalMap>(asset);
 		}
 		else if (asset->GetTypeName() == "Cubemap") {

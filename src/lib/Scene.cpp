@@ -191,32 +191,32 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             m_saved = false;
     if (ImGui::TreeNodeEx("Environment Settings", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        static int type = (int)m_environmentSettings.m_environmentType;
+        static int type = (int)m_environment.m_environmentType;
         if (ImGui::Combo("Environment type", &type, EnvironmentTypes, IM_ARRAYSIZE(EnvironmentTypes)))
         {
-            m_environmentSettings.m_environmentType = (EnvironmentType)type;
+            m_environment.m_environmentType = (EnvironmentType)type;
             m_saved = false;
         }
-        switch (m_environmentSettings.m_environmentType)
+        switch (m_environment.m_environmentType)
         {
         case EnvironmentType::EnvironmentalMap: {
             /*
         		if (editorLayer->DragAndDropButton<EnvironmentalMap>(
-                m_environmentSettings.m_environmentalMap, "Environmental Map"))
+                m_environment.m_environmentalMap, "Environmental Map"))
                 m_saved = false;
                 */
         }
                                               break;
         case EnvironmentType::Color: {
-            if (ImGui::ColorEdit3("Background Color", &m_environmentSettings.m_backgroundColor.x))
+            if (ImGui::ColorEdit3("Background Color", &m_environment.m_backgroundColor.x))
                 m_saved = false;
         }
                                    break;
         }
         if (ImGui::DragFloat(
-            "Environmental light intensity", &m_environmentSettings.m_ambientLightIntensity, 0.01f, 0.0f, 10.0f))
+            "Environmental light intensity", &m_environment.m_ambientLightIntensity, 0.01f, 0.0f, 10.0f))
             m_saved = false;
-        if (ImGui::DragFloat("Environmental light gamma", &m_environmentSettings.m_environmentGamma, 0.01f, 0.0f, 10.0f))
+        if (ImGui::DragFloat("Environmental light gamma", &m_environment.m_environmentGamma, 0.01f, 0.0f, 10.0f))
         {
             m_saved = false;
         }
@@ -283,13 +283,13 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName,
 void Scene::Serialize(YAML::Emitter& out)
 {
     /*
-    out << YAML::Key << "m_environmentSettings" << YAML::Value << YAML::BeginMap;
-    m_environmentSettings.Serialize(out);
+    out << YAML::Key << "m_environment" << YAML::Value << YAML::BeginMap;
+    m_environment.Serialize(out);
     out << YAML::EndMap;
     m_mainCamera.Save("m_mainCamera", out);
     std::unordered_map<Handle, std::shared_ptr<IAsset>> assetMap;
     std::vector<AssetRef> list;
-    list.push_back(m_environmentSettings.m_environmentalMap);
+    list.push_back(m_environment.m_environmentalMap);
     auto& sceneDataStorage = m_sceneDataStorage;
 #pragma region EntityInfo
     out << YAML::Key << "m_entityMetadataList" << YAML::Value << YAML::BeginSeq;
@@ -517,8 +517,8 @@ void Scene::Deserialize(const YAML::Node& in)
     }
 
 #pragma endregion
-    if (in["m_environmentSettings"])
-        m_environmentSettings.Deserialize(in["m_environmentSettings"]);
+    if (in["m_environment"])
+        m_environment.Deserialize(in["m_environment"]);
     int entityIndex = 1;
     for (const auto& inEntityInfo : inEntityMetadataList)
     {
@@ -676,7 +676,7 @@ void Scene::OnCreate()
     m_sceneDataStorage.m_entities.emplace_back();
     m_sceneDataStorage.m_entityMetadataList.emplace_back();
     m_sceneDataStorage.m_dataComponentStorages.emplace_back();
-    //m_environmentSettings.m_environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
+    //m_environment.m_environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
     m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
 }
 bool Scene::LoadInternal(const std::filesystem::path& path)
@@ -695,7 +695,7 @@ bool Scene::LoadInternal(const std::filesystem::path& path)
 }
 void Scene::Clone(const std::shared_ptr<Scene>& source, const std::shared_ptr<Scene>& newScene)
 {
-    newScene->m_environmentSettings = source->m_environmentSettings;
+    newScene->m_environment = source->m_environment;
     newScene->m_saved = source->m_saved;
     newScene->m_worldBound = source->m_worldBound;
     std::unordered_map<Handle, Handle> entityMap;
@@ -720,15 +720,33 @@ void Scene::Clone(const std::shared_ptr<Scene>& source, const std::shared_ptr<Sc
     newScene->m_mainCamera.Relink(entityMap, newScene);
 }
 
-void EnvironmentSettings::Serialize(YAML::Emitter& out)
+std::shared_ptr<LightProbe> Environment::GetLightProbe(const glm::vec3& position)
+{
+	if(const auto environmentalMap = m_environmentalMap.Get<EnvironmentalMap>())
+    {
+	    if(auto lightProbe = environmentalMap->m_lightProbe.Get<LightProbe>()) return lightProbe;
+    }
+    return nullptr;
+}
+
+std::shared_ptr<ReflectionProbe> Environment::GetReflectionProbe(const glm::vec3& position)
+{
+    if (const auto environmentalMap = m_environmentalMap.Get<EnvironmentalMap>())
+    {
+        if (auto reflectionProbe= environmentalMap->m_lightProbe.Get<ReflectionProbe>()) return reflectionProbe;
+    }
+    return nullptr;
+}
+
+void Environment::Serialize(YAML::Emitter& out)
 {
     out << YAML::Key << "m_backgroundColor" << YAML::Value << m_backgroundColor;
     out << YAML::Key << "m_environmentGamma" << YAML::Value << m_environmentGamma;
     out << YAML::Key << "m_ambientLightIntensity" << YAML::Value << m_ambientLightIntensity;
     out << YAML::Key << "m_environmentType" << YAML::Value << (unsigned)m_environmentType;
-    m_environmentalMap.Save("m_environmentSettings", out);
+    m_environmentalMap.Save("m_environment", out);
 }
-void EnvironmentSettings::Deserialize(const YAML::Node& in)
+void Environment::Deserialize(const YAML::Node& in)
 {
     if (in["m_backgroundColor"])
         m_backgroundColor = in["m_backgroundColor"].as<glm::vec3>();
@@ -738,7 +756,7 @@ void EnvironmentSettings::Deserialize(const YAML::Node& in)
         m_ambientLightIntensity = in["m_ambientLightIntensity"].as<float>();
     if (in["m_environmentType"])
         m_environmentType = (EnvironmentType)in["m_environmentType"].as<unsigned>();
-    m_environmentalMap.Load("m_environmentSettings", in);
+    m_environmentalMap.Load("m_environment", in);
 }
 void SceneDataStorage::Clone(
     std::unordered_map<Handle, Handle>& entityMap,
