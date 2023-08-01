@@ -30,7 +30,7 @@ void Resources::LoadShaders()
 	{
 		auto vertShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard.vert");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/Standard.vert");
 		
 
 		auto standardVert = CreateResource<Shader>("STANDARD_VERT");
@@ -140,14 +140,14 @@ void Resources::LoadShaders()
 		auto fragShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLight + "\n" +
 			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferredLighting.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 		
 		
 		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderPBRTextures + "\n" +
 			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/StandardDeferred.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferred.frag");
 
 		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
@@ -291,30 +291,31 @@ void Resources::LoadShaders()
 
 #pragma region Shadow Maps
 	{
+
 		auto vertShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/LightShadowMap.vert");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/LightShadowMap.vert");
 
 		auto vertShader = CreateResource<Shader>("LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/SpotLightShadowMap.vert");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto geomShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/PointLightShadowMap.geom");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Lighting/PointLightShadowMap.geom");
 
 		auto geomShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
 		geomShader->Set(ShaderType::Geometry, geomShaderCode);
 
 		geomShaderCode =
 			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/DirectionalLightShadowMap.geom");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Lighting/DirectionalLightShadowMap.geom");
 
 		geomShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
 		geomShader->Set(ShaderType::Geometry, geomShaderCode);
@@ -331,31 +332,31 @@ void Resources::LoadShaders()
 	{
 		auto vertShaderCode =
 			std::string("#version 450 core\n") + 
-			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/EquirectangularMapToCubemap.vert");
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/EquirectangularMapToCubemap.vert");
 		auto vertShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapBrdf.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapBrdf.frag");
 		auto fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EquirectangularMapToCubemap.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EquirectangularMapToCubemap.frag");
 		fragShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapIrradianceConvolution.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapIrradianceConvolution.frag");
 		fragShader = CreateResource<Shader>("IRRADIANCE_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapPrefilter.frag");
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapPrefilter.frag");
 		fragShader = CreateResource<Shader>("PREFILTER_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}

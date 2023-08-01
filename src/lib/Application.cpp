@@ -266,6 +266,8 @@ void Application::Start()
 
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
+	const auto editorLayer = GetLayer<EditorLayer>();
+	if(!editorLayer) Play();
 	while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
 	{
 		PreUpdateInternal();
