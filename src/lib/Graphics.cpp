@@ -1172,11 +1172,6 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	lightLayout->Initialize();
 	RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);
 
-	const auto equirectangularToCubeLayout = std::make_shared<DescriptorSetLayout>();
-	equirectangularToCubeLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	equirectangularToCubeLayout->Initialize();
-	RegisterDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT", equirectangularToCubeLayout);
-
 	const auto renderTexturePresent = std::make_shared<DescriptorSetLayout>();
 	renderTexturePresent->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	renderTexturePresent->Initialize();
@@ -1308,15 +1303,55 @@ void Graphics::CreateGraphicsPipelines() const
 		equirectangularToCubemap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		equirectangularToCubemap->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
-		equirectangularToCubemap->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT"));
+		equirectangularToCubemap->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
 
 		auto& pushConstantRange = equirectangularToCubemap->m_pushConstantRanges.emplace_back();
-		pushConstantRange.size = sizeof(glm::mat4) * 2;
+		pushConstantRange.size = sizeof(glm::mat4) + sizeof(float);
 		pushConstantRange.offset = 0;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 
 		equirectangularToCubemap->PreparePipeline();
 		RegisterGraphicsPipeline("EQUIRECTANGULAR_TO_CUBEMAP", equirectangularToCubemap);
+	}
+	{
+		const auto irradianceConstruct = std::make_shared<GraphicsPipeline>();
+		irradianceConstruct->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
+		irradianceConstruct->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("IRRADIANCE_CONSTRUCT_FRAG"));
+		irradianceConstruct->m_geometryType = GeometryType::Mesh;
+
+		irradianceConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		irradianceConstruct->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		irradianceConstruct->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
+		irradianceConstruct->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+
+		auto& pushConstantRange = irradianceConstruct->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(glm::mat4) + sizeof(float);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		irradianceConstruct->PreparePipeline();
+		RegisterGraphicsPipeline("IRRADIANCE_CONSTRUCT", irradianceConstruct);
+	}
+	{
+		const auto prefilterConstruct = std::make_shared<GraphicsPipeline>();
+		prefilterConstruct->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
+		prefilterConstruct->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("PREFILTER_CONSTRUCT_FRAG"));
+		prefilterConstruct->m_geometryType = GeometryType::Mesh;
+
+		prefilterConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		prefilterConstruct->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		prefilterConstruct->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
+		prefilterConstruct->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+
+		auto& pushConstantRange = prefilterConstruct->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(glm::mat4) + sizeof(float);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		prefilterConstruct->PreparePipeline();
+		RegisterGraphicsPipeline("PREFILTER_CONSTRUCT", prefilterConstruct);
 	}
 	{
 		//"RENDER_TEXTURE_PRESENT"

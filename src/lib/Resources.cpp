@@ -340,23 +340,23 @@ void Resources::LoadShaders()
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapBrdf.frag");
 		auto fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
-		/*
+
+		fragShaderCode =
+			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EquirectangularMapToCubemap.frag");
+		fragShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
+
 		fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapIrradianceConvolution.frag");
-		fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_IRRADIANCE_CONVOLUTION_FRAG");
+		fragShader = CreateResource<Shader>("IRRADIANCE_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
 			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EnvironmentalMapPrefilter.frag");
-		fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_PREFILTER_FRAG");
-		fragShader->Set(ShaderType::Fragment, fragShaderCode);
-		*/
-		fragShaderCode =
-			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/EquirectangularMapToCubemap.frag");
-		fragShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
+		fragShader = CreateResource<Shader>("PREFILTER_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion

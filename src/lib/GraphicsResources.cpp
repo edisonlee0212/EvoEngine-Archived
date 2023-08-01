@@ -241,6 +241,11 @@ VkCommandPool CommandPool::GetVkCommandPool() const
 	return m_vkCommandPool;
 }
 
+uint32_t Image::GetMipLevels() const
+{
+	return m_mipLevels;
+}
+
 Image::Image(const VkImageCreateInfo& imageCreateInfo)
 {
 	VmaAllocationCreateInfo allocInfo = {};
@@ -341,7 +346,7 @@ void Image::GenerateMipmaps(VkCommandBuffer commandBuffer)
 		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.srcSubresource.mipLevel = i - 1;
 		blit.srcSubresource.baseArrayLayer = 0;
-		blit.srcSubresource.layerCount = 1;
+		blit.srcSubresource.layerCount = m_arrayLayers;
 		blit.dstOffsets[0] = { 0, 0, 0 };
 		blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
 		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

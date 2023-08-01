@@ -73,6 +73,9 @@ set(LOCAL_EVOENGINE_INCLUDES
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Assets
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Physics
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Rendering
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Rendering/PBR
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Rendering/Animation
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Rendering/Geometry
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Editor
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Utilities
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/External

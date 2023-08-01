@@ -1,7 +1,9 @@
-out vec4 FragColor;
-in vec3 WorldPos;
+precision highp float;
 
-uniform samplerCube environmentMap;
+layout (location = 0) out vec4 FragColor;
+layout (location = 0) in vec3 WorldPos;
+
+layout(set = 0, binding = 0) uniform samplerCube environmentMap;
 
 const float PI = 3.14159265359;
 

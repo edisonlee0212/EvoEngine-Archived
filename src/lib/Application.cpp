@@ -18,7 +18,9 @@
 #include "Shader.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "Cubemap.hpp"
+#include "EnvironmentalMap.hpp"
 #include "LightProbe.hpp"
+#include "ReflectionProbe.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -384,7 +386,8 @@ void Application::InitializeRegistry()
 
 	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".uecubemap" });
 	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".uelightprobe" });
-	//ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".uereflecprobe" });
+	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".uereflectionprobe" });
+	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".ueenvmap" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".ueshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".uemesh" });
 

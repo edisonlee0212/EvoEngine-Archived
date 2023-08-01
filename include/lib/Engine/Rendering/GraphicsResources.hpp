@@ -66,7 +66,7 @@ namespace EvoEngine
 		VkImageLayout			 m_layout;
 
 	public:
-
+		[[nodiscard]] uint32_t GetMipLevels() const ;
 		explicit Image(const VkImageCreateInfo& imageCreateInfo);
 		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 		bool HasStencilComponent() const;
