@@ -7,7 +7,7 @@ using namespace EvoEngine;
 int main() {
 
     Application::PushLayer<WindowLayer>();
-    //Application::PushLayer<EditorLayer>();
+    Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
     //Application::PushLayer<AnimationLayer>();
 
@@ -21,7 +21,6 @@ int main() {
     auto mainCameraEntity = scene->CreateEntity("MainCamera");
 	auto mainCamera =  scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
     scene->m_mainCamera = mainCamera;
-    mainCamera->m_clearColor = { 0, 0, 0 };
     Application::Start();
     
 	Application::Terminate();
