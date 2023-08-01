@@ -12,9 +12,7 @@ int main() {
     Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;
-    const std::filesystem::path resourceFolderPath("../../../Resources");
-    applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Test/1.ueproj";
-    Application::Initialize(applicationInfo);
+	Application::Initialize(applicationInfo);
     Application::Start();
     
 	Application::Terminate();

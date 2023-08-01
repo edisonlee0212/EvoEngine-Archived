@@ -27,8 +27,11 @@ namespace EvoEngine
 		[[nodiscard]] static bool IsResource(const Handle& handle);
 		[[nodiscard]] static bool IsResource(const std::shared_ptr<IAsset>& target);
 		[[nodiscard]] static bool IsResource(const AssetRef& target);
-		[[nodiscard]] static std::shared_ptr<IAsset> GetResource(const std::string& name);
-		[[nodiscard]] static std::shared_ptr<IAsset> GetResource(const Handle& handle);
+
+		template <class T>
+		[[nodiscard]] static std::shared_ptr<T> GetResource(const std::string& name);
+		template <class T>
+		[[nodiscard]] static std::shared_ptr<T> GetResource(const Handle& handle);
 	};
 
 	template <class T>
@@ -48,5 +51,19 @@ namespace EvoEngine
 		resources.m_resources[handle] = retVal;
 		retVal->OnCreate();
 		return std::dynamic_pointer_cast<T>(retVal);
+	}
+
+	template <class T>
+	std::shared_ptr<T> Resources::GetResource(const std::string& name)
+	{
+		const auto& resources = GetInstance();
+		return std::dynamic_pointer_cast<T>(resources.m_namedResources.at(name));
+	}
+
+	template <class T>
+	std::shared_ptr<T> Resources::GetResource(const Handle& handle)
+	{
+		const auto& resources = GetInstance();
+		return std::dynamic_pointer_cast<T>(resources.m_resources.at(handle));
 	}
 }

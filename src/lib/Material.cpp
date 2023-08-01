@@ -219,7 +219,7 @@ void Material::UpdateDescriptorBindings(bool forceUpdate)
 {
     if(!m_needUpdate) return;
     VkDescriptorImageInfo imageInfo;
-    const auto missingTexture = std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("TEXTURE_MISSING"));
+    const auto missingTexture = Resources::GetResource<Texture2D>("TEXTURE_MISSING");
 	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
     {
         imageInfo.imageLayout = texture->GetLayout();

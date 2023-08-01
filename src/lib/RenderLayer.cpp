@@ -1377,7 +1377,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			}
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			environmentalBrdfPipeline->Bind(commandBuffer);
-			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);
 			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states);
 			vkCmdEndRendering(commandBuffer);
@@ -1403,7 +1403,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		imageInfo.sampler = cameraSkybox->m_sampler->GetVkSampler();
 	}
 	else {
-		auto defaultCubemap = std::dynamic_pointer_cast<Cubemap>(Resources::GetResource("DEFAULT_SKYBOX"));
+		auto defaultCubemap = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
 		imageInfo.imageView = defaultCubemap->m_imageView->GetVkImageView();
 		imageInfo.sampler = defaultCubemap->m_sampler->GetVkSampler();
 	}
@@ -1415,14 +1415,14 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	auto reflectionProbe = scene->m_environment.GetReflectionProbe(cameraPosition);
 	if (!lightProbe)
 	{
-		lightProbe = std::dynamic_pointer_cast<EnvironmentalMap>(Resources::GetResource("DEFAULT_ENVIRONMENTAL_MAP"))->m_lightProbe.Get<LightProbe>();
+		lightProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_lightProbe.Get<LightProbe>();
 	}
 	imageInfo.imageView = lightProbe->m_imageView->GetVkImageView();
 	imageInfo.sampler = lightProbe->m_sampler->GetVkSampler();
 	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(16, imageInfo);
 	if (!reflectionProbe)
 	{
-		reflectionProbe = std::dynamic_pointer_cast<EnvironmentalMap>(Resources::GetResource("DEFAULT_ENVIRONMENTAL_MAP"))->m_reflectionProbe.Get<ReflectionProbe>();
+		reflectionProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_reflectionProbe.Get<ReflectionProbe>();
 	}
 	imageInfo.imageView = reflectionProbe->m_imageView->GetVkImageView();
 	imageInfo.sampler = reflectionProbe->m_sampler->GetVkSampler();
@@ -1619,7 +1619,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			pushConstant.m_materialIndex = 0;
 			pushConstant.m_instanceIndex = 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
-			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);
 			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, false);
 			vkCmdEndRendering(commandBuffer);

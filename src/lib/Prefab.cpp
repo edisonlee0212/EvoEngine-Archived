@@ -118,7 +118,7 @@ void Prefab::AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,
 #pragma region Model Loading
 bool Prefab::LoadInternal(const std::filesystem::path& path)
 {
-    if (path.extension() == ".ueprefab")
+    if (path.extension() == ".eveprefab")
     {
         std::ifstream stream(path.string());
         std::stringstream stringStream;
@@ -922,7 +922,7 @@ void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& 
 }
 bool Prefab::SaveInternal(const std::filesystem::path& path)
 {
-    if (path.extension() == ".ueprefab")
+    if (path.extension() == ".eveprefab")
     {
         auto directory = path;
         directory.remove_filename();

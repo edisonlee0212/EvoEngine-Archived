@@ -17,7 +17,7 @@ void SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 }
 bool SkinnedMesh::SaveInternal(const std::filesystem::path &path)
 {
-    if(path.extension() == ".ueskinnedmesh"){
+    if(path.extension() == ".evesmesh"){
         return IAsset::SaveInternal(path);
     }else if(path.extension() == ".obj"){
         std::ofstream of;

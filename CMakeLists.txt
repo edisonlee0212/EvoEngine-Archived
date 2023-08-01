@@ -195,6 +195,20 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPL
             evoengine
             )
 
+    add_executable(Demo
+            src/app/Demo.cpp
+            )
+    target_include_directories(Demo
+            PRIVATE
+            ${LOCAL_EVOENGINE_INCLUDES}
+            )
+    target_precompile_headers(Demo
+            PRIVATE
+            ${LOCAL_EVOENGINE_PCH}
+            )
+    target_link_libraries(Demo
+            evoengine
+            )
     file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif ()
 

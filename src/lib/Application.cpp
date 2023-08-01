@@ -120,7 +120,7 @@ void Application::LateUpdateInternal()
 			FileUtils::SaveFile(
 				"Create or load New Project",
 				"Project",
-				{ ".ueproj" },
+				{ ".eveproj" },
 				[&](const std::filesystem::path& path) {
 					ProjectManager::GetOrCreateProject(path);
 					if (ProjectManager::GetInstance().m_projectFolder)
@@ -381,25 +381,25 @@ void Application::InitializeRegistry()
 
 	//ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
 
-	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".ueasset" });
-	ClassRegistry::RegisterAsset<Material>("Material", { ".uemat" });
+	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
+	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
 
 
 
-	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".uecubemap" });
-	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".uelightprobe" });
-	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".uereflectionprobe" });
-	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".ueenvmap" });
-	ClassRegistry::RegisterAsset<Shader>("Shader", { ".ueshader" });
-	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".uemesh" });
+	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".evecubemap" });
+	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".evelightprobe" });
+	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".evereflectionprobe" });
+	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvmap" });
+	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
+	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
 
-	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".ueprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
+	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
-	ClassRegistry::RegisterAsset<Scene>("Scene", { ".uescene" });
+	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });
 
-	ClassRegistry::RegisterAsset<Animation>("Animation", { ".ueanimation" });
-	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { "ueskinnedmesh" });
-	//ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { "uephysmat" });
+	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
+	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".evesmesh" });
+	//ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysmat" });
 }
 
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)

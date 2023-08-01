@@ -102,9 +102,16 @@ void Input::Dispatch(const InputEvent& event)
 
 void Input::PreUpdate()
 {
+	auto& input = GetInstance();
+	input.m_mousePosition = { FLT_MIN, FLT_MIN };
+
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
 		glfwPollEvents();
+		double x = FLT_MIN;
+		double y = FLT_MIN;
+		glfwGetCursorPos(windowLayer->GetGlfwWindow(), &x, &y);
+		input.m_mousePosition = { x, y };
 	}
 }
 

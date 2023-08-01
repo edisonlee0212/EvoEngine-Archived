@@ -410,15 +410,15 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 		{
 			childFolderList.push_back(entry.path());
 		}
-		else if (entry.path().extension() == ".ueproj")
+		else if (entry.path().extension() == ".eveproj")
 		{
 			continue;
 		}
-		else if (entry.path().extension() == ".ufmeta")
+		else if (entry.path().extension() == ".evefoldermeta")
 		{
 			childFolderMetadataList.push_back(entry.path());
 		}
-		else if (entry.path().extension() == ".umeta")
+		else if (entry.path().extension() == ".evefilemeta")
 		{
 			assetMetadataList.push_back(entry.path());
 		}
@@ -646,7 +646,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		EVOENGINE_ERROR("Path not absolute!");
 		return;
 	}
-	if (projectAbsolutePath.extension() != ".ueproj")
+	if (projectAbsolutePath.extension() != ".eveproj")
 	{
 		EVOENGINE_ERROR("Wrong extension!");
 		return;
@@ -689,7 +689,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 	if (!foundScene)
 	{
 		scene = CreateTemporaryAsset<Scene>();
-		std::filesystem::path newSceneRelativePath = GenerateNewPath("New Scene", ".uescene");
+		std::filesystem::path newSceneRelativePath = GenerateNewPath("New Scene", ".evescene");
 		bool succeed = scene->SetPathAndSave(newSceneRelativePath);
 		if (succeed)
 		{
@@ -706,7 +706,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		scene->SetDataComponent(mainCameraEntity, cameraLtw);
 		auto mainCameraComponent = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
 		scene->m_mainCamera = mainCameraComponent;
-		mainCameraComponent->m_skybox = Resources::GetResource("DEFAULT_SKYBOX");
+		mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
 #pragma endregion
 		
 		//scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);
@@ -765,7 +765,7 @@ std::shared_ptr<IAsset> ProjectManager::GetAsset(const Handle& handle)
 
 	if(Resources::IsResource(handle))
 	{
-		return Resources::GetResource(handle);
+		return Resources::GetResource<IAsset>(handle);
 	}
 	return {};
 }
@@ -893,7 +893,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			FileUtils::SaveFile(
 				"Create or load New Project##ProjectManager",
 				"Project",
-				{ ".ueproj" },
+				{ ".eveproj" },
 				[](const std::filesystem::path& filePath) {
 					try
 			{
@@ -1243,9 +1243,9 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 					{
 						ImTextureID textureId = 0;
 						auto fileName = i.second->GetProjectRelativePath().filename();
-						if (fileName.string() == ".ueproj" || fileName.extension().string() == ".ueproj")
+						if (fileName.string() == ".eveproj" || fileName.extension().string() == ".eveproj")
 							continue;
-						if (fileName.extension().string() == ".ueproj")
+						if (fileName.extension().string() == ".eveproj")
 						{
 							textureId = editorLayer->AssetIcons()["Project"]->GetImTextureId();
 						}

@@ -1188,8 +1188,8 @@ void Graphics::CreateGraphicsPipelines() const
 	auto lightingLayout = GetDescriptorSetLayout("LIGHTING_LAYOUT");
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-		standardDeferredPrepass->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_VERT"));
-		standardDeferredPrepass->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_FRAG"));
+		standardDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_VERT");
+		standardDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
@@ -1208,8 +1208,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
-		standardDeferredLighting->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
-		standardDeferredLighting->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("STANDARD_DEFERRED_LIGHTING_FRAG"));
+		standardDeferredLighting->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
+		standardDeferredLighting->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLighting->m_geometryType = GeometryType::Mesh;
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
@@ -1230,9 +1230,9 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
-		directionalLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
-		directionalLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM"));
-		directionalLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("LIGHT_SHADOW_MAP_VERT");
+		directionalLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
+		directionalLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		directionalLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1248,9 +1248,9 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
-		pointLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("LIGHT_SHADOW_MAP_VERT"));
-		pointLightShadowMap->m_geometryShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("POINT_LIGHT_SHADOW_MAP_GEOM"));
-		pointLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("LIGHT_SHADOW_MAP_VERT");
+		pointLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
+		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		pointLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1266,8 +1266,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
-		spotLightShadowMap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("SPOT_LIGHT_SHADOW_MAP_VERT"));
-		spotLightShadowMap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EMPTY_FRAG"));
+		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
+		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
 		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		spotLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1283,8 +1283,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto brdfLut = std::make_shared<GraphicsPipeline>();
-		brdfLut->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
-		brdfLut->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("ENVIRONMENTAL_MAP_BRDF_FRAG"));
+		brdfLut->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
+		brdfLut->m_fragmentShader = Resources::GetResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		brdfLut->m_geometryType = GeometryType::Mesh;
 
 		brdfLut->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
@@ -1297,8 +1297,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto equirectangularToCubemap = std::make_shared<GraphicsPipeline>();
-		equirectangularToCubemap->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
-		equirectangularToCubemap->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG"));
+		equirectangularToCubemap->m_vertexShader = Resources::GetResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
+		equirectangularToCubemap->m_fragmentShader = Resources::GetResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
 		equirectangularToCubemap->m_geometryType = GeometryType::Mesh;
 
 		equirectangularToCubemap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1317,8 +1317,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto irradianceConstruct = std::make_shared<GraphicsPipeline>();
-		irradianceConstruct->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
-		irradianceConstruct->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("IRRADIANCE_CONSTRUCT_FRAG"));
+		irradianceConstruct->m_vertexShader = Resources::GetResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
+		irradianceConstruct->m_fragmentShader = Resources::GetResource<Shader>("IRRADIANCE_CONSTRUCT_FRAG");
 		irradianceConstruct->m_geometryType = GeometryType::Mesh;
 
 		irradianceConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1337,8 +1337,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto prefilterConstruct = std::make_shared<GraphicsPipeline>();
-		prefilterConstruct->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT"));
-		prefilterConstruct->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("PREFILTER_CONSTRUCT_FRAG"));
+		prefilterConstruct->m_vertexShader = Resources::GetResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
+		prefilterConstruct->m_fragmentShader = Resources::GetResource<Shader>("PREFILTER_CONSTRUCT_FRAG");
 		prefilterConstruct->m_geometryType = GeometryType::Mesh;
 
 		prefilterConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
@@ -1358,8 +1358,8 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		//"RENDER_TEXTURE_PRESENT"
 		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
-		renderTexturePassThrough->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
-		renderTexturePassThrough->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_FRAG"));
+		renderTexturePassThrough->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
+		renderTexturePassThrough->m_fragmentShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");
 		renderTexturePassThrough->m_geometryType = GeometryType::Mesh;
 		renderTexturePassThrough->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
 
@@ -1588,7 +1588,7 @@ void Graphics::LateUpdate()
 						renderTexturePresent->Bind(commandBuffer);
 						renderTexturePresent->BindDescriptorSet(commandBuffer, 0, mainCamera->GetRenderTexture()->m_descriptorSet->GetVkDescriptorSet());
 
-						const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+						const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 						mesh->Bind(commandBuffer);
 						mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, false);
 						vkCmdEndRendering(commandBuffer);

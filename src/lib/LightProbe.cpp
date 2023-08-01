@@ -225,7 +225,7 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			irradianceConstruct->Bind(commandBuffer);
 			irradianceConstruct->BindDescriptorSet(commandBuffer, 0, tempSet->GetVkDescriptorSet());
-			const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_RENDERING_CUBE"));
+			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_RENDERING_CUBE");
 			mesh->Bind(commandBuffer);
 			EquirectangularToCubemapConstant constant{};
 			constant.m_projectionView = captureProjection * captureViews[i];

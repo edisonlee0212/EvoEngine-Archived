@@ -74,7 +74,7 @@ namespace EvoEngine
         friend class EditorLayer;
         friend class Input;
         std::unordered_map<int, KeyActionType> m_pressedKeys = {};
-        KeyActionType GetKey(int key);
+        
         SceneDataStorage m_sceneDataStorage;
         std::multimap<float, std::shared_ptr<ISystem>> m_systems;
         std::map<size_t, std::shared_ptr<ISystem>> m_indexedSystems;
@@ -197,6 +197,8 @@ namespace EvoEngine
         bool LoadInternal(const std::filesystem::path& path) override;
 
     public:
+        KeyActionType GetKey(int key);
+
         template <typename T = IDataComponent>
         void GetComponentDataArray(const EntityQuery& entityQuery, std::vector<T>& container, bool checkEnable = true);
         template <typename T1 = IDataComponent, typename T2 = IDataComponent>

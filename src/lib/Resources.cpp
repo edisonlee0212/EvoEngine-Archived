@@ -435,35 +435,35 @@ void Resources::LoadPrimitives() const
 	}
 	{
 		const auto quad = CreateResource<Mesh>("PRIMITIVE_QUAD");
-		quad->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/quad.uemesh");
+		quad->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/quad.evemesh");
 	}
 	{
 		const auto sphere = CreateResource<Mesh>("PRIMITIVE_SPHERE");
-		sphere->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/sphere.uemesh");
+		sphere->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/sphere.evemesh");
 	}
 	{
 		const auto cube = CreateResource<Mesh>("PRIMITIVE_CUBE");
-		cube->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cube.uemesh");
+		cube->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cube.evemesh");
 	}
 	{
 		const auto cone = CreateResource<Mesh>("PRIMITIVE_CONE");
-		cone->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cone.uemesh");
+		cone->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cone.evemesh");
 	}
 	{
 		const auto cylinder = CreateResource<Mesh>("PRIMITIVE_CYLINDER");
-		cylinder->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cylinder.uemesh");
+		cylinder->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/cylinder.evemesh");
 	}
 	{
 		const auto torus = CreateResource<Mesh>("PRIMITIVE_TORUS");
-		torus->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/torus.uemesh");
+		torus->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/torus.evemesh");
 	}
 	{
 		const auto monkey = CreateResource<Mesh>("PRIMITIVE_MONKEY");
-		monkey->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/monkey.uemesh");
+		monkey->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/monkey.evemesh");
 	}
 	{
 		const auto capsule = CreateResource<Mesh>("PRIMITIVE_CAPSULE");
-		capsule->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/capsule.uemesh");
+		capsule->LoadInternal(std::filesystem::path("./DefaultResources") / "Primitives/capsule.evemesh");
 	}
 }
 
@@ -575,16 +575,4 @@ bool Resources::IsResource(const AssetRef& target)
 {
 	auto& resources = GetInstance();
 	return resources.m_resources.find(target.GetAssetHandle()) != resources.m_resources.end();
-}
-
-std::shared_ptr<IAsset> Resources::GetResource(const std::string& name)
-{
-	auto& resources = GetInstance();
-	return resources.m_namedResources.at(name);
-}
-
-std::shared_ptr<IAsset> Resources::GetResource(const Handle& handle)
-{
-	auto& resources = GetInstance();
-	return resources.m_resources.at(handle);
 }
