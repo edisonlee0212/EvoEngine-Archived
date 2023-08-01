@@ -376,6 +376,30 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 	if (directionalLightEntities && !directionalLightEntities->empty())
 	{
 		m_directionalLightInfoBlocks.resize(Graphics::StorageSizes::m_maxDirectionalLightSize * cameras.size());
+		for (const auto& lightEntity : *directionalLightEntities)
+		{
+			if (!scene->IsEntityEnabled(lightEntity))
+				continue;
+			const auto dlc = scene->GetOrSetPrivateComponent<DirectionalLight>(lightEntity).lock();
+			if (!dlc->IsEnabled())
+				continue;
+			m_renderInfoBlock.m_directionalLightSize++;
+		}
+		std::vector<glm::uvec3> viewPortResults;
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_directionalLightSize, Graphics::StorageSizes::m_directionalLightShadowMapResolution, viewPortResults);
+		for (const auto& [cameraGlobalTransform, camera] : cameras) {
+			auto cameraIndex = GetCameraIndex(camera->GetHandle());
+			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
+			{
+				const auto blockIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i;
+				auto& viewPort = m_directionalLightInfoBlocks[blockIndex].m_viewPort;
+				viewPort.x = viewPortResults[i].x;
+				viewPort.y = viewPortResults[i].y;
+				viewPort.z = viewPortResults[i].z;
+				viewPort.w = viewPortResults[i].z;
+			}
+		}
+
 		for (const auto& [cameraGlobalTransform, camera] : cameras)
 		{
 			size_t directionalLightIndex = 0;
@@ -500,37 +524,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 					lightPos = center - lightDir * planeDistance;
 					lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::normalize(rotation * glm::vec3(0, 1, 0)));
 					lightProjection = glm::ortho(-max, max, -max, max, 0.0f, planeDistance * 2.0f);
-					switch (directionalLightIndex)
-					{
-					case 0:
-						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
-							0, 0, Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2, Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
-						break;
-					case 1:
-						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							0,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
-						break;
-					case 2:
-						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
-							0,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
-						break;
-					case 3:
-						m_directionalLightInfoBlocks[blockIndex].m_viewPort = glm::ivec4(
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2,
-							Graphics::StorageSizes::m_directionalLightShadowMapResolution / 2);
-						break;
-					}
-
 #pragma region Fix Shimmering due to the movement of the camera
-
 					glm::mat4 shadowMatrix = lightProjection * lightView;
 					glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 					shadowOrigin = shadowMatrix * shadowOrigin;
@@ -551,25 +545,12 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 					if (split == 4 - 1)
 						m_directionalLightInfoBlocks[blockIndex].m_reservedParameters =
 						glm::vec4(dlc->m_lightSize, 0, dlc->m_bias, dlc->m_normalOffset);
-				}
 
+				}
 				directionalLightIndex++;
 			}
-			std::vector<glm::uvec3> viewPortResults;
-			Lighting::AllocateAtlas(directionalLightIndex, Graphics::StorageSizes::m_directionalLightShadowMapResolution, viewPortResults);
-			int allocationIndex = 0;
-			for (int i = 0; i < directionalLightIndex; i++)
-			{
-				const auto blockIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + directionalLightIndex;
-				auto& viewPort = m_directionalLightInfoBlocks[blockIndex].m_viewPort;
-				viewPort.x = viewPortResults[allocationIndex].x;
-				viewPort.y = viewPortResults[allocationIndex].y;
-				viewPort.z = viewPortResults[allocationIndex].z;
-				viewPort.w = viewPortResults[allocationIndex].z;
-				allocationIndex++;
-			}
-			m_renderInfoBlock.m_directionalLightSize = directionalLightIndex;
 		}
+		
 	}
 }
 
@@ -1476,6 +1457,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				viewport.y = directionalLightInfoBlock.m_viewPort.y;
 				viewport.width = directionalLightInfoBlock.m_viewPort.z;
 				viewport.height = directionalLightInfoBlock.m_viewPort.w;
+				scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
+				scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
+				directionalLightShadowPipeline->m_states.m_scissor = scissor;
 				directionalLightShadowPipeline->m_states.m_viewPort = viewport;
 				directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
 				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)

@@ -20,6 +20,7 @@
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
 #include "LightProbe.hpp"
+#include "PlayerController.hpp"
 #include "ReflectionProbe.hpp"
 using namespace EvoEngine;
 
@@ -368,7 +369,7 @@ void Application::InitializeRegistry()
 	//ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
 	//ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
 	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
-	//ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
+	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
 	//ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
 	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");
 	//ClassRegistry::RegisterPrivateComponent<PostProcessing>("PostProcessing");

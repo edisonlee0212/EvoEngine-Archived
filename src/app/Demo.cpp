@@ -12,6 +12,17 @@ using namespace EvoEngine;
 void LoadScene();
 
 int main() {
+    const std::filesystem::path resourceFolderPath("../../../Resources");
+
+    for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
+    {
+        if (i.is_directory()) continue;
+        if (i.path().extension().string() == ".evescene" || i.path().extension().string() == ".evefilemeta" || i.path().extension().string() == ".eveproj" || i.path().extension().string() == ".evefoldermeta")
+        {
+            std::filesystem::remove(i.path());
+        }
+    }
+
 
     Application::PushLayer<WindowLayer>();
     Application::PushLayer<EditorLayer>();
@@ -19,7 +30,6 @@ int main() {
     Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;
-    const std::filesystem::path resourceFolderPath("../../../Resources");
     applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
 
     ProjectManager::SetScenePostLoadActions([]() { LoadScene(); });
@@ -36,7 +46,7 @@ void LoadScene()
     double time = 0;
     const float sinTime = glm::sin(time / 5.0f);
     const float cosTime = glm::cos(time / 5.0f);
-    scene->m_environment.m_ambientLightIntensity = 0.5f;
+    scene->m_environment.m_ambientLightIntensity = 0.05f;
 #pragma region Set main camera to correct position and rotation
     const auto mainCamera = scene->m_mainCamera.Get<Camera>();
     auto mainCameraEntity = mainCamera->GetOwner();
@@ -142,7 +152,7 @@ void LoadScene()
 #pragma region Lighting
     auto dirLightEntity = scene->CreateEntity("Directional Light");
     auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
-    dirLight->m_diffuseBrightness = 3.0f;
+    dirLight->m_diffuseBrightness = 2.0f;
     dirLight->m_lightSize = 0.2f;
 
     auto pointLightLeftEntity = scene->CreateEntity("Right Point Light");
@@ -150,10 +160,10 @@ void LoadScene()
     auto groundMaterial = ProjectManager::CreateTemporaryAsset<Material>();
     pointLightLeftRenderer->m_material.Set<Material>(groundMaterial);
     groundMaterial->m_materialProperties.m_albedoColor = glm::vec3(0.0, 0.5, 1.0);
-    groundMaterial->m_materialProperties.m_emission = 10.0f;
+    groundMaterial->m_materialProperties.m_emission = 2.0f;
     pointLightLeftRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
     auto pointLightLeft = scene->GetOrSetPrivateComponent<PointLight>(pointLightLeftEntity).lock();
-    pointLightLeft->m_diffuseBrightness = 20;
+    pointLightLeft->m_diffuseBrightness = 2;
     pointLightLeft->m_lightSize = 0.2f;
     pointLightLeft->m_linear = 0.02;
     pointLightLeft->m_quadratic = 0.0001;
@@ -164,10 +174,10 @@ void LoadScene()
     auto pointLightRightMaterial = ProjectManager::CreateTemporaryAsset<Material>();
     pointLightRightRenderer->m_material.Set<Material>(pointLightRightMaterial);
     pointLightRightMaterial->m_materialProperties.m_albedoColor = glm::vec3(1.0, 0.8, 0.0);
-    pointLightRightMaterial->m_materialProperties.m_emission = 10.0f;
+    pointLightRightMaterial->m_materialProperties.m_emission = 2.0f;
     pointLightRightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
     auto pointLightRight = scene->GetOrSetPrivateComponent<PointLight>(pointLightRightEntity).lock();
-    pointLightRight->m_diffuseBrightness = 20;
+    pointLightRight->m_diffuseBrightness = 2;
     pointLightRight->m_lightSize = 0.2f;
     pointLightRight->m_linear = 0.02;
     pointLightRight->m_quadratic = 0.0001;
@@ -183,7 +193,7 @@ void LoadScene()
     auto spotLightMaterial = ProjectManager::CreateTemporaryAsset<Material>();
     spotLightRenderer->m_material.Set<Material>(spotLightMaterial);
     spotLightMaterial->m_materialProperties.m_albedoColor = glm::vec3(1, 0.7, 0.7);
-    spotLightMaterial->m_materialProperties.m_emission = 10.0f;
+    spotLightMaterial->m_materialProperties.m_emission = 2.0f;
     spotLightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CONE");
 
     auto spotLightEntity = scene->CreateEntity("Spot Light");
@@ -193,7 +203,7 @@ void LoadScene()
     scene->SetParent(spotLightEntity, spotLightConeEntity);
     auto spotLight = scene->GetOrSetPrivateComponent<SpotLight>(spotLightEntity).lock();
     spotLight->m_diffuse = glm::vec3(1, 0.7, 0.7);
-    spotLight->m_diffuseBrightness = 40;
+    spotLight->m_diffuseBrightness = 4;
 #pragma endregion
     Transform dirLightTransform;
     dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, time * 10, 0.0f)));
