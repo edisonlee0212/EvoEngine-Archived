@@ -46,7 +46,6 @@ namespace EvoEngine
 	struct RenderInstanceGroup {
 		std::shared_ptr<Material> m_material;
 		std::unordered_map<Handle, std::vector<RenderInstance>> m_renderCommands;
-		
 	};
 
 	struct RenderInstanceCollection

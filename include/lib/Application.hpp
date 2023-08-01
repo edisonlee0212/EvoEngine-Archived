@@ -92,6 +92,7 @@ namespace EvoEngine {
 				EVOENGINE_ERROR("Not a layer!");
 				return nullptr;
 			}
+			if (!application.m_layers.empty()) application.m_layers.back()->m_subsequentLayer = test;
 			application.m_layers.push_back(std::dynamic_pointer_cast<ILayer>(test));
 		}
 		return test;

@@ -1062,7 +1062,7 @@ void EditorLayer::MainCameraWindow()
 void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 {
 	//If main camera is focused, we pass the event to the scene.
-	if (m_mainCameraWindowFocused)
+	if (m_mainCameraWindowFocused && Application::IsPlaying())
 	{
 		const auto activeScene = Application::GetActiveScene();
 		auto& pressedKeys = activeScene->m_pressedKeys;
