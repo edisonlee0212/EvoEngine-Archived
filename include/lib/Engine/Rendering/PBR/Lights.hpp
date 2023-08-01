@@ -97,10 +97,12 @@ namespace EvoEngine
     {
         std::shared_ptr<Image> m_directionalLightShadowMap = {};
         std::shared_ptr<ImageView> m_directionalLightShadowMapView = {};
+        std::vector<std::shared_ptr<ImageView>> m_directionalLightShadowMapLayeredViews = {};
         std::shared_ptr<Sampler> m_directionalShadowMapSampler = {};
 
         std::shared_ptr<Image> m_pointLightShadowMap = {};
         std::shared_ptr<ImageView> m_pointLightShadowMapView = {};
+        std::vector<std::shared_ptr<ImageView>> m_pointLightShadowMapLayeredViews = {};
         std::shared_ptr<Sampler> m_pointLightShadowMapSampler = {};
 
         std::shared_ptr<Image> m_spotLightShadowMap = {};
@@ -121,6 +123,8 @@ namespace EvoEngine
         void Initialize();
         [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo() const;
         [[nodiscard]] VkRenderingAttachmentInfo GetPointLightDepthAttachmentInfo() const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredDirectionalLightDepthAttachmentInfo(uint32_t split) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredPointLightDepthAttachmentInfo(uint32_t face) const;
         [[nodiscard]] VkRenderingAttachmentInfo GetSpotLightDepthAttachmentInfo() const;
     };
 }

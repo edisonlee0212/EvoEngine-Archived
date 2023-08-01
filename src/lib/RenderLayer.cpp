@@ -550,7 +550,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 				directionalLightIndex++;
 			}
 		}
-		
+
 	}
 }
 
@@ -723,54 +723,56 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 			scissor.offset = { 0, 0 };
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
-
+			VkRenderingInfo renderInfo{};
 			pointLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			auto depthAttachment = m_lighting->GetPointLightDepthAttachmentInfo();
-			VkRenderingInfo renderInfo{};
-			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 6;
-			renderInfo.colorAttachmentCount = 0;
-			renderInfo.pColorAttachments = nullptr;
-			renderInfo.pDepthAttachment = &depthAttachment;
-			pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			pointLightShadowPipeline->m_states.m_viewPort = viewport;
-
-			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			pointLightShadowPipeline->Bind(commandBuffer);
-			pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
-			{
-				const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
-				viewport.x = pointLightInfoBlock.m_viewPort.x;
-				viewport.y = pointLightInfoBlock.m_viewPort.y;
-				viewport.width = pointLightInfoBlock.m_viewPort.z;
-				viewport.height = pointLightInfoBlock.m_viewPort.w;
+			for (int face = 0; face < 6; face++) {
+				auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face);
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 0;
+				renderInfo.pColorAttachments = nullptr;
+				renderInfo.pDepthAttachment = &depthAttachment;
+				pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
 				pointLightShadowPipeline->m_states.m_viewPort = viewport;
-				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-					{}, [&](const RenderInstance& renderCommand)
-					{
-						switch (renderCommand.m_geometryType)
-						{
-						case RenderGeometryType::Mesh: {
 
-							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = 0;
-							pushConstant.m_materialIndex = i;
-							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
-							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states);
-							break;
+				vkCmdBeginRendering(commandBuffer, &renderInfo);
+				pointLightShadowPipeline->Bind(commandBuffer);
+				pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
+				{
+					const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
+					viewport.x = pointLightInfoBlock.m_viewPort.x;
+					viewport.y = pointLightInfoBlock.m_viewPort.y;
+					viewport.width = pointLightInfoBlock.m_viewPort.z;
+					viewport.height = pointLightInfoBlock.m_viewPort.w;
+					pointLightShadowPipeline->m_states.m_viewPort = viewport;
+
+					m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+						{}, [&](const RenderInstance& renderCommand)
+						{
+							switch (renderCommand.m_geometryType)
+							{
+							case RenderGeometryType::Mesh: {
+
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = face;
+								pushConstant.m_materialIndex = i;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
+								const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+								mesh->Bind(commandBuffer);
+								mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states);
+								break;
+							}
+							}
 						}
-						}
-					}
-				);
+					);
+				}
+				vkCmdEndRendering(commandBuffer);
 			}
-			vkCmdEndRendering(commandBuffer);
 #pragma region Viewport and scissor
 
 			renderArea.offset = { 0, 0 };
@@ -791,7 +793,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 			spotLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo();
+			auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo();
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
 			renderInfo.layerCount = 1;
@@ -1435,55 +1437,62 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			directionalLightShadowPipeline->m_states.m_scissor = scissor;
 #pragma endregion
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			const auto depthAttachment = m_lighting->GetDirectionalLightDepthAttachmentInfo();
-			VkRenderingInfo renderInfo{};
-			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 4;
-			renderInfo.colorAttachmentCount = 0;
-			renderInfo.pColorAttachments = nullptr;
-			renderInfo.pDepthAttachment = &depthAttachment;
-			directionalLightShadowPipeline->m_states.m_viewPort = viewport;
-			directionalLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
-
-			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			directionalLightShadowPipeline->Bind(commandBuffer);
-			directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
-			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
-			{
-				const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i];
-				viewport.x = directionalLightInfoBlock.m_viewPort.x;
-				viewport.y = directionalLightInfoBlock.m_viewPort.y;
-				viewport.width = directionalLightInfoBlock.m_viewPort.z;
-				viewport.height = directionalLightInfoBlock.m_viewPort.w;
-				scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
-				scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
-				directionalLightShadowPipeline->m_states.m_scissor = scissor;
+			
+			for (int split = 0; split < 4; split++) {
+				const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split);
+				VkRenderingInfo renderInfo{};
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 0;
+				renderInfo.pColorAttachments = nullptr;
+				renderInfo.pDepthAttachment = &depthAttachment;
 				directionalLightShadowPipeline->m_states.m_viewPort = viewport;
-				directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-				m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-					{}, [&](const RenderInstance& renderCommand)
-					{
-						switch (renderCommand.m_geometryType)
-						{
-						case RenderGeometryType::Mesh: {
+				directionalLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
 
-							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = cameraIndex;
-							pushConstant.m_materialIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i;
-							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-							const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
-							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states);
-							break;
+				vkCmdBeginRendering(commandBuffer, &renderInfo);
+				directionalLightShadowPipeline->Bind(commandBuffer);
+				directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+
+				for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
+				{
+					const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i];
+					viewport.x = directionalLightInfoBlock.m_viewPort.x;
+					viewport.y = directionalLightInfoBlock.m_viewPort.y;
+					viewport.width = directionalLightInfoBlock.m_viewPort.z;
+					viewport.height = directionalLightInfoBlock.m_viewPort.w;
+					scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
+					scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
+					directionalLightShadowPipeline->m_states.m_scissor = scissor;
+					directionalLightShadowPipeline->m_states.m_viewPort = viewport;
+					directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
+
+					m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
+						{}, [&](const RenderInstance& renderCommand)
+						{
+							switch (renderCommand.m_geometryType)
+							{
+							case RenderGeometryType::Mesh: {
+
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = split;
+								pushConstant.m_materialIndex = cameraIndex * Graphics::StorageSizes::m_maxDirectionalLightSize + i;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
+								const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
+								mesh->Bind(commandBuffer);
+								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states);
+								break;
+							}
+							}
 						}
-						}
-					}
-				);
+					);
+
+				}
+				vkCmdEndRendering(commandBuffer);
 			}
-			vkCmdEndRendering(commandBuffer);
+
+
 		}
 	);
 

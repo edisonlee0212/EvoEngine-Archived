@@ -207,13 +207,10 @@ Lighting::Lighting()
 
 void Lighting::Initialize()
 {
-    
-   
-    
     m_directionalShadowMapSampler.reset();
     m_directionalLightShadowMapView.reset();
     m_directionalLightShadowMap.reset();
-
+    m_directionalLightShadowMapLayeredViews.clear();
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -245,6 +242,13 @@ void Lighting::Initialize()
 
         m_directionalLightShadowMapView = std::make_shared<ImageView>(viewInfo);
 
+        for(int i = 0; i < 4; i++)
+        {
+            viewInfo.subresourceRange.baseArrayLayer = i;
+            viewInfo.subresourceRange.layerCount = 1;
+            m_directionalLightShadowMapLayeredViews.emplace_back(std::make_shared<ImageView>(viewInfo));
+        }
+
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -266,6 +270,7 @@ void Lighting::Initialize()
     m_pointLightShadowMapSampler.reset();
     m_pointLightShadowMapView.reset();
     m_pointLightShadowMap.reset();
+    m_pointLightShadowMapLayeredViews.clear();
 
     {
         VkImageCreateInfo imageInfo{};
@@ -297,6 +302,13 @@ void Lighting::Initialize()
         viewInfo.subresourceRange.layerCount = 6;
 
         m_pointLightShadowMapView = std::make_shared<ImageView>(viewInfo);
+
+        for (int i = 0; i < 6; i++)
+        {
+            viewInfo.subresourceRange.baseArrayLayer = i;
+            viewInfo.subresourceRange.layerCount = 1;
+            m_pointLightShadowMapLayeredViews.emplace_back(std::make_shared<ImageView>(viewInfo));
+        }
 
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -415,6 +427,34 @@ VkRenderingAttachmentInfo Lighting::GetPointLightDepthAttachmentInfo() const
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_pointLightShadowMapView->GetVkImageView();
+    return attachment;
+}
+
+VkRenderingAttachmentInfo Lighting::GetLayeredDirectionalLightDepthAttachmentInfo(const uint32_t split) const
+{
+    VkRenderingAttachmentInfo attachment{};
+    attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+    attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    attachment.clearValue.depthStencil.depth = 1.0f;
+    attachment.imageView = m_directionalLightShadowMapLayeredViews[split]->GetVkImageView();
+    return attachment;
+}
+
+VkRenderingAttachmentInfo Lighting::GetLayeredPointLightDepthAttachmentInfo(const uint32_t face) const
+{
+    VkRenderingAttachmentInfo attachment{};
+    attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+    attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    attachment.clearValue.depthStencil.depth = 1.0f;
+    attachment.imageView = m_pointLightShadowMapLayeredViews[face]->GetVkImageView();
     return attachment;
 }
 

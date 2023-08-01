@@ -1230,8 +1230,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
-		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("LIGHT_SHADOW_MAP_VERT");
-		directionalLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
+		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
+		//directionalLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
 		directionalLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1248,8 +1248,8 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
-		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("LIGHT_SHADOW_MAP_VERT");
-		pointLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
+		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
+		//pointLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
