@@ -58,7 +58,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
-		imageInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+		imageInfo.format = Graphics::ImageFormats::m_texture2D;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -93,7 +93,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+		viewInfo.format = Graphics::ImageFormats::m_texture2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
@@ -122,9 +122,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		samplerInfo.mipLodBias = 0.0f;
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
-		if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-			editorLayer->UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
-		}
+		EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
 	}
 	else
 	{

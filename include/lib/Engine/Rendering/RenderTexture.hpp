@@ -4,6 +4,7 @@
 namespace EvoEngine{
 	class RenderTexture
 	{
+		friend class Graphics;
 		std::shared_ptr<Image> m_colorImage = {};
 		std::shared_ptr<ImageView> m_colorImageView = {};
 
@@ -20,7 +21,7 @@ namespace EvoEngine{
 		ImTextureID m_colorImTextureId = nullptr;
 
 		void Initialize(VkExtent3D extent, VkImageViewType imageViewType);
-
+		std::shared_ptr<DescriptorSet> m_descriptorSet;
 	public:
 		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 		void Resize(VkExtent3D extent);

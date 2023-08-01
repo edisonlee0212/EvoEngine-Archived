@@ -1,5 +1,5 @@
 #include "Camera.hpp"
-
+#include "Cubemap.hpp"
 #include "Application.hpp"
 #include "ClassRegistry.hpp"
 #include "EditorLayer.hpp"
@@ -227,15 +227,10 @@ void Camera::UpdateGBuffer()
 		});
 
 
-	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
-		editorLayer->UpdateTextureId(m_gBufferDepthImTextureId, m_gBufferDepthSampler->GetVkSampler(), m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
-
-		editorLayer->UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalSampler->GetVkSampler(), m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
-
-		editorLayer->UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoSampler->GetVkSampler(), m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
-
-		editorLayer->UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(), m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
-	}
+	EditorLayer::UpdateTextureId(m_gBufferDepthImTextureId, m_gBufferDepthSampler->GetVkSampler(), m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
+	EditorLayer::UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalSampler->GetVkSampler(), m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
+	EditorLayer::UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoSampler->GetVkSampler(), m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
+	EditorLayer::UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(), m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
 
 	{
 		VkDescriptorImageInfo imageInfo{};
@@ -613,14 +608,7 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::TreePop();
 	}
 
-	if (!Application::GetLayer<RenderLayer>()->m_allowAutoResize)
-	{
-		glm::ivec2 resolution = { m_size.x, m_size.y };
-		if (ImGui::DragInt2("Resolution", &resolution.x, 1, 1, 4096))
-		{
-			Resize({ resolution.x, resolution.y });
-		}
-	}
+	
 	ImGui::Checkbox("Use clear color", &m_useClearColor);
 	auto scene = GetScene();
 	const bool savedState = (this == scene->m_mainCamera.Get<Camera>().get());
@@ -637,13 +625,21 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			Application::GetActiveScene()->m_mainCamera.Clear();
 		}
 	}
+	if (!isMainCamera || !Application::GetLayer<EditorLayer>()->m_mainCameraAllowAutoResize)
+	{
+		glm::ivec2 resolution = { m_size.x, m_size.y };
+		if (ImGui::DragInt2("Resolution", &resolution.x, 1, 1, 4096))
+		{
+			Resize({ resolution.x, resolution.y });
+		}
+	}
 	if (m_useClearColor)
 	{
 		ImGui::ColorEdit3("Clear Color", (float*)(void*)&m_clearColor);
 	}
 	else
 	{
-		//Editor::DragAndDropButton<Cubemap>(m_skybox, "Skybox");
+		editorLayer->DragAndDropButton<Cubemap>(m_skybox, "Skybox");
 	}
 	if (ImGui::TreeNode("Intrinsic Settings")) {
 		ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);

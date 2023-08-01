@@ -7,7 +7,7 @@ using namespace EvoEngine;
 int main() {
 
     Application::PushLayer<WindowLayer>();
-    Application::PushLayer<EditorLayer>();
+    //Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
     //Application::PushLayer<AnimationLayer>();
 
@@ -17,6 +17,11 @@ int main() {
     Application::Initialize(applicationInfo);
     std::shared_ptr<Texture2D> texture2D = std::dynamic_pointer_cast<Texture2D>(ProjectManager::GetOrCreateAsset("border.png"));
 
+    auto scene = Application::GetActiveScene();
+    auto mainCameraEntity = scene->CreateEntity("MainCamera");
+	auto mainCamera =  scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
+    scene->m_mainCamera = mainCamera;
+    mainCamera->m_clearColor = { 0, 0, 0 };
     Application::Start();
     
 	Application::Terminate();

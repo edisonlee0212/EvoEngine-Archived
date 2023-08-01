@@ -171,7 +171,7 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = targetImage;
-	if (imageFormat == ImageFormats::m_texture2DHDR || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
+	if (imageFormat == ImageFormats::m_texture2D || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
@@ -1176,6 +1176,11 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	equirectangularToCubeLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	equirectangularToCubeLayout->Initialize();
 	RegisterDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT", equirectangularToCubeLayout);
+
+	const auto renderTexturePresent = std::make_shared<DescriptorSetLayout>();
+	renderTexturePresent->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	renderTexturePresent->Initialize();
+	RegisterDescriptorSetLayout("RENDER_TEXTURE_PRESENT", renderTexturePresent);
 }
 
 void Graphics::CreateGraphicsPipelines() const
@@ -1302,7 +1307,7 @@ void Graphics::CreateGraphicsPipelines() const
 		equirectangularToCubemap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
 		equirectangularToCubemap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-		equirectangularToCubemap->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2DHDR };
+		equirectangularToCubemap->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
 		equirectangularToCubemap->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("EQUIRECTANGULAR_TO_CUBE_LAYOUT"));
 
 		auto& pushConstantRange = equirectangularToCubemap->m_pushConstantRanges.emplace_back();
@@ -1312,6 +1317,22 @@ void Graphics::CreateGraphicsPipelines() const
 
 		equirectangularToCubemap->PreparePipeline();
 		RegisterGraphicsPipeline("EQUIRECTANGULAR_TO_CUBEMAP", equirectangularToCubemap);
+	}
+	{
+		//"RENDER_TEXTURE_PRESENT"
+		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
+		renderTexturePassThrough->m_vertexShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_VERT"));
+		renderTexturePassThrough->m_fragmentShader = std::dynamic_pointer_cast<Shader>(Resources::GetResource("TEXTURE_PASS_THROUGH_FRAG"));
+		renderTexturePassThrough->m_geometryType = GeometryType::Mesh;
+		renderTexturePassThrough->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+
+		renderTexturePassThrough->m_depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		renderTexturePassThrough->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		renderTexturePassThrough->m_colorAttachmentFormats = { 1, m_swapchain->GetImageFormat() };
+
+		renderTexturePassThrough->PreparePipeline();
+		RegisterGraphicsPipeline("RENDER_TEXTURE_PRESENT", renderTexturePassThrough);
 	}
 }
 
@@ -1454,6 +1475,15 @@ void Graphics::PreUpdate()
 	graphics.m_triangles = 0;
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
+
+	if (Application::GetLayer<RenderLayer>()) {
+		const auto mainCamera = Application::GetActiveScene()->m_mainCamera.Get<Camera>();
+		if (!Application::GetLayer<EditorLayer>() && mainCamera && mainCamera->IsEnabled())
+		{
+			mainCamera->SetRequireRendering(true);
+			mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
+		}
+	}
 }
 
 void Graphics::LateUpdate()
@@ -1461,8 +1491,75 @@ void Graphics::LateUpdate()
 	auto& graphics = GetInstance();
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
-		if (Application::GetLayer<RenderLayer>() || Application::GetLayer<EditorLayer>())
-		{
+		if (Application::GetLayer<RenderLayer>()) {
+			if (const auto mainCamera = Application::GetActiveScene()->m_mainCamera.Get<Camera>(); !Application::GetLayer<EditorLayer>() && mainCamera && mainCamera->IsEnabled() && mainCamera->m_rendered)
+			{
+				const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];
+				AppendCommands([&](VkCommandBuffer commandBuffer)
+					{
+						EverythingBarrier(commandBuffer);
+						TransitImageLayout(commandBuffer,
+							graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
+							VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
+
+						constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+						VkRect2D renderArea;
+						renderArea.offset = { 0, 0 };
+						renderArea.extent = graphics.m_swapchain->GetImageExtent();
+
+
+						VkRenderingAttachmentInfo colorAttachmentInfo{};
+						colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+						colorAttachmentInfo.imageView = graphics.m_swapchain->GetVkImageView();
+						colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+						colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+						colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+						colorAttachmentInfo.clearValue = clearColor;
+
+						VkRenderingInfo renderInfo{};
+						renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+						renderInfo.renderArea = renderArea;
+						renderInfo.layerCount = 1;
+						renderInfo.colorAttachmentCount = 1;
+						renderInfo.pColorAttachments = &colorAttachmentInfo;
+						VkViewport viewport;
+						viewport.x = 0.0f;
+						viewport.y = 0.0f;
+						viewport.width = renderArea.extent.width;
+						viewport.height = renderArea.extent.height;
+						viewport.minDepth = 0.0f;
+						viewport.maxDepth = 1.0f;
+
+						VkRect2D scissor;
+						scissor.offset = { 0, 0 };
+						scissor.extent.width = renderArea.extent.width;
+						scissor.extent.height = renderArea.extent.height;
+
+						renderTexturePresent->m_states.m_viewPort = viewport;
+						renderTexturePresent->m_states.m_scissor = scissor;
+						renderTexturePresent->m_states.m_colorBlendAttachmentStates.clear();
+						renderTexturePresent->m_states.m_colorBlendAttachmentStates.resize(1);
+						for (auto& i : renderTexturePresent->m_states.m_colorBlendAttachmentStates)
+						{
+							i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+							i.blendEnable = VK_FALSE;
+						}
+						renderTexturePresent->m_states.m_depthTest = VK_FALSE;
+						renderTexturePresent->m_states.m_depthWrite = VK_FALSE;
+						vkCmdBeginRendering(commandBuffer, &renderInfo);
+						//From main camera to swap chain.
+						renderTexturePresent->Bind(commandBuffer);
+						renderTexturePresent->BindDescriptorSet(commandBuffer, 0, mainCamera->GetRenderTexture()->m_descriptorSet->GetVkDescriptorSet());
+
+						const auto mesh = std::dynamic_pointer_cast<Mesh>(Resources::GetResource("PRIMITIVE_TEX_PASS_THROUGH"));
+						mesh->Bind(commandBuffer);
+						mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, false);
+						vkCmdEndRendering(commandBuffer);
+						TransitImageLayout(commandBuffer,
+							graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
+							VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+					});
+			}
 			graphics.SubmitPresent();
 		}
 	}

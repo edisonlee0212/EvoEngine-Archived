@@ -128,6 +128,13 @@ void Resources::LoadShaders()
 			std::filesystem::path("./DefaultResources") / "Shaders/Vertex/TexturePassThrough.vert");
 	auto texPassVert = CreateResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 	texPassVert->Set(ShaderType::Vertex, texPassVertCode);
+
+	auto texPassFragCode = std::string("#version 450 core\n") +
+		FileUtils::LoadFileAsString(
+			std::filesystem::path("./DefaultResources") / "Shaders/Fragment/TexturePassThrough.frag");
+	auto texPassFrag = CreateResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");
+	texPassFrag->Set(ShaderType::Fragment, texPassFragCode);
+
 #pragma region GBuffer
 	{
 		auto fragShaderCode =

@@ -148,9 +148,9 @@ namespace EvoEngine
 			inline const static uint32_t m_maxPointLightSize = 4;
 			inline const static uint32_t m_maxSpotLightSize = 4;
 
-			inline const static uint32_t m_directionalLightShadowMapResolution = 1024;
-			inline const static uint32_t m_pointLightShadowMapResolution = 1024;
-			inline const static uint32_t m_spotLightShadowMapResolution = 1024;
+			inline const static uint32_t m_directionalLightShadowMapResolution = 2048;
+			inline const static uint32_t m_pointLightShadowMapResolution = 512;
+			inline const static uint32_t m_spotLightShadowMapResolution = 512;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);
@@ -163,12 +163,12 @@ namespace EvoEngine
 		class ImageFormats
 		{
 		public:
-			inline const static VkFormat m_texture2DHDR = VK_FORMAT_R32G32B32A32_SFLOAT;
+			inline const static VkFormat m_texture2D = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline const static VkFormat m_renderTextureDepthStencil = VK_FORMAT_D24_UNORM_S8_UINT;
 			inline const static VkFormat m_renderTextureColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline const static VkFormat m_gBufferDepth = VK_FORMAT_D32_SFLOAT;
+			inline const static VkFormat m_gBufferDepth = VK_FORMAT_D16_UNORM;
 			inline const static VkFormat m_gBufferColor = VK_FORMAT_R16G16B16A16_SFLOAT;
-			inline const static VkFormat m_shadowMap = VK_FORMAT_D32_SFLOAT;
+			inline const static VkFormat m_shadowMap = VK_FORMAT_D16_UNORM;
 		};
 
 #pragma endregion

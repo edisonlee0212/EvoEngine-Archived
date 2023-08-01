@@ -31,7 +31,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 6;
-	imageInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+	imageInfo.format = Graphics::ImageFormats::m_texture2D;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -44,7 +44,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = m_image->GetVkImage();
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+	viewInfo.format = Graphics::ImageFormats::m_texture2D;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
@@ -83,7 +83,7 @@ void Cubemap::Initialize(uint32_t resolution)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::ImageFormats::m_texture2DHDR;
+		viewInfo.format = Graphics::ImageFormats::m_texture2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -96,7 +96,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	m_imTextureIds.resize(6);
 	for (int i = 0; i < 6; i++)
 	{
-		Application::GetLayer<EditorLayer>()->UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		EditorLayer::UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
 }

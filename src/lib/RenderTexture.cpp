@@ -148,11 +148,14 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_colorSampler = std::make_shared<Sampler>(samplerInfo);
 
-	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
+	EditorLayer::UpdateTextureId(m_colorImTextureId, m_colorSampler->GetVkSampler(), m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
 
-		editorLayer->UpdateTextureId(m_colorImTextureId, m_colorSampler->GetVkSampler(), m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
-	}
-
+	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+	VkDescriptorImageInfo descriptorImageInfo;
+	descriptorImageInfo.imageLayout = m_colorImage->GetLayout();
+	descriptorImageInfo.imageView = m_colorImageView->GetVkImageView();
+	descriptorImageInfo.sampler = m_colorSampler->GetVkSampler();
+	m_descriptorSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
 }
 
 RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imageViewType)

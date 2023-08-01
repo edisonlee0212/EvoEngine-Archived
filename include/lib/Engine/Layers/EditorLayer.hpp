@@ -27,13 +27,13 @@ namespace EvoEngine
 		void SceneCameraWindow();
 		void MainCameraWindow();
 		void OnInputEvent(const InputEvent& inputEvent) override;
-		void RenderToSceneCamera();
+		void ResizeCameras();
 	public:
 		[[nodiscard]] std::shared_ptr<Camera> GetSceneCamera();
 		void MoveCamera(
 			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
 
-		void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout) const;
+		static void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout);
 
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;
@@ -62,6 +62,9 @@ namespace EvoEngine
 		glm::quat m_defaultSceneCameraRotation = glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
 		glm::vec3 m_defaultSceneCameraPosition = glm::vec3(0, 2, 5);
 
+		int m_mainCameraResolutionX = 1;
+		int m_mainCameraResolutionY = 1;
+		bool m_mainCameraAllowAutoResize = true;
 #pragma region ImGui Helpers
 		void CameraWindowDragAndDrop();
 		[[nodiscard]] bool DrawEntityMenu(const bool& enabled, const Entity& entity) const;
@@ -171,6 +174,8 @@ namespace EvoEngine
 
 		glm::vec2 m_mouseScreenPosition;
 
+		
+		float m_mainCameraResolutionMultiplier = 1.0f;
 	};
 
 #pragma region ImGui Helpers

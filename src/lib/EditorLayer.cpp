@@ -295,7 +295,7 @@ void EditorLayer::PreUpdate()
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}
-	if (m_showSceneWindow) RenderToSceneCamera();
+	if (m_showSceneWindow) ResizeCameras();
 
 	if (!m_mainCameraWindowFocused)
 	{
@@ -996,8 +996,8 @@ void EditorLayer::MainCameraWindow()
 				ImGui::EndMenuBar();
 			}
 			ImVec2 viewPortSize = ImGui::GetWindowSize();
-			renderLayer->m_mainCameraResolutionX = viewPortSize.x * renderLayer->m_mainCameraResolutionMultiplier;
-			renderLayer->m_mainCameraResolutionY = (viewPortSize.y - 20) * renderLayer->m_mainCameraResolutionMultiplier;
+			m_mainCameraResolutionX = viewPortSize.x * m_mainCameraResolutionMultiplier;
+			m_mainCameraResolutionY = (viewPortSize.y - 20) * m_mainCameraResolutionMultiplier;
 			//  Get the size of the child (i.e. the whole draw size of the windows).
 			ImVec2 overlayPos = ImGui::GetWindowPos();
 			// Because I use the texture from OpenGL, I need to invert the V from the UV.
@@ -1027,10 +1027,10 @@ void EditorLayer::MainCameraWindow()
 					ImGui::Text("_");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					ImGui::PushItemWidth(100);
-					ImGui::Checkbox("Auto resize", &renderLayer->m_allowAutoResize);
-					if (renderLayer->m_allowAutoResize)
+					ImGui::Checkbox("Auto resize", &m_mainCameraAllowAutoResize);
+					if (m_mainCameraAllowAutoResize)
 					{
-						ImGui::DragFloat("Resolution multiplier", &renderLayer->m_mainCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
+						ImGui::DragFloat("Resolution multiplier", &m_mainCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
 					}
 					ImGui::PopItemWidth();
 					std::string drawCallInfo = {};
@@ -1108,7 +1108,7 @@ void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 	}
 }
 
-void EditorLayer::RenderToSceneCamera()
+void EditorLayer::ResizeCameras()
 {
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (!renderLayer)
@@ -1118,6 +1118,11 @@ void EditorLayer::RenderToSceneCamera()
 		(resolution.x != m_sceneCameraResolutionX || resolution.y != m_sceneCameraResolutionY)) {
 		m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
 	}
+	const auto scene = Application::GetActiveScene();
+	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
+	{
+		if (m_mainCameraAllowAutoResize) mainCamera->Resize({ m_mainCameraResolutionX, m_mainCameraResolutionY });
+	}
 }
 
 std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
@@ -1125,8 +1130,9 @@ std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 	return m_sceneCamera;
 }
 
-void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout) const
+void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout)
 {
+	if(!Application::GetLayer<EditorLayer>()) return;
 	if (target != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(target));
 	target = ImGui_ImplVulkan_AddTexture(imageSampler, imageView, imageLayout);
 }

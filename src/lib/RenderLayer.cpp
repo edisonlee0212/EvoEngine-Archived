@@ -121,11 +121,14 @@ void RenderLayer::PreUpdate()
 	//The following data stays consistent during entire frame.
 
 	{
-		m_renderInfoBlock.m_splitDistances[0] = m_maxShadowDistance * m_shadowCascadeSplit[0];
-		m_renderInfoBlock.m_splitDistances[1] = m_maxShadowDistance * m_shadowCascadeSplit[1];
-		m_renderInfoBlock.m_splitDistances[2] = m_maxShadowDistance * m_shadowCascadeSplit[2];
-		m_renderInfoBlock.m_splitDistances[3] = m_maxShadowDistance * m_shadowCascadeSplit[3];
-	}
+		for (int split = 0; split < 4; split++)
+		{
+			float splitEnd = m_maxShadowDistance;
+			if (split != 3)
+				splitEnd = m_maxShadowDistance * m_shadowCascadeSplit[split];
+			m_renderInfoBlock.m_splitDistances[split] = splitEnd;
+		}
+		}
 	
 	{
 		/*
@@ -169,10 +172,6 @@ void RenderLayer::PreUpdate()
 
 	PreparePointAndSpotLightShadowMap();
 
-	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
-	{
-		if (m_allowAutoResize) mainCamera->Resize({ m_mainCameraResolutionX, m_mainCameraResolutionY });
-	}
 	for (const auto& [cameraGlobalTransform, camera] : cameras)
 	{
 		camera->m_rendered = false;
