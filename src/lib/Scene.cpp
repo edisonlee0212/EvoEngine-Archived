@@ -282,7 +282,6 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName,
 
 void Scene::Serialize(YAML::Emitter& out)
 {
-    /*
     out << YAML::Key << "m_environment" << YAML::Value << YAML::BeginMap;
     m_environment.Serialize(out);
     out << YAML::EndMap;
@@ -322,7 +321,7 @@ void Scene::Serialize(YAML::Emitter& out)
     {
         auto asset = i.Get<IAsset>();
         
-        if (asset && asset->GetHandle().GetValue() >= DefaultResources::GetMaxHandle())
+        if (asset && !Resources::IsResource(asset->GetHandle()))
         {
             if (asset->IsTemporary())
             {
@@ -346,7 +345,7 @@ void Scene::Serialize(YAML::Emitter& out)
         for (auto& i : list)
         {
             auto asset = i.Get<IAsset>();
-            if (asset && asset->GetHandle().GetValue() >= DefaultResources::GetMaxHandle())
+            if (asset && !Resources::IsResource(asset->GetHandle()))
             {
                 if (asset->IsTemporary())
                 {
@@ -385,11 +384,9 @@ void Scene::Serialize(YAML::Emitter& out)
     out << YAML::EndSeq;
 #pragma endregion
     out << YAML::EndMap;
-    */
 }
 void Scene::Deserialize(const YAML::Node& in)
 {
-    /*
     EVOENGINE_LOG("Loading scene...");
     auto scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
     m_sceneDataStorage.m_entities.clear();
@@ -602,7 +599,6 @@ void Scene::Deserialize(const YAML::Node& in)
         systems[systemIndex]->Deserialize(inSystem);
         systemIndex++;
     }
-    */
 }
 void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out)
 {
@@ -676,12 +672,10 @@ void Scene::OnCreate()
     m_sceneDataStorage.m_entities.emplace_back();
     m_sceneDataStorage.m_entityMetadataList.emplace_back();
     m_sceneDataStorage.m_dataComponentStorages.emplace_back();
-    //m_environment.m_environmentalMap = DefaultResources::Environmental::DefaultEnvironmentalMap;
     m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
 }
 bool Scene::LoadInternal(const std::filesystem::path& path)
-{
-    /*
+{    
     auto previousScene = Application::GetActiveScene();
     Application::Attach(std::shared_ptr<Scene>(this, [](Scene*) {}));
     std::ifstream stream(path.string());
@@ -690,7 +684,6 @@ bool Scene::LoadInternal(const std::filesystem::path& path)
     YAML::Node in = YAML::Load(stringStream.str());
     Deserialize(in);
     Application::Attach(previousScene);
-    */
     return true;
 }
 void Scene::Clone(const std::shared_ptr<Scene>& source, const std::shared_ptr<Scene>& newScene)

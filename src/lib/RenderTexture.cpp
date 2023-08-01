@@ -53,7 +53,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	imageInfo.format = Graphics::ImageFormats::m_renderTextureColor;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -87,7 +87,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthStencilInfo.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
 	depthStencilInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthStencilInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthStencilInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	depthStencilInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	depthStencilInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthStencilInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 

@@ -706,7 +706,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		scene->SetDataComponent(mainCameraEntity, cameraLtw);
 		auto mainCameraComponent = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
 		scene->m_mainCamera = mainCameraComponent;
-		//mainCameraComponent->m_skybox = DefaultResources::Environmental::DefaultBlurredSkybox;
+		mainCameraComponent->m_skybox = Resources::GetResource("DEFAULT_SKYBOX");
 #pragma endregion
 		
 		//scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);

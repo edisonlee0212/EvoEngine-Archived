@@ -31,6 +31,7 @@ namespace EvoEngine
 
     class Environment
     {
+        friend class Scene;
         AssetRef m_environmentalMap;
     public:
         [[nodiscard]] std::shared_ptr<LightProbe> GetLightProbe(const glm::vec3& position);
