@@ -346,6 +346,20 @@ void EditorLayer::PreUpdate()
 			scene->SetDataComponent(camera->GetOwner(), globalTransform);
 		}
 	}
+	const auto& scene = Application::GetActiveScene();
+	if(!scene->IsEntityValid(m_selectedEntity))
+	{
+		SetSelectedEntity(Entity());
+	}
+	if(m_needFade && m_selectedEntity.GetIndex() != 0 && m_selectionAlpha < 256)
+	{
+		m_selectionAlpha += Time::DeltaTime() * 2560;
+	}
+	if(!m_needFade && m_selectionAlpha > 0)
+	{
+		m_selectionAlpha -= Time::DeltaTime() * 2560;
+	}
+	m_selectionAlpha = glm::clamp(m_selectionAlpha, 0, 256);
 }
 
 void EditorLayer::Update()
@@ -932,7 +946,10 @@ void EditorLayer::SceneCameraWindow()
 				mouseSelectEntity = false;
 			}
 		}
-
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
+		{
+			SetSelectedEntity(Entity());
+		}
 
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
 			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
@@ -965,9 +982,6 @@ void EditorLayer::SceneCameraWindow()
 				}
 			}
 		}
-		//if (m_highlightSelection) HighLightEntity(m_selectedEntity, glm::vec4(1.0, 0.5, 0.0, 0.8));
-
-
 #pragma endregion
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_sceneCameraWindowFocused = true;
@@ -1062,6 +1076,11 @@ void EditorLayer::MainCameraWindow()
 					}
 				}
 				ImGui::EndChild();
+			}
+
+			if (m_mainCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
+			{
+				SetSelectedEntity(Entity());
 			}
 			if (!Application::IsPlaying() && m_mainCameraWindowFocused 
 				&& !m_lockEntitySelection && Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press 
@@ -1191,9 +1210,11 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		scene->GetEntityMetadata(i).m_ancestorSelected = false;
 	}
 	if(scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
+	m_needFade = false;
 	if (entity.GetIndex() == 0) {
 		m_selectedEntity = Entity();
 		m_lockEntitySelection = false;
+		m_selectionAlpha = 0;
 		return;
 	}
 	
@@ -1201,11 +1222,14 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		return;
 	m_selectedEntity = entity;
 	const auto descendents = scene->GetDescendants(m_selectedEntity);
+	
 	for (const auto& i : descendents)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = true;
+		if (scene->HasPrivateComponent<MeshRenderer>(i)) m_needFade = true;
 	}
 	scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = true;
+	if (scene->HasPrivateComponent<MeshRenderer>(m_selectedEntity)) m_needFade = true;
 	if (!openMenu)
 		return;
 	auto walker = entity;

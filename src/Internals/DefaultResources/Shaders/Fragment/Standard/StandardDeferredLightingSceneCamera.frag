@@ -14,25 +14,36 @@ void main()
 {
 	float ndcDepth = 	texture(inDepth, fs_in.TexCoord).x;
 	vec3 fragPos = EE_DEPTH_TO_WORLD_POS(fs_in.TexCoord, ndcDepth);
-	
+	float temp =		texture(inAlbedo, fs_in.TexCoord).a;
+	int infoIndex = int(round(temp));
+	bool instanceSelected = infoIndex == 1;
+
 	if(ndcDepth == 1.0) {
 		vec3 cameraPosition = EE_CAMERA_POSITION();
 		Camera camera = EE_CAMERAS[EE_CAMERA_INDEX];
 		vec3 envColor = camera.EE_CAMERA_CLEAR_COLOR.w == 1.0 ? 
 			camera.EE_CAMERA_CLEAR_COLOR.xyz * EE_BACKGROUND_INTENSITY 
 			: pow(texture(UE_SKYBOX, normalize(fragPos - cameraPosition)).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_BACKGROUND_INTENSITY;
-		
-		FragColor = vec4(envColor, 1.0);
+		if(!instanceSelected){
+			vec2 texOffset = 1.0 / textureSize(inAlbedo, 0); // gets size of single texel
+			for(int i = -3; i <= 3; i++){
+				for(int j = -3; j <= 3; j++){
+					float temp2 = texture(inAlbedo, fs_in.TexCoord + vec2(texOffset.x * i, texOffset.y * j)).a;
+					int infoIndex = int(round(temp2));
+					if(infoIndex == 1){
+						FragColor = mix(vec4(1, 0.75, 0.0, 1.0), vec4(envColor, 1.0), 0.1);
+						return;
+					}
+				}
+			}
+			FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(envColor, 1.0), float(EE_MATERIAL_INDEX) / 256.0);
+		}else{
+			FragColor = vec4(envColor, 1.0);
+		}
 		return;
 	}
 
 	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
-	float temp =		texture(inAlbedo, fs_in.TexCoord).a;
-	int infoIndex = int(round(temp));
-	bool instanceSelected = infoIndex == 1;
-
-
-
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
 	float metallic = 	texture(inMaterial, fs_in.TexCoord).x;
@@ -55,7 +66,18 @@ void main()
 	color = pow(color, vec3(1.0 / EE_GAMMA));
 
 	if(!instanceSelected && EE_INSTANCE_INDEX == 1){
-		FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(color, 1.0), 0.5);
+		vec2 texOffset = 1.0 / textureSize(inAlbedo, 0); // gets size of single texel
+		for(int i = -3; i <= 3; i++){
+			for(int j = -3; j <= 3; j++){
+				float temp2 = texture(inAlbedo, fs_in.TexCoord + vec2(texOffset.x * i, texOffset.y * j)).a;
+				int infoIndex = int(round(temp2));
+				if(infoIndex == 1){
+					FragColor = mix(vec4(1, 0.75, 0.0, 1.0), vec4(color, 1.0), 0.1);
+					return;
+				}
+			}
+		}
+		FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(color, 1.0), float(EE_MATERIAL_INDEX) / 256.0);
 	}else{
 		FragColor = vec4(color, 1.0);
 	}

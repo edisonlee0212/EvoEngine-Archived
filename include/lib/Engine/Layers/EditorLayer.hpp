@@ -119,6 +119,9 @@ namespace EvoEngine
 
 #pragma endregion
 	private:
+		bool m_needFade = false;
+		int m_selectionAlpha = 0;
+
 		glm::detail::hdata* m_mappedEntityIndexData;
 		std::unique_ptr<Buffer> m_entityIndexReadBuffer;
 		[[nodiscard]] Entity MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const;

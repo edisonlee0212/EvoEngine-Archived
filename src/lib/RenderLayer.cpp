@@ -1505,12 +1505,16 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	
 	const auto editorLayer = Application::GetLayer<EditorLayer>();
 	bool isEntitySelected = false;
+	bool isSceneCamera = false;
+	bool needFade = false;
 	if(editorLayer)
 	{
 		if (scene->IsEntityValid(editorLayer->m_selectedEntity)) isEntitySelected = true;
+		if (camera.get() == editorLayer->m_sceneCamera.get()) isSceneCamera = true;
+		needFade = editorLayer->m_needFade;
 	}
 	const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
-	const auto& deferredLightingPipeline = isEntitySelected ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
+	const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1612,17 +1616,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 				i.blendEnable = VK_FALSE;
 			}
-
 			deferredLightingPipeline->Bind(commandBuffer);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 2, m_lighting->m_lightingDescriptorSet->GetVkDescriptorSet());
-
 			deferredLightingPipeline->m_states.m_viewPort = viewport;
 			deferredLightingPipeline->m_states.m_scissor = scissor;
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
-			pushConstant.m_materialIndex = 0;
+			pushConstant.m_materialIndex = glm::max(32, 256 - editorLayer->m_selectionAlpha);
 			pushConstant.m_instanceIndex = isEntitySelected ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
