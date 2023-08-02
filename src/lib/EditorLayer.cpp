@@ -1184,15 +1184,28 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 	if (entity == m_selectedEntity)
 		return;
 	m_selectedEntityHierarchyList.clear();
+	const auto scene = GetScene();
+	const auto previousDescendents = scene->GetDescendants(m_selectedEntity);
+	for(const auto& i : previousDescendents)
+	{
+		scene->GetEntityMetadata(i).m_ancestorSelected = false;
+	}
+	if(scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
 	if (entity.GetIndex() == 0) {
 		m_selectedEntity = Entity();
 		m_lockEntitySelection = false;
 		return;
 	}
-	const auto scene = GetScene();
+	
 	if (!scene->IsEntityValid(entity))
 		return;
 	m_selectedEntity = entity;
+	const auto descendents = scene->GetDescendants(m_selectedEntity);
+	for (const auto& i : descendents)
+	{
+		scene->GetEntityMetadata(i).m_ancestorSelected = true;
+	}
+	scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = true;
 	if (!openMenu)
 		return;
 	auto walker = entity;
@@ -1201,7 +1214,6 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		walker = scene->GetParent(walker);
 	}
 }
-
 
 bool EditorLayer::UnsafeDroppableAsset(AssetRef& target, const std::vector<std::string>& typeNames)
 {

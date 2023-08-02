@@ -1229,6 +1229,27 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("STANDARD_DEFERRED_LIGHTING", standardDeferredLighting);
 	}
 	{
+		const auto standardDeferredLightingSceneCamera = std::make_shared<GraphicsPipeline>();
+		standardDeferredLightingSceneCamera->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
+		standardDeferredLightingSceneCamera->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
+		standardDeferredLightingSceneCamera->m_geometryType = GeometryType::Mesh;
+		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
+		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(lightingLayout);
+
+		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLightingSceneCamera->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+
+		standardDeferredLightingSceneCamera->m_colorAttachmentFormats = { 1, ImageFormats::m_renderTextureColor };
+
+		auto& pushConstantRange = standardDeferredLightingSceneCamera->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+		standardDeferredLightingSceneCamera->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA", standardDeferredLightingSceneCamera);
+	}
+	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
 		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
 		//directionalLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");

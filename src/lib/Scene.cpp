@@ -674,6 +674,9 @@ void Scene::OnCreate()
     m_sceneDataStorage.m_dataComponentStorages.emplace_back();
     m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
 }
+
+
+
 bool Scene::LoadInternal(const std::filesystem::path& path)
 {    
     auto previousScene = Application::GetActiveScene();
@@ -834,7 +837,8 @@ void Scene::DeleteEntityInternal(unsigned entityIndex)
     m_sceneDataStorage.m_entityPrivateComponentStorage.DeleteEntity(actualEntity);
     entityInfo.m_version = actualEntity.m_version + 1;
     entityInfo.m_enabled = true;
-
+    entityInfo.m_static = false;
+    entityInfo.m_ancestorSelected = false;
     m_sceneDataStorage.m_entityMap.erase(entityInfo.m_handle);
     entityInfo.m_handle = Handle(0);
 
@@ -1288,6 +1292,7 @@ void Scene::SetParent(const Entity& entity, const Entity& parent, const bool& re
     {
         RemoveChild(entity, childEntityInfo.m_parent);
     }
+
     if (recalculateTransform)
     {
         const auto childGlobalTransform = GetDataComponent<GlobalTransform>(entity);
@@ -1300,6 +1305,15 @@ void Scene::SetParent(const Entity& entity, const Entity& parent, const bool& re
     childEntityInfo.m_root = parentEntityInfo.m_root;
     childEntityInfo.m_static = false;
     parentEntityInfo.m_children.push_back(entity);
+    if (parentEntityInfo.m_ancestorSelected)
+    {
+        const auto descendents = GetDescendants(entity);
+        for (const auto& i : descendents)
+        {
+            GetEntityMetadata(i).m_ancestorSelected = true;
+        }
+        childEntityInfo.m_ancestorSelected = true;
+    }
 }
 
 Entity Scene::GetParent(const Entity& entity)
@@ -1358,6 +1372,15 @@ void Scene::RemoveChild(const Entity& entity, const Entity& parent)
     m_saved = false;
     childEntityMetadata.m_parent = Entity();
     childEntityMetadata.m_root = entity;
+    if(parentEntityMetadata.m_ancestorSelected)
+    {
+        const auto descendents = GetDescendants(entity);
+        for (const auto& i : descendents)
+        {
+            GetEntityMetadata(i).m_ancestorSelected = false;
+        }
+        childEntityMetadata.m_ancestorSelected = false;
+    }
     const size_t childrenCount = parentEntityMetadata.m_children.size();
 
     for (int i = 0; i < childrenCount; i++)
@@ -1678,7 +1701,11 @@ void Scene::SetEnableSingle(const Entity& entity, const bool& value)
         entityMetadata.m_enabled = value;
     }
 }
-
+EntityMetadata& Scene::GetEntityMetadata(const Entity& entity)
+{
+    assert(IsEntityValid(entity));
+    return m_sceneDataStorage.m_entityMetadataList.at(entity.m_index);
+}
 void Scene::ForAllEntities(const std::function<void(int i, Entity entity)>& func) const
 {
     for (int index = 0; index < m_sceneDataStorage.m_entities.size(); index++)
@@ -1770,7 +1797,7 @@ Entity Scene::GetEntity(const Handle& handle)
     }
     return {};
 }
-bool Scene::HasPrivateComponent(const Entity& entity, const std::string& typeName)
+bool Scene::HasPrivateComponent(const Entity& entity, const std::string& typeName) const
 {
     assert(IsEntityValid(entity));
     for (auto& element : m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_privateComponentElements)
@@ -1854,18 +1881,18 @@ std::vector<std::reference_wrapper<DataComponentStorage>> Scene::QueryDataCompon
     }
     return queriedStorage;
 }
-bool Scene::IsEntityValid(const Entity& entity)
+bool Scene::IsEntityValid(const Entity& entity) const
 {
     auto& storage = m_sceneDataStorage.m_entities;
     return entity.m_index != 0 && entity.m_version != 0 && entity.m_index < storage.size() &&
         storage.at(entity.m_index).m_version == entity.m_version;
 }
-bool Scene::IsEntityEnabled(const Entity& entity)
+bool Scene::IsEntityEnabled(const Entity& entity) const
 {
     assert(IsEntityValid(entity));
     return m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled;
 }
-bool Scene::IsEntityRoot(const Entity& entity)
+bool Scene::IsEntityRoot(const Entity& entity) const
 {
     assert(IsEntityValid(entity));
     return m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_root == entity;
@@ -1874,6 +1901,12 @@ bool Scene::IsEntityStatic(const Entity& entity)
 {
     assert(IsEntityValid(entity));
     return m_sceneDataStorage.m_entityMetadataList.at(GetRoot(entity).m_index).m_static;
+}
+
+bool Scene::IsEntityAncestorSelected(const Entity& entity) const
+{
+    assert(IsEntityValid(entity));
+    return m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_ancestorSelected;
 }
 
 #pragma endregion

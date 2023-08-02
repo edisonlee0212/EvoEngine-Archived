@@ -191,7 +191,8 @@ namespace EvoEngine
 
 
 #pragma endregion
-
+        friend class EditorLayer;
+        [[nodiscard]] EntityMetadata& GetEntityMetadata(const Entity& entity);
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
@@ -262,10 +263,11 @@ namespace EvoEngine
         // Enable or Disable an Entity. Note that the disable action will recursively disable the children of current
         // entity.
         void SetEnable(const Entity& entity, const bool& value);
-        bool IsEntityValid(const Entity& entity);
-        bool IsEntityEnabled(const Entity& entity);
-        bool IsEntityRoot(const Entity& entity);
+        bool IsEntityValid(const Entity& entity) const;
+        bool IsEntityEnabled(const Entity& entity) const;
+        bool IsEntityRoot(const Entity& entity) const;
         bool IsEntityStatic(const Entity& entity);
+        bool IsEntityAncestorSelected(const Entity& entity) const;
         Entity GetRoot(const Entity& entity);
         std::string GetEntityName(const Entity& entity);
         void SetEntityName(const Entity& entity, const std::string& name);
@@ -293,7 +295,7 @@ namespace EvoEngine
 
         template <typename T = IPrivateComponent> void RemovePrivateComponent(const Entity& entity);
         template <typename T = IPrivateComponent> bool HasPrivateComponent(const Entity& entity);
-        bool HasPrivateComponent(const Entity& entity, const std::string& typeName);
+        bool HasPrivateComponent(const Entity& entity, const std::string& typeName) const;
 #pragma endregion
 #pragma region Entity Management
         [[maybe_unused]] Entity CreateEntity(const std::string& name = "New Entity");

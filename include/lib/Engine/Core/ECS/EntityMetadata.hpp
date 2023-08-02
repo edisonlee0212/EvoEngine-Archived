@@ -10,6 +10,7 @@ struct EntityMetadata
 {
     std::string m_name;
     bool m_static = false;
+    bool m_ancestorSelected = false;
     unsigned m_version = 1;
     bool m_enabled = true;
     Entity m_parent = Entity();

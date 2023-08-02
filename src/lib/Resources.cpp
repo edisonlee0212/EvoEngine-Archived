@@ -121,7 +121,6 @@ void Resources::LoadShaders()
 		*/
 	}
 
-
 #pragma endregion
 	auto texPassVertCode = std::string("#version 450 core\n") +
 		FileUtils::LoadFileAsString(
@@ -143,7 +142,14 @@ void Resources::LoadShaders()
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
-		
+
+
+		fragShaderCode =
+			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLight + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLightingSceneCamera.frag");
+		standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
+		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 		
 		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderPBRTextures + "\n" +
 			FileUtils::LoadFileAsString(

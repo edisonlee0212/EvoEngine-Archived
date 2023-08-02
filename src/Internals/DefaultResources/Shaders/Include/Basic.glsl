@@ -91,6 +91,7 @@ layout(push_constant) uniform EE_PUSH_CONSTANTS{
 	int EE_INSTANCE_INDEX;
 	int EE_MATERIAL_INDEX;
 	int EE_CAMERA_INDEX;
+	int EE_INFO_INDEX;
 };
 
 //Lights

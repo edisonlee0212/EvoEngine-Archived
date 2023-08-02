@@ -37,7 +37,7 @@ void main()
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
     outNormal.a = EE_INSTANCE_INDEX;
     outAlbedo = albedo;
-    outAlbedo.a = EE_MATERIAL_INDEX;
+    outAlbedo.a = EE_INFO_INDEX;
 
     outMaterial = vec4(metallic, roughness, emission, ao);
 }

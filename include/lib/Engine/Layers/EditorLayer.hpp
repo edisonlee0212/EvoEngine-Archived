@@ -13,7 +13,6 @@ namespace EvoEngine
 {
 	class EditorLayer : public ILayer
 	{
-
 		void LoadIcons();
 		void OnCreate() override;
 		void OnDestroy() override;
@@ -21,7 +20,6 @@ namespace EvoEngine
 		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-
 		std::shared_ptr<Camera> m_sceneCamera;
 
 		void SceneCameraWindow();

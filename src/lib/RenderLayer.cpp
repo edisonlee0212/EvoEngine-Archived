@@ -1502,10 +1502,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 		}
 	);
-
-
+	
+	const auto editorLayer = Application::GetLayer<EditorLayer>();
+	bool isEntitySelected = false;
+	if(editorLayer)
+	{
+		if (scene->IsEntityValid(editorLayer->m_selectedEntity)) isEntitySelected = true;
+	}
 	const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
-	const auto& deferredLightingPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
+	const auto& deferredLightingPipeline = isEntitySelected ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1524,7 +1529,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = camera->GetSize().x;
 		scissor.extent.height = camera->GetSize().y;
-
+		
 #pragma endregion
 #pragma region Geometry pass
 		{
@@ -1565,6 +1570,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_materialIndex = renderCommand.m_materialIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+						pushConstant.m_infoIndex = scene->IsEntityAncestorSelected(renderCommand.m_owner) ? 1 : 0;
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 						mesh->Bind(commandBuffer);
@@ -1617,7 +1623,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
 			pushConstant.m_materialIndex = 0;
-			pushConstant.m_instanceIndex = 0;
+			pushConstant.m_instanceIndex = isEntitySelected ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);

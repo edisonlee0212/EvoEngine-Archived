@@ -28,6 +28,7 @@ namespace EvoEngine
 		int m_instanceIndex = 0;
 		int m_materialIndex = 0;
 		int m_cameraIndex = 0;
+		int m_infoIndex = 0;
 	};
 
 	struct RenderInstance {
