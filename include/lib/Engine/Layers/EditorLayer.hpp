@@ -121,6 +121,10 @@ namespace EvoEngine
 
 #pragma endregion
 	private:
+		glm::detail::hdata* m_mappedEntityIndexData;
+		std::unique_ptr<Buffer> m_entityIndexReadBuffer;
+		[[nodiscard]] Entity MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const;
+
 		EntityArchetype m_basicEntityArchetype;
 		glm::vec3 m_previouslyStoredPosition;
 		glm::vec3 m_previouslyStoredRotation;
@@ -172,7 +176,8 @@ namespace EvoEngine
 		bool m_highlightSelection = true;
 		Entity m_selectedEntity;
 
-		glm::vec2 m_mouseScreenPosition;
+		glm::vec2 m_mouseSceneWindowPosition;
+		glm::vec2 m_mouseCameraWindowPosition;
 
 		
 		float m_mainCameraResolutionMultiplier = 1.0f;

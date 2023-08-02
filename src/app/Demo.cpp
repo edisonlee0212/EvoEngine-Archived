@@ -44,22 +44,20 @@ int main() {
 void LoadScene()
 {
     auto scene = Application::GetActiveScene();
-    double time = 0;
-    const float sinTime = glm::sin(time / 5.0f);
-    const float cosTime = glm::cos(time / 5.0f);
-    scene->m_environment.m_ambientLightIntensity = 0.05f;
+    
+    scene->m_environment.m_ambientLightIntensity = 0.025f;
 #pragma region Set main camera to correct position and rotation
     const auto mainCamera = scene->m_mainCamera.Get<Camera>();
     auto mainCameraEntity = mainCamera->GetOwner();
     auto mainCameraTransform = scene->GetDataComponent<Transform>(mainCameraEntity);
-    mainCameraTransform.SetPosition(glm::vec3(0, 0, 40));
+    mainCameraTransform.SetPosition(glm::vec3(0, 0, 4));
     scene->SetDataComponent(mainCameraEntity, mainCameraTransform);
     auto camera = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
     scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 
 #pragma region Create 9 spheres in different PBR properties
-    int amount = 4;
+    int amount = 6;
     auto collection = scene->CreateEntity("Spheres");
     auto spheres = scene->CreateEntities(amount * amount, "Instance");
     for (int i = 0; i < amount; i++)
@@ -69,8 +67,8 @@ void LoadScene()
             auto& sphere = spheres[i * amount + j];
             Transform transform;
             glm::vec3 position = glm::vec3(i - amount / 2.0f, j - amount / 2.0f, 0);
-            transform.SetPosition(position * 5.0f);
-            transform.SetScale(glm::vec3(5.0f));
+            transform.SetPosition(position * 0.2f);
+            transform.SetScale(glm::vec3(0.2f));
             scene->SetDataComponent(sphere, transform);
             auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(sphere).lock();
             meshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
@@ -88,14 +86,14 @@ void LoadScene()
     auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
     auto sponzaEntity = sponza->ToEntity(scene);
     Transform sponzaTransform;
-    sponzaTransform.SetValue(glm::vec3(0, -14, -60), glm::radians(glm::vec3(0, -90, 0)), glm::vec3(0.1));
+    sponzaTransform.SetValue(glm::vec3(0, -1.5, -6), glm::radians(glm::vec3(0, -90, 0)), glm::vec3(0.01));
     scene->SetDataComponent(sponzaEntity, sponzaTransform);
 
     auto title = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/UniEngine.obj"));
     auto titleEntity = title->ToEntity(scene);
     scene->SetEntityName(titleEntity, "Title");
     Transform titleTransform;
-    titleTransform.SetValue(glm::vec3(3.5, 70, -160), glm::radians(glm::vec3(0, 0, 0)), glm::vec3(0.05));
+    titleTransform.SetValue(glm::vec3(0.35, 7, -16), glm::radians(glm::vec3(0, 0, 0)), glm::vec3(0.005));
     scene->SetDataComponent(titleEntity, titleTransform);
 
     auto titleMaterial =
@@ -110,14 +108,14 @@ void LoadScene()
     auto dancingStormTrooperEntity = dancingStormTrooper->ToEntity(scene);
     scene->SetEntityName(dancingStormTrooperEntity, "StormTrooper");
     Transform dancingStormTrooperTransform;
-    dancingStormTrooperTransform.SetValue(glm::vec3(12, -14, 0), glm::vec3(0), glm::vec3(4));
+    dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.4, 0), glm::vec3(0), glm::vec3(0.4));
     scene->SetDataComponent(dancingStormTrooperEntity, dancingStormTrooperTransform);
 
     auto capoeira = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Capoeira.fbx"));
     auto capoeiraEntity = capoeira->ToEntity(scene);
     scene->SetEntityName(capoeiraEntity, "Capoeira");
     Transform capoeiraTransform;
-    capoeiraTransform.SetValue(glm::vec3(5, 27, -180), glm::vec3(0), glm::vec3(0.2));
+    capoeiraTransform.SetValue(glm::vec3(0.5, 2.7, -18), glm::vec3(0), glm::vec3(0.02));
     scene->SetDataComponent(capoeiraEntity, capoeiraTransform);
     auto capoeiraBodyMaterial = scene
         ->GetOrSetPrivateComponent<SkinnedMeshRenderer>(
@@ -146,15 +144,15 @@ void LoadScene()
     groundMeshRenderer->m_material = groundMat;
     groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
     Transform groundTransform;
-    groundTransform.SetValue(glm::vec3(0, -16, -90), glm::vec3(0), glm::vec3(160, 1, 220));
+    groundTransform.SetValue(glm::vec3(0, -2.05, -0), glm::vec3(0), glm::vec3(30, 1, 60));
     scene->SetDataComponent(ground, groundTransform);
 #pragma endregion
 
 #pragma region Lighting
     auto dirLightEntity = scene->CreateEntity("Directional Light");
     auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
-    dirLight->m_diffuseBrightness = 2.0f;
-    dirLight->m_lightSize = 0.2f;
+    dirLight->m_diffuseBrightness = 2.5f;
+    dirLight->m_lightSize = 0.5f;
 
     auto pointLightLeftEntity = scene->CreateEntity("Right Point Light");
     auto pointLightLeftRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(pointLightLeftEntity).lock();
@@ -164,8 +162,8 @@ void LoadScene()
     groundMaterial->m_materialProperties.m_emission = 2.0f;
     pointLightLeftRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
     auto pointLightLeft = scene->GetOrSetPrivateComponent<PointLight>(pointLightLeftEntity).lock();
-    pointLightLeft->m_diffuseBrightness = 2;
-    pointLightLeft->m_lightSize = 0.2f;
+    pointLightLeft->m_diffuseBrightness = 4;
+    pointLightLeft->m_lightSize = 0.02f;
     pointLightLeft->m_linear = 0.02;
     pointLightLeft->m_quadratic = 0.0001;
     pointLightLeft->m_diffuse = glm::vec3(0.0, 0.5, 1.0);
@@ -178,66 +176,53 @@ void LoadScene()
     pointLightRightMaterial->m_materialProperties.m_emission = 2.0f;
     pointLightRightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
     auto pointLightRight = scene->GetOrSetPrivateComponent<PointLight>(pointLightRightEntity).lock();
-    pointLightRight->m_diffuseBrightness = 2;
-    pointLightRight->m_lightSize = 0.2f;
+    pointLightRight->m_diffuseBrightness = 4;
+    pointLightRight->m_lightSize = 0.02f;
     pointLightRight->m_linear = 0.02;
     pointLightRight->m_quadratic = 0.0001;
     pointLightRight->m_diffuse = glm::vec3(1.0, 0.8, 0.0);
-
-    auto spotLightConeEntity = scene->CreateEntity("Top Spot Light");
-    Transform spotLightConeTransform;
-    spotLightConeTransform.SetPosition(glm::vec3(12, 14, 0));
-    scene->SetDataComponent(spotLightConeEntity, spotLightConeTransform);
-
-    auto spotLightRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(spotLightConeEntity).lock();
-    spotLightRenderer->m_castShadow = false;
-    auto spotLightMaterial = ProjectManager::CreateTemporaryAsset<Material>();
-    spotLightRenderer->m_material.Set<Material>(spotLightMaterial);
-    spotLightMaterial->m_materialProperties.m_albedoColor = glm::vec3(1, 0.7, 0.7);
-    spotLightMaterial->m_materialProperties.m_emission = 2.0f;
-    spotLightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CONE");
-
-    auto spotLightEntity = scene->CreateEntity("Spot Light");
-    Transform spotLightTransform;
-    spotLightTransform.SetEulerRotation(glm::radians(glm::vec3(-90, 0, 0)));
-    scene->SetDataComponent(spotLightEntity, spotLightTransform);
-    scene->SetParent(spotLightEntity, spotLightConeEntity);
-    auto spotLight = scene->GetOrSetPrivateComponent<SpotLight>(spotLightEntity).lock();
-    spotLight->m_diffuse = glm::vec3(1, 0.7, 0.7);
-    spotLight->m_diffuseBrightness = 4;
+    
 #pragma endregion
+
+    double startTime = 0;
+    float startSinTime = glm::sin(startTime / 5.0f);
+    float startCosTime = glm::cos(startTime / 5.0f);
+
     Transform dirLightTransform;
-    dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, time * 10, 0.0f)));
+    dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, startTime * 10, 0.0f)));
     scene->SetDataComponent(dirLightEntity, dirLightTransform);
 
     Transform pointLightLeftTransform;
-    pointLightLeftTransform.SetPosition(glm::vec3(-40, 12, sinTime * 50 - 50));
+    pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, startSinTime * 5 - 5));
+    pointLightLeftTransform.SetScale({ 0.1f, 0.1f, 0.1f });
     scene->SetDataComponent(pointLightLeftEntity, pointLightLeftTransform);
 
     Transform pointLightRightTransform;
-    pointLightRightTransform.SetPosition(glm::vec3(40, 12, cosTime * 50 - 50));
+    pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, startCosTime * 5 - 5));
+    pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
     scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
     
-    Application::RegisterUpdateFunction([=, &time]() {
-        if (!Application::IsPlaying())
-            return;
-        Transform dirLightTransform;
-        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, time * 10, 0.0f)));
-        scene->SetDataComponent(dirLightEntity, dirLightTransform);
-
-        Transform pointLightLeftTransform;
-        pointLightLeftTransform.SetPosition(glm::vec3(-40, 12, sinTime * 50 - 50));
-
-        Transform pointLightRightTransform;
-        pointLightRightTransform.SetPosition(glm::vec3(40, 12, cosTime * 50 - 50));
+    Application::RegisterUpdateFunction([=]() {
+        //if (!Application::IsPlaying())
+        //    return;
         const float currentTime = Time::CurrentTime();
-        time += Time::DeltaTime();
-        const float sinTime = glm::sin(time / 5.0f);
-        const float cosTime = glm::cos(time / 5.0f);
-        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, time * 10, 0.0f)));
+        const float sinTime = glm::sin(currentTime / 5.0f);
+        const float cosTime = glm::cos(currentTime / 5.0f);
+        Transform dirLightTransform;
+        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(10.0f, currentTime, 0.0f)));
         scene->SetDataComponent(dirLightEntity, dirLightTransform);
-        pointLightLeftTransform.SetPosition(glm::vec3(-40, 12, sinTime * 50 - 50));
-        pointLightRightTransform.SetPosition(glm::vec3(40, 12, cosTime * 50 - 50));
+        Transform pointLightLeftTransform;
+        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
+        pointLightLeftTransform.SetScale({ 0.1f, 0.1f, 0.1f });
+        Transform pointLightRightTransform;
+        pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
+        pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
+        
+        
+        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, currentTime * 10, 0.0f)));
+        scene->SetDataComponent(dirLightEntity, dirLightTransform);
+        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
+        pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
         scene->SetDataComponent(pointLightLeftEntity, pointLightLeftTransform);
         scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
     });

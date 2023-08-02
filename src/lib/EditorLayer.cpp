@@ -12,6 +12,7 @@
 #include "Time.hpp"
 #include "RenderLayer.hpp"
 #include "Cubemap.hpp"
+#include "EnvironmentalMap.hpp"
 using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
@@ -123,9 +124,20 @@ void EditorLayer::OnCreate()
 		throw;
 	}
 
-	
+
 
 	LoadIcons();
+
+	VkBufferCreateInfo entityIndexReadBuffer{};
+	entityIndexReadBuffer.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	entityIndexReadBuffer.size = sizeof(glm::detail::hdata) * 4;
+	entityIndexReadBuffer.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	entityIndexReadBuffer.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo entityIndexReadBufferCreateInfo{};
+	entityIndexReadBufferCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	entityIndexReadBufferCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	m_entityIndexReadBuffer = std::make_unique<Buffer>(entityIndexReadBuffer, entityIndexReadBufferCreateInfo);
+	vmaMapMemory(Graphics::GetVmaAllocator(), m_entityIndexReadBuffer->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_mappedEntityIndexData)));
 }
 
 void EditorLayer::OnDestroy()
@@ -277,7 +289,7 @@ void EditorLayer::PreUpdate()
 	}
 
 
-	m_mouseScreenPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	m_mouseSceneWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
 	if (m_showSceneWindow) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		if (ImGui::Begin("Scene")) {
@@ -287,7 +299,26 @@ void EditorLayer::PreUpdate()
 				if (m_sceneCameraWindowFocused) {
 					auto mp = ImGui::GetMousePos();
 					auto wp = ImGui::GetWindowPos();
-					m_mouseScreenPosition = glm::vec2(mp.x - wp.x, mp.y - wp.y);
+					m_mouseSceneWindowPosition = glm::vec2(mp.x - wp.x, mp.y - wp.y);
+				}
+			}
+			ImGui::EndChild();
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+
+	m_mouseCameraWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	if (m_showCameraWindow) {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+		if (ImGui::Begin("Camera")) {
+			if (ImGui::BeginChild("MainCameraRenderer", ImVec2(0, 0), false)) {
+				// Using a Child allow to fill all the space of the window.
+				// It also allows customization
+				if (m_mainCameraWindowFocused) {
+					auto mp = ImGui::GetMousePos();
+					auto wp = ImGui::GetWindowPos();
+					m_mouseCameraWindowPosition = glm::vec2(mp.x - wp.x, mp.y - wp.y);
 				}
 			}
 			ImGui::EndChild();
@@ -589,15 +620,15 @@ void EditorLayer::LateUpdate()
 		{
 			Graphics::EverythingBarrier(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
-			Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
+				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
 
 			constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 			VkRect2D renderArea;
 			renderArea.offset = { 0, 0 };
 			renderArea.extent = Graphics::GetSwapchain()->GetImageExtent();
-			
-					
+
+
 			VkRenderingAttachmentInfo colorAttachmentInfo{};
 			colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 			colorAttachmentInfo.imageView = Graphics::GetSwapchain()->GetVkImageView();
@@ -612,18 +643,18 @@ void EditorLayer::LateUpdate()
 			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = 1;
 			renderInfo.pColorAttachments = &colorAttachmentInfo;
-			
+
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			
+
 			ImGui::Render();
 			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-			
+
 			vkCmdEndRendering(commandBuffer);
 			Graphics::TransitImageLayout(commandBuffer,
 				Graphics::GetSwapchain()->GetVkImage(), Graphics::GetSwapchain()->GetImageFormat(), 1,
 				VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-		
-			
+
+
 		});
 }
 
@@ -807,47 +838,47 @@ void EditorLayer::SceneCameraWindow()
 #pragma region Scene Camera Controller
 				static bool isDraggingPreviously = false;
 				bool mouseDrag = true;
-				if (m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
-					m_mouseScreenPosition.x > viewPortSize.x ||
-					m_mouseScreenPosition.y > viewPortSize.y ||
-					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) == KeyActionType::Release) {
+				if (m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
+					m_mouseSceneWindowPosition.x > viewPortSize.x ||
+					m_mouseSceneWindowPosition.y > viewPortSize.y ||
+					Input::GetKey(GLFW_MOUSE_BUTTON_RIGHT) != KeyActionType::Hold) {
 					mouseDrag = false;
 				}
 				static float prevX = 0;
 				static float prevY = 0;
 				if (mouseDrag && !isDraggingPreviously) {
-					prevX = m_mouseScreenPosition.x;
-					prevY = m_mouseScreenPosition.y;
+					prevX = m_mouseSceneWindowPosition.x;
+					prevY = m_mouseSceneWindowPosition.y;
 				}
-				const float xOffset = m_mouseScreenPosition.x - prevX;
-				const float yOffset = m_mouseScreenPosition.y - prevY;
-				prevX = m_mouseScreenPosition.x;
-				prevY = m_mouseScreenPosition.y;
+				const float xOffset = m_mouseSceneWindowPosition.x - prevX;
+				const float yOffset = m_mouseSceneWindowPosition.y - prevY;
+				prevX = m_mouseSceneWindowPosition.x;
+				prevY = m_mouseSceneWindowPosition.y;
 				isDraggingPreviously = mouseDrag;
 
 				if (mouseDrag && !m_lockCamera) {
 					const glm::vec3 front = m_sceneCameraRotation * glm::vec3(0, 0, -1);
 					const glm::vec3 right = m_sceneCameraRotation * glm::vec3(1, 0, 0);
-					if (Input::GetKey(GLFW_KEY_W) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_W) == KeyActionType::Hold) {
 						m_sceneCameraPosition +=
 							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Input::GetKey(GLFW_KEY_S) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_S) == KeyActionType::Hold) {
 						m_sceneCameraPosition -=
 							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Input::GetKey(GLFW_KEY_A) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_A) == KeyActionType::Hold) {
 						m_sceneCameraPosition -=
 							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Input::GetKey(GLFW_KEY_D) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_D) == KeyActionType::Hold) {
 						m_sceneCameraPosition +=
 							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
-					if (Input::GetKey(GLFW_KEY_LEFT_SHIFT) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_LEFT_SHIFT) == KeyActionType::Hold) {
 						m_sceneCameraPosition.y += m_velocity * static_cast<float>(Time::DeltaTime());
 					}
-					if (Input::GetKey(GLFW_KEY_LEFT_CONTROL) != KeyActionType::Release) {
+					if (Input::GetKey(GLFW_KEY_LEFT_CONTROL) == KeyActionType::Hold) {
 						m_sceneCameraPosition.y -= m_velocity * static_cast<float>(Time::DeltaTime());
 					}
 					if (xOffset != 0.0f || yOffset != 0.0f) {
@@ -901,46 +932,42 @@ void EditorLayer::SceneCameraWindow()
 				mouseSelectEntity = false;
 			}
 		}
-		/*
-		if (!m_lockEntitySelection && m_sceneCameraWindowFocused && mouseSelectEntity) {
-			if (!m_leftMouseButtonHold &&
-				!(m_mouseScreenPosition.x < 0 || m_mouseScreenPosition.y < 0 ||
-					m_mouseScreenPosition.x > viewPortSize.x ||
-					m_mouseScreenPosition.y > viewPortSize.y) &&
-				Inputs::GetMouseInternal(GLFW_MOUSE_BUTTON_LEFT, Windows::GetWindow())) {
-				Entity focusedEntity = MouseEntitySelection(m_mouseScreenPosition);
-				if (focusedEntity == Entity()) {
-					SetSelectedEntity(Entity());
+
+
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
+			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
+			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
+				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
+			if (const auto focusedEntity = MouseEntitySelection(m_sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
+				SetSelectedEntity(Entity());
+			}
+			else {
+				Entity walker = focusedEntity;
+				bool found = false;
+				while (walker.GetIndex() != 0) {
+					if (walker == m_selectedEntity) {
+						found = true;
+						break;
+					}
+					walker = scene->GetParent(walker);
 				}
-				else {
-					Entity walker = focusedEntity;
-					bool found = false;
-					while (walker.GetIndex() != 0) {
-						if (walker == m_selectedEntity) {
-							found = true;
-							break;
-						}
-						walker = scene->GetParent(walker);
-					}
-					if (found) {
-						walker = scene->GetParent(walker);
-						if (walker.GetIndex() == 0) {
-							SetSelectedEntity(focusedEntity);
-						}
-						else {
-							SetSelectedEntity(walker);
-						}
-					}
-					else {
+				if (found) {
+					walker = scene->GetParent(walker);
+					if (walker.GetIndex() == 0) {
 						SetSelectedEntity(focusedEntity);
 					}
+					else {
+						SetSelectedEntity(walker);
+					}
 				}
-				m_leftMouseButtonHold = true;
+				else {
+					SetSelectedEntity(focusedEntity);
+				}
 			}
-			if (m_highlightSelection) HighLightEntity(m_selectedEntity, glm::vec4(1.0, 0.5, 0.0, 0.8));
-
 		}
-		*/
+		//if (m_highlightSelection) HighLightEntity(m_selectedEntity, glm::vec4(1.0, 0.5, 0.0, 0.8));
+
+
 #pragma endregion
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_sceneCameraWindowFocused = true;
@@ -993,7 +1020,7 @@ void EditorLayer::MainCameraWindow()
 				ImGui::Text("No active main camera!");
 			}
 
-			ImVec2 window_pos = ImVec2(
+			const ImVec2 window_pos = ImVec2(
 				(corner & 1) ? (overlayPos.x + viewPortSize.x) : (overlayPos.x),
 				(corner & 2) ? (overlayPos.y + viewPortSize.y) : (overlayPos.y));
 			if (m_showCameraInfo) {
@@ -1036,7 +1063,40 @@ void EditorLayer::MainCameraWindow()
 				}
 				ImGui::EndChild();
 			}
+			if (!Application::IsPlaying() && m_mainCameraWindowFocused 
+				&& !m_lockEntitySelection && Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press 
+				&& !(m_mouseCameraWindowPosition.x < 0 || m_mouseCameraWindowPosition.y < 0 ||
+					m_mouseCameraWindowPosition.x > viewPortSize.x || m_mouseCameraWindowPosition.y > viewPortSize.y)) {
+				if (const auto focusedEntity = MouseEntitySelection(mainCamera, m_mouseCameraWindowPosition); focusedEntity == Entity()) {
+					SetSelectedEntity(Entity());
+				}
+				else {
+					Entity walker = focusedEntity;
+					bool found = false;
+					while (walker.GetIndex() != 0) {
+						if (walker == m_selectedEntity) {
+							found = true;
+							break;
+						}
+						walker = scene->GetParent(walker);
+					}
+					if (found) {
+						walker = scene->GetParent(walker);
+						if (walker.GetIndex() == 0) {
+							SetSelectedEntity(focusedEntity);
+						}
+						else {
+							SetSelectedEntity(walker);
+						}
+					}
+					else {
+						SetSelectedEntity(focusedEntity);
+					}
+				}
+			}
 		}
+
+		
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_mainCameraWindowFocused = true;
 		}
@@ -1114,7 +1174,7 @@ std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 
 void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout)
 {
-	if(!Application::GetLayer<EditorLayer>()) return;
+	if (!Application::GetLayer<EditorLayer>()) return;
 	if (target != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(target));
 	target = ImGui_ImplVulkan_AddTexture(imageSampler, imageView, imageLayout);
 }
@@ -1316,6 +1376,40 @@ bool EditorLayer::Remove(EntityRef& entityRef)
 	}
 	return statusChanged;
 }
+
+Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const
+{
+	Entity retVal;
+	const auto& gBufferNormal = targetCamera->m_gBufferNormal;
+	const glm::vec2 resolution = targetCamera->GetSize();
+	glm::vec2 point = resolution;
+	point.x = mousePosition.x;
+	point.y -= mousePosition.y;
+	if (point.x >= 0 && point.x < resolution.x && point.y >= 0 && point.y < resolution.y) {
+		VkBufferImageCopy imageCopy{};
+		imageCopy.bufferOffset = 0;
+		imageCopy.bufferRowLength = 0;
+		imageCopy.bufferImageHeight = 0;
+		imageCopy.imageSubresource.layerCount = 1;
+		imageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageCopy.imageSubresource.baseArrayLayer = 0;
+		imageCopy.imageSubresource.mipLevel = 0;
+		imageCopy.imageExtent.width = 1;
+		imageCopy.imageExtent.height = 1;
+		imageCopy.imageExtent.depth = 1;
+		imageCopy.imageOffset.x = point.x;
+		imageCopy.imageOffset.y = point.y;
+		imageCopy.imageOffset.z = 0;
+		m_entityIndexReadBuffer->CopyFromImage(*gBufferNormal, imageCopy);
+		if (const float entityIndex = glm::roundEven(glm::detail::toFloat32(m_mappedEntityIndexData[3])); entityIndex > 0) {
+			const auto renderLayer = Application::GetLayer<RenderLayer>();
+			const auto scene = GetScene();
+			retVal = scene->GetEntity(renderLayer->GetInstanceHandle(static_cast<uint32_t>(entityIndex)));
+		}
+	}
+	return retVal;
+}
+
 bool EditorLayer::RenameEntity(const Entity& entity) const
 {
 	bool statusChanged = false;
@@ -1505,6 +1599,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			material->SetProgram(DefaultResources::GLPrograms::StandardStrandsProgram);
 			strandsRenderer->m_material.Set<Material>(material);
 		}
+		*/
 		else if (asset->GetTypeName() == "EnvironmentalMap") {
 			scene->m_environment.m_environmentalMap =
 				std::dynamic_pointer_cast<EnvironmentalMap>(asset);
@@ -1513,7 +1608,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			auto mainCamera = scene->m_mainCamera.Get<Camera>();
 			mainCamera->m_skybox = std::dynamic_pointer_cast<Cubemap>(asset);
 		}
-		*/
+
 	}
 }
 

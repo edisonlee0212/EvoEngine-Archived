@@ -50,7 +50,7 @@ void Mesh::UploadData()
 	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
 	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_verticesBuffer = std::make_unique<Buffer>(verticesBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	m_verticesBuffer->Copy(vertexStagingBuffer, verticesDataSize);
+	m_verticesBuffer->CopyFromBuffer(vertexStagingBuffer, verticesDataSize);
 
 
 	const auto triangleDataSize = sizeof(glm::uvec3) * m_triangles.size();
@@ -69,7 +69,7 @@ void Mesh::UploadData()
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
-	m_trianglesBuffer->Copy(triangleStagingBuffer, triangleDataSize);
+	m_trianglesBuffer->CopyFromBuffer(triangleStagingBuffer, triangleDataSize);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,

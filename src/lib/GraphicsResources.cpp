@@ -296,7 +296,7 @@ bool Image::HasStencilComponent() const
 		|| m_format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Image::Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
+void Image::CopyFromBuffer(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset) const
 {
 	VkBufferImageCopy region{};
 	region.bufferOffset = srcOffset;
@@ -482,7 +482,7 @@ Buffer::~Buffer()
 	}
 }
 
-void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
+void Buffer::CopyFromBuffer(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
 {
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
@@ -492,6 +492,18 @@ void Buffer::Copy(const Buffer& srcBuffer, const VkDeviceSize size, const VkDevi
 			copyRegion.dstOffset = dstOffset;
 			vkCmdCopyBuffer(commandBuffer, srcBuffer.GetVkBuffer(), m_vkBuffer, 1, &copyRegion);
 		});
+}
+
+void Buffer::CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyInfo) const
+{
+	Graphics::ImmediateSubmit([&](const VkCommandBuffer commandBuffer)
+		{
+			const auto prevLayout = srcImage.GetLayout();
+			srcImage.TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			vkCmdCopyImageToBuffer(commandBuffer, srcImage.GetVkImage(), srcImage.GetLayout(), m_vkBuffer, 1, &imageCopyInfo);
+			srcImage.TransitImageLayout(commandBuffer, prevLayout);
+		}
+	);
 }
 
 const VkBuffer& Buffer::GetVkBuffer() const

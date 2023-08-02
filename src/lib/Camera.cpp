@@ -299,15 +299,15 @@ void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachment
 	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-	attachment.clearValue = { 0, 0, 0, 1 };
+	attachment.clearValue = { 0, 0, 0, 0 };
 	attachment.imageView = m_gBufferNormalView->GetVkImageView();
 	attachmentInfos.push_back(attachment);
 
-	attachment.clearValue = { 0, 0, 0, 1 };
+	attachment.clearValue = { 0, 0, 0, 0 };
 	attachment.imageView = m_gBufferAlbedoView->GetVkImageView();
 	attachmentInfos.push_back(attachment);
 
-	attachment.clearValue = { 0, 0, 0, 1 };
+	attachment.clearValue = { 0, 0, 0, 0 };
 	attachment.imageView = m_gBufferMaterialView->GetVkImageView();
 	attachmentInfos.push_back(attachment);
 }

@@ -69,6 +69,7 @@ set(LOCAL_EVOENGINE_INCLUDES
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Core
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Core/ECS
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Core/Math
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Layers
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Assets
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/Engine/Physics

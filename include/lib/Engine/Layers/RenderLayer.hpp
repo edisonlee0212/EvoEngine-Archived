@@ -60,8 +60,8 @@ namespace EvoEngine
 
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
-		alignas(4) int m_pcfSampleAmount = 16;
-		alignas(4) int m_blockerSearchAmount = 3;
+		alignas(4) int m_pcfSampleAmount = 32;
+		alignas(4) int m_blockerSearchAmount = 1;
 		alignas(4) float m_seamFixRatio = 0.3f;
 		alignas(4) float m_gamma = 2.2f;
 
@@ -114,16 +114,17 @@ namespace EvoEngine
 		float m_maxShadowDistance = 200;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
 
-		uint32_t GetCameraIndex(const Handle& handle);
-		uint32_t GetMaterialIndex(const Handle& handle);
-		uint32_t GetInstanceIndex(const Handle& handle);
+		[[nodiscard]] uint32_t GetCameraIndex(const Handle& handle);
+		[[nodiscard]] uint32_t GetMaterialIndex(const Handle& handle);
+		[[nodiscard]] uint32_t GetInstanceIndex(const Handle& handle);
+		[[nodiscard]] Handle GetInstanceHandle(uint32_t index);
 		void UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
 		void UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
 		void UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
 
-		uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload = false);
-		uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
-		uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
+		[[nodiscard]] uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload = false);
+		[[nodiscard]] uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
+		[[nodiscard]] uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
 
 		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
 		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
@@ -182,6 +183,7 @@ namespace EvoEngine
 		std::unordered_map<Handle, uint32_t> m_cameraIndices;
 		std::unordered_map<Handle, uint32_t> m_materialIndices;
 		std::unordered_map<Handle, uint32_t> m_instanceIndices;
+		std::unordered_map<uint32_t, Handle> m_instanceHandles;
 
 		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
 		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};

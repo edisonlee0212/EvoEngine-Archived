@@ -31,7 +31,6 @@ void RenderInstanceCollection::Dispatch(
 
 void RenderLayer::OnCreate()
 {
-
 	CreateStandardDescriptorBuffers();
 	UpdateStandardBindings();
 
@@ -84,10 +83,6 @@ void RenderLayer::OnDestroy()
 
 void RenderLayer::PreUpdate()
 {
-	/*
-	auto defaultCubemap = std::dynamic_pointer_cast<Cubemap>(Resources::GetResource("DEFAULT_SKYBOX_BLURRED"));
-	defaultCubemap->ConvertFromEquirectangularTexture(std::dynamic_pointer_cast<Texture2D>(Resources::GetResource("DEFAULT_SKYBOX_BLURRED_TEXTURE")));
-	*/
 	const auto scene = GetScene();
 	if (!scene) return;
 	m_deferredRenderInstances.m_renderInstanceGroups.clear();
@@ -100,6 +95,7 @@ void RenderLayer::PreUpdate()
 	m_cameraIndices.clear();
 	m_materialIndices.clear();
 	m_instanceIndices.clear();
+	m_instanceHandles.clear();
 	m_cameraInfoBlocks.clear();
 	m_materialInfoBlocks.clear();
 	m_instanceInfoBlocks.clear();
@@ -254,6 +250,16 @@ uint32_t RenderLayer::GetInstanceIndex(const Handle& handle)
 	return search->second;
 }
 
+Handle RenderLayer::GetInstanceHandle(uint32_t index)
+{
+	const auto search = m_instanceHandles.find(index);
+	if (search == m_instanceHandles.end())
+	{
+		throw std::runtime_error("Unable to find instance!");
+	}
+	return search->second;
+}
+
 void RenderLayer::UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock)
 {
 	const auto index = GetCameraIndex(handle);
@@ -313,6 +319,7 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 	{
 		const uint32_t index = m_instanceInfoBlocks.size();
 		m_instanceIndices[handle] = index;
+		m_instanceHandles[index] = handle;
 		m_instanceInfoBlocks.emplace_back(instanceInfoBlock);
 		return index;
 	}

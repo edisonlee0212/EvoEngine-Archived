@@ -72,7 +72,7 @@ namespace EvoEngine
 		bool HasStencilComponent() const;
 		~Image() override;
 		void TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
-		void Copy(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
+		void CopyFromBuffer(VkCommandBuffer commandBuffer, const VkBuffer& srcBuffer, VkDeviceSize srcOffset = 0) const;
 
 		void GenerateMipmaps(VkCommandBuffer commandBuffer);
 
@@ -82,6 +82,7 @@ namespace EvoEngine
 		[[nodiscard]] VkExtent3D GetExtent() const;
 		[[nodiscard]] VkImageLayout GetLayout() const;
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
+
 	};
 
 	class ImageView final : public IGraphicsResource
@@ -194,7 +195,8 @@ namespace EvoEngine
 		~Buffer() override;
 		Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 
-		void Copy(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
+		void CopyFromBuffer(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
+		void CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyInfo) const;
 
 		[[nodiscard]] const VkBuffer& GetVkBuffer() const;
 
