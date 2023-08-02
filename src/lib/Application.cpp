@@ -138,6 +138,7 @@ void Application::LateUpdateInternal()
 
 		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer)
 			{
+				Graphics::EverythingBarrier(commandBuffer);
 				constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 				VkRect2D renderArea;
 				renderArea.offset = { 0, 0 };
@@ -148,7 +149,7 @@ void Application::LateUpdateInternal()
 
 				VkRenderingAttachmentInfo colorAttachmentInfo{};
 				colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-				colorAttachmentInfo.imageView = Graphics::GetSwapchain()->GetAllImageViews().at(Graphics::GetCurrentFrameIndex())->GetVkImageView();
+				colorAttachmentInfo.imageView = Graphics::GetSwapchain()->GetVkImageView();
 				colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 				colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 				colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

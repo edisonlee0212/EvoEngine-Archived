@@ -178,10 +178,12 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH_STENCIL)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-	}else if(imageFormat == GetSwapchain()->GetImageFormat())
+	}
+	else if (imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	}else if(imageFormat == Constants::G_BUFFER_DEPTH || imageFormat == Constants::SHADOW_MAP)
+	}
+	else if (imageFormat == Constants::G_BUFFER_DEPTH || imageFormat == Constants::SHADOW_MAP)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
@@ -747,7 +749,7 @@ void Graphics::CreateLogicalDevice()
 
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = cRequiredDeviceExtensions.data();
-	
+
 	deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_requiredLayers.size());
 	deviceCreateInfo.ppEnabledLayerNames = cRequiredLayers.data();
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
@@ -868,14 +870,14 @@ void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBu
 {
 	auto& graphics = GetInstance();
 	const unsigned commandBufferIndex = graphics.m_usedCommandBufferSize;
-	if(commandBufferIndex >= graphics.m_commandBufferPool[graphics.m_currentFrameIndex].size())
+	if (commandBufferIndex >= graphics.m_commandBufferPool[graphics.m_currentFrameIndex].size())
 	{
 		graphics.m_commandBufferPool[graphics.m_currentFrameIndex].emplace_back();
 		graphics.m_commandBufferPool[graphics.m_currentFrameIndex].back().Allocate();
 	}
 	auto& commandBuffer = graphics.m_commandBufferPool[graphics.m_currentFrameIndex][commandBufferIndex];
 	commandBuffer.Begin();
-	GraphicsPipelineStates graphicsGlobalState {};
+	GraphicsPipelineStates graphicsGlobalState{};
 	action(commandBuffer.GetVkCommandBuffer());
 	commandBuffer.End();
 	graphics.m_usedCommandBufferSize++;
@@ -1016,7 +1018,7 @@ void Graphics::OnDestroy()
 {
 	vkDeviceWaitIdle(m_vkDevice);
 
-	
+
 
 	m_descriptorPool.reset();
 
@@ -1074,7 +1076,7 @@ void Graphics::SwapChainSwapImage()
 	m_usedCommandBufferSize = 0;
 	for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
 	{
-		if(commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
+		if (commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
 	}
 }
 
@@ -1109,7 +1111,7 @@ void Graphics::SubmitPresent()
 	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
-	
+
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1457,7 +1459,7 @@ void Graphics::Initialize()
 		renderLayerDescriptorPoolInfo.maxSets = 1024;
 		graphics.m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
 
-		
+
 	}
 #pragma endregion
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
@@ -1499,7 +1501,7 @@ void Graphics::Initialize()
 	}
 
 
-	
+
 }
 
 void Graphics::PostResourceLoadingInitialization()
@@ -1551,73 +1553,76 @@ void Graphics::LateUpdate()
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
 		if (Application::GetLayer<RenderLayer>()) {
-			if (const auto mainCamera = Application::GetActiveScene()->m_mainCamera.Get<Camera>(); !Application::GetLayer<EditorLayer>() && mainCamera && mainCamera->IsEnabled() && mainCamera->m_rendered)
-			{
-				const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];
-				AppendCommands([&](VkCommandBuffer commandBuffer)
-					{
-						EverythingBarrier(commandBuffer);
-						TransitImageLayout(commandBuffer,
-							graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
-							VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
-
-						constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-						VkRect2D renderArea;
-						renderArea.offset = { 0, 0 };
-						renderArea.extent = graphics.m_swapchain->GetImageExtent();
-
-
-						VkRenderingAttachmentInfo colorAttachmentInfo{};
-						colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-						colorAttachmentInfo.imageView = graphics.m_swapchain->GetVkImageView();
-						colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-						colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-						colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-						colorAttachmentInfo.clearValue = clearColor;
-
-						VkRenderingInfo renderInfo{};
-						renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-						renderInfo.renderArea = renderArea;
-						renderInfo.layerCount = 1;
-						renderInfo.colorAttachmentCount = 1;
-						renderInfo.pColorAttachments = &colorAttachmentInfo;
-						VkViewport viewport;
-						viewport.x = 0.0f;
-						viewport.y = 0.0f;
-						viewport.width = renderArea.extent.width;
-						viewport.height = renderArea.extent.height;
-						viewport.minDepth = 0.0f;
-						viewport.maxDepth = 1.0f;
-
-						VkRect2D scissor;
-						scissor.offset = { 0, 0 };
-						scissor.extent.width = renderArea.extent.width;
-						scissor.extent.height = renderArea.extent.height;
-
-						renderTexturePresent->m_states.m_viewPort = viewport;
-						renderTexturePresent->m_states.m_scissor = scissor;
-						renderTexturePresent->m_states.m_colorBlendAttachmentStates.clear();
-						renderTexturePresent->m_states.m_colorBlendAttachmentStates.resize(1);
-						for (auto& i : renderTexturePresent->m_states.m_colorBlendAttachmentStates)
+			if (const auto scene = Application::GetActiveScene()) {
+				if (const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+					!Application::GetLayer<EditorLayer>() && mainCamera->IsEnabled() && mainCamera->m_rendered)
+				{
+					const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];
+					AppendCommands([&](VkCommandBuffer commandBuffer)
 						{
-							i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-							i.blendEnable = VK_FALSE;
-						}
-						renderTexturePresent->m_states.m_depthTest = VK_FALSE;
-						renderTexturePresent->m_states.m_depthWrite = VK_FALSE;
-						vkCmdBeginRendering(commandBuffer, &renderInfo);
-						//From main camera to swap chain.
-						renderTexturePresent->Bind(commandBuffer);
-						renderTexturePresent->BindDescriptorSet(commandBuffer, 0, mainCamera->GetRenderTexture()->m_descriptorSet->GetVkDescriptorSet());
+							EverythingBarrier(commandBuffer);
+							TransitImageLayout(commandBuffer,
+								graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
+								VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR);
 
-						const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
-						mesh->Bind(commandBuffer);
-						mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, false);
-						vkCmdEndRendering(commandBuffer);
-						TransitImageLayout(commandBuffer,
-							graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
-							VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-					});
+							constexpr VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+							VkRect2D renderArea;
+							renderArea.offset = { 0, 0 };
+							renderArea.extent = graphics.m_swapchain->GetImageExtent();
+
+
+							VkRenderingAttachmentInfo colorAttachmentInfo{};
+							colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+							colorAttachmentInfo.imageView = graphics.m_swapchain->GetVkImageView();
+							colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+							colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+							colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+							colorAttachmentInfo.clearValue = clearColor;
+
+							VkRenderingInfo renderInfo{};
+							renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+							renderInfo.renderArea = renderArea;
+							renderInfo.layerCount = 1;
+							renderInfo.colorAttachmentCount = 1;
+							renderInfo.pColorAttachments = &colorAttachmentInfo;
+							VkViewport viewport;
+							viewport.x = 0.0f;
+							viewport.y = 0.0f;
+							viewport.width = renderArea.extent.width;
+							viewport.height = renderArea.extent.height;
+							viewport.minDepth = 0.0f;
+							viewport.maxDepth = 1.0f;
+
+							VkRect2D scissor;
+							scissor.offset = { 0, 0 };
+							scissor.extent.width = renderArea.extent.width;
+							scissor.extent.height = renderArea.extent.height;
+
+							renderTexturePresent->m_states.m_viewPort = viewport;
+							renderTexturePresent->m_states.m_scissor = scissor;
+							renderTexturePresent->m_states.m_colorBlendAttachmentStates.clear();
+							renderTexturePresent->m_states.m_colorBlendAttachmentStates.resize(1);
+							for (auto& i : renderTexturePresent->m_states.m_colorBlendAttachmentStates)
+							{
+								i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+								i.blendEnable = VK_FALSE;
+							}
+							renderTexturePresent->m_states.m_depthTest = VK_FALSE;
+							renderTexturePresent->m_states.m_depthWrite = VK_FALSE;
+							vkCmdBeginRendering(commandBuffer, &renderInfo);
+							//From main camera to swap chain.
+							renderTexturePresent->Bind(commandBuffer);
+							renderTexturePresent->BindDescriptorSet(commandBuffer, 0, mainCamera->GetRenderTexture()->m_descriptorSet->GetVkDescriptorSet());
+
+							const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
+							mesh->Bind(commandBuffer);
+							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, false);
+							vkCmdEndRendering(commandBuffer);
+							TransitImageLayout(commandBuffer,
+								graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,
+								VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+						});
+				}
 			}
 			graphics.SubmitPresent();
 		}
