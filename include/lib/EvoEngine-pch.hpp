@@ -93,3 +93,7 @@
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #include <Windows.h>
 #endif
+
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;

@@ -26,7 +26,7 @@ int main() {
 
     Application::PushLayer<WindowLayer>();
 
-	Application::PushLayer<EditorLayer>();
+	//Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
     Application::PushLayer<AnimationLayer>();
 
@@ -205,21 +205,22 @@ void LoadScene()
     Application::RegisterUpdateFunction([=]() {
         //if (!Application::IsPlaying())
         //    return;
+        auto currentScene = Application::GetActiveScene();
         const float currentTime = Time::CurrentTime();
         const float sinTime = glm::sin(currentTime / 5.0f);
         const float cosTime = glm::cos(currentTime / 5.0f);
         Transform dirLightTransform;
         dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(10.0f, currentTime, 0.0f)));
-        scene->SetDataComponent(dirLightEntity, dirLightTransform);
+        currentScene->SetDataComponent(dirLightEntity, dirLightTransform);
         dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, currentTime * 10, 0.0f)));
-        scene->SetDataComponent(dirLightEntity, dirLightTransform);
+        currentScene->SetDataComponent(dirLightEntity, dirLightTransform);
 
 
         Transform pointLightRightTransform;
         pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
         pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
         pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
-        scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
+        currentScene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
 
         /*
         Transform pointLightLeftTransform;

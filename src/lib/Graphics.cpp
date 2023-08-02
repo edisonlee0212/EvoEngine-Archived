@@ -1534,12 +1534,13 @@ void Graphics::PreUpdate()
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
 
-	if (Application::GetLayer<RenderLayer>()) {
-		const auto mainCamera = Application::GetActiveScene()->m_mainCamera.Get<Camera>();
-		if (!Application::GetLayer<EditorLayer>() && mainCamera && mainCamera->IsEnabled())
-		{
-			mainCamera->SetRequireRendering(true);
-			mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
+	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
+		if (const auto scene = Application::GetActiveScene()) {
+			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
+			{
+				mainCamera->SetRequireRendering(true);
+				mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
+			}
 		}
 	}
 }

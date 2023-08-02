@@ -28,6 +28,13 @@ include_directories(${YAML_CPP_DIR}/include)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
+# pybind11
+# ------------------------------------------------------------------
+set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11/)
+include_directories(${PYBIND11_DIR}/include)
+add_subdirectory(${PYBIND11_DIR} EXCLUDE_FROM_ALL)
+
+# ------------------------------------------------------------------
 # glm
 # ------------------------------------------------------------------
 if (WIN32)
@@ -104,6 +111,8 @@ set(PHYSX_DIR
         PARENT_SCOPE)
 
 
+
+
 # ------------------------------------------------------------------
 # Includes
 # ------------------------------------------------------------------
@@ -121,5 +130,6 @@ set(3RD_PARTY_INCLUDES
         ${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader
         ${CMAKE_CURRENT_SOURCE_DIR}/physx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include
         PARENT_SCOPE
         )

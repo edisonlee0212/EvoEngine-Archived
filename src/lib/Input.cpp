@@ -11,6 +11,7 @@ void Input::KeyCallBack(GLFWwindow* window, int key, int scanCode, int action, i
 	if(action == GLFW_PRESS)
 	{
 		input.m_pressedKeys[key] = KeyActionType::Press;
+		Dispatch({ key, KeyActionType::Press });
 		//std::cout << "P" + std::to_string(key) << std::endl;
 	}else if(action == GLFW_RELEASE)
 	{
@@ -30,6 +31,7 @@ void Input::MouseButtonCallBack(GLFWwindow* window, int button, int action, int 
 	if (action == GLFW_PRESS)
 	{
 		input.m_pressedKeys[button] = KeyActionType::Press;
+		Dispatch({ button, KeyActionType::Press });
 		//std::cout << "P" + std::to_string(button) << std::endl;
 	}
 	else if (action == GLFW_RELEASE)
@@ -78,6 +80,13 @@ void Input::PreUpdate()
 	for(auto& i : input.m_pressedKeys)
 	{
 		i.second = KeyActionType::Hold;
+	}
+	const auto scene = Application::GetActiveScene();
+	if (scene) {
+		for (auto& i : scene->m_pressedKeys)
+		{
+			i.second = KeyActionType::Hold;
+		}
 	}
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{

@@ -192,8 +192,12 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPL
             PRIVATE
             ${LOCAL_EVOENGINE_PCH}
             )
+
+    find_package(PythonLibs REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS})
     target_link_libraries(Project
             evoengine
+            ${PYTHON_LIBRARIES}
             )
 
     add_executable(Demo

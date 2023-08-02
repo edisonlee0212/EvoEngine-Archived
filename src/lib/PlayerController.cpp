@@ -12,7 +12,7 @@ void PlayerController::OnCreate()
 }
 void PlayerController::LateUpdate()
 {
-	auto scene = GetScene();
+	const auto scene = GetScene();
 
 #pragma region Scene Camera Controller
 	auto transform = scene->GetDataComponent<Transform>(GetOwner());
@@ -21,32 +21,32 @@ void PlayerController::LateUpdate()
 	const auto front = rotation * glm::vec3(0, 0, -1);
 	const auto right = rotation * glm::vec3(1, 0, 0);
 	auto moved = false;
-	if (scene->GetKey(GLFW_KEY_W) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_W) == KeyActionType::Hold)
 	{
 		position += front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 		moved = true;
 	}
-	if (scene->GetKey(GLFW_KEY_S) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_S) == KeyActionType::Hold)
 	{
 		position -= front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 		moved = true;
 	}
-	if (scene->GetKey(GLFW_KEY_A) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_A) == KeyActionType::Hold)
 	{
 		position -= right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 		moved = true;
 	}
-	if (scene->GetKey(GLFW_KEY_D) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_D) == KeyActionType::Hold)
 	{
 		position += right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 		moved = true;
 	}
-	if (scene->GetKey(GLFW_KEY_LEFT_SHIFT) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_LEFT_SHIFT) == KeyActionType::Hold)
 	{
 		position.y += m_velocity * static_cast<float>(Time::DeltaTime());
 		moved = true;
 	}
-	if (scene->GetKey(GLFW_KEY_LEFT_CONTROL) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_KEY_LEFT_CONTROL) == KeyActionType::Hold)
 	{
 		position.y -= m_velocity * static_cast<float>(Time::DeltaTime());
 		moved = true;
@@ -71,7 +71,7 @@ void PlayerController::LateUpdate()
 		m_lastX = mousePosition.x;
 		m_lastY = mousePosition.y;
 	}
-	if (scene->GetKey(GLFW_MOUSE_BUTTON_RIGHT) != KeyActionType::Release)
+	if (scene->GetKey(GLFW_MOUSE_BUTTON_RIGHT) == KeyActionType::Hold)
 	{
 		if (xOffset != 0 || yOffset != 0)
 		{
