@@ -847,6 +847,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap()
 
 void RenderLayer::CollectRenderInstances(Bound& worldBound)
 {
+	m_needFade = false;
 	auto scene = GetScene();
 
 	auto& minBound = worldBound.m_min;
@@ -866,6 +867,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto mesh = mmc->m_mesh.Get<Mesh>();
 			if (!mmc->IsEnabled() || material == nullptr || mesh == nullptr)
 				continue;
+			 
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
 			auto meshBound = mesh->GetBound();
@@ -898,7 +900,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 
 			renderInstance.m_materialIndex = materialIndex;
 			renderInstance.m_instanceIndex = instanceIndex;
-
+			renderInstance.m_selected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			if (renderInstance.m_selected) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
 			{
 				auto& group = m_transparentRenderInstances.m_renderInstanceGroups[material->GetHandle()];
@@ -1509,9 +1512,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	bool needFade = false;
 	if(editorLayer)
 	{
-		if (scene->IsEntityValid(editorLayer->m_selectedEntity)) isEntitySelected = true;
 		if (camera.get() == editorLayer->m_sceneCamera.get()) isSceneCamera = true;
-		needFade = editorLayer->m_needFade;
+		if (m_needFade) needFade = true;
 	}
 	const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
 	const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
@@ -1574,7 +1576,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_materialIndex = renderCommand.m_materialIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-						pushConstant.m_infoIndex = scene->IsEntityAncestorSelected(renderCommand.m_owner) ? 1 : 0;
+						pushConstant.m_infoIndex = renderCommand.m_selected;
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						const auto mesh = std::dynamic_pointer_cast<Mesh>(renderCommand.m_renderGeometry);
 						mesh->Bind(commandBuffer);
@@ -1625,7 +1627,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
 			pushConstant.m_materialIndex = glm::max(32, 256 - editorLayer->m_selectionAlpha);
-			pushConstant.m_instanceIndex = isEntitySelected ? 1 : 0;
+			pushConstant.m_instanceIndex = needFade ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);

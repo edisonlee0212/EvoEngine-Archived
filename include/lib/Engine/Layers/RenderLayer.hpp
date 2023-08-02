@@ -34,6 +34,7 @@ namespace EvoEngine
 	struct RenderInstance {
 		uint32_t m_instanceIndex = 0;
 		uint32_t m_materialIndex = 0;
+		uint32_t m_selected = 0;
 		RenderCommandType m_commandType = RenderCommandType::None;
 		RenderGeometryType m_geometryType = RenderGeometryType::None;
 		Entity m_owner = Entity();
@@ -129,15 +130,13 @@ namespace EvoEngine
 		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
 		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
 
-		
-		
-
 		RenderInfoBlock m_renderInfoBlock = {};
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
 
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	private:
+		bool m_needFade = false;
 #pragma region Render procedure
 		RenderInstanceCollection m_deferredRenderInstances;
 		RenderInstanceCollection m_deferredInstancedRenderInstances;

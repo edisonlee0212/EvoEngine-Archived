@@ -119,7 +119,6 @@ namespace EvoEngine
 
 #pragma endregion
 	private:
-		bool m_needFade = false;
 		int m_selectionAlpha = 0;
 
 		glm::detail::hdata* m_mappedEntityIndexData;

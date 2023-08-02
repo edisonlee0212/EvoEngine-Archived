@@ -351,15 +351,14 @@ void EditorLayer::PreUpdate()
 	{
 		SetSelectedEntity(Entity());
 	}
-	if(m_needFade && m_selectedEntity.GetIndex() != 0 && m_selectionAlpha < 256)
+	const auto renderLayer = Application::GetLayer<RenderLayer>();
+	if(renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
 	{
-		m_selectionAlpha += Time::DeltaTime() * 2560;
+		m_selectionAlpha += Time::DeltaTime() * 5120;
 	}
-	if(!m_needFade && m_selectionAlpha > 0)
-	{
-		m_selectionAlpha -= Time::DeltaTime() * 2560;
-	}
+
 	m_selectionAlpha = glm::clamp(m_selectionAlpha, 0, 256);
+	
 }
 
 void EditorLayer::Update()
@@ -1210,7 +1209,6 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		scene->GetEntityMetadata(i).m_ancestorSelected = false;
 	}
 	if(scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
-	m_needFade = false;
 	if (entity.GetIndex() == 0) {
 		m_selectedEntity = Entity();
 		m_lockEntitySelection = false;
@@ -1226,10 +1224,8 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 	for (const auto& i : descendents)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = true;
-		if (scene->HasPrivateComponent<MeshRenderer>(i)) m_needFade = true;
 	}
 	scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = true;
-	if (scene->HasPrivateComponent<MeshRenderer>(m_selectedEntity)) m_needFade = true;
 	if (!openMenu)
 		return;
 	auto walker = entity;
