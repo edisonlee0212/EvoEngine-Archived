@@ -29,7 +29,7 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = mipLevels;
 	imageInfo.arrayLayers = 6;
-	imageInfo.format = Graphics::ImageFormats::m_texture2D;
+	imageInfo.format = Graphics::Constants::TEXTURE_2D;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -42,7 +42,7 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = m_image->GetVkImage();
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	viewInfo.format = Graphics::ImageFormats::m_texture2D;
+	viewInfo.format = Graphics::Constants::TEXTURE_2D;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
@@ -85,7 +85,7 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_image->GetVkImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::ImageFormats::m_texture2D;
+		viewInfo.format = Graphics::Constants::TEXTURE_2D;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
@@ -100,7 +100,7 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			viewInfo.image = m_image->GetVkImage();
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = Graphics::ImageFormats::m_texture2D;
+			viewInfo.format = Graphics::Constants::TEXTURE_2D;
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			viewInfo.subresourceRange.baseMipLevel = mip;
 			viewInfo.subresourceRange.levelCount = 1;
@@ -137,7 +137,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 	depthImageInfo.extent.depth = 1;
 	depthImageInfo.mipLevels = 1;
 	depthImageInfo.arrayLayers = 1;
-	depthImageInfo.format = Graphics::ImageFormats::m_shadowMap;
+	depthImageInfo.format = Graphics::Constants::SHADOW_MAP;
 	depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -155,7 +155,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	depthViewInfo.image = depthImage->GetVkImage();
 	depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	depthViewInfo.format = Graphics::ImageFormats::m_shadowMap;
+	depthViewInfo.format = Graphics::Constants::SHADOW_MAP;
 	depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthViewInfo.subresourceRange.baseMipLevel = 0;
 	depthViewInfo.subresourceRange.levelCount = 1;

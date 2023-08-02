@@ -171,17 +171,17 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = targetImage;
-	if (imageFormat == ImageFormats::m_texture2D || imageFormat == ImageFormats::m_renderTextureColor || imageFormat == ImageFormats::m_gBufferColor)
+	if (imageFormat == Constants::TEXTURE_2D || imageFormat == Constants::RENDER_TEXTURE_COLOR || imageFormat == Constants::G_BUFFER_COLOR)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
-	else if (imageFormat == ImageFormats::m_renderTextureDepthStencil)
+	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH_STENCIL)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	}else if(imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	}else if(imageFormat == ImageFormats::m_gBufferDepth || imageFormat == ImageFormats::m_shadowMap)
+	}else if(imageFormat == Constants::G_BUFFER_DEPTH || imageFormat == Constants::SHADOW_MAP)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
@@ -1194,9 +1194,9 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
 
-		standardDeferredPrepass->m_depthAttachmentFormat = ImageFormats::m_gBufferDepth;
+		standardDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
 		standardDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-		standardDeferredPrepass->m_colorAttachmentFormats = { 3, ImageFormats::m_gBufferColor };
+		standardDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
 
 		auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -1215,10 +1215,10 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
-		standardDeferredLighting->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
-		standardDeferredLighting->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLighting->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		standardDeferredLighting->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 
-		standardDeferredLighting->m_colorAttachmentFormats = { 1, ImageFormats::m_renderTextureColor };
+		standardDeferredLighting->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
 		auto& pushConstantRange = standardDeferredLighting->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -1237,10 +1237,10 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
 		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
-		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
-		standardDeferredLightingSceneCamera->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		standardDeferredLightingSceneCamera->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 
-		standardDeferredLightingSceneCamera->m_colorAttachmentFormats = { 1, ImageFormats::m_renderTextureColor };
+		standardDeferredLightingSceneCamera->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
 		auto& pushConstantRange = standardDeferredLightingSceneCamera->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -1256,7 +1256,7 @@ void Graphics::CreateGraphicsPipelines() const
 		directionalLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		directionalLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		directionalLightShadowMap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		directionalLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = directionalLightShadowMap->m_pushConstantRanges.emplace_back();
@@ -1274,7 +1274,7 @@ void Graphics::CreateGraphicsPipelines() const
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		pointLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		pointLightShadowMap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		pointLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = pointLightShadowMap->m_pushConstantRanges.emplace_back();
@@ -1291,7 +1291,7 @@ void Graphics::CreateGraphicsPipelines() const
 		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
 		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		spotLightShadowMap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		spotLightShadowMap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		spotLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
@@ -1308,8 +1308,8 @@ void Graphics::CreateGraphicsPipelines() const
 		brdfLut->m_fragmentShader = Resources::GetResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		brdfLut->m_geometryType = GeometryType::Mesh;
 
-		brdfLut->m_depthAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
-		brdfLut->m_stencilAttachmentFormat = ImageFormats::m_renderTextureDepthStencil;
+		brdfLut->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		brdfLut->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 
 		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
 
@@ -1322,10 +1322,10 @@ void Graphics::CreateGraphicsPipelines() const
 		equirectangularToCubemap->m_fragmentShader = Resources::GetResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
 		equirectangularToCubemap->m_geometryType = GeometryType::Mesh;
 
-		equirectangularToCubemap->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		equirectangularToCubemap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		equirectangularToCubemap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-		equirectangularToCubemap->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
+		equirectangularToCubemap->m_colorAttachmentFormats = { 1, Constants::TEXTURE_2D };
 		equirectangularToCubemap->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
 
 		auto& pushConstantRange = equirectangularToCubemap->m_pushConstantRanges.emplace_back();
@@ -1342,10 +1342,10 @@ void Graphics::CreateGraphicsPipelines() const
 		irradianceConstruct->m_fragmentShader = Resources::GetResource<Shader>("IRRADIANCE_CONSTRUCT_FRAG");
 		irradianceConstruct->m_geometryType = GeometryType::Mesh;
 
-		irradianceConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		irradianceConstruct->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		irradianceConstruct->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-		irradianceConstruct->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
+		irradianceConstruct->m_colorAttachmentFormats = { 1, Constants::TEXTURE_2D };
 		irradianceConstruct->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
 
 		auto& pushConstantRange = irradianceConstruct->m_pushConstantRanges.emplace_back();
@@ -1362,10 +1362,10 @@ void Graphics::CreateGraphicsPipelines() const
 		prefilterConstruct->m_fragmentShader = Resources::GetResource<Shader>("PREFILTER_CONSTRUCT_FRAG");
 		prefilterConstruct->m_geometryType = GeometryType::Mesh;
 
-		prefilterConstruct->m_depthAttachmentFormat = ImageFormats::m_shadowMap;
+		prefilterConstruct->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		prefilterConstruct->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-		prefilterConstruct->m_colorAttachmentFormats = { 1, ImageFormats::m_texture2D };
+		prefilterConstruct->m_colorAttachmentFormats = { 1, Constants::TEXTURE_2D };
 		prefilterConstruct->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
 
 		auto& pushConstantRange = prefilterConstruct->m_pushConstantRanges.emplace_back();

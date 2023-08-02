@@ -50,7 +50,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	imageInfo.extent = extent;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = layerCount;
-	imageInfo.format = Graphics::ImageFormats::m_renderTextureColor;
+	imageInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -69,7 +69,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = m_colorImage->GetVkImage();
 	viewInfo.viewType = imageViewType;
-	viewInfo.format = Graphics::ImageFormats::m_renderTextureColor;
+	viewInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
@@ -84,7 +84,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthStencilInfo.extent = extent;
 	depthStencilInfo.mipLevels = 1;
 	depthStencilInfo.arrayLayers = layerCount;
-	depthStencilInfo.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
+	depthStencilInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 	depthStencilInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthStencilInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthStencilInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -102,7 +102,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	depthViewInfo.image = m_depthStencilImage->GetVkImage();
 	depthViewInfo.viewType = imageViewType;
-	depthViewInfo.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
+	depthViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 	depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthViewInfo.subresourceRange.baseMipLevel = 0;
 	depthViewInfo.subresourceRange.levelCount = 1;
@@ -115,7 +115,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	stencilViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	stencilViewInfo.image = m_depthStencilImage->GetVkImage();
 	stencilViewInfo.viewType = imageViewType;
-	stencilViewInfo.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
+	stencilViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 	stencilViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	stencilViewInfo.subresourceRange.baseMipLevel = 0;
 	stencilViewInfo.subresourceRange.levelCount = 1;
@@ -128,8 +128,8 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_extent = extent;
 	m_imageViewType = imageViewType;
-	m_colorFormat = Graphics::ImageFormats::m_renderTextureColor;
-	m_depthStencilFormat = Graphics::ImageFormats::m_renderTextureDepthStencil;
+	m_colorFormat = Graphics::Constants::RENDER_TEXTURE_COLOR;
+	m_depthStencilFormat = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -264,7 +264,7 @@ const std::vector<VkAttachmentDescription>& RenderTexture::GetAttachmentDescript
 	static std::vector<VkAttachmentDescription> attachments{};
 	if (attachments.empty()) {
 		static VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = Graphics::ImageFormats::m_renderTextureColor;
+		colorAttachment.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -274,7 +274,7 @@ const std::vector<VkAttachmentDescription>& RenderTexture::GetAttachmentDescript
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 		static VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = Graphics::ImageFormats::m_renderTextureDepthStencil;
+		depthAttachment.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

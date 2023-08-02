@@ -152,8 +152,8 @@ void LoadScene()
     auto dirLightEntity = scene->CreateEntity("Directional Light");
     auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
     dirLight->m_diffuseBrightness = 2.5f;
-    dirLight->m_lightSize = 0.5f;
-
+    dirLight->m_lightSize = 0.1f;
+    /*
     auto pointLightLeftEntity = scene->CreateEntity("Right Point Light");
     auto pointLightLeftRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(pointLightLeftEntity).lock();
     auto groundMaterial = ProjectManager::CreateTemporaryAsset<Material>();
@@ -167,7 +167,7 @@ void LoadScene()
     pointLightLeft->m_linear = 0.02;
     pointLightLeft->m_quadratic = 0.0001;
     pointLightLeft->m_diffuse = glm::vec3(0.0, 0.5, 1.0);
-
+    */
     auto pointLightRightEntity = scene->CreateEntity("Left Point Light");
     auto pointLightRightRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(pointLightRightEntity).lock();
     auto pointLightRightMaterial = ProjectManager::CreateTemporaryAsset<Material>();
@@ -177,7 +177,7 @@ void LoadScene()
     pointLightRightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
     auto pointLightRight = scene->GetOrSetPrivateComponent<PointLight>(pointLightRightEntity).lock();
     pointLightRight->m_diffuseBrightness = 4;
-    pointLightRight->m_lightSize = 0.02f;
+    pointLightRight->m_lightSize = 0.01f;
     pointLightRight->m_linear = 0.02;
     pointLightRight->m_quadratic = 0.0001;
     pointLightRight->m_diffuse = glm::vec3(1.0, 0.8, 0.0);
@@ -191,12 +191,12 @@ void LoadScene()
     Transform dirLightTransform;
     dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, startTime * 10, 0.0f)));
     scene->SetDataComponent(dirLightEntity, dirLightTransform);
-
+    /*
     Transform pointLightLeftTransform;
     pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, startSinTime * 5 - 5));
     pointLightLeftTransform.SetScale({ 0.1f, 0.1f, 0.1f });
     scene->SetDataComponent(pointLightLeftEntity, pointLightLeftTransform);
-
+    */
     Transform pointLightRightTransform;
     pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, startCosTime * 5 - 5));
     pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
@@ -211,20 +211,23 @@ void LoadScene()
         Transform dirLightTransform;
         dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(10.0f, currentTime, 0.0f)));
         scene->SetDataComponent(dirLightEntity, dirLightTransform);
-        Transform pointLightLeftTransform;
-        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
-        pointLightLeftTransform.SetScale({ 0.1f, 0.1f, 0.1f });
+        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, currentTime * 10, 0.0f)));
+        scene->SetDataComponent(dirLightEntity, dirLightTransform);
+
+
         Transform pointLightRightTransform;
         pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
         pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
-        
-        
-        dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, currentTime * 10, 0.0f)));
-        scene->SetDataComponent(dirLightEntity, dirLightTransform);
-        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
         pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
-        scene->SetDataComponent(pointLightLeftEntity, pointLightLeftTransform);
         scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
+
+        /*
+        Transform pointLightLeftTransform;
+        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
+        pointLightLeftTransform.SetScale({ 0.1f, 0.1f, 0.1f });
+        pointLightLeftTransform.SetPosition(glm::vec3(-4, 1.2, sinTime * 5 - 5));
+        scene->SetDataComponent(pointLightLeftEntity, pointLightLeftTransform);
+        */
     });
      
 }

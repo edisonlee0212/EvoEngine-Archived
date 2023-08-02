@@ -62,9 +62,9 @@ namespace EvoEngine
 
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
-		alignas(4) int m_pcfSampleAmount = 32;
-		alignas(4) int m_blockerSearchAmount = 2;
-		alignas(4) float m_seamFixRatio = 0.3f;
+		alignas(4) int m_pcfSampleAmount = 16;
+		alignas(4) int m_blockerSearchAmount = 1;
+		alignas(4) float m_seamFixRatio = 0.1f;
 		alignas(4) float m_gamma = 2.2f;
 
 		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
@@ -112,7 +112,7 @@ namespace EvoEngine
 	public:
 		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
-		float m_maxShadowDistance = 200;
+		float m_maxShadowDistance = 100;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
 
 		[[nodiscard]] uint32_t GetCameraIndex(const Handle& handle);
