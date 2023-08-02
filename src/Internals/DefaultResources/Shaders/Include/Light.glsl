@@ -60,9 +60,9 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(in bool calculateShadow, vec3 albedo, float specul
 vec3 EE_FUNC_DIRECTIONAL_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 viewDir, float metallic, float roughness, vec3 F0);
 vec3 EE_FUNC_POINT_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 fragPos, vec3 viewDir, float metallic, float roughness, vec3 F0);
 vec3 EE_FUNC_SPOT_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 fragPos, vec3 viewDir, float metallic, float roughness, vec3 F0);
-float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3 normal);
-float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal);
-float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal);
+float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3 normal, float cameraFragDistance);
+float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, float cameraFragDistance);
+float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, float cameraFragDistance);
 float EE_LINEARIZE_DEPTH(float ndcDepth);
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth);
@@ -91,7 +91,8 @@ vec3 EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(vec3 albedo, vec3 normal, vec3 viewDi
 
 vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular, float dist, vec3 normal, vec3 viewDir, vec3 fragPos, float metallic, float roughness, vec3 F0) {
 	vec3 result = vec3(0.0, 0.0, 0.0);
-
+	vec3 fragToCamera = fragPos - EE_CAMERA_POSITION();
+	float cameraFragDistance = length(fragToCamera);
 	// phase 1: directional lighting
 	for (int i = 0; i < EE_DIRECTIONAL_LIGHT_AMOUNT; i++) {
 		float shadow = 1.0;
@@ -99,34 +100,34 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular,
 		if (calculateShadow && EE_DIRECTIONAL_LIGHTS[lightIndex].diffuse.w == 1.0) {
 			int split = 0;
 			if (dist < EE_SHADOW_SPLIT_0 - EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal, cameraFragDistance);
 			}
 			else if (dist < EE_SHADOW_SPLIT_0) {
 				//Blend between split 1 & 2
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 0, fragPos, normal, cameraFragDistance);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal, cameraFragDistance);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_0 - EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_0 - dist)) / (EE_SHADOW_SPLIT_0 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_1 - EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal, cameraFragDistance);
 			}
 			else if (dist < EE_SHADOW_SPLIT_1) {
 				//Blend between split 2 & 3
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 1, fragPos, normal, cameraFragDistance);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal, cameraFragDistance);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_1 - EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_1 - dist)) / (EE_SHADOW_SPLIT_1 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_2 - EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal, cameraFragDistance);
 			}
 			else if (dist < EE_SHADOW_SPLIT_2) {
 				//Blend between split 3 & 4
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal);
-				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 2, fragPos, normal, cameraFragDistance);
+				float nextLevel = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal, cameraFragDistance);
 				shadow = (nextLevel * (dist - (EE_SHADOW_SPLIT_2 - EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO)) + shadow * (EE_SHADOW_SPLIT_2 - dist)) / (EE_SHADOW_SPLIT_2 * EE_SHADOW_SEAM_FIX_RATIO);
 			}
 			else if (dist < EE_SHADOW_SPLIT_3) {
-				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal);
+				shadow = EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(lightIndex, 3, fragPos, normal, cameraFragDistance);
 			}
 			else {
 				shadow = 1.0;
@@ -138,7 +139,7 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular,
 	for (int i = 0; i < EE_POINT_LIGHT_AMOUNT; i++) {
 		float shadow = 1.0;
 		if (calculateShadow && EE_POINT_LIGHTS[i].diffuse.w == 1.0) {
-			shadow = EE_FUNC_POINT_LIGHT_SHADOW(i, fragPos, normal);
+			shadow = EE_FUNC_POINT_LIGHT_SHADOW(i, fragPos, cameraFragDistance);
 		}
 		result += EE_FUNC_POINT_LIGHT(albedo, specular, i, normal, fragPos, viewDir, metallic, roughness, F0) * shadow;
 	}
@@ -146,7 +147,7 @@ vec3 EE_FUNC_CALCULATE_LIGHTS(bool calculateShadow, vec3 albedo, float specular,
 	for (int i = 0; i < EE_SPOT_LIGHT_AMOUNT; i++) {
 		float shadow = 1.0;
 		if (calculateShadow && EE_SPOT_LIGHTS[i].diffuse.w == 1.0) {
-			shadow = EE_FUNC_SPOT_LIGHT_SHADOW(i, fragPos, normal);
+			shadow = EE_FUNC_SPOT_LIGHT_SHADOW(i, fragPos, cameraFragDistance);
 		}
 		result += EE_FUNC_SPOT_LIGHT(albedo, specular, i, normal, fragPos, viewDir, metallic, roughness, F0) * shadow;
 	}
@@ -236,7 +237,7 @@ float InterleavedGradientNoise(vec3 fragCoords) {
 	return fract(dot(fragCoords, magic));
 }
 
-float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3 normal)
+float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3 normal, float cameraFragDistance)
 {
 	DirectionalLight light = EE_DIRECTIONAL_LIGHTS[i];
 	vec3 lightDir = light.direction;
@@ -286,7 +287,8 @@ float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3
 	float texelSize = penumbraWidth * light.ReservedParameters.x / light.lightFrustumWidth[splitIndex] * light.lightFrustumDistance[splitIndex] / 100.0;
 
 	int shadowCount = 0;
-	sampleAmount = EE_SHADOW_SAMPLE_SIZE;
+	float distanceFactor = (EE_SHADOW_SPLIT_3 - cameraFragDistance) / EE_SHADOW_SPLIT_3;
+	sampleAmount = int(EE_SHADOW_SAMPLE_SIZE * distanceFactor * distanceFactor);
 	for (int i = 0; i < sampleAmount; i++)
 	{
 		vec2 texCoord = projCoords.xy + VogelDiskSample(i, sampleAmount, InterleavedGradientNoise(fragPos * 3141)) * (texelSize + 0.001);
@@ -298,11 +300,10 @@ float EE_FUNC_DIRECTIONAL_LIGHT_SHADOW(int i, int splitIndex, vec3 fragPos, vec3
 	return shadow;
 }
 
-float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal) {
+float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, float cameraFragDistance) {
 	SpotLight light = EE_SPOT_LIGHTS[i];
-	float bias = light.cutOffOuterCutOffLightSizeBias.w;
 	vec4 fragPosLightSpace = light.lightSpaceMatrix * vec4(fragPos, 1.0);
-	fragPosLightSpace.z -= bias;
+	fragPosLightSpace.z -= light.cutOffOuterCutOffLightSizeBias.w;
 	vec3 projCoords = (fragPosLightSpace.xyz) / fragPosLightSpace.w;
 	
 	projCoords.x = projCoords.x * 0.5 + 0.5;
@@ -331,7 +332,8 @@ float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal) {
 	float blockerDistance = avgDistance / blockers;
 	float penumbraWidth = (projCoords.z - blockerDistance) / blockerDistance * lightSize;
 	//End search
-	sampleAmount = EE_SHADOW_SAMPLE_SIZE;
+	float distanceFactor = (EE_SHADOW_SPLIT_3 - cameraFragDistance) / EE_SHADOW_SPLIT_3;
+	sampleAmount = int(EE_SHADOW_SAMPLE_SIZE * distanceFactor * distanceFactor);
 	float shadow = 0.0;
 	for (int i = 0; i < sampleAmount; i++)
 	{
@@ -344,27 +346,24 @@ float EE_FUNC_SPOT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal) {
 	return shadow;
 }
 
-float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal)
+float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, float cameraFragDistance)
 {
 	PointLight light = EE_POINT_LIGHTS[i];
-	vec3 lightPos = light.position;
 	// get vector between fragment position and light position
-	vec3 fragToLight = fragPos - lightPos;
+	vec3 fragToLight = fragPos - light.position;
 	float shadow = 0.0;
-	float bias = light.ReservedParameters.x;
-	vec3 direction = normalize(fragToLight);
 	int slice = 0;
-	if (abs(direction.x) >= abs(direction.y) && abs(direction.x) >= abs(direction.z))
+	if (abs(fragToLight.x) >= abs(fragToLight.y) && abs(fragToLight.x) >= abs(fragToLight.z))
 	{
-		if (direction.x > 0) {
+		if (fragToLight.x > 0) {
 			slice = 0;
 		}
 		else {
 			slice = 1;
 		}
 	}
-	else if (abs(direction.y) >= abs(direction.z)) {
-		if (direction.y > 0) {
+	else if (abs(fragToLight.y) >= abs(fragToLight.z)) {
+		if (fragToLight.y > 0) {
 			slice = 2;
 		}
 		else {
@@ -372,7 +371,7 @@ float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal)
 		}
 	}
 	else {
-		if (direction.z > 0) {
+		if (fragToLight.z > 0) {
 			slice = 4;
 		}
 		else {
@@ -380,7 +379,7 @@ float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal)
 		}
 	}
 	vec4 fragPosLightSpace = light.lightSpaceMatrix[slice] * vec4(fragPos, 1.0);
-	fragPosLightSpace.z -= bias;
+	fragPosLightSpace.z -= light.ReservedParameters.x;
 	vec3 projCoords = (fragPosLightSpace.xyz) / fragPosLightSpace.w;
 	
 	projCoords.x = projCoords.x * 0.5 + 0.5;
@@ -412,7 +411,8 @@ float EE_FUNC_POINT_LIGHT_SHADOW(int i, vec3 fragPos, vec3 normal)
 	float blockerDistance = avgDistance / blockers;
 	float penumbraWidth = (projCoords.z - blockerDistance) / blockerDistance * lightSize;
 	//End search
-	sampleAmount = EE_SHADOW_SAMPLE_SIZE;
+	float distanceFactor = (EE_SHADOW_SPLIT_3 - cameraFragDistance) / EE_SHADOW_SPLIT_3;
+	sampleAmount = int(EE_SHADOW_SAMPLE_SIZE * distanceFactor * distanceFactor);
 	for (int i = 0; i < sampleAmount; i++)
 	{
 		vec2 texCoord = projCoords.xy + VogelDiskSample(i, sampleAmount, InterleavedGradientNoise(fragPos * 3141)) * (penumbraWidth + 0.001);

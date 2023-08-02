@@ -61,7 +61,7 @@ namespace EvoEngine
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
 		alignas(4) int m_pcfSampleAmount = 32;
-		alignas(4) int m_blockerSearchAmount = 1;
+		alignas(4) int m_blockerSearchAmount = 2;
 		alignas(4) float m_seamFixRatio = 0.3f;
 		alignas(4) float m_gamma = 2.2f;
 
@@ -73,7 +73,6 @@ namespace EvoEngine
 		alignas(4) int m_directionalLightSize = 0;
 		alignas(4) int m_pointLightSize = 0;
 		alignas(4) int m_spotLightSize = 0;
-
 	};
 
 	struct EnvironmentInfoBlock {

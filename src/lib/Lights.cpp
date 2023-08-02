@@ -248,7 +248,6 @@ void Lighting::Initialize()
             viewInfo.subresourceRange.layerCount = 1;
             m_directionalLightShadowMapLayeredViews.emplace_back(std::make_shared<ImageView>(viewInfo));
         }
-
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
