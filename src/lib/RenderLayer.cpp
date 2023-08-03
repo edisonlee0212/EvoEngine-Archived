@@ -51,15 +51,6 @@ void RenderLayer::OnCreate()
 		memcpy(m_cameraInfoBlockMemory[i], kernels.data(), sizeof(glm::vec4) * kernels.size());
 	}
 
-
-	if (const auto editorLayer = Application::GetLayer<EditorLayer>())
-	{
-		editorLayer->m_sceneCamera = Serialization::ProduceSerializable<Camera>();
-		editorLayer->m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
-		editorLayer->m_sceneCamera->m_useClearColor = false;
-		editorLayer->m_sceneCamera->OnCreate();
-	}
-
 	PrepareEnvironmentalBrdfLut();
 
 	m_lighting = std::make_unique<Lighting>();

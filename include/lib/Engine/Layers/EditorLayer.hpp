@@ -17,7 +17,6 @@ namespace EvoEngine
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-		void Update() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
 		std::shared_ptr<Camera> m_sceneCamera;

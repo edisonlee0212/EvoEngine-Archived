@@ -104,6 +104,7 @@ namespace EvoEngine
 		void OnDestroy();
 		void SwapChainSwapImage();
 		void SubmitPresent();
+		void ResetCommandBuffers();
 		static void Initialize();
 		static void PostResourceLoadingInitialization();
 		static void Destroy();

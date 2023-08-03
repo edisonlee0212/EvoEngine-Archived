@@ -179,7 +179,7 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
-	else if (imageFormat == GetSwapchain()->GetImageFormat())
+	else if (const auto windowLayer = Application::GetLayer<WindowLayer>(); windowLayer && imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
@@ -1073,11 +1073,7 @@ void Graphics::SwapChainSwapImage()
 	}
 	vkResetFences(m_vkDevice, 1, inFlightFences);
 
-	m_usedCommandBufferSize = 0;
-	for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
-	{
-		if (commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
-	}
+	
 }
 
 void Graphics::SubmitPresent()
@@ -1128,6 +1124,15 @@ void Graphics::SubmitPresent()
 	vkQueuePresentKHR(m_vkPresentQueue, &presentInfo);
 
 	m_currentFrameIndex = (m_currentFrameIndex + 1) % m_maxFrameInFlight;
+}
+
+void Graphics::ResetCommandBuffers()
+{
+	m_usedCommandBufferSize = 0;
+	for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
+	{
+		if (commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
+	}
 }
 
 
@@ -1378,7 +1383,7 @@ void Graphics::CreateGraphicsPipelines() const
 		prefilterConstruct->PreparePipeline();
 		RegisterGraphicsPipeline("PREFILTER_CONSTRUCT", prefilterConstruct);
 	}
-	{
+	if(const auto windowLayer = Application::GetLayer<WindowLayer>()){
 		//"RENDER_TEXTURE_PRESENT"
 		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
 		renderTexturePassThrough->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
@@ -1521,7 +1526,8 @@ void Graphics::Destroy()
 void Graphics::PreUpdate()
 {
 	auto& graphics = GetInstance();
-	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
+	if (windowLayer)
 	{
 		if (glfwWindowShouldClose(windowLayer->m_window))
 		{
@@ -1532,6 +1538,8 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
+
+	graphics.ResetCommandBuffers();
 	graphics.m_triangles = 0;
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
@@ -1541,7 +1549,7 @@ void Graphics::PreUpdate()
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
 			{
 				mainCamera->SetRequireRendering(true);
-				mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
+				if(windowLayer) mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
 			}
 		}
 	}
@@ -1552,10 +1560,10 @@ void Graphics::LateUpdate()
 	auto& graphics = GetInstance();
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
 	{
-		if (Application::GetLayer<RenderLayer>()) {
+		if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 			if (const auto scene = Application::GetActiveScene()) {
 				if (const auto mainCamera = scene->m_mainCamera.Get<Camera>();
-					!Application::GetLayer<EditorLayer>() && mainCamera->IsEnabled() && mainCamera->m_rendered)
+					 mainCamera->IsEnabled() && mainCamera->m_rendered)
 				{
 					const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];
 					AppendCommands([&](VkCommandBuffer commandBuffer)
@@ -1624,8 +1632,8 @@ void Graphics::LateUpdate()
 						});
 				}
 			}
-			graphics.SubmitPresent();
 		}
+		graphics.SubmitPresent();
 	}
 }
 

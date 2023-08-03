@@ -17,6 +17,11 @@ using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
 {
+	if(Application::GetLayer<WindowLayer>())
+	{
+		std::runtime_error("EditorLayer requires WindowLayer!");
+	}
+
 	m_basicEntityArchetype = Entities::CreateEntityArchetype("General", GlobalTransform(), Transform());
 	RegisterComponentDataInspector<GlobalTransform>([](Entity entity, IDataComponent* data, bool isRoot) {
 		auto* ltw = reinterpret_cast<GlobalTransform*>(data);
@@ -115,17 +120,7 @@ void EditorLayer::OnCreate()
 			changed = true;
 		return changed;
 		});
-
-
-	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (!windowLayer)
-	{
-		std::runtime_error("No WindowLayer present!");
-		throw;
-	}
-
-
-
+	
 	LoadIcons();
 
 	VkBufferCreateInfo entityIndexReadBuffer{};
@@ -138,6 +133,13 @@ void EditorLayer::OnCreate()
 	entityIndexReadBufferCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 	m_entityIndexReadBuffer = std::make_unique<Buffer>(entityIndexReadBuffer, entityIndexReadBufferCreateInfo);
 	vmaMapMemory(Graphics::GetVmaAllocator(), m_entityIndexReadBuffer->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_mappedEntityIndexData)));
+
+	
+	m_sceneCamera = Serialization::ProduceSerializable<Camera>();
+	m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
+	m_sceneCamera->m_useClearColor = false;
+	m_sceneCamera->OnCreate();
+
 }
 
 void EditorLayer::OnDestroy()
@@ -352,17 +354,13 @@ void EditorLayer::PreUpdate()
 		SetSelectedEntity(Entity());
 	}
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if(renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
+	if(renderLayer && renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
 	{
 		m_selectionAlpha += Time::DeltaTime() * 5120;
 	}
 
 	m_selectionAlpha = glm::clamp(m_selectionAlpha, 0, 256);
 	
-}
-
-void EditorLayer::Update()
-{
 }
 static const char* HierarchyDisplayMode[]{ "Archetype", "Hierarchy" };
 void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
