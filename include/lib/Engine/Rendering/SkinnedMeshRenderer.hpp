@@ -5,19 +5,8 @@
 #include "PrivateComponentRef.hpp"
 namespace EvoEngine
 {
-	class BoneMatrices
-	{
-		size_t m_version = 0;
-	public:
-		[[nodiscard]] size_t& GetVersion();
-		void Update();
-		std::vector<glm::mat4> m_value;
-		void UploadBones(const std::shared_ptr<SkinnedMesh>& skinnedMesh);
-	};
-
 	class SkinnedMeshRenderer : public IPrivateComponent
 	{
-		
 		friend class Animator;
 		friend class AnimationLayer;
 		friend class Prefab;
@@ -29,12 +18,12 @@ namespace EvoEngine
 		std::vector<EntityRef> m_boundEntities;
 		void DebugBoneRender(const glm::vec4& color, const float& size);
 	public:
-		void GetBoneMatrices();
+		void UpdateBoneMatrices();
 		bool m_ragDollFreeze = false;
 		[[nodiscard]] bool RagDoll() const;
 		void SetRagDoll(bool value);
 		PrivateComponentRef m_animator;
-		std::shared_ptr<BoneMatrices> m_finalResults;
+		std::shared_ptr<BoneMatrices> m_boneMatrices;
 		bool m_forwardRendering = false;
 		bool m_castShadow = true;
 		bool m_receiveShadow = true;

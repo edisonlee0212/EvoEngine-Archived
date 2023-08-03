@@ -27,13 +27,13 @@ void SkinnedMeshRenderer::RenderBound(glm::vec4& color)
 		*/
 }
 
-void SkinnedMeshRenderer::GetBoneMatrices()
+void SkinnedMeshRenderer::UpdateBoneMatrices()
 {
-	auto scene = GetScene();
-	auto animator = m_animator.Get<Animator>();
+	const auto scene = GetScene();
+	const auto animator = m_animator.Get<Animator>();
 	if (!animator)
 		return;
-	auto skinnedMesh = m_skinnedMesh.Get<SkinnedMesh>();
+	const auto skinnedMesh = m_skinnedMesh.Get<SkinnedMesh>();
 	if (!skinnedMesh)
 		return;
 	if (m_ragDoll)
@@ -41,7 +41,7 @@ void SkinnedMeshRenderer::GetBoneMatrices()
 		if (m_ragDollFreeze)
 			return;
 		
-		m_finalResults->m_value.resize(skinnedMesh->m_boneAnimatorIndices.size());
+		m_boneMatrices->m_value.resize(skinnedMesh->m_boneAnimatorIndices.size());
 		for (int i = 0; i < m_boundEntities.size(); i++)
 		{
 			auto entity = m_boundEntities[i].Get();
@@ -53,21 +53,19 @@ void SkinnedMeshRenderer::GetBoneMatrices()
 		}
 		for (int i = 0; i < skinnedMesh->m_boneAnimatorIndices.size(); i++)
 		{
-			m_finalResults->m_value[i] = m_ragDollTransformChain[skinnedMesh->m_boneAnimatorIndices[i]];
+			m_boneMatrices->m_value[i] = m_ragDollTransformChain[skinnedMesh->m_boneAnimatorIndices[i]];
 		}
-		m_finalResults->Update();
 	}
 	else
 	{
 		auto skinnedMesh = m_skinnedMesh.Get<SkinnedMesh>();
 		if (animator->m_boneSize == 0)
 			return;
-		m_finalResults->m_value.resize(skinnedMesh->m_boneAnimatorIndices.size());
+		m_boneMatrices->m_value.resize(skinnedMesh->m_boneAnimatorIndices.size());
 		for (int i = 0; i < skinnedMesh->m_boneAnimatorIndices.size(); i++)
 		{
-			m_finalResults->m_value[i] = animator->m_transformChain[skinnedMesh->m_boneAnimatorIndices[i]];
+			m_boneMatrices->m_value[i] = animator->m_transformChain[skinnedMesh->m_boneAnimatorIndices[i]];
 		}
-		m_finalResults->Update();
 	}
 }
 
@@ -117,14 +115,13 @@ void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 			if (displayBound)
 			{
 				static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
-				ImGui::ColorEdit4("Color:##SkinnedMeshRenderer", (float*)(void*)&displayBoundColor);
+				ImGui::ColorEdit4("Color:##SkinnedMeshRenderer", static_cast<float*>(static_cast<void*>(&displayBoundColor)));
 				RenderBound(displayBoundColor);
 			}
 			ImGui::TreePop();
 		}
 	}
-	auto animator = m_animator.Get<Animator>();
-	if (animator)
+	if (const auto animator = m_animator.Get<Animator>())
 	{
 		static bool debugRenderBones = true;
 		static float debugRenderBonesSize = 0.5f;
@@ -191,7 +188,7 @@ void SkinnedMeshRenderer::Serialize(YAML::Emitter& out)
 	{
 		out << YAML::Key << "m_ragDollTransformChain" << YAML::Value
 			<< YAML::Binary(
-				(const unsigned char*)m_ragDollTransformChain.data(),
+				reinterpret_cast<const unsigned char*>(m_ragDollTransformChain.data()),
 				m_ragDollTransformChain.size() * sizeof(glm::mat4));
 	}
 }
@@ -208,8 +205,7 @@ void SkinnedMeshRenderer::Deserialize(const YAML::Node& in)
 
 	m_ragDoll = in["m_ragDoll"].as<bool>();
 	m_ragDollFreeze = in["m_ragDollFreeze"].as<bool>();
-	auto inBoundEntities = in["m_boundEntities"];
-	if (inBoundEntities)
+	if (auto inBoundEntities = in["m_boundEntities"])
 	{
 		for (const auto& i : inBoundEntities)
 		{
@@ -221,14 +217,14 @@ void SkinnedMeshRenderer::Deserialize(const YAML::Node& in)
 
 	if (in["m_ragDollTransformChain"])
 	{
-		YAML::Binary chains = in["m_ragDollTransformChain"].as<YAML::Binary>();
+		const auto chains = in["m_ragDollTransformChain"].as<YAML::Binary>();
 		m_ragDollTransformChain.resize(chains.size() / sizeof(glm::mat4));
 		std::memcpy(m_ragDollTransformChain.data(), chains.data(), chains.size());
 	}
 }
 void SkinnedMeshRenderer::OnCreate()
 {
-	m_finalResults = std::make_shared<BoneMatrices>();
+	m_boneMatrices = std::make_shared<BoneMatrices>();
 	SetEnabled(true);
 }
 void SkinnedMeshRenderer::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target)
@@ -253,7 +249,7 @@ bool SkinnedMeshRenderer::RagDoll() const
 }
 void SkinnedMeshRenderer::SetRagDoll(bool value)
 {
-	auto animator = m_animator.Get<Animator>();
+	const auto animator = m_animator.Get<Animator>();
 	if (value && !animator)
 	{
 		EVOENGINE_ERROR("Failed! No animator!");
@@ -262,12 +258,12 @@ void SkinnedMeshRenderer::SetRagDoll(bool value)
 	m_ragDoll = value;
 	if (m_ragDoll)
 	{
-		auto scene = GetScene();
+		const auto scene = GetScene();
 		// Resize entities
 		m_boundEntities.resize(animator->m_transformChain.size());
 		// Copy current transform chain
 		m_ragDollTransformChain = animator->m_transformChain;
-		auto ltw = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
+		const auto ltw = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
 		for (auto& i : m_ragDollTransformChain) {
 			i = ltw * i;
 		}
@@ -283,13 +279,11 @@ void SkinnedMeshRenderer::SetRagDollBoundEntity(int index, const Entity& entity,
 		EVOENGINE_ERROR("Index exceeds limit!");
 		return;
 	}
-	auto scene = GetScene();
-	if (scene->IsEntityValid(entity))
+	if (const auto scene = GetScene(); scene->IsEntityValid(entity))
 	{
 		if (resetTransform)
 		{
-			auto animator = m_animator.Get<Animator>();
-			if (animator)
+			if (const auto animator = m_animator.Get<Animator>())
 			{
 				GlobalTransform globalTransform;
 				globalTransform.m_value = m_ragDollTransformChain[index] * glm::inverse(animator->m_offsetMatrices[index]);
@@ -322,7 +316,7 @@ void SkinnedMeshRenderer::OnDestroy()
 	m_ragDollTransformChain.clear();
 	m_boundEntities.clear();
 	m_animator.Clear();
-	m_finalResults.reset();
+	m_boneMatrices.reset();
 	m_skinnedMesh.Clear();
 	m_material.Clear();
 	m_ragDoll = false;
@@ -332,17 +326,3 @@ void SkinnedMeshRenderer::OnDestroy()
 	m_receiveShadow = true;
 }
 
-size_t& BoneMatrices::GetVersion()
-{
-	return m_version;
-}
-
-void BoneMatrices::Update()
-{
-	m_version++;
-}
-
-void BoneMatrices::UploadBones(const std::shared_ptr<SkinnedMesh>& skinnedMesh)
-{
-	skinnedMesh->UploadBones(m_value);
-}

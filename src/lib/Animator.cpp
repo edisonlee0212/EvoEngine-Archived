@@ -11,8 +11,7 @@ bool Animator::AnimatedCurrentFrame() const
 }
 void Animator::Setup()
 {
-    auto animation = m_animation.Get<Animation>();
-    if (animation)
+	if (const auto animation = m_animation.Get<Animation>())
     {
         m_boneSize = animation->m_boneSize;
         if (animation->m_rootBone && m_boneSize != 0)
@@ -22,7 +21,7 @@ void Animator::Setup()
             m_bones.resize(m_boneSize);
             BoneSetter(animation->m_rootBone);
             m_offsetMatrices.resize(m_boneSize);
-            for (auto &i : m_bones)
+            for (const auto &i : m_bones)
                 m_offsetMatrices[i->m_index] = i->m_offsetMatrix.m_value;
             if (!animation->m_animationNameAndLength.empty())
                 m_currentActivatedAnimation = animation->m_animationNameAndLength.begin()->first;
@@ -47,7 +46,7 @@ void Animator::Setup(const std::shared_ptr<Animation> &targetAnimation)
 void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
     auto animation = m_animation.Get<Animation>();
-    Animation *previous = animation.get();
+    const Animation *previous = animation.get();
     editorLayer->DragAndDropButton<Animation>(m_animation, "Animation");
     if (previous != animation.get() && animation)
     {
@@ -102,7 +101,7 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 }
 void Animator::AutoPlay()
 {
-    auto animation = m_animation.Get<Animation>();
+	const auto animation = m_animation.Get<Animation>();
     if (!animation)
         return;
     if (m_needAnimationSetup)
@@ -113,7 +112,7 @@ void Animator::AutoPlay()
             glm::mod(m_currentAnimationTime, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
     m_needAnimate = true;
 }
-float Animator::CurrentAnimationTime()
+float Animator::CurrentAnimationTime() const
 {
     return m_currentAnimationTime;
 }
@@ -123,12 +122,12 @@ std::string Animator::CurrentAnimationName()
     return m_currentActivatedAnimation;
 }
 
-void Animator::Animate(const std::string& animationName, float time)
+void Animator::Animate(const std::string& animationName, const float time)
 {
-    auto animation = m_animation.Get<Animation>();
+	const auto animation = m_animation.Get<Animation>();
     if (!animation)
         return;
-    auto search = animation->m_animationNameAndLength.find(animationName);
+	const auto search = animation->m_animationNameAndLength.find(animationName);
     if(search == animation->m_animationNameAndLength.end()){
         EVOENGINE_ERROR("Animation not found!");
         return;
@@ -138,13 +137,13 @@ void Animator::Animate(const std::string& animationName, float time)
         glm::mod(time, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
     m_needAnimate = true;
 }
-void Animator::SetAutoPlay(bool value)
+void Animator::SetAutoPlay(const bool value)
 {
     m_autoPlay = value;
 }
-void Animator::Animate(float time)
+void Animator::Animate(const float time)
 {
-    auto animation = m_animation.Get<Animation>();
+	const auto animation = m_animation.Get<Animation>();
     if (!animation)
         return;
     m_currentAnimationTime =
@@ -155,8 +154,7 @@ void Animator::Apply()
 {
     if (!m_needAnimate)
         return;
-    auto animation = m_animation.Get<Animation>();
-    if (animation)
+    if (const auto animation = m_animation.Get<Animation>())
     {
         if (m_needAnimationSetup)
             Setup();
@@ -167,8 +165,7 @@ void Animator::Apply()
             m_currentActivatedAnimation = animation->m_animationNameAndLength.begin()->first;
             m_currentAnimationTime = 0.0f;
         }
-        auto owner = GetOwner();
-        if (owner.GetIndex() != 0)
+        if (const auto owner = GetOwner(); owner.GetIndex() != 0)
         {
             animation->Animate(m_currentActivatedAnimation, m_currentAnimationTime, glm::mat4(1.0f), m_transformChain);
             ApplyOffsetMatrices();
@@ -188,7 +185,7 @@ void Animator::BoneSetter(const std::shared_ptr<Bone> &boneWalker)
     }
 }
 
-void Animator::Setup(std::vector<std::string> &name, std::vector<glm::mat4> &offsetMatrices)
+void Animator::Setup(const std::vector<std::string> &name, const std::vector<glm::mat4> &offsetMatrices)
 {
     m_bones.clear();
     m_boneSize = 0;
@@ -235,13 +232,13 @@ void Animator::Serialize(YAML::Emitter &out)
     {
         out << YAML::Key << "m_transformChain" << YAML::Value
             << YAML::Binary(
-                   (const unsigned char *)m_transformChain.data(), m_transformChain.size() * sizeof(glm::mat4));
+                   reinterpret_cast<const unsigned char*>(m_transformChain.data()), m_transformChain.size() * sizeof(glm::mat4));
     }
     if (!m_offsetMatrices.empty())
     {
         out << YAML::Key << "m_offsetMatrices" << YAML::Value
             << YAML::Binary(
-                   (const unsigned char *)m_offsetMatrices.data(), m_offsetMatrices.size() * sizeof(glm::mat4));
+                   reinterpret_cast<const unsigned char*>(m_offsetMatrices.data()), m_offsetMatrices.size() * sizeof(glm::mat4));
     }
     if (!m_names.empty())
     {
@@ -269,13 +266,13 @@ void Animator::Deserialize(const YAML::Node &in)
     }
     if (in["m_transformChain"])
     {
-        YAML::Binary chains = in["m_transformChain"].as<YAML::Binary>();
+	    const auto chains = in["m_transformChain"].as<YAML::Binary>();
         m_transformChain.resize(chains.size() / sizeof(glm::mat4));
         std::memcpy(m_transformChain.data(), chains.data(), chains.size());
     }
     if (in["m_offsetMatrices"])
     {
-        YAML::Binary matrices = in["m_offsetMatrices"].as<YAML::Binary>();
+	    const auto matrices = in["m_offsetMatrices"].as<YAML::Binary>();
         m_offsetMatrices.resize(matrices.size() / sizeof(glm::mat4));
         std::memcpy(m_offsetMatrices.data(), matrices.data(), matrices.size());
     }

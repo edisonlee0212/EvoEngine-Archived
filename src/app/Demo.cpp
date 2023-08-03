@@ -26,7 +26,7 @@ int main() {
 
     Application::PushLayer<WindowLayer>();
 	Application::PushLayer<EditorLayer>();
-    //Application::PushLayer<RenderLayer>();
+    Application::PushLayer<RenderLayer>();
     Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;

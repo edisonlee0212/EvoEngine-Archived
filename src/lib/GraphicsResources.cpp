@@ -455,20 +455,87 @@ VkSampler Sampler::GetVkSampler() const
 	return m_vkSampler;
 }
 
-Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo)
+void Buffer::UploadData(const size_t size, const void* src)
 {
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
-		throw std::runtime_error("Failed to create buffer!");
+	if (size > m_size) Resize(size);
+	if (m_vmaAllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+		|| m_vmaAllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT)
+	{
+		void* mapping;
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation, &mapping);
+		memcpy(mapping, src, size);
+		vmaUnmapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation);
+	}
+	else
+	{
+		Buffer stagingBuffer(size);
+		stagingBuffer.UploadData(size, src);
+		CopyFromBuffer(stagingBuffer, size, 0, 0);
 	}
 }
 
-Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+void Buffer::Allocate(const VkBufferCreateInfo& bufferCreateInfo,
+	const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
+	assert(bufferCreateInfo.usage != 0);
+	m_flags = bufferCreateInfo.flags;
+	m_size = bufferCreateInfo.size;
+	m_usage = bufferCreateInfo.usage;
+	m_sharingMode = bufferCreateInfo.sharingMode;
+	ApplyVector(m_queueFamilyIndices, bufferCreateInfo.queueFamilyIndexCount, bufferCreateInfo.pQueueFamilyIndices);
+	m_vmaAllocationCreateInfo = vmaAllocationCreateInfo;
+}
+
+Buffer::Buffer(const size_t stagingBufferSize, bool randomAccess)
+{
+	VkBufferCreateInfo stagingBufferCreateInfo{};
+	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	stagingBufferCreateInfo.size = stagingBufferSize;
+	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
+	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferVmaAllocationCreateInfo.flags = randomAccess ? VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT : VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	Allocate(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
+}
+
+Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo)
+{
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;	
+	Allocate(bufferCreateInfo, allocInfo);
+}
+
+Buffer::Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+{
+	Allocate(bufferCreateInfo, vmaAllocationCreateInfo);
+}
+
+void Buffer::Resize(VkDeviceSize newSize)
+{
+	if (newSize == m_size) return;
+	if (m_vkBuffer != VK_NULL_HANDLE || m_vmaAllocation != VK_NULL_HANDLE)
+	{
+		vmaDestroyBuffer(Graphics::GetVmaAllocator(), m_vkBuffer, m_vmaAllocation);
+		m_vkBuffer = VK_NULL_HANDLE;
+		m_vmaAllocation = VK_NULL_HANDLE;
+		m_vmaAllocationInfo = {};
+	}	
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.flags = m_flags;
+	bufferCreateInfo.size = newSize;
+	bufferCreateInfo.usage = m_usage;
+	bufferCreateInfo.sharingMode = m_sharingMode;
+	bufferCreateInfo.queueFamilyIndexCount = m_queueFamilyIndices.size();
+	bufferCreateInfo.pQueueFamilyIndices = m_queueFamilyIndices.data();
+	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &m_vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
+		throw std::runtime_error("Failed to create buffer!");
+	}
+	m_size = newSize;
 }
 
 Buffer::~Buffer()
@@ -482,8 +549,9 @@ Buffer::~Buffer()
 	}
 }
 
-void Buffer::CopyFromBuffer(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) const
+void Buffer::CopyFromBuffer(const Buffer& srcBuffer, const VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset)
 {
+	Resize(size);
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
 			VkBufferCopy copyRegion{};

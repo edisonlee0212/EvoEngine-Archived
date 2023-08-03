@@ -48,7 +48,7 @@ void RenderLayer::OnCreate()
 			glm::gaussRand(0.0f, 1.0f));
 	}
 	for (int i = 0; i < Graphics::GetMaxFramesInFlight(); i++) {
-		memcpy(m_cameraInfoBlockMemory[i], kernels.data(), sizeof(glm::vec4) * kernels.size());
+		m_kernelDescriptorBuffers[i]->UploadVector(kernels);
 	}
 
 	PrepareEnvironmentalBrdfLut();
@@ -59,17 +59,12 @@ void RenderLayer::OnCreate()
 
 void RenderLayer::OnDestroy()
 {
-	m_renderInfoBlockMemory.clear();
-	m_environmentalInfoBlockMemory.clear();
-	m_cameraInfoBlockMemory.clear();
-	m_materialInfoBlockMemory.clear();
-	m_instanceInfoBlockMemory.clear();
-
+	
 	m_renderInfoDescriptorBuffers.clear();
 	m_environmentInfoDescriptorBuffers.clear();
 	m_cameraInfoDescriptorBuffers.clear();
 	m_materialInfoDescriptorBuffers.clear();
-	m_objectInfoDescriptorBuffers.clear();
+	m_instanceInfoDescriptorBuffers.clear();
 }
 
 void RenderLayer::PreUpdate()
@@ -135,16 +130,39 @@ void RenderLayer::PreUpdate()
 		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environment.m_backgroundIntensity;
 	}
 
-	UploadRenderInfoBlock(m_renderInfoBlock);
-	UploadEnvironmentalInfoBlock(m_environmentInfoBlock);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	m_renderInfoDescriptorBuffers[currentFrameIndex]->Upload(m_renderInfoBlock);
+	m_environmentInfoDescriptorBuffers[currentFrameIndex]->Upload(m_environmentInfoBlock);
+	m_directionalLightInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_directionalLightInfoBlocks);
+	m_pointLightInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_pointLightInfoBlocks);
+	m_spotLightInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_spotLightInfoBlocks);
 
-	UploadDirectionalLightInfoBlocks(m_directionalLightInfoBlocks);
-	UploadPointLightInfoBlocks(m_pointLightInfoBlocks);
-	UploadSpotLightInfoBlocks(m_spotLightInfoBlocks);
+	m_cameraInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_cameraInfoBlocks);
+	m_materialInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_materialInfoBlocks);
+	m_instanceInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_instanceInfoBlocks);
 
-	UploadCameraInfoBlocks(m_cameraInfoBlocks);
-	UploadMaterialInfoBlocks(m_materialInfoBlocks);
-	UploadInstanceInfoBlocks(m_instanceInfoBlocks);
+	VkDescriptorBufferInfo bufferInfo;
+	bufferInfo.offset = 0;
+	bufferInfo.range = VK_WHOLE_SIZE;
+
+	bufferInfo.buffer = m_renderInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(0, bufferInfo);
+	bufferInfo.buffer = m_environmentInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(1, bufferInfo);
+	bufferInfo.buffer = m_cameraInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(2, bufferInfo);
+	bufferInfo.buffer = m_materialInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(3, bufferInfo);
+	bufferInfo.buffer = m_instanceInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(4, bufferInfo);
+	bufferInfo.buffer = m_kernelDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(6, bufferInfo);
+	bufferInfo.buffer = m_directionalLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(7, bufferInfo);
+	bufferInfo.buffer = m_pointLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(8, bufferInfo);
+	bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
 
 	PreparePointAndSpotLightShadowMap();
 
@@ -251,25 +269,8 @@ Handle RenderLayer::GetInstanceHandle(uint32_t index)
 	return search->second;
 }
 
-void RenderLayer::UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock)
-{
-	const auto index = GetCameraIndex(handle);
-	memcpy(&m_cameraInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &cameraInfoBlock, sizeof(CameraInfoBlock));
-}
 
-void RenderLayer::UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock)
-{
-	const auto index = GetMaterialIndex(handle);
-	memcpy(&m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &materialInfoBlock, sizeof(MaterialInfoBlock));
-}
-
-void RenderLayer::UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock)
-{
-	const auto index = GetInstanceIndex(handle);
-	memcpy(&m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()][index], &instanceInfoBlock, sizeof(InstanceInfoBlock));
-}
-
-uint32_t RenderLayer::RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload)
+uint32_t RenderLayer::RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock)
 {
 	const auto search = m_cameraIndices.find(handle);
 	if (search == m_cameraIndices.end())
@@ -279,14 +280,10 @@ uint32_t RenderLayer::RegisterCameraIndex(const Handle& handle, const CameraInfo
 		m_cameraInfoBlocks.emplace_back(cameraInfoBlock);
 		return index;
 	}
-	if (upload)
-	{
-		UploadCameraInfoBlock(handle, cameraInfoBlock);
-	}
 	return search->second;
 }
 
-uint32_t RenderLayer::RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload)
+uint32_t RenderLayer::RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock)
 {
 	const auto search = m_materialIndices.find(handle);
 	if (search == m_materialIndices.end())
@@ -296,14 +293,10 @@ uint32_t RenderLayer::RegisterMaterialIndex(const Handle& handle, const Material
 		m_materialInfoBlocks.emplace_back(materialInfoBlock);
 		return index;
 	}
-	if (upload)
-	{
-		UploadMaterialInfoBlock(handle, materialInfoBlock);
-	}
 	return search->second;
 }
 
-uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload)
+uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock)
 {
 	const auto search = m_instanceIndices.find(handle);
 	if (search == m_instanceIndices.end())
@@ -313,10 +306,6 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 		m_instanceHandles[index] = handle;
 		m_instanceInfoBlocks.emplace_back(instanceInfoBlock);
 		return index;
-	}
-	if (upload)
-	{
-		UploadInstanceInfoBlock(handle, instanceInfoBlock);
 	}
 	return search->second;
 }
@@ -1047,7 +1036,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 				renderInstance.m_castShadow = smmc->m_castShadow;
 				renderInstance.m_receiveShadow = smmc->m_receiveShadow;
 				renderInstance.m_geometryType = RenderGeometryType::SkinnedMesh;
-				renderInstance.m_boneMatrices = smmc->m_finalResults;
+				renderInstance.m_boneMatrices = smmc->m_boneMatrices;
 				if (material->m_drawSettings.m_blending)
 				{
 					auto& group = transparentRenderInstances.m_renderCommandsGroups[material->GetHandle()];
@@ -1156,7 +1145,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_environmentInfoDescriptorBuffers.clear();
 	m_cameraInfoDescriptorBuffers.clear();
 	m_materialInfoDescriptorBuffers.clear();
-	m_objectInfoDescriptorBuffers.clear();
+	m_instanceInfoDescriptorBuffers.clear();
 	m_kernelDescriptorBuffers.clear();
 	m_directionalLightInfoDescriptorBuffers.clear();
 	m_pointLightInfoDescriptorBuffers.clear();
@@ -1168,51 +1157,30 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	bufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 	const auto maxFrameInFlight = Graphics::GetMaxFramesInFlight();
-	m_renderInfoBlockMemory.resize(maxFrameInFlight);
-	m_environmentalInfoBlockMemory.resize(maxFrameInFlight);
-	m_cameraInfoBlockMemory.resize(maxFrameInFlight);
-	m_materialInfoBlockMemory.resize(maxFrameInFlight);
-	m_instanceInfoBlockMemory.resize(maxFrameInFlight);
-	m_kernelBlockMemory.resize(maxFrameInFlight);
-	m_directionalLightInfoBlockMemory.resize(maxFrameInFlight);
-	m_pointLightInfoBlockMemory.resize(maxFrameInFlight);
-	m_spotLightInfoBlockMemory.resize(maxFrameInFlight);
 	for (size_t i = 0; i < maxFrameInFlight; i++) {
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(RenderInfoBlock);
 		m_renderInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
 		m_environmentInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(CameraInfoBlock) * Graphics::Constants::MAX_CAMERA_SIZE;
 		m_cameraInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(MaterialInfoBlock) * Graphics::Constants::MAX_MATERIAL_SIZE;
 		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::Constants::MAX_INSTANCE_SIZE;
-		m_objectInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		m_instanceInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::Constants::MAX_KERNEL_AMOUNT * 2;
 		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE * Graphics::Constants::MAX_CAMERA_SIZE;
 		m_directionalLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::Constants::MAX_POINT_LIGHT_SIZE;
 		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(SpotLightInfo) * Graphics::Constants::MAX_SPOT_LIGHT_SIZE;
 		m_spotLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-
-
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_renderInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_renderInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_environmentInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_environmentalInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_cameraInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_cameraInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_materialInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_materialInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_objectInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_instanceInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_kernelDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_kernelBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_directionalLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_directionalLightInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_pointLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_pointLightInfoBlockMemory[i])));
-		vmaMapMemory(Graphics::GetVmaAllocator(), m_spotLightInfoDescriptorBuffers[i]->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_spotLightInfoBlockMemory[i])));
 	}
 #pragma endregion
 }
@@ -1240,7 +1208,7 @@ void RenderLayer::UpdateStandardBindings()
 		descriptorSet->UpdateBufferDescriptorBinding(2, bufferInfo);
 		bufferInfo.buffer = m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
 		descriptorSet->UpdateBufferDescriptorBinding(3, bufferInfo);
-		bufferInfo.buffer = m_objectInfoDescriptorBuffers[i]->GetVkBuffer();
+		bufferInfo.buffer = m_instanceInfoDescriptorBuffers[i]->GetVkBuffer();
 		descriptorSet->UpdateBufferDescriptorBinding(4, bufferInfo);
 		bufferInfo.buffer = m_kernelDescriptorBuffers[i]->GetVkBuffer();
 		descriptorSet->UpdateBufferDescriptorBinding(6, bufferInfo);
@@ -1632,47 +1600,3 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
 }
-
-
-void RenderLayer::UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const
-{
-	memcpy(m_environmentalInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &environmentInfoBlock, sizeof(EnvironmentInfoBlock));
-}
-
-void RenderLayer::UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const
-{
-	memcpy(m_renderInfoBlockMemory[Graphics::GetCurrentFrameIndex()], &renderInfoBlock, sizeof(RenderInfoBlock));
-}
-
-
-void RenderLayer::UploadDirectionalLightInfoBlocks(const std::vector<DirectionalLightInfo>& directionalLightInfoBlocks) const
-{
-	memcpy(m_directionalLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], directionalLightInfoBlocks.data(), sizeof(DirectionalLightInfo) * directionalLightInfoBlocks.size());
-}
-
-void RenderLayer::UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const
-{
-	memcpy(m_pointLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], pointLightInfoBlocks.data(), sizeof(PointLightInfo) * pointLightInfoBlocks.size());
-}
-
-void RenderLayer::UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const
-{
-	memcpy(m_spotLightInfoBlockMemory[Graphics::GetCurrentFrameIndex()], spotLightInfoBlocks.data(), sizeof(SpotLightInfo) * spotLightInfoBlocks.size());
-}
-
-void RenderLayer::UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const
-{
-	memcpy(m_cameraInfoBlockMemory[Graphics::GetCurrentFrameIndex()], cameraInfoBlocks.data(), sizeof(CameraInfoBlock) * cameraInfoBlocks.size());
-}
-
-void RenderLayer::UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const
-{
-	memcpy(m_materialInfoBlockMemory[Graphics::GetCurrentFrameIndex()], materialInfoBlocks.data(), sizeof(MaterialInfoBlock) * materialInfoBlocks.size());
-}
-
-void RenderLayer::UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const
-{
-	memcpy(m_instanceInfoBlockMemory[Graphics::GetCurrentFrameIndex()], objectInfoBlocks.data(), sizeof(InstanceInfoBlock) * objectInfoBlocks.size());
-}
-
-

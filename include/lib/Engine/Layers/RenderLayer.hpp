@@ -119,16 +119,10 @@ namespace EvoEngine
 		[[nodiscard]] uint32_t GetMaterialIndex(const Handle& handle);
 		[[nodiscard]] uint32_t GetInstanceIndex(const Handle& handle);
 		[[nodiscard]] Handle GetInstanceHandle(uint32_t index);
-		void UploadCameraInfoBlock(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
-		void UploadMaterialInfoBlock(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
-		void UploadInstanceInfoBlock(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
-
-		[[nodiscard]] uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock, bool upload = false);
-		[[nodiscard]] uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock, bool upload = false);
-		[[nodiscard]] uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock, bool upload = false);
-
-		void UploadEnvironmentalInfoBlock(const EnvironmentInfoBlock& environmentInfoBlock) const;
-		void UploadRenderInfoBlock(const RenderInfoBlock& renderInfoBlock) const;
+		
+		[[nodiscard]] uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
+		[[nodiscard]] uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
+		[[nodiscard]] uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
 
 		RenderInfoBlock m_renderInfoBlock = {};
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
@@ -157,21 +151,11 @@ namespace EvoEngine
 #pragma endregion
 #pragma region Per Frame Descriptor Sets
 		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
-		std::vector<RenderInfoBlock*> m_renderInfoBlockMemory;
-		std::vector<EnvironmentInfoBlock*> m_environmentalInfoBlockMemory;
-		std::vector<CameraInfoBlock*> m_cameraInfoBlockMemory;
-		std::vector<MaterialInfoBlock*> m_materialInfoBlockMemory;
-		std::vector<InstanceInfoBlock*> m_instanceInfoBlockMemory;
-		std::vector<glm::vec4*> m_kernelBlockMemory;
-		std::vector<DirectionalLightInfo*> m_directionalLightInfoBlockMemory;
-		std::vector<PointLightInfo*> m_pointLightInfoBlockMemory;
-		std::vector<SpotLightInfo*> m_spotLightInfoBlockMemory;
-
 		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_objectInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_instanceInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
@@ -191,14 +175,7 @@ namespace EvoEngine
 		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;
 		std::vector<SpotLightInfo> m_spotLightInfoBlocks;
-		void UploadCameraInfoBlocks(const std::vector<CameraInfoBlock>& cameraInfoBlocks) const;
-		void UploadMaterialInfoBlocks(const std::vector<MaterialInfoBlock>& materialInfoBlocks) const;
-		void UploadInstanceInfoBlocks(const std::vector<InstanceInfoBlock>& objectInfoBlocks) const;
-
-		void UploadDirectionalLightInfoBlocks(const std::vector<DirectionalLightInfo>& directionalLightInfoBlocks) const;
-		void UploadPointLightInfoBlocks(const std::vector<PointLightInfo>& pointLightInfoBlocks) const;
-		void UploadSpotLightInfoBlocks(const std::vector<SpotLightInfo>& spotLightInfoBlocks) const;
-
+		
 #pragma endregion
 	};
 }

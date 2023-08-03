@@ -3,7 +3,7 @@
 #include "Scene.hpp"
 namespace EvoEngine
 {
-class Animator : public IPrivateComponent
+class Animator final : public IPrivateComponent
 {
     std::vector<std::shared_ptr<Bone>> m_bones;
     friend class SkinnedMeshRenderer;
@@ -30,12 +30,12 @@ class Animator : public IPrivateComponent
      * @param name Name of the bones
      * @param offsetMatrices The collection of offset matrices.
      */
-    void Setup(std::vector<std::string> &name, std::vector<glm::mat4> &offsetMatrices);
+    void Setup(const std::vector<std::string> &name, const std::vector<glm::mat4> &offsetMatrices);
     void ApplyOffsetMatrices();
     void SetAutoPlay(bool value);
     glm::mat4 GetReverseTransform(const int &index, const Entity &entity);
     bool m_autoPlay = false;
-    [[nodiscard]] float CurrentAnimationTime();
+    [[nodiscard]] float CurrentAnimationTime() const;
     [[nodiscard]] std::string CurrentAnimationName();
     void Animate(const std::string& animationName, float time);
     void Animate(float time);

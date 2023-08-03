@@ -4,7 +4,7 @@ namespace EvoEngine
 {
 class AnimationLayer : public ILayer
 {
-  private:
     void PreUpdate() override;
+    void LateUpdate() override;
 };
 } // namespace EvoEngine

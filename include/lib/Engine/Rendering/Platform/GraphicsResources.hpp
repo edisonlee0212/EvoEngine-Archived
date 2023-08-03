@@ -1,4 +1,5 @@
 #pragma once
+#include "Console.hpp"
 #include "shaderc/shaderc.h"
 namespace EvoEngine
 {
@@ -190,12 +191,27 @@ namespace EvoEngine
 		VkBuffer m_vkBuffer = VK_NULL_HANDLE;
 		VmaAllocation m_vmaAllocation = VK_NULL_HANDLE;
 		VmaAllocationInfo m_vmaAllocationInfo = {};
+
+		VkBufferCreateFlags    m_flags = {};
+		VkDeviceSize           m_size = {};
+		VkBufferUsageFlags     m_usage = {};
+		VkSharingMode          m_sharingMode = {};
+		std::vector<uint32_t>	m_queueFamilyIndices = {};
+		VmaAllocationCreateInfo m_vmaAllocationCreateInfo = {};
+
+		void UploadData(size_t size, const void* src);
+		void Allocate(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 	public:
+		explicit Buffer(size_t stagingBufferSize, bool randomAccess = false);
 		explicit Buffer(const VkBufferCreateInfo& bufferCreateInfo);
 		~Buffer() override;
 		Buffer(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
-
-		void CopyFromBuffer(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0) const;
+		void Resize(VkDeviceSize newSize);
+		template<typename T>
+		void UploadVector(const std::vector<T>& data);
+		template<typename T>
+		void Upload(const T& data);
+		void CopyFromBuffer(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0);
 		void CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyInfo) const;
 
 		[[nodiscard]] const VkBuffer& GetVkBuffer() const;
@@ -205,7 +221,19 @@ namespace EvoEngine
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 	};
 
+	template <typename T>
+	void Buffer::UploadVector(const std::vector<T>& data)
+	{
+		if (data.empty()) return;
+		const T* address = data.data();
+		UploadData(data.size() * sizeof(T), static_cast<const void*>(address));
+	}
 
+	template <typename T>
+	void Buffer::Upload(const T& data)
+	{
+		UploadData(sizeof(T), static_cast<const void*>(&data));
+	}
 
 	class Sampler final : public IGraphicsResource
 	{

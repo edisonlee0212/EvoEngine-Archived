@@ -31,7 +31,7 @@ namespace EvoEngine
 		std::unique_ptr<Buffer> m_verticesBuffer = {};
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 	public:
-
+		void OnCreate() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const override;
 		void Bind(VkCommandBuffer vkCommandBuffer) const;
 

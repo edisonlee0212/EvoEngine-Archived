@@ -13,6 +13,27 @@ void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 
 }
 
+void Mesh::OnCreate()
+{
+	VkBufferCreateInfo verticesBufferCreateInfo{};
+	verticesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	verticesBufferCreateInfo.size = 1;
+	verticesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	verticesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
+	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_verticesBuffer = std::make_unique<Buffer>(verticesBufferCreateInfo, verticesVmaAllocationCreateInfo);
+
+	VkBufferCreateInfo trianglesBufferCreateInfo{};
+	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	trianglesBufferCreateInfo.size = 1;
+	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
+	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+}
+
 void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
@@ -26,50 +47,20 @@ void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineSt
 
 void Mesh::UploadData()
 {
-	const auto verticesDataSize = sizeof(Vertex) * m_vertices.size();
+	if (m_vertices.empty())
+	{
+		EVOENGINE_ERROR("Vertices empty!")
+			return;
+	}
+	if (m_triangles.empty())
+	{
+		EVOENGINE_ERROR("Triangles empty!")
+			return;
+	}
+	m_version++;
 
-	VkBufferCreateInfo stagingBufferCreateInfo{};
-	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	stagingBufferCreateInfo.size = verticesDataSize;
-	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
-	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-	const Buffer vertexStagingBuffer(stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo);
-	void* data = nullptr;
-	vmaMapMemory(Graphics::GetVmaAllocator(), vertexStagingBuffer.GetVmaAllocation(), &data);
-	memcpy(data, m_vertices.data(), verticesDataSize);
-	vmaUnmapMemory(Graphics::GetVmaAllocator(), vertexStagingBuffer.GetVmaAllocation());
-
-	VkBufferCreateInfo verticesBufferCreateInfo{};
-	verticesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	verticesBufferCreateInfo.size = verticesDataSize;
-	verticesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	verticesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
-	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_verticesBuffer = std::make_unique<Buffer>(verticesBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	m_verticesBuffer->CopyFromBuffer(vertexStagingBuffer, verticesDataSize);
-
-
-	const auto triangleDataSize = sizeof(glm::uvec3) * m_triangles.size();
-	stagingBufferCreateInfo.size = triangleDataSize;
-	const Buffer triangleStagingBuffer = { stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
-	vmaMapMemory(Graphics::GetVmaAllocator(), triangleStagingBuffer.GetVmaAllocation(), &data);
-	memcpy(data, m_triangles.data(), triangleDataSize);
-	vmaUnmapMemory(Graphics::GetVmaAllocator(), triangleStagingBuffer.GetVmaAllocation());
-
-
-	VkBufferCreateInfo trianglesBufferCreateInfo{};
-	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	trianglesBufferCreateInfo.size = triangleDataSize;
-	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
-	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
-	m_trianglesBuffer->CopyFromBuffer(triangleStagingBuffer, triangleDataSize);
+	m_verticesBuffer->UploadVector(m_vertices);	
+	m_trianglesBuffer->UploadVector(m_triangles);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -143,7 +134,6 @@ size_t Mesh::GetTriangleAmount() const
 
 void Mesh::RecalculateNormal()
 {
-	/*
 	auto normalLists = std::vector<std::vector<glm::vec3>>();
 	const auto size = m_vertices.size();
 	for (auto i = 0; i < size; i++)
@@ -172,12 +162,10 @@ void Mesh::RecalculateNormal()
 		}
 		m_vertices[i].m_normal = glm::normalize(normal);
 	}
-	*/
 }
 
 void Mesh::RecalculateTangent()
 {
-	/*
 	auto tangentLists = std::vector<std::vector<glm::vec3>>();
 	auto size = m_vertices.size();
 	for (auto i = 0; i < size; i++)
@@ -216,7 +204,6 @@ void Mesh::RecalculateTangent()
 		}
 		m_vertices[i].m_tangent = glm::normalize(tangent);
 	}
-	*/
 }
 
 std::vector<Vertex>& Mesh::UnsafeGetVertices()
