@@ -167,42 +167,42 @@ void RenderTexture::Resize(const VkExtent3D extent)
 	Initialize(extent, m_imageViewType);
 }
 
-void RenderTexture::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
+void RenderTexture::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
 	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachment.loadOp = loadOp;
+	attachment.storeOp = storeOp;
 
 	attachment.clearValue.color = { 0, 0, 0, 0 };
 	attachment.imageView = m_colorImageView->GetVkImageView();
 	attachmentInfos.push_back(attachment);
 }
 
-VkRenderingAttachmentInfo RenderTexture::GetDepthAttachmentInfo() const
+VkRenderingAttachmentInfo RenderTexture::GetDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
 	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachment.loadOp = loadOp;
+	attachment.storeOp = storeOp;
 
 	attachment.clearValue.depthStencil = { 1, 0 };
 	attachment.imageView = m_depthImageView->GetVkImageView();
 	return attachment;
 }
 
-VkRenderingAttachmentInfo RenderTexture::GetStencilAttachmentInf0() const
+VkRenderingAttachmentInfo RenderTexture::GetStencilAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
 	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachment.loadOp = loadOp;
+	attachment.storeOp = storeOp;
 
 	attachment.clearValue.depthStencil = { 1, 0 };
 	attachment.imageView = m_stencilImageView->GetVkImageView();

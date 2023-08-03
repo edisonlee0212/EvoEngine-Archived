@@ -69,8 +69,8 @@ namespace EvoEngine
         void TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const;
 
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
-        void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo() const;
+        void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;

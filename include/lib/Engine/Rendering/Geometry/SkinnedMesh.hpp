@@ -9,13 +9,16 @@ namespace EvoEngine
 	{
 		size_t m_version = 0;
 		std::unique_ptr<Buffer> m_boneMatricesBuffer = {};
+		std::shared_ptr<DescriptorSet> m_descriptorSet = VK_NULL_HANDLE;
+		friend class RenderLayer;
 	public:
+		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 		BoneMatrices();
 		[[nodiscard]] size_t& GetVersion();
 		void UploadData();
 		std::vector<glm::mat4> m_value;
 	};
-	class SkinnedMesh : public IAsset
+	class SkinnedMesh : public IAsset, public IGeometry
 	{
 		std::unique_ptr<Buffer> m_verticesBuffer = {};
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
@@ -39,6 +42,9 @@ namespace EvoEngine
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
+		void Bind(VkCommandBuffer vkCommandBuffer) const override;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
+			bool enableMetrics = true) const override;
 		void OnCreate() override;
 		void FetchIndices();
 		//Need serialize

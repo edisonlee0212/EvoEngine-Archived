@@ -121,10 +121,10 @@ namespace EvoEngine
 
         Lighting();
         void Initialize();
-        [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo() const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetPointLightDepthAttachmentInfo() const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredDirectionalLightDepthAttachmentInfo(uint32_t split) const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredPointLightDepthAttachmentInfo(uint32_t face) const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetSpotLightDepthAttachmentInfo() const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetDirectionalLightDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetPointLightDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredDirectionalLightDepthAttachmentInfo(uint32_t split, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetLayeredPointLightDepthAttachmentInfo(uint32_t face, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+        [[nodiscard]] VkRenderingAttachmentInfo GetSpotLightDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
     };
 }

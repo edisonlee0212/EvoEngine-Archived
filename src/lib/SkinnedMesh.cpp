@@ -2,6 +2,11 @@
 #include "SkinnedMesh.hpp"
 using namespace EvoEngine;
 
+const std::shared_ptr<DescriptorSet>& BoneMatrices::GetDescriptorSet() const
+{
+	return m_descriptorSet;
+}
+
 BoneMatrices::BoneMatrices()
 {
 	VkBufferCreateInfo boneMatricesCrateInfo{};
@@ -12,6 +17,8 @@ BoneMatrices::BoneMatrices()
 	VmaAllocationCreateInfo allocationCreateInfo{};
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_boneMatricesBuffer = std::make_unique<Buffer>(boneMatricesCrateInfo, allocationCreateInfo);
+
+	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("BONE_MATRICES_LAYOUT"));
 }
 
 size_t& BoneMatrices::GetVersion()
@@ -24,6 +31,11 @@ void BoneMatrices::UploadData()
 {
 	m_version++;
 	if (!m_value.empty())m_boneMatricesBuffer->UploadVector(m_value);
+	VkDescriptorBufferInfo bufferInfo;
+	bufferInfo.offset = 0;
+	bufferInfo.buffer = m_boneMatricesBuffer->GetVkBuffer();
+	bufferInfo.range = VK_WHOLE_SIZE;
+	m_descriptorSet->UpdateBufferDescriptorBinding(5, bufferInfo);
 }
 
 
@@ -113,6 +125,26 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 	}
 	return false;
 }
+
+void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer) const
+{
+	constexpr VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &m_verticesBuffer->GetVkBuffer(), offsets);
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+}
+
+void SkinnedMesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
+                              bool enableMetrics) const
+{
+	auto& graphics = Graphics::GetInstance();
+	if (enableMetrics) {
+		graphics.m_drawCall++;
+		graphics.m_triangles += m_triangles.size();
+	}
+	globalPipelineState.ApplyAllStates(vkCommandBuffer);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
+}
+
 glm::vec3 SkinnedMesh::GetCenter() const
 {
 	return m_bound.Center();

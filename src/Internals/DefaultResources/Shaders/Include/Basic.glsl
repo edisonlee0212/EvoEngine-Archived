@@ -87,6 +87,7 @@ layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
 };
 
 
+
 layout(push_constant) uniform EE_PUSH_CONSTANTS{
 	int EE_INSTANCE_INDEX;
 	int EE_MATERIAL_INDEX;
@@ -225,8 +226,6 @@ float EE_LINEARIZE_DEPTH(float ndcDepth)
 {
 	float near = EE_CAMERA_NEAR();
 	float far = EE_CAMERA_FAR();
-	//float z = ndcDepth * 2.0 - 1.0;
-	//return (2.0 * near * far) / (far + near - z * (far - near));
 	return near * far / (far - ndcDepth * (far - near));
 }
 
@@ -245,7 +244,6 @@ vec3 EE_DEPTH_TO_VIEW_POS(vec2 texCoords, float ndcDepth) {
 }
 
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth) {
-	//vec4 clipPos = vec4(texCoords * 2 - vec2(1), ndcDepth * 2.0 - 1.0, 1.0);
 	vec4 clipPos = vec4(texCoords * 2 - vec2(1), ndcDepth, 1.0);
 	return clipPos.xyz;
 }

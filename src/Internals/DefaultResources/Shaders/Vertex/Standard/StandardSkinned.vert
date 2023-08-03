@@ -1,21 +1,25 @@
 layout (location = 0) in vec3 inPosition;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inTangent;
-layout (location = 4) in vec2 inTexCoord;
+layout (location = 3) in vec2 inTexCoord;
+layout (location = 4) in vec2 inColor;
 
 layout (location = 5) in ivec4 inBoneIds; 
 layout (location = 6) in vec4 inWeights;
 layout (location = 7) in ivec4 inBoneIds2; 
 layout (location = 8) in vec4 inWeights2;
 
-out VS_OUT {
+layout(location = 0) out VS_OUT {
 	vec3 FragPos;
 	vec3 Normal;
 	vec3 Tangent;
 	vec2 TexCoord;
 } vs_out;
 
-uniform mat4 model;
+layout(set = EE_PER_GROUP_SET, binding = 5) readonly buffer EE_ANIM_BONES_BLOCK
+{
+	mat4 EE_ANIM_BONES[];
+};
 
 void main()
 {
@@ -42,7 +46,7 @@ void main()
 		boneTransform += EE_ANIM_BONES[inBoneIds2[3]] * inWeights2[3];
 	}
 
-	boneTransform = model * boneTransform;
+	boneTransform = EE_INSTANCES[EE_INSTANCE_INDEX].model * boneTransform;
 	vs_out.FragPos = vec3(boneTransform * vec4(inPosition, 1.0));
 	vec3 N = normalize(vec3(boneTransform * vec4(inNormal, 0.0)));
 	vec3 T = normalize(vec3(boneTransform * vec4(inTangent, 0.0)));
@@ -51,5 +55,5 @@ void main()
 	vs_out.Normal = N;
 	vs_out.Tangent = T;
 	vs_out.TexCoord = inTexCoord;
-	gl_Position = EE_CAMERA_PROJECTION_VIEW * vec4(vs_out.FragPos, 1.0);
+	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vs_out.FragPos, 1.0);
 }

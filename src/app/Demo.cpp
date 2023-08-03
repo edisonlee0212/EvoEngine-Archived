@@ -43,8 +43,8 @@ int main() {
 void LoadScene()
 {
     auto scene = Application::GetActiveScene();
-    
-    scene->m_environment.m_ambientLightIntensity = 0.025f;
+
+    scene->m_environment.m_ambientLightIntensity = 0.1f;
 #pragma region Set main camera to correct position and rotation
     const auto mainCamera = scene->m_mainCamera.Get<Camera>();
     auto mainCameraEntity = mainCamera->GetOwner();
@@ -79,6 +79,10 @@ void LoadScene()
             scene->SetParent(sphere, collection);
         }
     }
+    Transform collectionTransform;
+    collectionTransform.SetPosition({ 0.0, -0.8, 0.5 });
+    collectionTransform.SetRotation(glm::radians(glm::vec3(-45, 0, 0)));
+    scene->SetDataComponent(collection, collectionTransform);
 #pragma endregion
 #pragma region Load models and display
 
@@ -105,13 +109,15 @@ void LoadScene()
     auto dancingStormTrooper = std::dynamic_pointer_cast<Prefab>(
         ProjectManager::GetOrCreateAsset("Models/dancing-stormtrooper/silly_dancing.fbx"));
     auto dancingStormTrooperEntity = dancingStormTrooper->ToEntity(scene);
+    scene->GetOrSetPrivateComponent<Animator>(dancingStormTrooperEntity).lock()->m_autoPlay = true;
     scene->SetEntityName(dancingStormTrooperEntity, "StormTrooper");
     Transform dancingStormTrooperTransform;
-    dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.4, 0), glm::vec3(0), glm::vec3(0.4));
+    dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.5, 0), glm::vec3(0), glm::vec3(0.4));
     scene->SetDataComponent(dancingStormTrooperEntity, dancingStormTrooperTransform);
 
     auto capoeira = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Capoeira.fbx"));
     auto capoeiraEntity = capoeira->ToEntity(scene);
+    scene->GetOrSetPrivateComponent<Animator>(capoeiraEntity).lock()->m_autoPlay = true;
     scene->SetEntityName(capoeiraEntity, "Capoeira");
     Transform capoeiraTransform;
     capoeiraTransform.SetValue(glm::vec3(0.5, 2.7, -18), glm::vec3(0), glm::vec3(0.02));

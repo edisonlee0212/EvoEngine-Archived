@@ -106,7 +106,7 @@ void Animator::AutoPlay()
         return;
     if (m_needAnimationSetup)
         Setup();
-    m_currentAnimationTime += Time::DeltaTime() * 1000.0f;
+    m_currentAnimationTime += Time::DeltaTime() * 60.0f;
     if (m_currentAnimationTime > animation->m_animationNameAndLength[m_currentActivatedAnimation])
         m_currentAnimationTime =
             glm::mod(m_currentAnimationTime, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
@@ -136,10 +136,6 @@ void Animator::Animate(const std::string& animationName, const float time)
     m_currentAnimationTime =
         glm::mod(time, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
     m_needAnimate = true;
-}
-void Animator::SetAutoPlay(const bool value)
-{
-    m_autoPlay = value;
 }
 void Animator::Animate(const float time)
 {

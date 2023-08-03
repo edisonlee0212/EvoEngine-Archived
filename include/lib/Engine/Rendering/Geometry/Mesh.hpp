@@ -33,7 +33,7 @@ namespace EvoEngine
 	public:
 		void OnCreate() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const override;
-		void Bind(VkCommandBuffer vkCommandBuffer) const;
+		void Bind(VkCommandBuffer vkCommandBuffer) const override;
 
 		void UploadData();
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);

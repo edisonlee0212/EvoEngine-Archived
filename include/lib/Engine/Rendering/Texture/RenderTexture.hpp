@@ -25,9 +25,9 @@ namespace EvoEngine{
 	public:
 		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 		void Resize(VkExtent3D extent);
-		void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const;
-		[[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo() const;
-		[[nodiscard]] VkRenderingAttachmentInfo GetStencilAttachmentInf0() const;
+		void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+		[[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+		[[nodiscard]] VkRenderingAttachmentInfo GetStencilAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
 		[[nodiscard]] VkExtent3D GetExtent() const;
 		[[nodiscard]] VkImageViewType GetImageViewType() const;
 		[[nodiscard]] VkFormat GetColorFormat() const;

@@ -290,14 +290,14 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	}
 }
 
-void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos) const
+void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
 	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachment.loadOp = loadOp;
+	attachment.storeOp = storeOp;
 
 	attachment.clearValue = { 0, 0, 0, 0 };
 	attachment.imageView = m_gBufferNormalView->GetVkImageView();
@@ -312,14 +312,14 @@ void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachment
 	attachmentInfos.push_back(attachment);
 }
 
-VkRenderingAttachmentInfo Camera::GetDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Camera::GetDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
 	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachment.loadOp = loadOp;
+	attachment.storeOp = storeOp;
 
 	attachment.clearValue.depthStencil.depth = 1.0f;
 	attachment.imageView = m_gBufferDepthView->GetVkImageView();

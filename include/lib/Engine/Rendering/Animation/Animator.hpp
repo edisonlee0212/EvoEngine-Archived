@@ -7,7 +7,7 @@ class Animator final : public IPrivateComponent
 {
     std::vector<std::shared_ptr<Bone>> m_bones;
     friend class SkinnedMeshRenderer;
-    friend class AnimationLayer;
+    friend class RenderLayer;
 
     std::vector<glm::mat4> m_transformChain;
     std::vector<glm::mat4> m_offsetMatrices;
@@ -32,7 +32,6 @@ class Animator final : public IPrivateComponent
      */
     void Setup(const std::vector<std::string> &name, const std::vector<glm::mat4> &offsetMatrices);
     void ApplyOffsetMatrices();
-    void SetAutoPlay(bool value);
     glm::mat4 GetReverseTransform(const int &index, const Entity &entity);
     bool m_autoPlay = false;
     [[nodiscard]] float CurrentAnimationTime() const;

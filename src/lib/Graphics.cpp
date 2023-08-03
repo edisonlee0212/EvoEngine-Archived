@@ -1185,6 +1185,11 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	renderTexturePresent->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	renderTexturePresent->Initialize();
 	RegisterDescriptorSetLayout("RENDER_TEXTURE_PRESENT", renderTexturePresent);
+
+	const auto boneMatricesLayout = std::make_shared<DescriptorSetLayout>();
+	boneMatricesLayout->PushDescriptorBinding(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	boneMatricesLayout->Initialize();
+	RegisterDescriptorSetLayout("BONE_MATRICES_LAYOUT", boneMatricesLayout);
 }
 
 void Graphics::CreateGraphicsPipelines() const
@@ -1193,6 +1198,8 @@ void Graphics::CreateGraphicsPipelines() const
 	auto pbrTextureLayout = GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT");
 	auto cameraGBufferLayout = GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT");
 	auto lightingLayout = GetDescriptorSetLayout("LIGHTING_LAYOUT");
+
+	auto boneMatricesLayout = GetDescriptorSetLayout("BONE_MATRICES_LAYOUT");
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		standardDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_VERT");
@@ -1212,6 +1219,27 @@ void Graphics::CreateGraphicsPipelines() const
 
 		standardDeferredPrepass->PreparePipeline();
 		RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS", standardDeferredPrepass);
+	}
+	{
+		const auto standardSkinnedDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		standardSkinnedDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_SKINNED_VERT");
+		standardSkinnedDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
+		standardSkinnedDeferredPrepass->m_geometryType = GeometryType::SkinnedMesh;
+		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
+		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(boneMatricesLayout);
+
+		standardSkinnedDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
+		standardSkinnedDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		standardSkinnedDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
+
+		auto& pushConstantRange = standardSkinnedDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		standardSkinnedDeferredPrepass->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS", standardSkinnedDeferredPrepass);
 	}
 	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
@@ -1259,7 +1287,6 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
 		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
-		//directionalLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_GEOM");
 		directionalLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1275,9 +1302,26 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP", directionalLightShadowMap);
 	}
 	{
+		const auto directionalLightShadowMapSkinned = std::make_shared<GraphicsPipeline>();
+		directionalLightShadowMapSkinned->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED_VERT");
+		directionalLightShadowMapSkinned->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		directionalLightShadowMapSkinned->m_geometryType = GeometryType::SkinnedMesh;
+		directionalLightShadowMapSkinned->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		directionalLightShadowMapSkinned->m_descriptorSetLayouts.emplace_back(boneMatricesLayout);
+		directionalLightShadowMapSkinned->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		directionalLightShadowMapSkinned->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = directionalLightShadowMapSkinned->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		directionalLightShadowMapSkinned->PreparePipeline();
+		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED", directionalLightShadowMapSkinned);
+	}
+	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
 		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
-		//pointLightShadowMap->m_geometryShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_GEOM");
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1291,6 +1335,24 @@ void Graphics::CreateGraphicsPipelines() const
 
 		pointLightShadowMap->PreparePipeline();
 		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP", pointLightShadowMap);
+	}
+	{
+		const auto pointLightShadowMapSkinned = std::make_shared<GraphicsPipeline>();
+		pointLightShadowMapSkinned->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_SKINNED_VERT");
+		pointLightShadowMapSkinned->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		pointLightShadowMapSkinned->m_geometryType = GeometryType::SkinnedMesh;
+		pointLightShadowMapSkinned->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		pointLightShadowMapSkinned->m_descriptorSetLayouts.emplace_back(boneMatricesLayout);
+		pointLightShadowMapSkinned->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		pointLightShadowMapSkinned->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = pointLightShadowMapSkinned->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		pointLightShadowMapSkinned->PreparePipeline();
+		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_SKINNED", pointLightShadowMapSkinned);
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
@@ -1308,6 +1370,24 @@ void Graphics::CreateGraphicsPipelines() const
 
 		spotLightShadowMap->PreparePipeline();
 		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP", spotLightShadowMap);
+	}
+	{
+		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
+		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_SKINNED_VERT");
+		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		spotLightShadowMap->m_geometryType = GeometryType::SkinnedMesh;
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(boneMatricesLayout);
+		spotLightShadowMap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		spotLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		spotLightShadowMap->PreparePipeline();
+		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_SKINNED", spotLightShadowMap);
 	}
 	{
 		const auto brdfLut = std::make_shared<GraphicsPipeline>();
@@ -1384,7 +1464,6 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("PREFILTER_CONSTRUCT", prefilterConstruct);
 	}
 	if(const auto windowLayer = Application::GetLayer<WindowLayer>()){
-		//"RENDER_TEXTURE_PRESENT"
 		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
 		renderTexturePassThrough->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 		renderTexturePassThrough->m_fragmentShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");

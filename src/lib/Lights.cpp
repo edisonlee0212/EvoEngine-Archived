@@ -401,70 +401,70 @@ void Lighting::Initialize()
     }
 }
 
-VkRenderingAttachmentInfo Lighting::GetDirectionalLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetDirectionalLightDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_directionalLightShadowMapView->GetVkImageView();
     return attachment;
 }
 
-VkRenderingAttachmentInfo Lighting::GetPointLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetPointLightDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_pointLightShadowMapView->GetVkImageView();
     return attachment;
 }
 
-VkRenderingAttachmentInfo Lighting::GetLayeredDirectionalLightDepthAttachmentInfo(const uint32_t split) const
+VkRenderingAttachmentInfo Lighting::GetLayeredDirectionalLightDepthAttachmentInfo(const uint32_t split, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_directionalLightShadowMapLayeredViews[split]->GetVkImageView();
     return attachment;
 }
 
-VkRenderingAttachmentInfo Lighting::GetLayeredPointLightDepthAttachmentInfo(const uint32_t face) const
+VkRenderingAttachmentInfo Lighting::GetLayeredPointLightDepthAttachmentInfo(const uint32_t face, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_pointLightShadowMapLayeredViews[face]->GetVkImageView();
     return attachment;
 }
 
-VkRenderingAttachmentInfo Lighting::GetSpotLightDepthAttachmentInfo() const
+VkRenderingAttachmentInfo Lighting::GetSpotLightDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
     VkRenderingAttachmentInfo attachment{};
     attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.loadOp = loadOp;
+    attachment.storeOp = storeOp;
 
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_spotLightShadowMapView->GetVkImageView();

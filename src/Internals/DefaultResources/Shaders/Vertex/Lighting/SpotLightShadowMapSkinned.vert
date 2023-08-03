@@ -1,12 +1,18 @@
 layout (location = 0) in vec3 inPosition;
+layout (location = 1) in vec3 inNormal;
+layout (location = 2) in vec3 inTangent;
+layout (location = 3) in vec2 inTexCoord;
+layout (location = 4) in vec2 inColor;
+
 layout (location = 5) in ivec4 inBoneIds; 
 layout (location = 6) in vec4 inWeights;
 layout (location = 7) in ivec4 inBoneIds2; 
 layout (location = 8) in vec4 inWeights2;
 
-uniform int index;
-
-uniform mat4 model;
+layout(set = EE_PER_PASS_SET, binding = 5) readonly buffer EE_ANIM_BONES_BLOCK
+{
+	mat4 EE_ANIM_BONES[];
+};
 
 void main()
 {
@@ -33,6 +39,5 @@ void main()
 		boneTransform += EE_ANIM_BONES[inBoneIds2[3]] * inWeights2[3];
 	}
 
-	boneTransform = model * boneTransform;
-    gl_Position = EE_SPOT_LIGHTS[index].lightSpaceMatrix * boneTransform * vec4(inPosition, 1.0);
+    gl_Position = EE_SPOT_LIGHTS[EE_MATERIAL_INDEX].lightSpaceMatrix * EE_INSTANCES[EE_INSTANCE_INDEX].model * boneTransform * vec4(inPosition, 1.0);
 }

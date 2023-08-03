@@ -24,9 +24,7 @@ namespace EvoEngine
 		void SetRagDoll(bool value);
 		PrivateComponentRef m_animator;
 		std::shared_ptr<BoneMatrices> m_boneMatrices;
-		bool m_forwardRendering = false;
 		bool m_castShadow = true;
-		bool m_receiveShadow = true;
 		AssetRef m_skinnedMesh;
 		AssetRef m_material;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;

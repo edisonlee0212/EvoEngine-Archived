@@ -32,9 +32,6 @@ void MeshRenderer::RenderBound(glm::vec4& color)
 
 void MeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    ImGui::Checkbox("Forward Rendering##MeshRenderer", &m_forwardRendering);
-    if (!m_forwardRendering)
-        ImGui::Checkbox("Receive shadow##MeshRenderer", &m_receiveShadow);
     ImGui::Checkbox("Cast shadow##MeshRenderer", &m_castShadow);
     editorLayer->DragAndDropButton<Material>(m_material, "Material");
     editorLayer->DragAndDropButton<Mesh>(m_mesh, "Mesh");
@@ -57,9 +54,7 @@ void MeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 
 void MeshRenderer::Serialize(YAML::Emitter& out)
 {
-    out << YAML::Key << "m_forwardRendering" << m_forwardRendering;
     out << YAML::Key << "m_castShadow" << m_castShadow;
-    out << YAML::Key << "m_receiveShadow" << m_receiveShadow;
 
     m_mesh.Save("m_mesh", out);
     m_material.Save("m_material", out);
@@ -67,9 +62,7 @@ void MeshRenderer::Serialize(YAML::Emitter& out)
 
 void MeshRenderer::Deserialize(const YAML::Node& in)
 {
-    m_forwardRendering = in["m_forwardRendering"].as<bool>();
     m_castShadow = in["m_castShadow"].as<bool>();
-    m_receiveShadow = in["m_receiveShadow"].as<bool>();
 
     m_mesh.Load("m_mesh", in);
     m_material.Load("m_material", in);
@@ -88,7 +81,5 @@ void MeshRenderer::OnDestroy()
     m_material.Clear();
 
     m_material.Clear();
-    m_forwardRendering = false;
     m_castShadow = true;
-    m_receiveShadow = true;
 }

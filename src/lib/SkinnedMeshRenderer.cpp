@@ -100,9 +100,6 @@ void SkinnedMeshRenderer::DebugBoneRender(const glm::vec4& color, const float& s
 void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	editorLayer->DragAndDropButton<Animator>(m_animator, "Animator");
-	ImGui::Checkbox("Forward Rendering##SkinnedMeshRenderer", &m_forwardRendering);
-	if (!m_forwardRendering)
-		ImGui::Checkbox("Receive shadow##SkinnedMeshRenderer", &m_receiveShadow);
 	ImGui::Checkbox("Cast shadow##SkinnedMeshRenderer", &m_castShadow);
 	editorLayer->DragAndDropButton<Material>(m_material, "Material");
 	editorLayer->DragAndDropButton<SkinnedMesh>(m_skinnedMesh, "Skinned Mesh");
@@ -161,9 +158,7 @@ void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 
 void SkinnedMeshRenderer::Serialize(YAML::Emitter& out)
 {
-	out << YAML::Key << "m_forwardRendering" << m_forwardRendering;
 	out << YAML::Key << "m_castShadow" << m_castShadow;
-	out << YAML::Key << "m_receiveShadow" << m_receiveShadow;
 
 	m_animator.Save("m_animator", out);
 	m_skinnedMesh.Save("m_skinnedMesh", out);
@@ -195,9 +190,7 @@ void SkinnedMeshRenderer::Serialize(YAML::Emitter& out)
 
 void SkinnedMeshRenderer::Deserialize(const YAML::Node& in)
 {
-	m_forwardRendering = in["m_forwardRendering"].as<bool>();
 	m_castShadow = in["m_castShadow"].as<bool>();
-	m_receiveShadow = in["m_receiveShadow"].as<bool>();
 
 	m_animator.Load("m_animator", in, GetScene());
 	m_skinnedMesh.Load("m_skinnedMesh", in);
@@ -321,8 +314,6 @@ void SkinnedMeshRenderer::OnDestroy()
 	m_material.Clear();
 	m_ragDoll = false;
 	m_ragDollFreeze = false;
-	m_forwardRendering = false;
 	m_castShadow = true;
-	m_receiveShadow = true;
 }
 

@@ -16,13 +16,6 @@ namespace EvoEngine
 		FromAPIInstanced
 	};
 
-	enum class RenderGeometryType {
-		None,
-		Mesh,
-		SkinnedMesh,
-		Strands
-	};
-
 	struct RenderInstancePushConstant
 	{
 		int m_instanceIndex = 0;
@@ -36,18 +29,30 @@ namespace EvoEngine
 		uint32_t m_materialIndex = 0;
 		uint32_t m_selected = 0;
 		RenderCommandType m_commandType = RenderCommandType::None;
-		RenderGeometryType m_geometryType = RenderGeometryType::None;
 		Entity m_owner = Entity();
-		std::shared_ptr<IGeometry> m_renderGeometry;
+		std::shared_ptr<Mesh> m_mesh;
 		bool m_castShadow = true;
-		bool m_receiveShadow = true;
-		//std::shared_ptr<ParticleMatrices> m_matrices;
+	};
+
+	struct SkinnedRenderInstance {
+		uint32_t m_instanceIndex = 0;
+		uint32_t m_materialIndex = 0;
+		uint32_t m_selected = 0;
+		RenderCommandType m_commandType = RenderCommandType::None;
+		Entity m_owner = Entity();
+		std::shared_ptr<SkinnedMesh> m_skinnedMesh;
+		bool m_castShadow = true;
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
 	};
 
 	struct RenderInstanceGroup {
 		std::shared_ptr<Material> m_material;
 		std::unordered_map<Handle, std::vector<RenderInstance>> m_renderCommands;
+	};
+
+	struct SkinnedRenderInstanceGroup {
+		std::shared_ptr<Material> m_material;
+		std::unordered_map<Handle, std::vector<SkinnedRenderInstance>> m_renderCommands;
 	};
 
 	struct RenderInstanceCollection
@@ -59,7 +64,15 @@ namespace EvoEngine
 		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
 			const std::function<void(const RenderInstance&)>& commandAction) const;
 	};
+	struct SkinnedRenderInstanceCollection
+	{
+		std::unordered_map<Handle, SkinnedRenderInstanceGroup> m_renderInstanceGroups;
 
+		void Add(const std::shared_ptr<Material>& material, const SkinnedRenderInstance& renderInstance);
+
+		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
+			const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
+	};
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
 		alignas(4) int m_pcfSampleAmount = 16;
@@ -105,7 +118,7 @@ namespace EvoEngine
 
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
-		void PreparePointAndSpotLightShadowMap();
+		void PreparePointAndSpotLightShadowMap() const;
 		
 		void PrepareEnvironmentalBrdfLut();
 
@@ -133,11 +146,11 @@ namespace EvoEngine
 		bool m_needFade = false;
 #pragma region Render procedure
 		RenderInstanceCollection m_deferredRenderInstances;
-		RenderInstanceCollection m_deferredInstancedRenderInstances;
-		RenderInstanceCollection m_forwardRenderInstances;
-		RenderInstanceCollection m_forwardInstancedRenderInstances;
+		SkinnedRenderInstanceCollection m_deferredSkinnedRenderInstances;
+		SkinnedRenderInstanceCollection m_deferredInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
-		RenderInstanceCollection m_instancedTransparentRenderInstances;
+		SkinnedRenderInstanceCollection m_transparentSkinnedRenderInstances;
+		SkinnedRenderInstanceCollection m_transparentInstancedRenderInstances;
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
@@ -148,6 +161,9 @@ namespace EvoEngine
 		std::shared_ptr<Image> m_environmentalBRDFLut = {};
 		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
 		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
+
+		void ApplyAnimator() const;
+
 #pragma endregion
 #pragma region Per Frame Descriptor Sets
 		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
