@@ -21,8 +21,6 @@ void Resources::LoadShaders()
 	Graphics::GetInstance().m_shaderBasic = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Basic.glsl");
 	Graphics::GetInstance().m_shaderLight = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Light.glsl");
 	Graphics::GetInstance().m_shaderPBRTextures = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/PBRTextures.glsl");
-	Graphics::GetInstance().m_shaderShadow = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Shadow.glsl");
-	Graphics::GetInstance().m_shaderSkybox = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Skybox.glsl");
 
 #pragma endregion
 

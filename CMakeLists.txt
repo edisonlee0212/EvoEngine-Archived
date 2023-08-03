@@ -42,6 +42,8 @@ endif ()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 add_subdirectory(${3RD_PARTY_DIR})
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 # ------------------------------------------------------------------
 # EvoEngine - sources
@@ -178,6 +180,23 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
 endif ()
 
 # ------------------------------------------------------------------
+# EvoEngine - python binding
+# ------------------------------------------------------------------
+pybind11_add_module(PyEvoEngine src/app/PythonBinding.cpp)
+target_include_directories(PyEvoEngine
+            PRIVATE
+            ${LOCAL_EVOENGINE_INCLUDES}
+            )
+target_precompile_headers(PyEvoEngine
+            PRIVATE
+            ${LOCAL_EVOENGINE_PCH}
+            )
+target_link_libraries(PyEvoEngine
+            PRIVATE
+            evoengine
+            )
+
+# ------------------------------------------------------------------
 # Examples
 # ------------------------------------------------------------------
 if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPLES)
@@ -192,14 +211,10 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPL
             PRIVATE
             ${LOCAL_EVOENGINE_PCH}
             )
-
-    find_package(PythonLibs REQUIRED)
-    include_directories(${PYTHON_INCLUDE_DIRS})
     target_link_libraries(Project
+            PRIVATE
             evoengine
-            ${PYTHON_LIBRARIES}
             )
-
     add_executable(Demo
             src/app/Demo.cpp
             )

@@ -75,7 +75,6 @@ namespace EvoEngine
 		std::string m_shaderBasic;
 		std::string m_shaderLight;
 		std::string m_shaderPBRTextures;
-		std::string m_shaderShadow;
 		std::string m_shaderSkybox;
 		size_t m_maxBoneAmount = 65536;
 		size_t m_maxShadowCascadeAmount = 4;
