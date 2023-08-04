@@ -1,6 +1,5 @@
 #pragma once
 #include "GraphicsResources.hpp"
-
 namespace EvoEngine{
 	class RenderTexture
 	{
@@ -42,5 +41,13 @@ namespace EvoEngine{
 		[[nodiscard]] ImTextureID GetColorImTextureId() const;
 
 		[[nodiscard]] static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
+		[[maybe_unused]] bool Save(const std::filesystem::path& path) const;
+		void StoreToPng(
+			const std::string& path,
+			int resizeX = -1,
+			int resizeY = -1,
+			unsigned compressionLevel = 8) const;
+		void StoreToJpg(const std::string& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
+		void StoreToHdr(const std::string& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
 	};
 }

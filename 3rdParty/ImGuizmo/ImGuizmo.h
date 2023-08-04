@@ -114,6 +114,7 @@ void EditTransform(const Camera& camera, matrix_t& matrix)
 #ifndef IMGUIZMO_NAMESPACE
 #define IMGUIZMO_NAMESPACE ImGuizmo
 #endif
+#include "imgui.h"
 
 namespace IMGUIZMO_NAMESPACE
 {

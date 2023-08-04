@@ -647,9 +647,10 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::DragFloat("FOV", &m_fov, 1.0f, 1, 359);
 		ImGui::TreePop();
 	}
-	FileUtils::SaveFile("Screenshot", "Texture2D", { ".png", ".jpg" }, [this](const std::filesystem::path& filePath) {
-		//m_colorTexture->SetPathAndSave(filePath);
-		});
+	FileUtils::SaveFile("Screenshot", "Image", { ".png", ".jpg", ".hdr"}, [this](const std::filesystem::path& filePath) {
+		m_renderTexture->Save(filePath);
+		}, false
+	);
 
 
 }

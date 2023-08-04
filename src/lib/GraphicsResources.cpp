@@ -474,8 +474,27 @@ void Buffer::UploadData(const size_t size, const void* src)
 	}
 }
 
+void Buffer::DownloadData(const size_t size, void* dst)
+{
+	if (size > m_size) Resize(size);
+	if (m_vmaAllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+		|| m_vmaAllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT)
+	{
+		void* mapping;
+		vmaMapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation, &mapping);
+		memcpy(dst, mapping, size);
+		vmaUnmapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation);
+	}
+	else
+	{
+		Buffer stagingBuffer(size);
+		stagingBuffer.CopyFromBuffer(*this, size, 0, 0);
+		stagingBuffer.DownloadData(size, dst);
+	}
+}
+
 void Buffer::Allocate(const VkBufferCreateInfo& bufferCreateInfo,
-	const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+                      const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
@@ -494,7 +513,7 @@ Buffer::Buffer(const size_t stagingBufferSize, bool randomAccess)
 	VkBufferCreateInfo stagingBufferCreateInfo{};
 	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	stagingBufferCreateInfo.size = stagingBufferSize;
-	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
 	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
@@ -572,6 +591,25 @@ void Buffer::CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyIn
 			srcImage.TransitImageLayout(commandBuffer, prevLayout);
 		}
 	);
+}
+
+void Buffer::CopyFromImage(Image& srcImage)
+{
+	Resize(srcImage.GetExtent().width * srcImage.GetExtent().height * sizeof(glm::vec4));
+	VkBufferImageCopy imageCopyInfo{};
+	imageCopyInfo.bufferOffset = 0;
+	imageCopyInfo.bufferRowLength = 0;
+	imageCopyInfo.bufferImageHeight = 0;
+	imageCopyInfo.imageSubresource.layerCount = 1;
+	imageCopyInfo.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	imageCopyInfo.imageSubresource.baseArrayLayer = 0;
+	imageCopyInfo.imageSubresource.mipLevel = 0;
+
+	imageCopyInfo.imageExtent = srcImage.GetExtent();
+	imageCopyInfo.imageOffset.x = 0;
+	imageCopyInfo.imageOffset.y = 0;
+	imageCopyInfo.imageOffset.z = 0;
+	CopyFromImage(srcImage, imageCopyInfo);
 }
 
 const VkBuffer& Buffer::GetVkBuffer() const

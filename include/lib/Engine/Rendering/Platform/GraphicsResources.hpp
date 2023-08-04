@@ -200,6 +200,7 @@ namespace EvoEngine
 		VmaAllocationCreateInfo m_vmaAllocationCreateInfo = {};
 
 		void UploadData(size_t size, const void* src);
+		void DownloadData(size_t size, void* dst);
 		void Allocate(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 	public:
 		explicit Buffer(size_t stagingBufferSize, bool randomAccess = false);
@@ -211,9 +212,13 @@ namespace EvoEngine
 		void UploadVector(const std::vector<T>& data);
 		template<typename T>
 		void Upload(const T& data);
+		template<typename T>
+		void DownloadVector(std::vector<T>& data, size_t elementSize);
+		template<typename T>
+		void Download(const T& data);
 		void CopyFromBuffer(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0);
 		void CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyInfo) const;
-
+		void CopyFromImage(Image& srcImage);
 		[[nodiscard]] const VkBuffer& GetVkBuffer() const;
 
 		[[nodiscard]] VmaAllocation GetVmaAllocation() const;
@@ -233,6 +238,20 @@ namespace EvoEngine
 	void Buffer::Upload(const T& data)
 	{
 		UploadData(sizeof(T), static_cast<const void*>(&data));
+	}
+
+	template <typename T>
+	void Buffer::DownloadVector(std::vector<T>& data, size_t elementSize)
+	{
+		data.resize(elementSize);
+		T* address = data.data();
+		DownloadData(data.size() * sizeof(T), address);
+	}
+
+	template <typename T>
+	void Buffer::Download(const T& data)
+	{
+		Download(sizeof(T), static_cast<const void*>(&data));
 	}
 
 	class Sampler final : public IGraphicsResource
