@@ -11,6 +11,7 @@ bool Animator::AnimatedCurrentFrame() const
 }
 void Animator::Setup()
 {
+    if (!m_needAnimationSetup) return;
 	if (const auto animation = m_animation.Get<Animation>())
     {
         m_boneSize = animation->m_boneSize;
@@ -88,6 +89,7 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                 ImGui::EndCombo();
             }
             if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &m_autoPlay);
+            if (m_autoPlay) ImGui::DragFloat("AutoPlay Speed", &m_autoPlaySpeed, 1.0f);
             if (ImGui::SliderFloat(
                     "Animation time",
                     &m_currentAnimationTime,
@@ -106,7 +108,7 @@ void Animator::AutoPlay()
         return;
     if (m_needAnimationSetup)
         Setup();
-    m_currentAnimationTime += Time::DeltaTime() * 60.0f;
+    m_currentAnimationTime += Time::DeltaTime() * m_autoPlaySpeed;
     if (m_currentAnimationTime > animation->m_animationNameAndLength[m_currentActivatedAnimation])
         m_currentAnimationTime =
             glm::mod(m_currentAnimationTime, animation->m_animationNameAndLength[m_currentActivatedAnimation]);

@@ -1,4 +1,3 @@
-#include "AnimationLayer.hpp"
 #include "Application.hpp"
 #include "WindowLayer.hpp"
 #include "RenderLayer.hpp"
@@ -27,7 +26,6 @@ int main() {
     Application::PushLayer<WindowLayer>();
 	Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
-    Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;
     applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
@@ -109,7 +107,9 @@ void LoadScene()
     auto dancingStormTrooper = std::dynamic_pointer_cast<Prefab>(
         ProjectManager::GetOrCreateAsset("Models/dancing-stormtrooper/silly_dancing.fbx"));
     auto dancingStormTrooperEntity = dancingStormTrooper->ToEntity(scene);
-    scene->GetOrSetPrivateComponent<Animator>(dancingStormTrooperEntity).lock()->m_autoPlay = true;
+    const auto dancingStormTrooperAnimator = scene->GetOrSetPrivateComponent<Animator>(dancingStormTrooperEntity).lock();
+    dancingStormTrooperAnimator->m_autoPlay = true;
+    dancingStormTrooperAnimator->m_autoPlaySpeed = 30;
     scene->SetEntityName(dancingStormTrooperEntity, "StormTrooper");
     Transform dancingStormTrooperTransform;
     dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.5, 0), glm::vec3(0), glm::vec3(0.4));
@@ -117,7 +117,9 @@ void LoadScene()
 
     auto capoeira = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Capoeira.fbx"));
     auto capoeiraEntity = capoeira->ToEntity(scene);
-    scene->GetOrSetPrivateComponent<Animator>(capoeiraEntity).lock()->m_autoPlay = true;
+    const auto capoeiraAnimator = scene->GetOrSetPrivateComponent<Animator>(capoeiraEntity).lock();
+    capoeiraAnimator->m_autoPlay = true;
+    capoeiraAnimator->m_autoPlaySpeed = 60;
     scene->SetEntityName(capoeiraEntity, "Capoeira");
     Transform capoeiraTransform;
     capoeiraTransform.SetValue(glm::vec3(0.5, 2.7, -18), glm::vec3(0), glm::vec3(0.02));

@@ -7,6 +7,8 @@ namespace EvoEngine {
 		static std::chrono::time_point<std::chrono::system_clock> m_startTime;
 		static std::chrono::time_point<std::chrono::system_clock> m_lastFixedUpdateTime;
 		static std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
+		static double m_deltaTime;
+		static double m_fixedDeltaTime;
 		static size_t m_frames;
 		static size_t m_steps;
 		static double m_timeStep;

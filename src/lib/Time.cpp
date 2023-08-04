@@ -2,6 +2,8 @@
 using namespace EvoEngine;
 
 double Time::m_timeStep = 0.016;
+double Time::m_deltaTime = 0;
+double Time::m_fixedDeltaTime = 0;
 size_t Time::m_frames = 0;
 size_t Time::m_steps = 0;
 std::chrono::time_point<std::chrono::system_clock> Time::m_startTime = {};
@@ -30,16 +32,12 @@ void Time::SetTimeStep(const double value)
 }
 double Time::FixedDeltaTime()
 {
-	const auto now = std::chrono::system_clock::now();
-	const std::chrono::duration<double> duration = now - m_lastFixedUpdateTime;
-	return duration.count();
+	return m_fixedDeltaTime;
 }
 
 double Time::DeltaTime()
 {
-	const auto now = std::chrono::system_clock::now();
-	const std::chrono::duration<double> duration = now - m_lastUpdateTime;
-	return duration.count();
+	return m_deltaTime;
 }
 
 double Time::CurrentTime()

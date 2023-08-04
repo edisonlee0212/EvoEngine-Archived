@@ -34,6 +34,7 @@ class Animator final : public IPrivateComponent
     void ApplyOffsetMatrices();
     glm::mat4 GetReverseTransform(const int &index, const Entity &entity);
     bool m_autoPlay = false;
+    float m_autoPlaySpeed = 30;
     [[nodiscard]] float CurrentAnimationTime() const;
     [[nodiscard]] std::string CurrentAnimationName();
     void Animate(const std::string& animationName, float time);

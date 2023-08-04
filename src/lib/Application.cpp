@@ -1,4 +1,6 @@
 #include "Application.hpp"
+
+#include "AnimationPlayer.hpp"
 #include "Prefab.hpp"
 #include "ClassRegistry.hpp"
 #include "Graphics.hpp"
@@ -27,6 +29,9 @@ using namespace EvoEngine;
 void Application::PreUpdateInternal()
 {
 	const auto& application = GetInstance();
+	const auto now = std::chrono::system_clock::now();
+	const std::chrono::duration<double> deltaTime = now - Time::m_lastUpdateTime;
+	Time::m_deltaTime = deltaTime.count();
 	Time::m_lastUpdateTime = std::chrono::system_clock::now();
 	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
 	{
@@ -67,6 +72,9 @@ void Application::PreUpdateInternal()
 		}
 		duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 		step++;
+		const auto now = std::chrono::system_clock::now();
+		const std::chrono::duration<double> fixedDeltaTime = now - Time::m_lastFixedUpdateTime;
+		Time::m_fixedDeltaTime = fixedDeltaTime.count();
 		Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
 		if (step > 10)
 		{
@@ -370,6 +378,7 @@ void Application::InitializeRegistry()
 	//ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
 	//ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
 	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
+	ClassRegistry::RegisterPrivateComponent<AnimationPlayer>("AnimationPlayer");
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
 	//ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
 	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");

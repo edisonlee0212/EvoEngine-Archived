@@ -21,7 +21,6 @@ namespace EvoEngine
 
 	class Graphics final : public ISingleton<Graphics>
 	{
-		
 		friend class Application;
 		friend class Resources;
 		friend class Lighting;
@@ -104,6 +103,9 @@ namespace EvoEngine
 		void OnDestroy();
 		void SwapChainSwapImage();
 		void SubmitPresent();
+		void WaitForCommandsComplete();
+		//void Submit();
+
 		void ResetCommandBuffers();
 		static void Initialize();
 		static void PostResourceLoadingInitialization();

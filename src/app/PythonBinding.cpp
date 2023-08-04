@@ -1,6 +1,4 @@
 #include <pybind11/pybind11.h>
-
-#include "AnimationLayer.hpp"
 #include "Application.hpp"
 #include "WindowLayer.hpp"
 #include "RenderLayer.hpp"
@@ -12,7 +10,6 @@ int RunApplication() {
     Application::PushLayer<WindowLayer>();
     Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
-    Application::PushLayer<AnimationLayer>();
 
     ApplicationInfo applicationInfo;
     Application::Initialize(applicationInfo);

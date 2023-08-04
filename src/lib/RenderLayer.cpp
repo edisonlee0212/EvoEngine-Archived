@@ -985,6 +985,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				}
 				vkCmdEndRendering(commandBuffer);
 			}
+
+			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
 }
 
@@ -1517,6 +1520,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 	const auto& directionalLightShadowPipelineSkinned = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
+
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
@@ -1788,9 +1792,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 			renderInfo.pDepthAttachment = &depthAttachment;
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+			
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->m_states.m_depthTest = false;
 			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.clear();

@@ -1046,16 +1046,14 @@ void Graphics::SwapChainSwapImage()
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0))
 	{
-		for (auto& commandBuffer : m_commandBufferPool[m_currentFrameIndex])
-		{
-			if (commandBuffer.m_status == CommandBufferStatus::Recorded) commandBuffer.Reset();
-		}
+		ResetCommandBuffers();
+		return;
 	}
-	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
 	vkDeviceWaitIdle(m_vkDevice);
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
+
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
 		m_swapchain->GetVkSwapchain(), UINT64_MAX,
 		m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
@@ -1072,15 +1070,15 @@ void Graphics::SwapChainSwapImage()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 	vkResetFences(m_vkDevice, 1, inFlightFences);
-
-	
 }
 
 void Graphics::SubmitPresent()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) return;
-	if (!m_queueFamilyIndices.m_presentFamily.has_value()) return;
+	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) {
+		ResetCommandBuffers();
+		return;
+	}
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1124,6 +1122,10 @@ void Graphics::SubmitPresent()
 	vkQueuePresentKHR(m_vkPresentQueue, &presentInfo);
 
 	m_currentFrameIndex = (m_currentFrameIndex + 1) % m_maxFrameInFlight;
+}
+
+void Graphics::WaitForCommandsComplete()
+{
 }
 
 void Graphics::ResetCommandBuffers()
@@ -1615,6 +1617,12 @@ void Graphics::PreUpdate()
 		if (Application::GetLayer<RenderLayer>() || Application::GetLayer<EditorLayer>())
 		{
 			graphics.SwapChainSwapImage();
+		}
+	}else
+	{
+		if (Application::GetLayer<RenderLayer>())
+		{
+			graphics.WaitForCommandsComplete();
 		}
 	}
 
