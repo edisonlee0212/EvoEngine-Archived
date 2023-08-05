@@ -232,6 +232,11 @@ std::shared_ptr<Bone> &Animation::UnsafeGetRootBone()
     return m_rootBone;
 }
 
+std::map<std::string, float>& Animation::UnsafeGetAnimationLengths()
+{
+    return m_animationLength;
+}
+
 void Animation::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
     if (!m_rootBone)
@@ -246,20 +251,51 @@ void Animation::Animate(
     const glm::mat4 &rootTransform,
     std::vector<glm::mat4> &results)
 {
-    if (m_animationNameAndLength.find(name) == m_animationNameAndLength.end() || !m_rootBone)
+    if (m_animationLength.find(name) == m_animationLength.end() || !m_rootBone)
     {
         return;
     }
     m_rootBone->Animate(name, animationTime, rootTransform, rootTransform, results);
 }
+
+std::string Animation::GetFirstAvailableAnimationName()
+{
+    if(m_animationLength.empty())
+    {
+        throw std::runtime_error("Animation Empty!");
+    }
+    return m_animationLength.begin()->first;
+}
+
+float Animation::GetAnimationLength(const std::string& animationName) const
+{
+    const auto search = m_animationLength.find(animationName);
+    if(search != m_animationLength.end())
+    {
+        return search->second;
+    }
+    return -1.0f;
+}
+
+bool Animation::HasAnimation(const std::string& animationName) const
+{
+    const auto search = m_animationLength.find(animationName);
+    return search != m_animationLength.end();
+}
+
+bool Animation::IsEmpty() const
+{
+    return m_animationLength.empty();
+}
+
 void Animation::Serialize(YAML::Emitter &out)
 {
     out << YAML::Key << "m_boneSize" << YAML::Value << m_boneSize;
 
-    if (!m_animationNameAndLength.empty())
+    if (!m_animationLength.empty())
     {
-        out << YAML::Key << "m_animationNameAndLength" << YAML::Value << YAML::BeginSeq;
-        for (const auto &i : m_animationNameAndLength)
+        out << YAML::Key << "m_animationLength" << YAML::Value << YAML::BeginSeq;
+        for (const auto &i : m_animationLength)
         {
             out << YAML::BeginMap;
             out << YAML::Key << "Name" << YAML::Value << i.first;
@@ -278,13 +314,13 @@ void Animation::Serialize(YAML::Emitter &out)
 void Animation::Deserialize(const YAML::Node &in)
 {
     m_boneSize = in["m_boneSize"].as<size_t>();
-    auto inAnimationNameAndLength = in["m_animationNameAndLength"];
-    m_animationNameAndLength.clear();
+    auto inAnimationNameAndLength = in["m_animationLength"];
+    m_animationLength.clear();
     if (inAnimationNameAndLength)
     {
         for (const auto &i : inAnimationNameAndLength)
         {
-            m_animationNameAndLength.insert({i["Name"].as<std::string>(), i["Length"].as<float>()});
+            m_animationLength.insert({i["Name"].as<std::string>(), i["Length"].as<float>()});
         }
     }
     if (in["m_rootBone"])

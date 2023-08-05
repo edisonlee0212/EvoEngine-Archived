@@ -72,18 +72,18 @@ class ThreadPool
 
     // change the number of threads in the pool
     // should be called from one thread, otherwise be careful to not interleave, also with this->stop()
-    // nThreads must be >= 0
-    void Resize(int nThreads)
+    // numberOfThreads must be >= 0
+    void Resize(const size_t numberOfThreads)
     {
         if (!this->m_isStop && !this->m_isDone)
         {
-            int oldNThreads = static_cast<int>(this->m_threads.size());
-            if (oldNThreads <= nThreads)
+            const auto oldNThreads = this->m_threads.size();
+            if (oldNThreads <= numberOfThreads)
             { // if the number of threads is increased
-                this->m_threads.resize(nThreads);
-                this->m_flags.resize(nThreads);
+                this->m_threads.resize(numberOfThreads);
+                this->m_flags.resize(numberOfThreads);
 
-                for (int i = oldNThreads; i < nThreads; ++i)
+                for (size_t i = oldNThreads; i < numberOfThreads; ++i)
                 {
                     this->m_flags[i] = std::make_shared<std::atomic<bool>>(false);
                     this->SetThread(i);
@@ -91,7 +91,7 @@ class ThreadPool
             }
             else
             { // the number of threads is decreased
-                for (int i = oldNThreads - 1; i >= nThreads; --i)
+                for (size_t i = oldNThreads - 1; i >= numberOfThreads; --i)
                 {
                     *this->m_flags[i] = true; // this thread will finish
                     this->m_threads[i]->detach();
@@ -101,8 +101,8 @@ class ThreadPool
                     std::unique_lock<std::mutex> lock(this->m_mutex);
                     this->m_threadPoolCondition.notify_all();
                 }
-                this->m_threads.resize(nThreads); // safe to delete because the threads are detached
-                this->m_flags.resize(nThreads);   // safe to delete because the threads have copies of shared_ptr of the
+                this->m_threads.resize(numberOfThreads); // safe to delete because the threads are detached
+                this->m_flags.resize(numberOfThreads);   // safe to delete because the threads have copies of shared_ptr of the
                                                   // flags, not originals
             }
         }

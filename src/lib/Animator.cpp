@@ -5,30 +5,26 @@
 #include "Time.hpp"
 using namespace EvoEngine;
 
-bool Animator::AnimatedCurrentFrame() const
-{
-    return m_animatedCurrentFrame;
-}
 void Animator::Setup()
 {
-    if (!m_needAnimationSetup) return;
 	if (const auto animation = m_animation.Get<Animation>())
     {
         m_boneSize = animation->m_boneSize;
-        if (animation->m_rootBone && m_boneSize != 0)
+        if (animation->UnsafeGetRootBone() && m_boneSize != 0)
         {
             m_transformChain.resize(m_boneSize);
             m_names.resize(m_boneSize);
             m_bones.resize(m_boneSize);
-            BoneSetter(animation->m_rootBone);
+            BoneSetter(animation->UnsafeGetRootBone());
             m_offsetMatrices.resize(m_boneSize);
             for (const auto &i : m_bones)
                 m_offsetMatrices[i->m_index] = i->m_offsetMatrix.m_value;
-            if (!animation->m_animationNameAndLength.empty())
-                m_currentActivatedAnimation = animation->m_animationNameAndLength.begin()->first;
+            if (!animation->IsEmpty()) {
+                m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
+                m_currentAnimationTime = 0.0f;
+            }
         }
     }
-    m_needAnimationSetup = false;
 }
 void Animator::OnDestroy()
 {
@@ -41,7 +37,7 @@ void Animator::OnDestroy()
 void Animator::Setup(const std::shared_ptr<Animation> &targetAnimation)
 {
     m_animation.Set<Animation>(targetAnimation);
-    m_needAnimationSetup = true;
+    Setup();
 }
 
 void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -58,10 +54,9 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
     {
         if (m_boneSize != 0)
         {
-            if (animation->m_animationNameAndLength.find(m_currentActivatedAnimation) ==
-                animation->m_animationNameAndLength.end())
+            if (!animation->HasAnimation(m_currentActivatedAnimation))
             {
-                m_currentActivatedAnimation = animation->m_animationNameAndLength.begin()->first;
+                m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
                 m_currentAnimationTime = 0.0f;
             }
             if (ImGui::BeginCombo(
@@ -69,7 +64,7 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                     m_currentActivatedAnimation
                         .c_str())) // The second parameter is the label previewed before opening the combo.
             {
-                for (auto &i : animation->m_animationNameAndLength)
+                for (auto &i : animation->UnsafeGetAnimationLengths())
                 {
                     const bool selected =
                         m_currentActivatedAnimation ==
@@ -78,7 +73,6 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                     {
                         m_currentActivatedAnimation = i.first;
                         m_currentAnimationTime = 0.0f;
-                        m_needAnimate = true;
                     }
                     if (selected)
                     {
@@ -88,38 +82,67 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                 }
                 ImGui::EndCombo();
             }
-            if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &m_autoPlay);
-            if (m_autoPlay) ImGui::DragFloat("AutoPlay Speed", &m_autoPlaySpeed, 1.0f);
-            if (ImGui::SliderFloat(
-                    "Animation time",
-                    &m_currentAnimationTime,
-                    0.0f,
-                    animation->m_animationNameAndLength[m_currentActivatedAnimation]))
+            ImGui::SliderFloat(
+                "Animation time",
+                &m_currentAnimationTime,
+                0.0f,
+                animation->GetAnimationLength(m_currentActivatedAnimation));
+            /*
+            static bool autoPlay = false;
+            if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &autoPlay);
+            static std::weak_ptr<Animator> previousAnimatorPtr;
+            static std::string lastAnimationName = {};
+            static float lastAnimationTime = 0;
+            if (autoPlay) {
+                static float autoPlaySpeed = 30;
+                if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() != this)
+                {
+	                const auto previousAnimator = previousAnimatorPtr.lock();
+                    previousAnimator->Animate(lastAnimationName, lastAnimationTime);
+                    if (animation->HasAnimation(m_currentActivatedAnimation)) {
+                        lastAnimationName = m_currentActivatedAnimation;
+                        lastAnimationTime = m_currentAnimationTime;
+                    }else
+                    {
+                        lastAnimationName = {};
+                        lastAnimationTime = 0.0f;
+                    }
+                    previousAnimatorPtr = std::dynamic_pointer_cast<Animator>(ProjectManager::GetAsset(GetHandle()));
+                }
+
+                ImGui::DragFloat("AutoPlay Speed", &autoPlaySpeed, 1.0f);
+                if (animation->HasAnimation(m_currentActivatedAnimation)) {
+                    m_currentAnimationTime += Time::DeltaTime() * autoPlaySpeed;
+                    const float animationLength = animation->GetAnimationLength(m_currentActivatedAnimation);
+                    if (m_currentAnimationTime > animationLength)
+                        m_currentAnimationTime =
+                        glm::mod(m_currentAnimationTime, animationLength);
+                }
+            }else if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() == this)
             {
-                m_needAnimate = true;
-            }
+                const auto previousAnimator = previousAnimatorPtr.lock();
+                previousAnimator->Animate(lastAnimationName, lastAnimationTime);
+                if (animation->HasAnimation(m_currentActivatedAnimation)) {
+                    lastAnimationName = m_currentActivatedAnimation;
+                    lastAnimationTime = m_currentAnimationTime;
+                }
+                else
+                {
+                    lastAnimationName = {};
+                    lastAnimationTime = 0.0f;
+                }
+                previousAnimatorPtr.reset();
+            }*/
+            
         }
     }
 }
-void Animator::AutoPlay()
-{
-	const auto animation = m_animation.Get<Animation>();
-    if (!animation)
-        return;
-    if (m_needAnimationSetup)
-        Setup();
-    m_currentAnimationTime += Time::DeltaTime() * m_autoPlaySpeed;
-    if (m_currentAnimationTime > animation->m_animationNameAndLength[m_currentActivatedAnimation])
-        m_currentAnimationTime =
-            glm::mod(m_currentAnimationTime, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
-    m_needAnimate = true;
-}
-float Animator::CurrentAnimationTime() const
+float Animator::GetCurrentAnimationTimePoint() const
 {
     return m_currentAnimationTime;
 }
 
-std::string Animator::CurrentAnimationName()
+std::string Animator::GetCurrentAnimationName()
 {
     return m_currentActivatedAnimation;
 }
@@ -129,15 +152,14 @@ void Animator::Animate(const std::string& animationName, const float time)
 	const auto animation = m_animation.Get<Animation>();
     if (!animation)
         return;
-	const auto search = animation->m_animationNameAndLength.find(animationName);
-    if(search == animation->m_animationNameAndLength.end()){
+	const auto search = animation->UnsafeGetAnimationLengths().find(animationName);
+    if(search == animation->UnsafeGetAnimationLengths().end()){
         EVOENGINE_ERROR("Animation not found!");
         return;
     }
     m_currentActivatedAnimation = animationName;
     m_currentAnimationTime =
-        glm::mod(time, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
-    m_needAnimate = true;
+        glm::mod(time, search->second);
 }
 void Animator::Animate(const float time)
 {
@@ -145,22 +167,15 @@ void Animator::Animate(const float time)
     if (!animation)
         return;
     m_currentAnimationTime =
-        glm::mod(time, animation->m_animationNameAndLength[m_currentActivatedAnimation]);
-    m_needAnimate = true;
+        glm::mod(time, animation->GetAnimationLength(m_currentActivatedAnimation));
 }
 void Animator::Apply()
 {
-    if (!m_needAnimate)
-        return;
-    if (const auto animation = m_animation.Get<Animation>())
+    if (const auto animation = m_animation.Get<Animation>(); !animation->IsEmpty())
     {
-        if (m_needAnimationSetup)
-            Setup();
-
-        if (animation->m_animationNameAndLength.find(m_currentActivatedAnimation) ==
-            animation->m_animationNameAndLength.end())
+        if (!animation->HasAnimation(m_currentActivatedAnimation))
         {
-            m_currentActivatedAnimation = animation->m_animationNameAndLength.begin()->first;
+            m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
             m_currentAnimationTime = 0.0f;
         }
         if (const auto owner = GetOwner(); owner.GetIndex() != 0)
@@ -169,8 +184,6 @@ void Animator::Apply()
             ApplyOffsetMatrices();
         }
     }
-    m_needAnimate = false;
-    m_animatedCurrentFrame = true;
 }
 
 void Animator::BoneSetter(const std::shared_ptr<Bone> &boneWalker)
@@ -202,13 +215,10 @@ void Animator::ApplyOffsetMatrices()
 
 glm::mat4 Animator::GetReverseTransform(const int &index, const Entity& entity)
 {
-    if (m_needAnimationSetup)
-        Setup();
     return m_transformChain[index] * glm::inverse(m_bones[index]->m_offsetMatrix.m_value);
 }
 void Animator::PostCloneAction(const std::shared_ptr<IPrivateComponent> &target)
 {
-    m_needAnimate = true;
 }
 
 void Animator::CollectAssetRef(std::vector<AssetRef> &list)
@@ -218,8 +228,6 @@ void Animator::CollectAssetRef(std::vector<AssetRef> &list)
 
 void Animator::Serialize(YAML::Emitter &out)
 {
-    out << YAML::Key << "m_autoPlay" << YAML::Value << m_autoPlay;
-
     if (m_animation.Get<Animation>())
     {
         m_animation.Save("m_animation", out);
@@ -253,11 +261,9 @@ void Animator::Serialize(YAML::Emitter &out)
 
 void Animator::Deserialize(const YAML::Node &in)
 {
-    m_autoPlay = in["m_autoPlay"].as<bool>();
     m_animation.Load("m_animation", in);
     if (m_animation.Get<Animation>())
     {
-        m_needAnimationSetup = true;
         m_currentActivatedAnimation = in["m_currentActivatedAnimation"].as<std::string>();
         m_currentAnimationTime = in["m_currentAnimationTime"].as<float>();
         Setup();
@@ -281,8 +287,6 @@ void Animator::Deserialize(const YAML::Node &in)
             m_names.push_back(i["Name"].as<std::string>());
         }
     }
-    m_animatedCurrentFrame = false;
-    m_needAnimate = true;
 }
 
 std::shared_ptr<Animation> Animator::GetAnimation()

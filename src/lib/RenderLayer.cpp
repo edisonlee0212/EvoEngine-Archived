@@ -729,15 +729,10 @@ void RenderLayer::ApplyAnimator() const
 
 		Jobs::ParallelFor(owners->size(), [&](unsigned i)
 			{
+				const auto entity = owners->at(i);
+				if (!scene->IsEntityEnabled(entity)) return;
 				const auto animator = scene->GetOrSetPrivateComponent<Animator>(owners->at(i)).lock();
-				if (animator->m_animatedCurrentFrame)
-				{
-					animator->m_animatedCurrentFrame = false;
-				}
-				if (!Application::IsPlaying() && animator->m_autoPlay)
-				{
-					animator->AutoPlay();
-				}
+				if (!animator->IsEnabled()) return;
 				animator->Apply();
 			}, results);
 		for (const auto& i : results)
@@ -749,7 +744,10 @@ void RenderLayer::ApplyAnimator() const
 		std::vector<std::shared_future<void>> results;
 		Jobs::ParallelFor(owners->size(), [&](unsigned i)
 			{
-				const auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owners->at(i)).lock();
+				const auto entity = owners->at(i);
+				if (!scene->IsEntityEnabled(entity)) return;
+				const auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(entity).lock();
+			if(!skinnedMeshRenderer->IsEnabled()) return;
 				skinnedMeshRenderer->UpdateBoneMatrices();
 			}, results);
 		for (const auto& i : results)
@@ -757,7 +755,10 @@ void RenderLayer::ApplyAnimator() const
 
 		for (const auto& i : *owners)
 		{
+			if (!scene->IsEntityEnabled(i)) return;
 			const auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(i).lock();
+			if (!skinnedMeshRenderer->IsEnabled()) return;
+			skinnedMeshRenderer->UpdateBoneMatrices();
 			skinnedMeshRenderer->m_boneMatrices->UploadData();
 		}
 	}

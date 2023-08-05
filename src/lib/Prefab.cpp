@@ -292,7 +292,7 @@ void Prefab::ReadAnimations(
                     glm::max(maxAnimationTimeStamp, bone->m_animations[animationName].m_maxTimeStamp);
             }
         }
-        animator->m_animationNameAndLength[animationName] = maxAnimationTimeStamp;
+        animator->m_animationLength[animationName] = maxAnimationTimeStamp;
     }
 }
 std::shared_ptr<Texture2D> Prefab::CollectTexture(

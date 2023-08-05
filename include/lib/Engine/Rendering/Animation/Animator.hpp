@@ -12,19 +12,14 @@ class Animator final : public IPrivateComponent
     std::vector<glm::mat4> m_transformChain;
     std::vector<glm::mat4> m_offsetMatrices;
     std::vector<std::string> m_names;
-    bool m_animatedCurrentFrame = false;
     AssetRef m_animation;
-    bool m_needAnimationSetup = true;
     size_t m_boneSize = 0;
     void BoneSetter(const std::shared_ptr<Bone> &boneWalker);
     void Setup();
     std::string m_currentActivatedAnimation;
     float m_currentAnimationTime;
     void Apply();
-    void AutoPlay();
   public:
-    [[nodiscard]] bool AnimatedCurrentFrame() const;
-    bool m_needAnimate = true;
     /**
      * Only set offset matrices, so the animator can be used as ragDoll.
      * @param name Name of the bones
@@ -33,12 +28,12 @@ class Animator final : public IPrivateComponent
     void Setup(const std::vector<std::string> &name, const std::vector<glm::mat4> &offsetMatrices);
     void ApplyOffsetMatrices();
     glm::mat4 GetReverseTransform(const int &index, const Entity &entity);
-    bool m_autoPlay = false;
-    float m_autoPlaySpeed = 30;
-    [[nodiscard]] float CurrentAnimationTime() const;
-    [[nodiscard]] std::string CurrentAnimationName();
+
+    [[nodiscard]] float GetCurrentAnimationTimePoint() const;
+    [[nodiscard]] std::string GetCurrentAnimationName();
     void Animate(const std::string& animationName, float time);
     void Animate(float time);
+
     void OnDestroy() override;
     void Setup(const std::shared_ptr<Animation> &targetAnimation);
     void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;

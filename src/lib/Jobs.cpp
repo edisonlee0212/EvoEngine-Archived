@@ -1,7 +1,7 @@
 #include "Engine/Core/Jobs.hpp"
 using namespace EvoEngine;
 
-void Jobs::ResizeWorkers(const unsigned size)
+void Jobs::ResizeWorkers(const size_t size)
 {
     GetInstance().m_workers.FinishAll(true);
     GetInstance().m_workers.Resize(size);
@@ -17,7 +17,7 @@ void Jobs::Initialize()
     Workers().Resize(std::thread::hardware_concurrency() - 1);
 }
 void Jobs::ParallelFor(
-	const unsigned size, const std::function<void(unsigned i)> &func, std::vector<std::shared_future<void>> &results)
+	const size_t size, const std::function<void(unsigned i)> &func, std::vector<std::shared_future<void>> &results)
 {
     auto &workers = GetInstance().m_workers;
     const auto threadSize = workers.Size();
@@ -42,7 +42,7 @@ void Jobs::ParallelFor(
     }
 }
 
-void Jobs::ParallelFor(const unsigned size, const std::function<void(unsigned i, unsigned threadIndex)>& func,
+void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func,
                        std::vector<std::shared_future<void>>& results)
 {
     auto& workers = GetInstance().m_workers;

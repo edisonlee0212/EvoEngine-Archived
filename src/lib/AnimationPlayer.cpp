@@ -1,5 +1,5 @@
 #include "AnimationPlayer.hpp"
-
+#include "Time.hpp"
 #include "Animator.hpp"
 #include "Scene.hpp"
 
@@ -15,6 +15,21 @@ void AnimationPlayer::Update()
             const auto animation = animator->GetAnimation();
             if (!animation)
                 return;
+			float currentAnimationTime = animator->GetCurrentAnimationTimePoint();
+			currentAnimationTime += Time::DeltaTime() * m_autoPlaySpeed;
+			if (currentAnimationTime > animation->GetAnimationLength(animator->GetCurrentAnimationName()))
+				currentAnimationTime =
+				glm::mod(currentAnimationTime, animation->GetAnimationLength(animator->GetCurrentAnimationName()));
+			animator->Animate(currentAnimationTime);
 		}
+	}
+}
+
+void AnimationPlayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+{
+	ImGui::Checkbox("AutoPlay", &m_autoPlay);
+	if(m_autoPlay)
+	{
+		ImGui::DragFloat("AutoPlay Speed", &m_autoPlaySpeed, 1.0f);
 	}
 }

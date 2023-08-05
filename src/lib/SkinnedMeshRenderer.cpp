@@ -40,7 +40,7 @@ void SkinnedMeshRenderer::UpdateBoneMatrices()
 	{
 		if (m_ragDollFreeze)
 			return;
-		
+
 		m_boneMatrices->m_value.resize(skinnedMesh->m_boneAnimatorIndices.size());
 		for (int i = 0; i < m_boundEntities.size(); i++)
 		{
