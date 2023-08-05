@@ -92,7 +92,7 @@ int main() {
 			LoadScene(scene, "Rendering Demo");
             const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
             Transform physicsDemoTransform;
-            physicsDemoTransform.SetPosition(glm::vec3(1.0f, -0.75f, -3.0f));
+            physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
             scene->SetDataComponent(physicsDemo, physicsDemoTransform);
 #pragma region Dynamic Lighting
             const auto dirLightEntity = scene->CreateEntity("Directional Light");
@@ -152,6 +152,7 @@ int main() {
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
 {
     auto baseEntity = scene->CreateEntity(baseEntityName);
+    /*
 #pragma region Create 9 spheres in different PBR properties
     int amount = 6;
     auto collection = scene->CreateEntity("Spheres");
@@ -182,6 +183,7 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
     scene->SetDataComponent(collection, collectionTransform);
     scene->SetParent(collection, baseEntity);
 #pragma endregion
+	*/
 #pragma region Load models and display
 
     const auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
@@ -280,10 +282,10 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
             {
                 auto& sphere = spheres[i * amount * amount + j * amount + k];
                 Transform transform;
-                glm::vec3 position = glm::vec3(i - amount / 2.0f, j - amount / 2.0f, k - amount / 2.0f);
-                position += glm::linearRand(glm::vec3(-1.0f), glm::vec3(1.0f)) * scaleFactor;
-                transform.SetPosition(position * 2.4f * scaleFactor);
-                transform.SetScale(glm::vec3(2.0f * scaleFactor));
+                glm::vec3 position = glm::vec3(i + 0.5f - amount / 2.0f, j + 0.5f - amount / 2.0f, k + 0.5f - amount / 2.0f);
+                position += glm::linearRand(glm::vec3(-0.5f), glm::vec3(0.5f)) * scaleFactor;
+                transform.SetPosition(position * 5.f * scaleFactor);
+                transform.SetScale(glm::vec3(4.0f * scaleFactor));
                 scene->SetDataComponent(sphere, transform);
                 const auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(sphere).lock();
                 meshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
@@ -297,7 +299,7 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
                 rigidBody->SetDensityAndMassCenter(0.1f);
                 auto sphereCollider = ProjectManager::CreateTemporaryAsset<Collider>();
                 sphereCollider->SetShapeType(ShapeType::Sphere);
-                sphereCollider->SetShapeParam(glm::vec3(1.0f * scaleFactor));
+                sphereCollider->SetShapeParam(glm::vec3(2.0f * scaleFactor));
                 rigidBody->AttachCollider(sphereCollider);
                 scene->SetParent(sphere, collection);
             }
@@ -309,16 +311,17 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
     {
 
         const auto ground =
-            CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -25, -10) * scaleFactor, glm::vec3(0), glm::vec3(30, 1, 30) * scaleFactor, "Ground");
+            CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -35, 0) * scaleFactor, glm::vec3(0), glm::vec3(30, 1, 60) * scaleFactor, "Ground");
 
-        const auto rightWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(30, -10, -10) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 30) * scaleFactor, "LeftWall");
-        const auto leftWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(-30, -10, -10) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 30) * scaleFactor, "RightWall");
-        //const auto frontWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -10, 30) * scaleFactor, glm::vec3(0), glm::vec3(30, 15, 1) * scaleFactor, "FrontWall");
-        const auto backWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -10, -40) * scaleFactor, glm::vec3(0), glm::vec3(30, 15, 1) * scaleFactor, "BackWall");
+        const auto rightWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(30, -20, 0) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 60) * scaleFactor, "LeftWall");
+        const auto leftWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(-30, -20, 0) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 60) * scaleFactor, "RightWall");
+        const auto frontWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -30, 60) * scaleFactor, glm::vec3(0), glm::vec3(30, 5, 1) * scaleFactor, "FrontWall");
+        const auto backWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -20, -60) * scaleFactor, glm::vec3(0), glm::vec3(30, 15, 1) * scaleFactor, "BackWall");
         scene->SetParent(rightWall, collection);
         scene->SetParent(ground, collection);
         scene->SetParent(backWall, collection);
         scene->SetParent(leftWall, collection);
+        scene->SetParent(frontWall, collection);
     	/*
         const auto b1 = CreateDynamicCube(
             1.0, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(-5, -7.5, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(0.5) * scaleFactor, "Block 1");
