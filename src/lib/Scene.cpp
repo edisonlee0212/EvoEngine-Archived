@@ -301,7 +301,7 @@ void Scene::Serialize(YAML::Emitter& out)
         {
             element.m_privateComponentData->CollectAssetRef(list);
         }
-        entityMetadata.Serialize(out, std::dynamic_pointer_cast<Scene>(m_self.lock()));
+        entityMetadata.Serialize(out, std::dynamic_pointer_cast<Scene>(GetSelf()));
     }
     out << YAML::EndSeq;
 #pragma endregion
@@ -388,7 +388,7 @@ void Scene::Serialize(YAML::Emitter& out)
 void Scene::Deserialize(const YAML::Node& in)
 {
     EVOENGINE_LOG("Loading scene...");
-    auto scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
+    auto scene = std::dynamic_pointer_cast<Scene>(GetSelf());
     m_sceneDataStorage.m_entities.clear();
     m_sceneDataStorage.m_entityMetadataList.clear();
     m_sceneDataStorage.m_dataComponentStorages.clear();
@@ -491,7 +491,7 @@ void Scene::Deserialize(const YAML::Node& in)
         }
         storageIndex++;
     }
-    auto self = std::dynamic_pointer_cast<Scene>(m_self.lock());
+    auto self = std::dynamic_pointer_cast<Scene>(GetSelf());
 #pragma endregion
     m_mainCamera.Load("m_mainCamera", in, self);
 #pragma region Assets
@@ -672,7 +672,7 @@ void Scene::OnCreate()
     m_sceneDataStorage.m_entities.emplace_back();
     m_sceneDataStorage.m_entityMetadataList.emplace_back();
     m_sceneDataStorage.m_dataComponentStorages.emplace_back();
-    m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
+    m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 }
 
 
@@ -1608,7 +1608,7 @@ void Scene::SetPrivateComponent(const Entity& entity, const std::shared_ptr<IPri
 
     auto id = Serialization::GetSerializableTypeId(typeName);
     m_sceneDataStorage.m_entityPrivateComponentStorage.SetPrivateComponent(entity, id);
-    elements.emplace_back(id, ptr, entity, std::dynamic_pointer_cast<Scene>(m_self.lock()));
+    elements.emplace_back(id, ptr, entity, std::dynamic_pointer_cast<Scene>(GetSelf()));
     m_saved = false;
 }
 

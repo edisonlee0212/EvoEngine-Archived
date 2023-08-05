@@ -7,6 +7,8 @@ namespace EvoEngine
 	class AssetRecord;
 	class IAsset : public ISerializable
 	{
+	private:
+		std::weak_ptr<IAsset> m_self;
 	protected:
 		friend class Resources;
 		friend class EditorLayer;
@@ -15,7 +17,7 @@ namespace EvoEngine
 		friend class AssetRecord;
 		friend class Folder;
 		std::weak_ptr<AssetRecord> m_assetRecord;
-		std::weak_ptr<IAsset> m_self;
+		[[nodiscard]] std::shared_ptr<IAsset> GetSelf() const;
 		/**
 		 * The function that handles serialization. May be invoked by SaveInternal() or ProjectManager.
 		 * Function is virtual so user can define their own serialization procedure.

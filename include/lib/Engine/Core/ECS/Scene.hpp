@@ -609,7 +609,7 @@ namespace EvoEngine
             return std::dynamic_pointer_cast<T>(search->second);
         auto ptr = Serialization::ProduceSerializable<T>();
         auto system = std::dynamic_pointer_cast<ISystem>(ptr);
-        system->m_scene = std::dynamic_pointer_cast<Scene>(m_self.lock());
+        system->m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
         system->m_handle = Handle();
         system->m_rank = rank;
         m_systems.insert({ rank, system });
@@ -948,7 +948,7 @@ namespace EvoEngine
             i++;
         }
         auto ptr = m_sceneDataStorage.m_entityPrivateComponentStorage.GetOrSetPrivateComponent<T>(entity);
-        elements.emplace_back(typeid(T).hash_code(), ptr, entity, std::dynamic_pointer_cast<Scene>(m_self.lock()));
+        elements.emplace_back(typeid(T).hash_code(), ptr, entity, std::dynamic_pointer_cast<Scene>(GetSelf()));
         m_saved = false;
         return std::move(ptr);
     }

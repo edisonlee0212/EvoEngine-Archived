@@ -26,6 +26,12 @@ bool IAsset::Load()
     }
     return false;
 }
+
+std::shared_ptr<IAsset> IAsset::GetSelf() const
+{
+    return m_self.lock();
+}
+
 bool IAsset::SaveInternal(const std::filesystem::path &path)
 {
     try
