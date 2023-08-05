@@ -24,6 +24,9 @@
 #include "LightProbe.hpp"
 #include "PlayerController.hpp"
 #include "ReflectionProbe.hpp"
+#include "RigidBody.hpp"
+#include "PhysicsLayer.hpp"
+#include "Joint.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -374,9 +377,10 @@ void Application::InitializeRegistry()
 {
 	ClassRegistry::RegisterDataComponent<Ray>("Ray");
 
+	ClassRegistry::RegisterAsset<Collider>("Collider", { "uecollider" });
 
-	//ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
-	//ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
+	ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
+	ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
 	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
 	ClassRegistry::RegisterPrivateComponent<AnimationPlayer>("AnimationPlayer");
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
@@ -390,7 +394,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
 	//ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
-	//ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
+	ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
 
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
@@ -410,7 +414,7 @@ void Application::InitializeRegistry()
 
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
 	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".evesmesh" });
-	//ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysmat" });
+	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysmat" });
 }
 
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)

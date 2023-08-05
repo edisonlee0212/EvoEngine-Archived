@@ -7,6 +7,7 @@
 #include "PlayerController.hpp"
 #include "Prefab.hpp"
 #include "Time.hpp"
+#include "PhysicsLayer.hpp"
 using namespace EvoEngine;
 
 void LoadScene();
@@ -27,7 +28,7 @@ int main() {
     Application::PushLayer<WindowLayer>();
 	Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
-
+    Application::PushLayer<PhysicsLayer>();
     ApplicationInfo applicationInfo;
     applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
 
