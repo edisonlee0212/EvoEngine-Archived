@@ -57,7 +57,10 @@ void Application::PreUpdateInternal()
 	{
 		i->PreUpdate();
 	}
-	if (Time::m_steps == 0) Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+	if (Time::m_steps == 0) {
+		Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+		Time::m_steps = 1;
+	}
 	const auto lastFixedUpdateTime = Time::m_lastFixedUpdateTime;
 	std::chrono::duration<double> duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 	size_t step = 1;

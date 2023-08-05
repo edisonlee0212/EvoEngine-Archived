@@ -1524,17 +1524,17 @@ void Graphics::Initialize()
 
 		constexpr VkDescriptorPoolSize renderLayerDescriptorPoolSizes[] =
 		{
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1024 },
-			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1024 }
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8192 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 8192 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8192 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 8192 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 8192 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 8192 }
 		};
 
 		VkDescriptorPoolCreateInfo renderLayerDescriptorPoolInfo{};
@@ -1542,7 +1542,7 @@ void Graphics::Initialize()
 		renderLayerDescriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		renderLayerDescriptorPoolInfo.poolSizeCount = std::size(renderLayerDescriptorPoolSizes);
 		renderLayerDescriptorPoolInfo.pPoolSizes = renderLayerDescriptorPoolSizes;
-		renderLayerDescriptorPoolInfo.maxSets = 1024;
+		renderLayerDescriptorPoolInfo.maxSets = 8192;
 		graphics.m_descriptorPool = std::make_unique<DescriptorPool>(renderLayerDescriptorPoolInfo);
 
 

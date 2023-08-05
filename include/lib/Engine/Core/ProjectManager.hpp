@@ -92,7 +92,7 @@ namespace EvoEngine
 		friend class Resources;
 		std::shared_ptr<Folder> m_projectFolder;
 		std::filesystem::path m_projectPath;
-		std::optional<std::function<void()>> m_newSceneCustomizer;
+		std::optional<std::function<void(const std::shared_ptr<Scene>&)>> m_newSceneCustomizer;
 		std::weak_ptr<Folder> m_currentFocusedFolder;
 		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_residentAsset;
 		std::unordered_map<Handle, std::weak_ptr<IAsset>> m_assetRegistry;
@@ -124,15 +124,15 @@ namespace EvoEngine
 		static void FolderHierarchyHelper(const std::shared_ptr<Folder>& folder);
 
 	public:
-		static std::shared_ptr<IAsset> DuplicateAsset(const std::shared_ptr<IAsset>& target);
+		[[nodiscard]] static std::shared_ptr<IAsset> DuplicateAsset(const std::shared_ptr<IAsset>& target);
 		std::shared_ptr<IAsset> m_inspectingAsset;
 		bool m_showProjectWindow = true;
 		bool m_showAssetInspectorWindow = true;
-		static std::weak_ptr<Scene> GetStartScene();
+		[[nodiscard]] static std::weak_ptr<Scene> GetStartScene();
 		static void SetStartScene(const std::shared_ptr<Scene>& scene);
 		static void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer);
 		static void SaveProject();
-		static void SetScenePostLoadActions(const std::function<void()>& actions);
+		static void SetScenePostLoadActions(const std::function<void(const std::shared_ptr<Scene>&)>& actions);
 		[[nodiscard]] static std::filesystem::path GenerateNewPath(const std::string& prefix, const std::string& postfix);
 		[[nodiscard]] static std::weak_ptr<Folder> GetCurrentFocusedFolder();
 		[[nodiscard]] static std::filesystem::path GetProjectPath();

@@ -5,6 +5,7 @@
 #include "EditorLayer.hpp"
 #include "Prefab.hpp"
 #include "Resources.hpp"
+#include "PhysicsLayer.hpp"
 using namespace EvoEngine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
@@ -709,10 +710,10 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
 #pragma endregion
 		
-		//scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);
+		if(Application::GetLayer<PhysicsLayer>()) scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);
 
 		if (projectManager.m_newSceneCustomizer.has_value())
-			projectManager.m_newSceneCustomizer.value()();
+			projectManager.m_newSceneCustomizer.value()(scene);
 	}
 }
 void ProjectManager::SaveProject()
@@ -846,9 +847,10 @@ std::filesystem::path ProjectManager::GenerateNewPath(const std::string& prefix,
 		return prefix + postfix;
 	return prefix + " (" + std::to_string(i) + ")" + postfix;
 }
-void ProjectManager::SetScenePostLoadActions(const std::function<void()>& actions)
+void ProjectManager::SetScenePostLoadActions(const std::function<void(const std::shared_ptr<Scene>&)>& actions)
 {
-	GetInstance().m_newSceneCustomizer = actions;
+	auto& projectManager = GetInstance();
+	projectManager.m_newSceneCustomizer = actions;
 }
 void ProjectManager::ScanProject()
 {

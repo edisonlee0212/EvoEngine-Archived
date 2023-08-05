@@ -39,23 +39,23 @@ void Scene::SetBound(const Bound& value)
 Scene::~Scene()
 {
     Purge();
-    for (auto& i : m_systems)
+    for (const auto& i : m_systems)
     {
         i.second->OnDestroy();
     }
 }
 
-void Scene::Start()
+void Scene::Start() const
 {
-    auto entities = m_sceneDataStorage.m_entities;
+    const auto entities = m_sceneDataStorage.m_entities;
     for (const auto& entity : entities)
     {
         if (entity.m_version == 0)
             continue;
-        auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
+        const auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
         if (!entityInfo.m_enabled)
             continue;
-        for (auto& privateComponentElement : entityInfo.m_privateComponentElements)
+        for (const auto& privateComponentElement : entityInfo.m_privateComponentElements)
         {
             if (!privateComponentElement.m_privateComponentData->m_enabled)
                 continue;
@@ -70,33 +70,30 @@ void Scene::Start()
                 break;
         }
     }
-    /*
     for (auto& i : m_systems)
     {
         if (i.second->Enabled())
         {
-            ProfilerLayer::StartEvent(i.second->GetTypeName());
             if (!i.second->m_started)
             {
                 i.second->Start();
                 i.second->m_started = true;
             }
-            ProfilerLayer::EndEvent(i.second->GetTypeName());
         }
-    }*/
+    }
 }
 
-void Scene::Update()
+void Scene::Update() const
 {
-    auto entities = m_sceneDataStorage.m_entities;
+    const auto entities = m_sceneDataStorage.m_entities;
     for (const auto& entity : entities)
     {
         if (entity.m_version == 0)
             continue;
-        auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
+        const auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
         if (!entityInfo.m_enabled)
             continue;
-        for (auto& privateComponentElement : entityInfo.m_privateComponentElements)
+        for (const auto& privateComponentElement : entityInfo.m_privateComponentElements)
         {
             if (!privateComponentElement.m_privateComponentData->m_enabled ||
                 !privateComponentElement.m_privateComponentData->m_started)
@@ -106,30 +103,27 @@ void Scene::Update()
                 break;
         }
     }
-    /*
+    
     for (auto& i : m_systems)
     {
         if (i.second->Enabled() && i.second->m_started)
         {
-            ProfilerLayer::StartEvent(i.second->GetTypeName());
             i.second->Update();
-            ProfilerLayer::EndEvent(i.second->GetTypeName());
         }
     }
-    */
 }
 
-void Scene::LateUpdate()
+void Scene::LateUpdate() const
 {
-    auto entities = m_sceneDataStorage.m_entities;
+    const auto entities = m_sceneDataStorage.m_entities;
     for (const auto& entity : entities)
     {
         if (entity.m_version == 0)
             continue;
-        auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
+        const auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
         if (!entityInfo.m_enabled)
             continue;
-        for (auto& privateComponentElement : entityInfo.m_privateComponentElements)
+        for (const auto& privateComponentElement : entityInfo.m_privateComponentElements)
         {
             if (!privateComponentElement.m_privateComponentData->m_enabled ||
                 !privateComponentElement.m_privateComponentData->m_started)
@@ -139,29 +133,27 @@ void Scene::LateUpdate()
                 break;
         }
     }
-    /*
+    
     for (auto& i : m_systems)
     {
         if (i.second->Enabled() && i.second->m_started)
         {
-            ProfilerLayer::StartEvent(i.second->GetTypeName());
             i.second->LateUpdate();
-            ProfilerLayer::EndEvent(i.second->GetTypeName());
         }
     }
-    */
+    
 }
-void Scene::FixedUpdate()
+void Scene::FixedUpdate() const
 {
-    auto entities = m_sceneDataStorage.m_entities;
+	const auto entities = m_sceneDataStorage.m_entities;
     for (const auto& entity : entities)
     {
         if (entity.m_version == 0)
             continue;
-        auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
+        const auto entityInfo = m_sceneDataStorage.m_entityMetadataList[entity.m_index];
         if (!entityInfo.m_enabled)
             continue;
-        for (auto& privateComponentElement : entityInfo.m_privateComponentElements)
+        for (const auto& privateComponentElement : entityInfo.m_privateComponentElements)
         {
             if (!privateComponentElement.m_privateComponentData->m_enabled ||
                 !privateComponentElement.m_privateComponentData->m_started)
@@ -171,17 +163,15 @@ void Scene::FixedUpdate()
                 break;
         }
     }
-    /*
-    for (auto& i : m_systems)
+    
+    for (const auto& i : m_systems)
     {
         if (i.second->Enabled() && i.second->m_started)
         {
-            ProfilerLayer::StartEvent(i.second->GetTypeName());
             i.second->FixedUpdate();
-            ProfilerLayer::EndEvent(i.second->GetTypeName());
         }
     }
-    */
+    
 }
 static const char* EnvironmentTypes[]{ "Environmental Map", "Color" };
 void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -191,20 +181,18 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             m_saved = false;
     if (ImGui::TreeNodeEx("Environment Settings", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        static int type = (int)m_environment.m_environmentType;
+        static int type = static_cast<int>(m_environment.m_environmentType);
         if (ImGui::Combo("Environment type", &type, EnvironmentTypes, IM_ARRAYSIZE(EnvironmentTypes)))
         {
-            m_environment.m_environmentType = (EnvironmentType)type;
+            m_environment.m_environmentType = static_cast<EnvironmentType>(type);
             m_saved = false;
         }
         switch (m_environment.m_environmentType)
         {
         case EnvironmentType::EnvironmentalMap: {
-            /*
         		if (editorLayer->DragAndDropButton<EnvironmentalMap>(
                 m_environment.m_environmentalMap, "Environmental Map"))
                 m_saved = false;
-                */
         }
                                               break;
         case EnvironmentType::Color: {
@@ -319,7 +307,7 @@ void Scene::Serialize(YAML::Emitter& out)
 #pragma region Assets
     for (auto& i : list)
     {
-        auto asset = i.Get<IAsset>();
+	    const auto asset = i.Get<IAsset>();
         
         if (asset && !Resources::IsResource(asset->GetHandle()))
         {

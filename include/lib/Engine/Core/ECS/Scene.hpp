@@ -249,10 +249,10 @@ namespace EvoEngine
         void SetBound(const Bound& value);
         template <typename T = ISystem> void DestroySystem();
         ~Scene() override;
-        void FixedUpdate();
-        void Start();
-        void Update();
-        void LateUpdate();
+        void FixedUpdate() const;
+        void Start() const;
+        void Update() const;
+        void LateUpdate() const;
         void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
         void Serialize(YAML::Emitter& out) override;
         void Deserialize(const YAML::Node& in) override;
