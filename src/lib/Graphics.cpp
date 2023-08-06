@@ -175,9 +175,13 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
-	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH_STENCIL)
+	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH)
 	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if (imageFormat == Constants::RENDER_TEXTURE_STENCIL)
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 	else if (const auto windowLayer = Application::GetLayer<WindowLayer>(); windowLayer && imageFormat == GetSwapchain()->GetImageFormat())
 	{
@@ -1252,8 +1256,7 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
-		standardDeferredLighting->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
-		standardDeferredLighting->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		standardDeferredLighting->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
 
 		standardDeferredLighting->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
@@ -1274,8 +1277,7 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(cameraGBufferLayout);
 		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
-		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
-		standardDeferredLightingSceneCamera->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
 
 		standardDeferredLightingSceneCamera->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
@@ -1397,8 +1399,7 @@ void Graphics::CreateGraphicsPipelines() const
 		brdfLut->m_fragmentShader = Resources::GetResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		brdfLut->m_geometryType = GeometryType::Mesh;
 
-		brdfLut->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
-		brdfLut->m_stencilAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		brdfLut->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
 
 		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
 

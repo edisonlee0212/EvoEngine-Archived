@@ -25,63 +25,14 @@ glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const
 
 void Camera::UpdateGBuffer()
 {
-	m_gBufferDepthView.reset();
 	m_gBufferNormalView.reset();
 	m_gBufferAlbedoView.reset();
 	m_gBufferMaterialView.reset();
 
-	m_gBufferDepth.reset();
 	m_gBufferNormal.reset();
 	m_gBufferAlbedo.reset();
 	m_gBufferMaterial.reset();
 
-
-	{
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent = m_renderTexture->GetExtent();
-		imageInfo.mipLevels = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = Graphics::Constants::G_BUFFER_DEPTH;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		m_gBufferDepth = std::make_unique<Image>(imageInfo);
-
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_gBufferDepth->GetVkImage();
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::Constants::G_BUFFER_DEPTH;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		m_gBufferDepthView = std::make_unique<ImageView>(viewInfo);
-
-		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-		m_gBufferDepthSampler = std::make_unique<Sampler>(samplerInfo);
-	}
 	{
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -227,7 +178,6 @@ void Camera::UpdateGBuffer()
 		});
 
 
-	EditorLayer::UpdateTextureId(m_gBufferDepthImTextureId, m_gBufferDepthSampler->GetVkSampler(), m_gBufferDepthView->GetVkImageView(), m_gBufferDepth->GetLayout());
 	EditorLayer::UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalSampler->GetVkSampler(), m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
 	EditorLayer::UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoSampler->GetVkSampler(), m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
 	EditorLayer::UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(), m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
@@ -235,9 +185,8 @@ void Camera::UpdateGBuffer()
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		imageInfo.imageView = m_gBufferDepthView->GetVkImageView();
-		imageInfo.sampler = m_gBufferDepthSampler->GetVkSampler();
+		imageInfo.imageView = m_renderTexture->GetDepthImageView()->GetVkImageView();
+		imageInfo.sampler = m_renderTexture->m_depthSampler->GetVkSampler();
 		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(10, imageInfo);
 		imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
 		imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
@@ -253,7 +202,6 @@ void Camera::UpdateGBuffer()
 
 void Camera::TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const
 {
-	m_gBufferDepth->TransitImageLayout(commandBuffer, targetLayout);
 	m_gBufferNormal->TransitImageLayout(commandBuffer, targetLayout);
 	m_gBufferAlbedo->TransitImageLayout(commandBuffer, targetLayout);
 	m_gBufferMaterial->TransitImageLayout(commandBuffer, targetLayout);
@@ -312,19 +260,7 @@ void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachment
 	attachmentInfos.push_back(attachment);
 }
 
-VkRenderingAttachmentInfo Camera::GetDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
-{
-	VkRenderingAttachmentInfo attachment{};
-	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
-	attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	attachment.loadOp = loadOp;
-	attachment.storeOp = storeOp;
-
-	attachment.clearValue.depthStencil.depth = 1.0f;
-	attachment.imageView = m_gBufferDepthView->GetVkImageView();
-	return attachment;
-}
 
 float Camera::GetSizeRatio() const
 {
@@ -585,10 +521,6 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 
-			ImGui::Image(m_gBufferDepthImTextureId,
-				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
-				ImVec2(0, 1),
-				ImVec2(1, 0));
 			ImGui::SameLine();
 			ImGui::Image(m_gBufferNormalImTextureId,
 				ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),

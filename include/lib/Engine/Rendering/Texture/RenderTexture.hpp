@@ -4,19 +4,23 @@ namespace EvoEngine{
 	class RenderTexture
 	{
 		friend class Graphics;
+		friend class RenderLayer;
+		friend class Camera;
 		std::shared_ptr<Image> m_colorImage = {};
 		std::shared_ptr<ImageView> m_colorImageView = {};
 
-		std::shared_ptr<Image> m_depthStencilImage = {};
+		std::shared_ptr<Image> m_depthImage = {};
+		std::shared_ptr<Image> m_stencilImage = {};
 		std::shared_ptr<ImageView> m_depthImageView = {};
 		std::shared_ptr<ImageView> m_stencilImageView = {};
 
 		VkExtent3D m_extent;
 		VkImageViewType m_imageViewType;
 		VkFormat m_colorFormat;
-		VkFormat m_depthStencilFormat;
+		VkFormat m_depthFormat;
 
 		std::shared_ptr<Sampler> m_colorSampler = {};
+		std::shared_ptr<Sampler> m_depthSampler = {};
 		ImTextureID m_colorImTextureId = nullptr;
 
 		void Initialize(VkExtent3D extent, VkImageViewType imageViewType);
@@ -32,7 +36,8 @@ namespace EvoEngine{
 		[[nodiscard]] VkFormat GetColorFormat() const;
 		[[nodiscard]] VkFormat GetDepthStencilFormat() const;
 
-		[[nodiscard]] const std::shared_ptr<Sampler>& GetSampler() const;
+		[[nodiscard]] const std::shared_ptr<Sampler>& GetColorSampler() const;
+		[[nodiscard]] const std::shared_ptr<Sampler>& GetDepthSampler() const;
 		[[nodiscard]] const std::shared_ptr<Image>& GetColorImage();
 		[[nodiscard]] const std::shared_ptr<Image>& GetDepthStencilImage();
 		[[nodiscard]] const std::shared_ptr<ImageView>& GetColorImageView();

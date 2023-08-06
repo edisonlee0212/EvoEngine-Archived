@@ -18,7 +18,7 @@ namespace EvoEngine
 		void Serialize(YAML::Emitter& out) const;
 		void Deserialize(const YAML::Node& in);
 	};
-
+	
 	class Mesh final : public IAsset, public IGeometry
 	{
 		Bound m_bound = {};

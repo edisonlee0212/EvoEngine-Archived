@@ -13,7 +13,7 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_depthImageView.reset();
 	m_stencilImageView.reset();
-	m_depthStencilImage.reset();
+	m_depthImage.reset();
 
 	int layerCount = imageViewType == VK_IMAGE_VIEW_TYPE_CUBE ? 6 : 1;
 
@@ -78,31 +78,31 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_colorImageView = std::make_shared<ImageView>(viewInfo);
 
-	VkImageCreateInfo depthStencilInfo{};
-	depthStencilInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	depthStencilInfo.imageType = imageInfo.imageType;
-	depthStencilInfo.extent = extent;
-	depthStencilInfo.mipLevels = 1;
-	depthStencilInfo.arrayLayers = layerCount;
-	depthStencilInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
-	depthStencilInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	depthStencilInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthStencilInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	depthStencilInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthStencilInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VkImageCreateInfo depthInfo{};
+	depthInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	depthInfo.imageType = imageInfo.imageType;
+	depthInfo.extent = extent;
+	depthInfo.mipLevels = 1;
+	depthInfo.arrayLayers = layerCount;
+	depthInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
+	depthInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	depthInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	m_depthStencilImage = std::make_shared<Image>(depthStencilInfo);
+	m_depthImage = std::make_shared<Image>(depthInfo);
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
-			m_depthStencilImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		});
 
 
 	VkImageViewCreateInfo depthViewInfo{};
 	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	depthViewInfo.image = m_depthStencilImage->GetVkImage();
+	depthViewInfo.image = m_depthImage->GetVkImage();
 	depthViewInfo.viewType = imageViewType;
-	depthViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+	depthViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
 	depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthViewInfo.subresourceRange.baseMipLevel = 0;
 	depthViewInfo.subresourceRange.levelCount = 1;
@@ -111,11 +111,47 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_depthImageView = std::make_shared<ImageView>(depthViewInfo);
 
+	VkSamplerCreateInfo depthSamplerInfo{};
+	depthSamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	depthSamplerInfo.magFilter = VK_FILTER_LINEAR;
+	depthSamplerInfo.minFilter = VK_FILTER_LINEAR;
+	depthSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	depthSamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	depthSamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	depthSamplerInfo.anisotropyEnable = VK_TRUE;
+	depthSamplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+	depthSamplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	depthSamplerInfo.unnormalizedCoordinates = VK_FALSE;
+	depthSamplerInfo.compareEnable = VK_FALSE;
+	depthSamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	depthSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+	m_depthSampler = std::make_shared<Sampler>(depthSamplerInfo);
+
+	VkImageCreateInfo stencilInfo{};
+	stencilInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	stencilInfo.imageType = imageInfo.imageType;
+	stencilInfo.extent = extent;
+	stencilInfo.mipLevels = 1;
+	stencilInfo.arrayLayers = layerCount;
+	stencilInfo.format = Graphics::Constants::RENDER_TEXTURE_STENCIL;
+	stencilInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	stencilInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	stencilInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	stencilInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	stencilInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	m_stencilImage = std::make_shared<Image>(stencilInfo);
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+		{
+			m_stencilImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		});
+
 	VkImageViewCreateInfo stencilViewInfo{};
 	stencilViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	stencilViewInfo.image = m_depthStencilImage->GetVkImage();
+	stencilViewInfo.image = m_stencilImage->GetVkImage();
 	stencilViewInfo.viewType = imageViewType;
-	stencilViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+	stencilViewInfo.format = Graphics::Constants::RENDER_TEXTURE_STENCIL;
 	stencilViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	stencilViewInfo.subresourceRange.baseMipLevel = 0;
 	stencilViewInfo.subresourceRange.levelCount = 1;
@@ -124,12 +160,10 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 	m_stencilImageView = std::make_shared<ImageView>(stencilViewInfo);
 
-
-
 	m_extent = extent;
 	m_imageViewType = imageViewType;
 	m_colorFormat = Graphics::Constants::RENDER_TEXTURE_COLOR;
-	m_depthStencilFormat = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+	m_depthFormat = Graphics::Constants::RENDER_TEXTURE_DEPTH;
 
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -226,12 +260,17 @@ VkFormat RenderTexture::GetColorFormat() const
 
 VkFormat RenderTexture::GetDepthStencilFormat() const
 {
-	return m_depthStencilFormat;
+	return m_depthFormat;
 }
 
-const std::shared_ptr<Sampler>& RenderTexture::GetSampler() const
+const std::shared_ptr<Sampler>& RenderTexture::GetColorSampler() const
 {
 	return m_colorSampler;
+}
+
+const std::shared_ptr<Sampler>& RenderTexture::GetDepthSampler() const
+{
+	return m_depthSampler;
 }
 
 const std::shared_ptr<Image>& RenderTexture::GetColorImage()
@@ -241,7 +280,7 @@ const std::shared_ptr<Image>& RenderTexture::GetColorImage()
 
 const std::shared_ptr<Image>& RenderTexture::GetDepthStencilImage()
 {
-	return m_depthStencilImage;
+	return m_depthImage;
 }
 
 const std::shared_ptr<ImageView>& RenderTexture::GetColorImageView()
@@ -274,7 +313,7 @@ const std::vector<VkAttachmentDescription>& RenderTexture::GetAttachmentDescript
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 		static VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = Graphics::Constants::RENDER_TEXTURE_DEPTH_STENCIL;
+		depthAttachment.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

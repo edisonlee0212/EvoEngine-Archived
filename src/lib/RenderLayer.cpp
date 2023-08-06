@@ -1679,22 +1679,25 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = camera->GetSize().x;
 		scissor.extent.height = camera->GetSize().y;
+		
+		camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		camera->m_renderTexture->m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
+		VkRenderingInfo renderInfo{};
+		renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderInfo.renderArea = renderArea;
+		renderInfo.layerCount = 1;
 #pragma endregion
 #pragma region Geometry pass
 		{
-			const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
-			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.pDepthAttachment = &depthAttachment;
 			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
 			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
-			const auto depthAttachment = camera->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
-			VkRenderingInfo renderInfo{};
-			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
-			renderInfo.pDepthAttachment = &depthAttachment;
+
+			const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
 			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
@@ -1729,18 +1732,14 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdEndRendering(commandBuffer);
 		}
 		{
-			const auto& deferredSkinnedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
-			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.pDepthAttachment = &depthAttachment;
 			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
 			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-			const auto depthAttachment = camera->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-			VkRenderingInfo renderInfo{};
-			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-			renderInfo.renderArea = renderArea;
-			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
-			renderInfo.pDepthAttachment = &depthAttachment;
+
+			const auto& deferredSkinnedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
 			deferredSkinnedPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredSkinnedPrepassPipeline->m_states.m_scissor = scissor;
 			deferredSkinnedPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
@@ -1777,23 +1776,21 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdEndRendering(commandBuffer);
 		}
 #pragma endregion
-
 #pragma region Lighting pass
 		{
 			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+			camera->m_renderTexture->m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
 			camera->GetRenderTexture()->AppendColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
-			const auto depthAttachment = camera->GetRenderTexture()->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
 			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
-			renderInfo.pDepthAttachment = &depthAttachment;
+			renderInfo.pDepthAttachment = VK_NULL_HANDLE;
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			
+
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->m_states.m_depthTest = false;
 			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.clear();

@@ -154,7 +154,8 @@ namespace EvoEngine
 			inline constexpr static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline constexpr static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline constexpr static VkFormat TEXTURE_2D = VK_FORMAT_R32G32B32A32_SFLOAT;
-			inline constexpr static VkFormat RENDER_TEXTURE_DEPTH_STENCIL = VK_FORMAT_D32_SFLOAT_S8_UINT;
+			inline constexpr static VkFormat RENDER_TEXTURE_DEPTH = VK_FORMAT_D32_SFLOAT;
+			inline constexpr static VkFormat RENDER_TEXTURE_STENCIL = VK_FORMAT_S8_UINT;
 			inline constexpr static VkFormat RENDER_TEXTURE_COLOR = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline constexpr static VkFormat G_BUFFER_DEPTH = VK_FORMAT_D32_SFLOAT;
 			inline constexpr static VkFormat G_BUFFER_COLOR = VK_FORMAT_R16G16B16A16_SFLOAT;

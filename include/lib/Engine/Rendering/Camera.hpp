@@ -37,11 +37,6 @@ namespace EvoEngine
         std::shared_ptr<RenderTexture> m_renderTexture;
         
         //Deferred shading GBuffer
-        std::shared_ptr<Image> m_gBufferDepth = {};
-        std::shared_ptr<ImageView> m_gBufferDepthView = {};
-        std::shared_ptr<Sampler> m_gBufferDepthSampler = {};
-        ImTextureID m_gBufferDepthImTextureId = {};
-
         std::shared_ptr<Image> m_gBufferNormal = {};
         std::shared_ptr<ImageView> m_gBufferNormalView = {};
         std::shared_ptr<Sampler> m_gBufferNormalSampler = {};
@@ -70,7 +65,6 @@ namespace EvoEngine
 
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
         void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
-        [[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;
