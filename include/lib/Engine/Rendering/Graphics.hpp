@@ -83,9 +83,9 @@ namespace EvoEngine
 
 
 
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice);
-		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice);
-		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions);
+		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice) const;
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice physicalDevice) const;
+		bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions) const;
 
 		void CreateInstance();
 		void CreateSurface();

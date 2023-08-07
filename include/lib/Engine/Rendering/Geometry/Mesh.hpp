@@ -28,10 +28,13 @@ namespace EvoEngine
 
 		VertexAttributes m_vertexAttributes = {};
 
-		std::unique_ptr<Buffer> m_verticesBuffer = {};
+		std::vector<glm::uvec3> m_meshStorageTriangles;
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
+
+		std::vector<uint32_t> m_meshletIndices;
 	public:
 		void OnCreate() override;
+		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const override;
 		void Bind(VkCommandBuffer vkCommandBuffer) const override;
 

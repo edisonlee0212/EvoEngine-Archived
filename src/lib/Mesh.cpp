@@ -3,27 +3,19 @@
 #include "Console.hpp"
 #include "Graphics.hpp"
 #include "ClassRegistry.hpp"
+#include "MeshStorage.hpp"
 using namespace EvoEngine;
 
 void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 {
 	constexpr VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &m_verticesBuffer->GetVkBuffer(), offsets);
+	//vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &m_verticesBuffer->GetVkBuffer(), offsets);
+	MeshStorage::Bind(vkCommandBuffer);
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
 }
 
 void Mesh::OnCreate()
 {
-	VkBufferCreateInfo verticesBufferCreateInfo{};
-	verticesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	verticesBufferCreateInfo.size = 1;
-	verticesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	verticesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
-	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_verticesBuffer = std::make_unique<Buffer>(verticesBufferCreateInfo, verticesVmaAllocationCreateInfo);
-
 	VkBufferCreateInfo trianglesBufferCreateInfo{};
 	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	trianglesBufferCreateInfo.size = 1;
@@ -32,6 +24,12 @@ void Mesh::OnCreate()
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+}
+
+Mesh::~Mesh()
+{
+	MeshStorage::Free(m_meshletIndices);
+	m_meshletIndices.clear();
 }
 
 void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics) const
@@ -49,18 +47,16 @@ void Mesh::UploadData()
 {
 	if (m_vertices.empty())
 	{
-		EVOENGINE_ERROR("Vertices empty!")
-			return;
+		EVOENGINE_ERROR("Vertices empty!");
+		return;
 	}
-	if (m_triangles.empty())
+	if (m_meshStorageTriangles.empty())
 	{
-		EVOENGINE_ERROR("Triangles empty!")
-			return;
+		EVOENGINE_ERROR("Triangles empty!");
+		return;
 	}
 	m_version++;
-
-	m_verticesBuffer->UploadVector(m_vertices);	
-	m_trianglesBuffer->UploadVector(m_triangles);
+	m_trianglesBuffer->UploadVector(m_meshStorageTriangles);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -119,6 +115,24 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes.m_normal = true;
 	m_vertexAttributes.m_tangent = true;
 
+	
+	MeshStorage::Free(m_meshletIndices);
+	m_meshletIndices.clear();
+	MeshStorage::Allocate(vertices, triangles, m_meshletIndices);
+
+	m_meshStorageTriangles.resize(m_triangles.size());
+	size_t currentTriangleIndex = 0;
+	for(const auto& meshletIndex : m_meshletIndices)
+	{
+		auto& meshlet = MeshStorage::PeekMeshlet(meshletIndex);
+		for(size_t i = 0; i < meshlet.m_triangleSize; i++)
+		{
+			m_meshStorageTriangles[currentTriangleIndex].x = meshlet.m_vertexIndices[meshlet.m_triangles[i].x];
+			m_meshStorageTriangles[currentTriangleIndex].y = meshlet.m_vertexIndices[meshlet.m_triangles[i].y];
+			m_meshStorageTriangles[currentTriangleIndex].z = meshlet.m_vertexIndices[meshlet.m_triangles[i].z];
+			currentTriangleIndex++;
+		}
+	}
 	UploadData();
 }
 

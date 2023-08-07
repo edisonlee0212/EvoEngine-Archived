@@ -9,6 +9,7 @@
 #include "Vertex.hpp"
 #include "vk_mem_alloc.h"
 #include "EditorLayer.hpp"
+#include "MeshStorage.hpp"
 #include "RenderLayer.hpp"
 using namespace EvoEngine;
 
@@ -364,9 +365,8 @@ const VkPhysicalDeviceProperties& Graphics::GetVkPhysicalDeviceProperties()
 
 
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	if (func != nullptr) {
+VkResult CreateDebugUtilsMessengerExt(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	if (const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")); func != nullptr) {
 		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	}
 	else {
@@ -374,9 +374,9 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 	}
 }
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func != nullptr) {
+void DestroyDebugUtilsMessengerExt(const VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+	if (const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+		vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")); func != nullptr) {
 		func(instance, debugMessenger, pAllocator);
 	}
 }
@@ -410,9 +410,9 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 
 
 
-QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) {
-
-	auto windowLayer = Application::GetLayer<WindowLayer>();
+QueueFamilyIndices Graphics::FindQueueFamilies(const VkPhysicalDevice physicalDevice) const
+{
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
 	QueueFamilyIndices indices;
 
 	uint32_t queueFamilyCount = 0;
@@ -442,7 +442,8 @@ QueueFamilyIndices Graphics::FindQueueFamilies(VkPhysicalDevice physicalDevice) 
 	return indices;
 }
 
-SwapChainSupportDetails Graphics::QuerySwapChainSupport(VkPhysicalDevice physicalDevice) {
+SwapChainSupportDetails Graphics::QuerySwapChainSupport(const VkPhysicalDevice physicalDevice) const
+{
 	SwapChainSupportDetails details;
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_vkSurface, &details.m_capabilities);
@@ -466,11 +467,10 @@ SwapChainSupportDetails Graphics::QuerySwapChainSupport(VkPhysicalDevice physica
 	return details;
 }
 
-bool Graphics::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions)
+bool Graphics::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredDeviceExtensions) const
 {
 	if (!CheckDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions)) return false;
-	const auto windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer) {
+	if (const auto windowLayer = Application::GetLayer<WindowLayer>()) {
 		const auto swapChainSupportDetails = QuerySwapChainSupport(physicalDevice);
 		if (swapChainSupportDetails.m_formats.empty() || swapChainSupportDetails.m_presentModes.empty()) return false;
 	}
@@ -520,6 +520,7 @@ void Graphics::CreateInstance()
 
 	m_requiredLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> cRequiredLayers;
+	cRequiredLayers.reserve(m_requiredLayers.size());
 	for (const auto& i : m_requiredLayers) cRequiredLayers.emplace_back(i.c_str());
 
 	VkApplicationInfo vkApplicationInfo{};
@@ -544,17 +545,13 @@ void Graphics::CreateInstance()
 	std::vector<const char*> requiredExtensions;
 	if (windowLayer) {
 		uint32_t glfwExtensionCount = 0;
-		const char** glfwExtensions;
-		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 		for (uint32_t i = 0; i < glfwExtensionCount; i++) {
 
 			requiredExtensions.emplace_back(glfwExtensions[i]);
 		}
 	}
-	//For MacOS
-	//instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-	//requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #ifndef NDEBUG
 	requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
@@ -596,7 +593,7 @@ void Graphics::CreateInstance()
 
 void Graphics::CreateSurface()
 {
-	auto windowLayer = Application::GetLayer<WindowLayer>();
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
 #pragma region Surface
 	if (windowLayer) {
 
@@ -614,7 +611,7 @@ void Graphics::CreateDebugMessenger()
 #ifndef NDEBUG
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
 	PopulateDebugMessengerCreateInfo(debugUtilsMessengerCreateInfo);
-	if (CreateDebugUtilsMessengerEXT(m_vkInstance, &debugUtilsMessengerCreateInfo, nullptr, &m_vkDebugMessenger) != VK_SUCCESS) {
+	if (CreateDebugUtilsMessengerExt(m_vkInstance, &debugUtilsMessengerCreateInfo, nullptr, &m_vkDebugMessenger) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to set up debug messenger!");
 	}
 #endif
@@ -675,26 +672,36 @@ void Graphics::CreatePhysicalDevice()
 
 void Graphics::CreateLogicalDevice()
 {
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
 
 	std::vector<const char*> cRequiredDeviceExtensions;
+	cRequiredDeviceExtensions.reserve(m_requiredDeviceExtensions.size());
 	for (const auto& i : m_requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());
 	std::vector<const char*> cRequiredLayers;
+	cRequiredLayers.reserve(m_requiredLayers.size());
 	for (const auto& i : m_requiredLayers) cRequiredLayers.emplace_back(i.c_str());
 
 #pragma region Logical Device
+
+	VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeaturesExt{};
+	meshShaderFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+	meshShaderFeaturesExt.pNext = nullptr;
+	meshShaderFeaturesExt.meshShader = VK_TRUE;
+	meshShaderFeaturesExt.taskShader = VK_TRUE;
+
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{};
 	dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
-	dynamicRenderingFeatures.pNext = nullptr;
+	dynamicRenderingFeatures.pNext = &meshShaderFeaturesExt;
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.geometryShader = VK_TRUE;
-
+	
 	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
 	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
 	physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;
@@ -1034,7 +1041,7 @@ void Graphics::OnDestroy()
 	vkDestroyDevice(m_vkDevice, nullptr);
 #pragma region Debug Messenger
 #ifndef NDEBUG
-	DestroyDebugUtilsMessengerEXT(m_vkInstance, m_vkDebugMessenger, nullptr);
+	DestroyDebugUtilsMessengerExt(m_vkInstance, m_vkDebugMessenger, nullptr);
 #endif
 #pragma endregion
 #pragma region Surface
@@ -1587,7 +1594,7 @@ void Graphics::Initialize()
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
 
-
+	MeshStorage::Initialize();
 
 }
 
@@ -1631,7 +1638,7 @@ void Graphics::PreUpdate()
 	graphics.m_triangles = 0;
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
-
+	MeshStorage::PreUpdate();
 	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 		if (const auto scene = Application::GetActiveScene()) {
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())

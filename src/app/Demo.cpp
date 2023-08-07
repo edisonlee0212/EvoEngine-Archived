@@ -72,9 +72,10 @@ int main() {
 
 
     Application::PushLayer<WindowLayer>();
+    Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
-    Application::PushLayer<PhysicsLayer>();
+    
     ApplicationInfo applicationInfo;
     applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
     ProjectManager::SetScenePostLoadActions([&](const std::shared_ptr<Scene>& scene)
@@ -90,10 +91,10 @@ int main() {
             scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 			LoadScene(scene, "Rendering Demo");
-            const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+            //const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
             Transform physicsDemoTransform;
             physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-            scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+            //scene->SetDataComponent(physicsDemo, physicsDemoTransform);
 #pragma region Dynamic Lighting
             const auto dirLightEntity = scene->CreateEntity("Directional Light");
             const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
