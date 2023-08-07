@@ -5,6 +5,7 @@
 #include "Utilities.hpp"
 #include "ProjectManager.hpp"
 #include "EditorLayer.hpp"
+#include "MeshStorage.hpp"
 #include "Shader.hpp"
 using namespace EvoEngine;
 
@@ -378,15 +379,17 @@ void Resources::Initialize()
 	resources.m_currentMaxHandle = Handle(1);
 
 	resources.LoadShaders();
-	resources.LoadPrimitives();
+	
 
 	const auto missingTexture = CreateResource<Texture2D>("TEXTURE_MISSING");
 	missingTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/texture-missing.png");
-
 }
 
 void Resources::InitializeEnvironmentalMap()
 {
+	auto& resources = GetInstance();
+	resources.LoadPrimitives();
+	MeshStorage::GetInstance().UploadData();
 	const auto defaultEnvironmentalMapTexture = CreateResource<Texture2D>("DEFAULT_ENVIRONMENTAL_MAP_TEXTURE");
 	defaultEnvironmentalMapTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
 	

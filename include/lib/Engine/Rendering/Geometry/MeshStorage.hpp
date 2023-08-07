@@ -33,6 +33,7 @@ namespace EvoEngine
 		bool m_requireDeviceUpdate = false;
 		void UploadData();
 		friend class Graphics;
+		friend class Resources;
 		static void PreUpdate();
 		static void Initialize();
 	public:
