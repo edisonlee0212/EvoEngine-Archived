@@ -150,6 +150,10 @@ namespace EvoEngine
 			inline constexpr static uint32_t MAX_POINT_LIGHT_SIZE = 16;
 			inline constexpr static uint32_t MAX_SPOT_LIGHT_SIZE = 16;
 
+			inline constexpr static uint32_t VERTEX_CHUNK_VERTICES_SIZE = 64;
+			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
+			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
+
 			inline constexpr static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline constexpr static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline constexpr static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 2048;

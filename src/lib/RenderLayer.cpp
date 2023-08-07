@@ -11,6 +11,7 @@
 #include "GraphicsPipeline.hpp"
 #include "Cubemap.hpp"
 #include "Jobs.hpp"
+#include "MeshStorage.hpp"
 using namespace EvoEngine;
 
 void RenderInstanceCollection::Add(const std::shared_ptr<Material>& material, const RenderInstance& renderInstance)
@@ -197,6 +198,11 @@ void RenderLayer::PreUpdate()
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(8, bufferInfo);
 	bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
+
+	bufferInfo.buffer = MeshStorage::GetVertexBuffer()->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(22, bufferInfo);
+	bufferInfo.buffer = MeshStorage::GetMeshletBuffer()->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(23, bufferInfo);
 
 	PreparePointAndSpotLightShadowMap();
 

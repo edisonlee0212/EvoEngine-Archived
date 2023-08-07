@@ -91,10 +91,10 @@ int main() {
             scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 			LoadScene(scene, "Rendering Demo");
-            //const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+            const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
             Transform physicsDemoTransform;
             physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-            //scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+            scene->SetDataComponent(physicsDemo, physicsDemoTransform);
 #pragma region Dynamic Lighting
             const auto dirLightEntity = scene->CreateEntity("Directional Light");
             const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -270,7 +270,7 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
 {
 	const auto baseEntity = scene->CreateEntity(baseEntityName);
 #pragma region Create 9 spheres in different PBR properties
-    const int amount = 10;
+    const int amount = 5;
     const float scaleFactor = 0.03f;
     const auto collection = scene->CreateEntity("Spheres");
     const auto spheres = scene->CreateEntities(amount * amount * amount, "Instance");

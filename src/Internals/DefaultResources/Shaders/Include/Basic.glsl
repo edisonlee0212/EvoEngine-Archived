@@ -162,6 +162,31 @@ layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_SPOT_LIGHT_BLOCK
 	SpotLight EE_SPOT_LIGHTS[];
 };
 
+struct Vertex {
+	vec4 position;
+	vec4 normal;
+	vec4 tangent;
+	vec4 color;
+	vec4 texCoord;
+};
+
+layout(set = EE_PER_FRAME_SET, binding = 22) readonly buffer EE_VERTICES_BLOCK
+{
+	Vertex EE_VERTICES[];
+};
+
+struct Meshlet {
+	uint vertexIndices[MESHLET_MAX_VERTICES_SIZE];
+	uint triangles[MESHLET_MAX_INDICES_SIZE];
+	uint verticesSize;
+	uint triangleSize;
+};
+
+layout(set = EE_PER_FRAME_SET, binding = 23) readonly buffer EE_MESHLETS_BLOCK
+{
+	Meshlet EE_MESHLETS[];
+};
+
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_VIEW_POS(vec2 texCoords, float ndcDepth);

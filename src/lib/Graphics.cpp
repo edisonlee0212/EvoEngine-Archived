@@ -1163,6 +1163,8 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	perFrameLayout->PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(22, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(23, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
 	perFrameLayout->Initialize();
 	RegisterDescriptorSetLayout("PER_FRAME_LAYOUT", perFrameLayout);
 

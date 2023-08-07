@@ -3,18 +3,18 @@ using namespace EvoEngine;
 
 void MeshStorage::UploadData()
 {
-	m_vertexBuffer->UploadVector(m_vertexDataChunks);
-	m_meshletBuffer->UploadVector(m_meshlets);
-	m_requireDeviceUpdate = false;
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if (m_requireDeviceUpdate[currentFrameIndex]) {
+		m_vertexBuffer[currentFrameIndex]->UploadVector(m_vertexDataChunks);
+		m_meshletBuffer[currentFrameIndex]->UploadVector(m_meshlets);
+		m_requireDeviceUpdate[currentFrameIndex] = false;
+	}
 }
 
 void MeshStorage::PreUpdate()
 {
 	auto& storage = GetInstance();
-	if(storage.m_requireDeviceUpdate)
-	{
-		storage.UploadData();
-	}
+	storage.UploadData();
 }
 
 void MeshStorage::Initialize()
@@ -27,21 +27,40 @@ void MeshStorage::Initialize()
 	storageBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
 	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	storage.m_vertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	storage.m_meshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	const auto maxFrameInFlight = Graphics::GetMaxFramesInFlight();
+	for (int i = 0; i < maxFrameInFlight; i++) {
+		storage.m_vertexBuffer.emplace_back(std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo));
+		storage.m_meshletBuffer.emplace_back(std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo));
+	}
+	storage.m_requireDeviceUpdate.resize(maxFrameInFlight);
+}
+
+const std::unique_ptr<Buffer>& MeshStorage::GetVertexBuffer()
+{
+	const auto& storage = GetInstance();
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	return storage.m_vertexBuffer[currentFrameIndex];
+}
+
+const std::unique_ptr<Buffer>& MeshStorage::GetMeshletBuffer()
+{
+	const auto& storage = GetInstance();
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	return storage.m_meshletBuffer[currentFrameIndex];
 }
 
 void MeshStorage::Bind(VkCommandBuffer commandBuffer)
 {
 	const auto& storage = GetInstance();
 	constexpr VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &storage.m_vertexBuffer->GetVkBuffer(), offsets);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &storage.m_vertexBuffer[currentFrameIndex]->GetVkBuffer(), offsets);
 }
 
 const Vertex& MeshStorage::PeekVertex(const size_t vertexIndex)
 {
 	const auto& storage = GetInstance();
-	return storage.m_vertexDataChunks[vertexIndex / VERTEX_CHUNK_VERTICES_SIZE].m_vertexData[vertexIndex % VERTEX_CHUNK_VERTICES_SIZE];
+	return storage.m_vertexDataChunks[vertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_vertexData[vertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE];
 }
 
 void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
@@ -54,10 +73,10 @@ void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vecto
 	std::vector<uint32_t> vertexIndices;
 	vertexIndices.resize(vertices.size());
 	size_t currentChunkIndex = 0;
-	size_t currentVertexIndexInChunk = VERTEX_CHUNK_VERTICES_SIZE - 1;
+	size_t currentVertexIndexInChunk = Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1;
 	for(uint32_t i = 0; i < vertexIndices.size(); i++)
 	{
-		if(currentVertexIndexInChunk == VERTEX_CHUNK_VERTICES_SIZE - 1)
+		if(currentVertexIndexInChunk == Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1)
 		{
 			currentVertexIndexInChunk = 0;
 			if (!storage.m_vertexDataChunkPool.empty())
@@ -71,7 +90,7 @@ void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vecto
 				storage.m_vertexDataChunks.emplace_back();
 			}
 		}
-		vertexIndices[i] = currentChunkIndex * VERTEX_CHUNK_VERTICES_SIZE + currentVertexIndexInChunk;
+		vertexIndices[i] = currentChunkIndex * Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE + currentVertexIndexInChunk;
 		storage.m_vertexDataChunks[currentChunkIndex].m_vertexData[currentVertexIndexInChunk] = vertices[i];
 		currentVertexIndexInChunk++;
 	}
@@ -93,8 +112,8 @@ void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vecto
 		auto& currentMeshlet = storage.m_meshlets[currentMeshletIndex];
 		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
 
-		std::unordered_map<uint32_t, uint8_t> assignedVertices{};
-		while(currentMeshlet.m_triangleSize < MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
+		std::unordered_map<uint32_t, uint32_t> assignedVertices{};
+		while(currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
 		{
 			const auto& currentTriangle = triangles[currentTriangleIndex];
 			uint32_t newVerticesAmount = 0;
@@ -107,7 +126,7 @@ void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vecto
 			auto searchZ = assignedVertices.find(currentTriangle.z);
 			if (searchZ == assignedVertices.end()) newVerticesAmount++;
 
-			if(currentMeshlet.m_verticesSize + newVerticesAmount > MESHLET_MAX_VERTICES_SIZE)
+			if(currentMeshlet.m_verticesSize + newVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 			{
 				break;
 			}
@@ -167,8 +186,7 @@ void MeshStorage::Allocate(const std::vector<Vertex>& vertices, const std::vecto
 		}
 		meshletIndices.emplace_back(currentMeshletIndex);
 	}
-
-	storage.m_requireDeviceUpdate = true;
+	for(auto& i : storage.m_requireDeviceUpdate) i = true;
 }
 
 void MeshStorage::Free(const std::vector<uint32_t>& meshletIndices)
