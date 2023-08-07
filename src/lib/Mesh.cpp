@@ -9,7 +9,6 @@ using namespace EvoEngine;
 void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 {
 	constexpr VkDeviceSize offsets[] = { 0 };
-	//vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &m_verticesBuffer->GetVkBuffer(), offsets);
 	MeshStorage::Bind(vkCommandBuffer);
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
