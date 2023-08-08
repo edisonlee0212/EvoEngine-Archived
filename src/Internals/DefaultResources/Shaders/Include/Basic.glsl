@@ -175,11 +175,7 @@ struct Vertex {
 	vec4 color;
 	vec4 texCoord;
 };
-
-layout(set = EE_PER_FRAME_SET, binding = 12) uniform sampler2D[] EE_TEXTURE_2DS;
-layout(set = EE_PER_FRAME_SET, binding = 13) uniform samplerCube[] EE_CUBEMAPS;
-
-layout(set = EE_PER_FRAME_SET, binding = 22) readonly buffer EE_VERTICES_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 10) readonly buffer EE_VERTICES_BLOCK
 {
 	Vertex EE_VERTICES[];
 };
@@ -191,10 +187,27 @@ struct Meshlet {
 	uint triangleSize;
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 23) readonly buffer EE_MESHLETS_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 11) readonly buffer EE_MESHLETS_BLOCK
 {
 	Meshlet EE_MESHLETS[];
 };
+
+struct RenderTask {
+	uint meshletIndex;
+	uint instanceIndex;
+	uint infoIndex1;
+	uint infoIndex2;
+};
+
+layout(set = EE_PER_FRAME_SET, binding = 12) readonly buffer EE_RENDER_TASKS_BLOCK
+{
+	RenderTask EE_RENDER_TASKS[];
+};
+
+layout(set = EE_PER_FRAME_SET, binding = 13) uniform sampler2D[] EE_TEXTURE_2DS;
+layout(set = EE_PER_FRAME_SET, binding = 14) uniform samplerCube[] EE_CUBEMAPS;
+
+
 
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth);

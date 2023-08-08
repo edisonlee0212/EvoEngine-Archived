@@ -20,7 +20,7 @@ void TextureStorage::PreUpdate()
 			imageInfo.imageLayout = storage.m_texture2Ds[currentArrayIndex]->GetLayout();
 			imageInfo.imageView = storage.m_texture2Ds[currentArrayIndex]->GetVkImageView();
 			imageInfo.sampler = storage.m_texture2Ds[currentArrayIndex]->GetVkSampler();
-			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(12, imageInfo, currentArrayIndex);
+			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, currentArrayIndex);
 			i = false;
 		}
 		currentArrayIndex++;
@@ -34,7 +34,7 @@ void TextureStorage::PreUpdate()
 			imageInfo.imageLayout = storage.m_cubemaps[currentArrayIndex]->m_image->GetLayout();
 			imageInfo.imageView = storage.m_cubemaps[currentArrayIndex]->m_imageView->GetVkImageView();
 			imageInfo.sampler = storage.m_cubemaps[currentArrayIndex]->m_sampler->GetVkSampler();
-			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, currentArrayIndex);
+			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, currentArrayIndex);
 			i = false;
 		}
 		currentArrayIndex++;

@@ -1,6 +1,6 @@
-layout(set = EE_PER_GROUP_SET, binding = 14) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
-layout(set = EE_PER_GROUP_SET, binding = 15) uniform sampler2DArray EE_POINT_LIGHT_SM;
-layout(set = EE_PER_GROUP_SET, binding = 16) uniform sampler2D EE_SPOT_LIGHT_SM;
+layout(set = EE_PER_GROUP_SET, binding = 15) uniform sampler2DArray EE_DIRECTIONAL_LIGHT_SM;
+layout(set = EE_PER_GROUP_SET, binding = 16) uniform sampler2DArray EE_POINT_LIGHT_SM;
+layout(set = EE_PER_GROUP_SET, binding = 17) uniform sampler2D EE_SPOT_LIGHT_SM;
 
 vec3 EE_SKY_COLOR(vec3 direction) {
 	Camera camera = EE_CAMERAS[EE_CAMERA_INDEX];

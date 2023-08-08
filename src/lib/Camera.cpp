@@ -187,16 +187,16 @@ void Camera::UpdateGBuffer()
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_renderTexture->GetDepthImageView()->GetVkImageView();
 		imageInfo.sampler = m_renderTexture->m_depthSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(17, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
 		imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
 		imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
 		imageInfo.imageView = m_gBufferAlbedoView->GetVkImageView();
 		imageInfo.sampler = m_gBufferAlbedoSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
 		imageInfo.imageView = m_gBufferMaterialView->GetVkImageView();
 		imageInfo.sampler = m_gBufferMaterialSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(21, imageInfo);
 	}
 }
 
