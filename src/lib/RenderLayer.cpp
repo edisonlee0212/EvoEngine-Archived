@@ -12,6 +12,7 @@
 #include "Cubemap.hpp"
 #include "Jobs.hpp"
 #include "MeshStorage.hpp"
+#include "TextureStorage.hpp"
 using namespace EvoEngine;
 
 void RenderInstanceCollection::Add(const std::shared_ptr<Material>& material, const RenderInstance& renderInstance)
@@ -145,6 +146,7 @@ void RenderLayer::PreUpdate()
 				splitEnd = m_maxShadowDistance * m_shadowCascadeSplit[split];
 			m_renderInfoBlock.m_splitDistances[split] = splitEnd;
 		}
+		m_renderInfoBlock.m_brdflutTextureIndex = m_environmentalBRDFLut->GetTextureStorageIndex();
 	}
 
 	{
@@ -200,9 +202,9 @@ void RenderLayer::PreUpdate()
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
 
 	bufferInfo.buffer = MeshStorage::GetVertexBuffer()->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(22, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(10, bufferInfo);
 	bufferInfo.buffer = MeshStorage::GetMeshletBuffer()->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(23, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(11, bufferInfo);
 
 	PreparePointAndSpotLightShadowMap();
 
@@ -1310,17 +1312,17 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		bufferCreateInfo.size = sizeof(EnvironmentInfoBlock);
 		m_environmentInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		bufferCreateInfo.size = sizeof(CameraInfoBlock) * Graphics::Constants::MAX_CAMERA_SIZE;
+		bufferCreateInfo.size = sizeof(CameraInfoBlock) * Graphics::Constants::INITIAL_CAMERA_SIZE;
 		m_cameraInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(MaterialInfoBlock) * Graphics::Constants::MAX_MATERIAL_SIZE;
+		bufferCreateInfo.size = sizeof(MaterialInfoBlock) * Graphics::Constants::INITIAL_MATERIAL_SIZE;
 		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::Constants::MAX_INSTANCE_SIZE;
+		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::Constants::INITIAL_INSTANCE_SIZE;
 		m_instanceInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::Constants::MAX_KERNEL_AMOUNT * 2;
 		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE * Graphics::Constants::MAX_CAMERA_SIZE;
+		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE * Graphics::Constants::INITIAL_CAMERA_SIZE;
 		m_directionalLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::Constants::MAX_POINT_LIGHT_SIZE;
 		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
@@ -1369,9 +1371,8 @@ void RenderLayer::UpdateStandardBindings()
 
 void RenderLayer::PrepareEnvironmentalBrdfLut()
 {
-	m_environmentalBRDFSampler.reset();
-	m_environmentalBRDFView.reset();
 	m_environmentalBRDFLut.reset();
+	m_environmentalBRDFLut = ProjectManager::CreateTemporaryAsset<Texture2D>();
 	auto brdfLutResolution = 512;
 	{
 		VkImageCreateInfo imageInfo{};
@@ -1389,7 +1390,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		m_environmentalBRDFLut = std::make_shared<Image>(imageInfo);
+		m_environmentalBRDFLut->m_image = std::make_unique<Image>(imageInfo);
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1402,7 +1403,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		m_environmentalBRDFView = std::make_shared<ImageView>(viewInfo);
+		m_environmentalBRDFLut->m_imageView = std::make_unique<ImageView>(viewInfo);
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1419,11 +1420,12 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		m_environmentalBRDFSampler = std::make_shared<Sampler>(samplerInfo);
+		m_environmentalBRDFLut->m_sampler = std::make_unique<Sampler>(samplerInfo);
 	}
+	TextureStorage::RegisterTexture2D(m_environmentalBRDFLut);
 	auto environmentalBrdfPipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_environmentalBRDFLut->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
@@ -1454,7 +1456,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 			attachment.clearValue = { 0, 0, 0, 1 };
-			attachment.imageView = m_environmentalBRDFView->GetVkImageView();
+			attachment.imageView = m_environmentalBRDFLut->m_imageView->GetVkImageView();
 
 			//const auto depthAttachment = camera->GetRenderTexture()->GetDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
@@ -1480,7 +1482,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
-		m_environmentalBRDFLut->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 }
@@ -1491,40 +1493,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera)
 {
 	const int cameraIndex = GetCameraIndex(camera->GetHandle());
-
-	VkDescriptorImageInfo imageInfo;
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	if (const auto cameraSkybox = camera->m_skybox.Get<Cubemap>())
-	{
-		imageInfo.imageView = cameraSkybox->m_imageView->GetVkImageView();
-		imageInfo.sampler = cameraSkybox->m_sampler->GetVkSampler();
-	}
-	else {
-		auto defaultCubemap = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
-		imageInfo.imageView = defaultCubemap->m_imageView->GetVkImageView();
-		imageInfo.sampler = defaultCubemap->m_sampler->GetVkSampler();
-	}
-	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(15, imageInfo);
-
-	const auto cameraPosition = cameraGlobalTransform.GetPosition();
 	const auto scene = Application::GetActiveScene();
-	auto lightProbe = scene->m_environment.GetLightProbe(cameraPosition);
-	auto reflectionProbe = scene->m_environment.GetReflectionProbe(cameraPosition);
-	if (!lightProbe)
-	{
-		lightProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_lightProbe.Get<LightProbe>();
-	}
-	imageInfo.imageView = lightProbe->m_imageView->GetVkImageView();
-	imageInfo.sampler = lightProbe->m_sampler->GetVkSampler();
-	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(16, imageInfo);
-	if (!reflectionProbe)
-	{
-		reflectionProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_reflectionProbe.Get<ReflectionProbe>();
-	}
-	imageInfo.imageView = reflectionProbe->m_imageView->GetVkImageView();
-	imageInfo.sampler = reflectionProbe->m_sampler->GetVkSampler();
-	m_lighting->m_lightingDescriptorSet->UpdateImageDescriptorBinding(17, imageInfo);
-
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 	const auto& directionalLightShadowPipelineSkinned = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
 
@@ -1716,11 +1685,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
 			m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 				{
-					deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet->GetVkDescriptorSet());
-					//We should also bind textures here.
 				}, [&](const RenderInstance& renderCommand)
 				{
 					RenderInstancePushConstant pushConstant;
@@ -1758,15 +1724,11 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredSkinnedPrepassPipeline->Bind(commandBuffer);
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
 			m_deferredSkinnedRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
 				{
-					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, material->m_descriptorSet->GetVkDescriptorSet());
-
-					//We should also bind textures here.
 				}, [&](const SkinnedRenderInstance& renderCommand)
 				{
-					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 2, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
+					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_materialIndex = renderCommand.m_materialIndex;

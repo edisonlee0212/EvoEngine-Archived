@@ -636,15 +636,18 @@ DescriptorSetLayout::~DescriptorSetLayout()
 	}
 }
 
-void DescriptorSetLayout::PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags)
+void DescriptorSetLayout::PushDescriptorBinding(uint32_t bindingIndex, VkDescriptorType type, VkShaderStageFlags stageFlags, VkDescriptorBindingFlags bindingFlags, const uint32_t descriptorCount)
 {
+	DescriptorBinding binding;
 	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.binding = binding;
-	bindingInfo.descriptorCount = 1;
+	bindingInfo.binding = bindingIndex;
+	bindingInfo.descriptorCount = descriptorCount;
 	bindingInfo.descriptorType = type;
 	bindingInfo.pImmutableSamplers = nullptr;
 	bindingInfo.stageFlags = stageFlags;
-	m_descriptorSetLayoutBindings[binding] = bindingInfo;
+	binding.m_binding = bindingInfo;
+	binding.m_bindingFlags = bindingFlags;
+	m_descriptorSetLayoutBindings[bindingIndex] = binding;
 }
 
 void DescriptorSetLayout::Initialize()
@@ -654,17 +657,24 @@ void DescriptorSetLayout::Initialize()
 		vkDestroyDescriptorSetLayout(Graphics::GetVkDevice(), m_vkDescriptorSetLayout, nullptr);
 		m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	}
-	VkDescriptorSetLayoutBinding bindingInfo{};
-	bindingInfo.pImmutableSamplers = nullptr;
+	
 	std::vector<VkDescriptorSetLayoutBinding> listOfBindings;
+	std::vector<VkDescriptorBindingFlags> listOfBindingFlags;
 	for(const auto& binding : m_descriptorSetLayoutBindings)
 	{
-		listOfBindings.emplace_back(binding.second);
+		listOfBindings.emplace_back(binding.second.m_binding);
+		listOfBindingFlags.emplace_back(binding.second.m_bindingFlags);
 	}
+	
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr };
+	extendedInfo.bindingCount = static_cast<uint32_t>(listOfBindingFlags.size());
+	extendedInfo.pBindingFlags = listOfBindingFlags.data();
+
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 	descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(listOfBindings.size());
 	descriptorSetLayoutCreateInfo.pBindings = listOfBindings.data();
+	descriptorSetLayoutCreateInfo.pNext = &extendedInfo;
 	Graphics::CheckVk(vkCreateDescriptorSetLayout(Graphics::GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_vkDescriptorSetLayout));
 }
 
@@ -689,36 +699,37 @@ DescriptorSet::DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetL
 	allocInfo.descriptorPool = Graphics::GetDescriptorPool()->GetVkDescriptorPool();
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &targetLayout->GetVkDescriptorSetLayout();
+	
 	if (vkAllocateDescriptorSets(Graphics::GetVkDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 	m_descriptorSetLayout = targetLayout;
 }
 
-void DescriptorSet::UpdateImageDescriptorBinding(const uint32_t binding, const VkDescriptorImageInfo& imageInfo) const
+void DescriptorSet::UpdateImageDescriptorBinding(const uint32_t bindingIndex, const VkDescriptorImageInfo& imageInfo, uint32_t arrayElement) const
 {
-	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[binding];
+	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[bindingIndex];
 	VkWriteDescriptorSet writeInfo{};
 	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	writeInfo.dstSet = m_descriptorSet;
-	writeInfo.dstBinding = binding;
-	writeInfo.dstArrayElement = 0;
-	writeInfo.descriptorType = descriptorBinding.descriptorType;
-	writeInfo.descriptorCount = descriptorBinding.descriptorCount;
+	writeInfo.dstBinding = bindingIndex;
+	writeInfo.dstArrayElement = arrayElement;
+	writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
+	writeInfo.descriptorCount = 1;
 	writeInfo.pImageInfo = &imageInfo;
 	vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 }
 
-void DescriptorSet::UpdateBufferDescriptorBinding(const uint32_t binding, const VkDescriptorBufferInfo& bufferInfo) const
+void DescriptorSet::UpdateBufferDescriptorBinding(const uint32_t bindingIndex, const VkDescriptorBufferInfo& bufferInfo, uint32_t arrayElement) const
 {
-	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[binding];
+	const auto& descriptorBinding = m_descriptorSetLayout->m_descriptorSetLayoutBindings[bindingIndex];
 	VkWriteDescriptorSet writeInfo{};
 	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	writeInfo.dstSet = m_descriptorSet;
-	writeInfo.dstBinding = binding;
-	writeInfo.dstArrayElement = 0;
-	writeInfo.descriptorType = descriptorBinding.descriptorType;
-	writeInfo.descriptorCount = descriptorBinding.descriptorCount;
+	writeInfo.dstBinding = bindingIndex;
+	writeInfo.dstArrayElement = arrayElement;
+	writeInfo.descriptorType = descriptorBinding.m_binding.descriptorType;
+	writeInfo.descriptorCount = 1;
 	writeInfo.pBufferInfo = &bufferInfo;
 	vkUpdateDescriptorSets(Graphics::GetVkDevice(), 1, &writeInfo, 0, nullptr);
 }

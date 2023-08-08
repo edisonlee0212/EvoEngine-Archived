@@ -18,7 +18,10 @@ namespace EvoEngine
         glm::vec4 m_clearColor = {};
         glm::vec4 m_reservedParameters1 = {};
         glm::vec4 m_reservedParameters2 = {};
-
+        int m_skyboxTextureIndex = 0;
+        int m_environmentalIrradianceTextureIndex = 0;
+        int m_environmentalPrefilteredIndex = 0;
+        int m_cameraPadding = 0;
         [[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
         [[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
     };
@@ -63,7 +66,7 @@ namespace EvoEngine
     public:
         void TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const;
 
-        void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const;
+        void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform);
         void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
         [[nodiscard]] float GetSizeRatio() const;
 

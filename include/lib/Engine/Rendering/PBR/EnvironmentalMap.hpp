@@ -9,6 +9,7 @@ namespace EvoEngine
     class EnvironmentalMap : public IAsset
     {
         friend class Graphics;
+        friend class Camera;
         friend class Environment;
         friend class RenderLayer;
         friend class Resources;

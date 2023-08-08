@@ -15,14 +15,21 @@ namespace EvoEngine
 		friend class EditorLayer;
 		friend class Resources;
 		friend class Cubemap;
+		friend class TextureStorage;
+		friend class RenderLayer;
 		std::unique_ptr<Image> m_image = {};
 		std::unique_ptr<ImageView> m_imageView = {};
 		std::unique_ptr<Sampler> m_sampler = {};
 		ImTextureID m_imTextureId = VK_NULL_HANDLE;
+
+		uint32_t m_textureStorageIndex = UINT32_MAX;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
+		
+		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
+		~Texture2D() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] glm::vec2 GetResolution() const;
 		void StoreToPng(

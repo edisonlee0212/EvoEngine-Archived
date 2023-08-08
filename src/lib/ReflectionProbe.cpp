@@ -13,92 +13,27 @@ struct EquirectangularToCubemapConstant
 
 void ReflectionProbe::Initialize(uint32_t resolution)
 {
-	m_sampler.reset();
-	m_imageView.reset();
-	m_image.reset();
-
-
-	m_faceViews.clear();
+	m_cubemap = ProjectManager::CreateTemporaryAsset<Cubemap>();
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(resolution, resolution)))) + 1;
 
-	VkImageCreateInfo imageInfo{};
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = resolution;
-	imageInfo.extent.height = resolution;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 6;
-	imageInfo.format = Graphics::Constants::TEXTURE_2D;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-	m_image = std::make_unique<Image>(imageInfo);
-
-	VkImageViewCreateInfo viewInfo{};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = m_image->GetVkImage();
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	viewInfo.format = Graphics::Constants::TEXTURE_2D;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 6;
-
-	m_imageView = std::make_unique<ImageView>(viewInfo);
-
-
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	samplerInfo.minLod = 0;
-	samplerInfo.maxLod = static_cast<float>(mipLevels);
-	samplerInfo.mipLodBias = 0.0f;
-	m_sampler = std::make_unique<Sampler>(samplerInfo);
+	m_cubemap->Initialize(resolution, mipLevels);
 
 #pragma endregion
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		m_image->GenerateMipmaps(commandBuffer);
-		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		m_cubemap->m_image->GenerateMipmaps(commandBuffer);
+		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 
 	for (int i = 0; i < 6; i++)
 	{
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_image->GetVkImage();
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::Constants::TEXTURE_2D;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = i;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		m_faceViews.emplace_back(std::make_shared<ImageView>(viewInfo));
 		m_mipMapViews.emplace_back();
 		for (unsigned int mip = 0; mip < mipLevels; ++mip)
 		{
 			VkImageViewCreateInfo viewInfo{};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = m_image->GetVkImage();
+			viewInfo.image = m_cubemap->m_image->GetVkImage();
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			viewInfo.format = Graphics::Constants::TEXTURE_2D;
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -110,17 +45,11 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 			m_mipMapViews[i].emplace_back(std::make_shared<ImageView>(viewInfo));
 		}
 	}
-
-	m_imTextureIds.resize(6);
-	for (int i = 0; i < 6; i++)
-	{
-		EditorLayer::UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	}
 }
 
 void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap)
 {
-	if (!m_image) Initialize();
+	if (!m_cubemap) Initialize();
 
 	if (!targetCubemap->m_image) {
 		EVOENGINE_ERROR("Target cubemap doesn't contain any content!");
@@ -132,8 +61,8 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 	VkImageCreateInfo depthImageInfo{};
 	depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-	depthImageInfo.extent.width = m_image->GetExtent().width;
-	depthImageInfo.extent.height = m_image->GetExtent().height;
+	depthImageInfo.extent.width = m_cubemap->m_image->GetExtent().width;
+	depthImageInfo.extent.height = m_cubemap->m_image->GetExtent().height;
 	depthImageInfo.extent.depth = 1;
 	depthImageInfo.mipLevels = 1;
 	depthImageInfo.arrayLayers = 1;
@@ -181,15 +110,15 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)) };
-	const auto maxMipLevels = m_image->GetMipLevels();
+	const auto maxMipLevels = m_cubemap->m_image->GetMipLevels();
 
 	const auto prefilterConstruct = Graphics::GetGraphicsPipeline("PREFILTER_CONSTRUCT");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 		for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
 		{
-			unsigned int mipWidth = m_image->GetExtent().width * std::pow(0.5, mip);
+			unsigned int mipWidth = m_cubemap->m_image->GetExtent().width * std::pow(0.5, mip);
 			float roughness = (float)mip / (float)(maxMipLevels - 1);
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
@@ -265,7 +194,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 				Graphics::EverythingBarrier(commandBuffer);
 			}
 		}
-		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 
@@ -273,13 +202,13 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 
 void ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	if (!m_imTextureIds.empty()) {
+	if (!m_cubemap->m_imTextureIds.empty()) {
 		static float debugSacle = 0.25f;
 		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
 		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
 		for (int i = 0; i < 6; i++) {
-			ImGui::Image(m_imTextureIds[i],
-				ImVec2(m_image->GetExtent().width * debugSacle, m_image->GetExtent().height * debugSacle),
+			ImGui::Image(m_cubemap->m_imTextureIds[i],
+				ImVec2(m_cubemap->m_image->GetExtent().width * debugSacle, m_cubemap->m_image->GetExtent().height * debugSacle),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 		}

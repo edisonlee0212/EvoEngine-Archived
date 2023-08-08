@@ -142,15 +142,18 @@ namespace EvoEngine
 			friend class Lighting;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
-			inline constexpr static uint32_t MAX_CAMERA_SIZE = 8;
-			inline constexpr static uint32_t MAX_MATERIAL_SIZE = 1024;
-			inline constexpr static uint32_t MAX_INSTANCE_SIZE = 8192;
+			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 8;
+			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1024;
+			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 8192;
+
+			inline constexpr static uint32_t VERTEX_CHUNK_VERTICES_SIZE = 64;
 			inline constexpr static uint32_t MAX_KERNEL_AMOUNT = 64;
 			inline constexpr static uint32_t MAX_DIRECTIONAL_LIGHT_SIZE = 16;
 			inline constexpr static uint32_t MAX_POINT_LIGHT_SIZE = 16;
 			inline constexpr static uint32_t MAX_SPOT_LIGHT_SIZE = 16;
 
-			inline constexpr static uint32_t VERTEX_CHUNK_VERTICES_SIZE = 64;
+			inline constexpr static uint32_t MAX_TEXTURE_2D_RESOURCE_SIZE = 8192;
+			inline constexpr static uint32_t MAX_CUBEMAP_RESOURCE_SIZE = 8192;
 			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
 			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
 

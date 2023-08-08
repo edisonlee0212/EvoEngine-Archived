@@ -5,6 +5,7 @@
 #include "Graphics.hpp"
 #include "RenderLayer.hpp"
 #include "Resources.hpp"
+#include "TextureStorage.hpp"
 using namespace EvoEngine;
 #include "EditorLayer.hpp"
 struct EquirectangularToCubemapConstant
@@ -13,7 +14,12 @@ struct EquirectangularToCubemapConstant
 	float m_presetValue = 0;
 };
 
-void Cubemap::Initialize(uint32_t resolution)
+Cubemap::~Cubemap()
+{
+	TextureStorage::UnRegisterCubemap(std::dynamic_pointer_cast<Cubemap>(GetSelf()));
+}
+
+void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)
 {
 	m_sampler.reset();
 	m_imageView.reset();
@@ -28,7 +34,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	imageInfo.extent.width = resolution;
 	imageInfo.extent.height = resolution;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
+	imageInfo.mipLevels = mipLevels;
 	imageInfo.arrayLayers = 6;
 	imageInfo.format = Graphics::Constants::TEXTURE_2D;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -46,7 +52,7 @@ void Cubemap::Initialize(uint32_t resolution)
 	viewInfo.format = Graphics::Constants::TEXTURE_2D;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.levelCount = mipLevels;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 6;
 
@@ -67,7 +73,10 @@ void Cubemap::Initialize(uint32_t resolution)
 	samplerInfo.compareEnable = VK_FALSE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
+	if (mipLevels > 1) {
+		samplerInfo.minLod = 0;
+		samplerInfo.maxLod = static_cast<float>(mipLevels);
+	}
 	m_sampler = std::make_unique<Sampler>(samplerInfo);
 
 #pragma endregion
@@ -97,7 +106,12 @@ void Cubemap::Initialize(uint32_t resolution)
 	{
 		EditorLayer::UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
+	TextureStorage::RegisterCubemap(std::dynamic_pointer_cast<Cubemap>(GetSelf()));
+}
 
+uint32_t Cubemap::GetTextureStorageIndex() const
+{
+	return m_textureStorageIndex;
 }
 
 void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture)

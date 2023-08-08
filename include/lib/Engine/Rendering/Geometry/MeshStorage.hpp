@@ -26,7 +26,7 @@ namespace EvoEngine
 		std::queue<uint32_t> m_meshletPool = {};
 
 		std::vector<std::unique_ptr<Buffer>> m_vertexBuffer = {};
-		std::vector < std::unique_ptr<Buffer>> m_meshletBuffer = {};
+		std::vector<std::unique_ptr<Buffer>> m_meshletBuffer = {};
 		std::vector<bool> m_requireDeviceUpdate = {};
 
 		void UploadData();

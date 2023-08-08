@@ -263,16 +263,21 @@ namespace EvoEngine
 		[[nodiscard]] VkSampler GetVkSampler() const;
 	};
 
+	struct DescriptorBinding
+	{
+		VkDescriptorSetLayoutBinding m_binding;
+		VkDescriptorBindingFlags m_bindingFlags;
+	};
 	class DescriptorSetLayout final : public IGraphicsResource
 	{
 		friend class DescriptorSet;
-		std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> m_descriptorSetLayoutBindings;
+		std::unordered_map<uint32_t, DescriptorBinding> m_descriptorSetLayoutBindings;
 		VkDescriptorSetLayout m_vkDescriptorSetLayout = VK_NULL_HANDLE;
 	public:
 		~DescriptorSetLayout() override;
 		[[nodiscard]] const VkDescriptorSetLayout& GetVkDescriptorSetLayout() const;
 
-		void PushDescriptorBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
+		void PushDescriptorBinding(uint32_t bindingIndex, VkDescriptorType type, VkShaderStageFlags stageFlags, VkDescriptorBindingFlags bindingFlags, uint32_t descriptorCount = 1);
 		void Initialize();
 	};
 
@@ -286,11 +291,11 @@ namespace EvoEngine
 		DescriptorSet(const std::shared_ptr<DescriptorSetLayout>& targetLayout);
 		/**
 		 * \brief UpdateImageDescriptorBinding
-		 * \param binding Target binding
+		 * \param bindingIndex Target binding
 		 * \param imageInfos The image info for update. Make sure the size is max frame size.
 		 */
-		void UpdateImageDescriptorBinding(uint32_t binding, const VkDescriptorImageInfo& imageInfo) const;
-		void UpdateBufferDescriptorBinding(uint32_t binding, const VkDescriptorBufferInfo& bufferInfo) const;
+		void UpdateImageDescriptorBinding(uint32_t bindingIndex, const VkDescriptorImageInfo& imageInfo, uint32_t arrayElement = 0) const;
+		void UpdateBufferDescriptorBinding(uint32_t bindingIndex, const VkDescriptorBufferInfo& bufferInfo, uint32_t arrayElement = 0) const;
 	};
 
 	class DescriptorPool final : public IGraphicsResource

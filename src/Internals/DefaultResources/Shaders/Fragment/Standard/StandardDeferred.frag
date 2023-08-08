@@ -16,22 +16,27 @@ void main()
     
     vec2 texCoord = fs_in.TexCoord;
     vec4 albedo = materialProperties.EE_PBR_ALBEDO;
-    if (materialProperties.EE_ALBEDO_MAP_ENABLED) albedo = texture(EE_ALBEDO_MAP, texCoord);
+    if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) 
+        albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], texCoord);
     if (albedo.a < 0.1) discard;
 
     vec3 B = cross(fs_in.Normal, fs_in.Tangent);
     mat3 TBN = mat3(fs_in.Tangent, B, fs_in.Normal);
     vec3 normal = fs_in.Normal;
-   
+   if (materialProperties.EE_NORMAL_MAP_INDEX != -1){
+        normal = texture(EE_TEXTURE_2DS[materialProperties.EE_NORMAL_MAP_INDEX], texCoord).rgb;
+        normal = normal * 2.0 - 1.0;
+        normal = normalize(TBN * normal);
+    }
 
     float roughness = materialProperties.EE_PBR_ROUGHNESS;
     float metallic = materialProperties.EE_PBR_METALLIC;
     float emission = materialProperties.EE_PBR_EMISSION;
     float ao = materialProperties.EE_PBR_AO;
 
-    if (materialProperties.EE_ROUGHNESS_MAP_ENABLED) roughness = texture(EE_ROUGHNESS_MAP, texCoord).r;
-    if (materialProperties.EE_METALLIC_MAP_ENABLED) metallic = texture(EE_METALLIC_MAP, texCoord).r;
-    if (materialProperties.EE_AO_MAP_ENABLED) ao = texture(EE_AO_MAP, texCoord).r;
+    if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], texCoord).r;
+    if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], texCoord).r;
+    if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], texCoord).r;
 
     // also store the per-fragment normals into the gbuffer
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);

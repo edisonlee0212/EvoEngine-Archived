@@ -5,15 +5,9 @@ namespace EvoEngine
 {
 	class ReflectionProbe : public IAsset
 	{
-		std::unique_ptr<Image> m_image = {};
-		std::unique_ptr<ImageView> m_imageView = {};
-		std::unique_ptr<Sampler> m_sampler = {};
+		std::shared_ptr<Cubemap> m_cubemap;
 		friend class RenderLayer;
-
-		std::vector<std::shared_ptr<ImageView>> m_faceViews;
-		std::vector<ImTextureID> m_imTextureIds;
-
-
+		friend class Camera;
 		std::vector<std::vector<std::shared_ptr<ImageView>>> m_mipMapViews;
 	public:
 		void Initialize(uint32_t resolution = 512);

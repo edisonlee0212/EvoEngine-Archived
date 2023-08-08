@@ -11,6 +11,7 @@
 #include "EditorLayer.hpp"
 #include "MeshStorage.hpp"
 #include "RenderLayer.hpp"
+#include "TextureStorage.hpp"
 using namespace EvoEngine;
 
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -62,7 +63,6 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	EVOENGINE_LOG(msg);
 	return VK_FALSE;
 }
-
 #pragma region Helpers
 uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
 {
@@ -698,10 +698,6 @@ void Graphics::CreateLogicalDevice()
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 	dynamicRenderingFeatures.pNext = &meshShaderFeaturesExt;
 
-	VkPhysicalDeviceFeatures deviceFeatures{};
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
-	deviceFeatures.geometryShader = VK_TRUE;
-	
 	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
 	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
 	physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;
@@ -735,6 +731,17 @@ void Graphics::CreateLogicalDevice()
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
 	extendedDynamicStateFeatures.pNext = &extendedDynamicState2Features;
 
+	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
+	descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+	descriptorIndexingFeatures.pNext = &extendedDynamicStateFeatures;
+	descriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+	descriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 deviceFeatures2{};
+	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	deviceFeatures2.pNext = &descriptorIndexingFeatures;
+	vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &deviceFeatures2);
+	
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 #pragma region Queues requirement
@@ -755,8 +762,8 @@ void Graphics::CreateLogicalDevice()
 	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 #pragma endregion
-	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-	deviceCreateInfo.pNext = &extendedDynamicStateFeatures;
+	deviceCreateInfo.pEnabledFeatures = nullptr;
+	deviceCreateInfo.pNext = &deviceFeatures2;
 
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = cRequiredDeviceExtensions.data();
@@ -1154,55 +1161,45 @@ void Graphics::ResetCommandBuffers()
 void Graphics::PrepareDescriptorSetLayouts() const
 {
 	const auto perFrameLayout = std::make_shared<DescriptorSetLayout>();
-	perFrameLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(22, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
-	perFrameLayout->PushDescriptorBinding(23, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL);
+	perFrameLayout->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	perFrameLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
+	perFrameLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
+	perFrameLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, Constants::MAX_TEXTURE_2D_RESOURCE_SIZE);
+	perFrameLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, Constants::MAX_CUBEMAP_RESOURCE_SIZE);
+
 	perFrameLayout->Initialize();
 	RegisterDescriptorSetLayout("PER_FRAME_LAYOUT", perFrameLayout);
 
-	const auto pbrTextureLayout = std::make_shared<DescriptorSetLayout>();
-	pbrTextureLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	pbrTextureLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	pbrTextureLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	pbrTextureLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	pbrTextureLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	pbrTextureLayout->Initialize();
-	RegisterDescriptorSetLayout("PBR_TEXTURE_LAYOUT", pbrTextureLayout);
-
 	const auto cameraGBufferLayout = std::make_shared<DescriptorSetLayout>();
-	cameraGBufferLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	cameraGBufferLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	cameraGBufferLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	cameraGBufferLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	cameraGBufferLayout->PushDescriptorBinding(17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	cameraGBufferLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	cameraGBufferLayout->PushDescriptorBinding(19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	cameraGBufferLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 	cameraGBufferLayout->Initialize();
 	RegisterDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT", cameraGBufferLayout);
 
 	const auto lightLayout = std::make_shared<DescriptorSetLayout>();
-	lightLayout->PushDescriptorBinding(15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(19, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	lightLayout->PushDescriptorBinding(21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	lightLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	lightLayout->PushDescriptorBinding(15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	lightLayout->PushDescriptorBinding(16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 	lightLayout->Initialize();
 	RegisterDescriptorSetLayout("LIGHTING_LAYOUT", lightLayout);
 
 	const auto renderTexturePresent = std::make_shared<DescriptorSetLayout>();
-	renderTexturePresent->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	renderTexturePresent->PushDescriptorBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 	renderTexturePresent->Initialize();
 	RegisterDescriptorSetLayout("RENDER_TEXTURE_PRESENT", renderTexturePresent);
 
 	const auto boneMatricesLayout = std::make_shared<DescriptorSetLayout>();
-	boneMatricesLayout->PushDescriptorBinding(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	boneMatricesLayout->PushDescriptorBinding(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
 	boneMatricesLayout->Initialize();
 	RegisterDescriptorSetLayout("BONE_MATRICES_LAYOUT", boneMatricesLayout);
 }
@@ -1210,7 +1207,6 @@ void Graphics::PrepareDescriptorSetLayouts() const
 void Graphics::CreateGraphicsPipelines() const
 {
 	auto perFrameLayout = GetDescriptorSetLayout("PER_FRAME_LAYOUT");
-	auto pbrTextureLayout = GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT");
 	auto cameraGBufferLayout = GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT");
 	auto lightingLayout = GetDescriptorSetLayout("LIGHTING_LAYOUT");
 
@@ -1221,7 +1217,6 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
 
 		standardDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
 		standardDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
@@ -1241,7 +1236,6 @@ void Graphics::CreateGraphicsPipelines() const
 		standardSkinnedDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardSkinnedDeferredPrepass->m_geometryType = GeometryType::SkinnedMesh;
 		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
-		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(pbrTextureLayout);
 		standardSkinnedDeferredPrepass->m_descriptorSetLayouts.emplace_back(boneMatricesLayout);
 
 		standardSkinnedDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
@@ -1252,7 +1246,6 @@ void Graphics::CreateGraphicsPipelines() const
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
 		pushConstantRange.offset = 0;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
-
 		standardSkinnedDeferredPrepass->PreparePipeline();
 		RegisterGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS", standardSkinnedDeferredPrepass);
 	}
@@ -1597,7 +1590,7 @@ void Graphics::Initialize()
 	}
 
 	MeshStorage::Initialize();
-
+	TextureStorage::Initialize();
 }
 
 void Graphics::PostResourceLoadingInitialization()
@@ -1641,6 +1634,7 @@ void Graphics::PreUpdate()
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
 	MeshStorage::PreUpdate();
+	TextureStorage::PreUpdate();
 	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 		if (const auto scene = Application::GetActiveScene()) {
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())

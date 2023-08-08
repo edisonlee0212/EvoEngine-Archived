@@ -155,54 +155,52 @@ void Material::SetAOTexture(const std::shared_ptr<Texture2D>& texture)
 
 void Material::OnCreate()
 {
-    m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("PBR_TEXTURE_LAYOUT"));
 }
 
 Material::~Material()
 {
-    m_descriptorSet.reset();
 }
 
 void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 {
 	if (const auto albedoTexture = m_albedoTexture.Get<Texture2D>(); albedoTexture && albedoTexture->GetVkSampler())
     {
-        materialInfoBlock.m_albedoEnabled = true;
+        materialInfoBlock.m_albedoTextureIndex = albedoTexture->GetTextureStorageIndex();
     }else
     {
-        materialInfoBlock.m_albedoEnabled = false;
+        materialInfoBlock.m_albedoTextureIndex = -1;
     }
 	if (const auto normalTexture = m_normalTexture.Get<Texture2D>(); normalTexture && normalTexture->GetVkSampler())
     {
-        materialInfoBlock.m_normalEnabled = true;
+        materialInfoBlock.m_normalTextureIndex = normalTexture->GetTextureStorageIndex();
     }
     else
     {
-        materialInfoBlock.m_normalEnabled = false;
+        materialInfoBlock.m_normalTextureIndex = -1;
     }
 	if (const auto metallicTexture = m_metallicTexture.Get<Texture2D>(); metallicTexture && metallicTexture->GetVkSampler())
     {
-        materialInfoBlock.m_metallicEnabled = true;
+        materialInfoBlock.m_metallicTextureIndex = metallicTexture->GetTextureStorageIndex();
     }
     else
     {
-        materialInfoBlock.m_metallicEnabled = false;
+        materialInfoBlock.m_metallicTextureIndex = -1;
     }
 	if (const auto roughnessTexture = m_roughnessTexture.Get<Texture2D>(); roughnessTexture && roughnessTexture->GetVkSampler())
     {
-        materialInfoBlock.m_roughnessEnabled = true;
+        materialInfoBlock.m_roughnessTextureIndex = roughnessTexture->GetTextureStorageIndex();
     }
     else
     {
-        materialInfoBlock.m_roughnessEnabled = false;
+        materialInfoBlock.m_roughnessTextureIndex = -1;
     }
 	if (const auto aoTexture = m_aoTexture.Get<Texture2D>(); aoTexture && aoTexture->GetVkSampler())
     {
-        materialInfoBlock.m_aoEnabled = true;
+        materialInfoBlock.m_aoTextureIndex = aoTexture->GetTextureStorageIndex();
     }
     else
     {
-        materialInfoBlock.m_aoEnabled = false;
+        materialInfoBlock.m_aoTextureIndex = -1;
     }
     materialInfoBlock.m_castShadow = true;
     materialInfoBlock.m_subsurfaceColor = { m_materialProperties.m_subsurfaceColor, 0.0f };
@@ -212,84 +210,6 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
     materialInfoBlock.m_roughnessVal = m_materialProperties.m_roughness;
     materialInfoBlock.m_aoVal = 1.0f;
     materialInfoBlock.m_emissionVal = m_materialProperties.m_emission;
-    UpdateDescriptorBindings();
-}
-
-void Material::UpdateDescriptorBindings(bool forceUpdate)
-{
-    if(!m_needUpdate) return;
-    VkDescriptorImageInfo imageInfo;
-    const auto missingTexture = Resources::GetResource<Texture2D>("TEXTURE_MISSING");
-	if(const auto texture = m_albedoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
-    {
-        imageInfo.imageLayout = texture->GetLayout();
-        imageInfo.imageView = texture->GetVkImageView();
-        imageInfo.sampler = texture->GetVkSampler();
-    }else
-    {
-        imageInfo.imageLayout = missingTexture->GetLayout();
-        imageInfo.imageView = missingTexture->GetVkImageView();
-        imageInfo.sampler = missingTexture->GetVkSampler();
-    }
-    m_descriptorSet->UpdateImageDescriptorBinding(10, imageInfo);
-    
-    if (const auto texture = m_normalTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
-    {
-        imageInfo.imageLayout = texture->GetLayout();
-        imageInfo.imageView = texture->GetVkImageView();
-        imageInfo.sampler = texture->GetVkSampler();
-    }
-    else
-    {
-        imageInfo.imageLayout = missingTexture->GetLayout();
-        imageInfo.imageView = missingTexture->GetVkImageView();
-        imageInfo.sampler = missingTexture->GetVkSampler();
-    }
-    m_descriptorSet->UpdateImageDescriptorBinding(11, imageInfo);
-
-    if (const auto texture = m_metallicTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
-    {
-        imageInfo.imageLayout = texture->GetLayout();
-        imageInfo.imageView = texture->GetVkImageView();
-        imageInfo.sampler = texture->GetVkSampler();
-    }
-    else
-    {
-        imageInfo.imageLayout = missingTexture->GetLayout();
-        imageInfo.imageView = missingTexture->GetVkImageView();
-        imageInfo.sampler = missingTexture->GetVkSampler();
-    }
-    m_descriptorSet->UpdateImageDescriptorBinding(12, imageInfo);
-
-    if (const auto texture = m_roughnessTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
-    {
-        imageInfo.imageLayout = texture->GetLayout();
-        imageInfo.imageView = texture->GetVkImageView();
-        imageInfo.sampler = texture->GetVkSampler();
-    }
-    else
-    {
-        imageInfo.imageLayout = missingTexture->GetLayout();
-        imageInfo.imageView = missingTexture->GetVkImageView();
-        imageInfo.sampler = missingTexture->GetVkSampler();
-    }
-    m_descriptorSet->UpdateImageDescriptorBinding(13, imageInfo);
-
-    if (const auto texture = m_aoTexture.Get<Texture2D>(); texture && texture->GetVkImageView() && texture->GetVkSampler())
-    {
-        imageInfo.imageLayout = texture->GetLayout();
-        imageInfo.imageView = texture->GetVkImageView();
-        imageInfo.sampler = texture->GetVkSampler();
-    }
-    else
-    {
-        imageInfo.imageLayout = missingTexture->GetLayout();
-        imageInfo.imageView = missingTexture->GetVkImageView();
-        imageInfo.sampler = missingTexture->GetVkSampler();
-    }
-    m_descriptorSet->UpdateImageDescriptorBinding(14, imageInfo);
-
-    m_needUpdate = false;
 }
 
 void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {

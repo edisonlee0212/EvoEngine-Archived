@@ -1,3 +1,4 @@
+#extension GL_EXT_nonuniform_qualifier : enable
 #define EE_PER_FRAME_SET 0
 #define EE_PER_PASS_SET 1
 #define EE_PER_GROUP_SET 2
@@ -23,6 +24,7 @@ layout(set = EE_PER_FRAME_SET, binding = 0) uniform EE_RENDERING_SETTINGS_BLOCK
 	int EE_DIRECTIONAL_LIGHT_AMOUNT;
 	int EE_POINT_LIGHT_AMOUNT;
 	int EE_SPOT_LIGHT_AMOUNT;
+	int EE_ENVIRONMENTAL_BRDFLUT_INDEX;
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 1) uniform EE_ENVIRONMENTAL_BLOCK
@@ -44,6 +46,10 @@ struct Camera {
 	vec4 EE_CAMERA_CLEAR_COLOR;
 	vec4 EE_CAMERA_RESERVED1;
 	vec4 EE_CAMERA_RESERVED2;
+	int EE_SKYBOX_INDEX;
+	int EE_ENVIRONMENTAL_IRRADIANCE_INDEX;
+	int EE_ENVIRONMENTAL_PREFILERED_INDEX;
+	int EE_CAMERA_PADDING1;
 };
 
 //Camera
@@ -51,13 +57,12 @@ layout(set = EE_PER_FRAME_SET, binding = 2) readonly buffer EE_CAMERA_BLOCK
 {
 	Camera EE_CAMERAS[];
 };
-
 struct MaterialProperties {
-	bool EE_ALBEDO_MAP_ENABLED;
-	bool EE_NORMAL_MAP_ENABLED;
-	bool EE_METALLIC_MAP_ENABLED;
-	bool EE_ROUGHNESS_MAP_ENABLED;
-	bool EE_AO_MAP_ENABLED;
+	int EE_ALBEDO_MAP_INDEX;
+	int EE_NORMAL_MAP_INDEX;
+	int EE_METALLIC_MAP_INDEX;
+	int EE_ROUGHNESS_MAP_INDEX;
+	int EE_AO_MAP_INDEX;
 	bool EE_CAST_SHADOW;
 	bool EE_RECEIVE_SHADOW;
 	bool EE_ENABLE_SHADOW;
@@ -169,6 +174,9 @@ struct Vertex {
 	vec4 color;
 	vec4 texCoord;
 };
+
+layout(set = EE_PER_FRAME_SET, binding = 12) uniform sampler2D[] EE_TEXTURE_2DS;
+layout(set = EE_PER_FRAME_SET, binding = 13) uniform samplerCube[] EE_CUBEMAPS;
 
 layout(set = EE_PER_FRAME_SET, binding = 22) readonly buffer EE_VERTICES_BLOCK
 {

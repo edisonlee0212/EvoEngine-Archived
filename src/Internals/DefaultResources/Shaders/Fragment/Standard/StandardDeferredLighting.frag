@@ -4,10 +4,10 @@ layout (location = 0) in VS_OUT {
 	vec2 TexCoord;
 } fs_in;
 
-layout(set = EE_PER_PASS_SET, binding = 10) uniform sampler2D inDepth;
-layout(set = EE_PER_PASS_SET, binding = 11) uniform sampler2D inNormal;
-layout(set = EE_PER_PASS_SET, binding = 12) uniform sampler2D inAlbedo;
-layout(set = EE_PER_PASS_SET, binding = 13) uniform sampler2D inMaterial;
+layout(set = EE_PER_PASS_SET, binding = 17) uniform sampler2D inDepth;
+layout(set = EE_PER_PASS_SET, binding = 18) uniform sampler2D inNormal;
+layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D inAlbedo;
+layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inMaterial;
 
 layout (location = 0) out vec4 FragColor;
 
@@ -19,9 +19,7 @@ void main()
 	if(ndcDepth == 1.0) {
 		vec3 cameraPosition = EE_CAMERA_POSITION();
 		Camera camera = EE_CAMERAS[EE_CAMERA_INDEX];
-		vec3 envColor = camera.EE_CAMERA_CLEAR_COLOR.w == 1.0 ? 
-			camera.EE_CAMERA_CLEAR_COLOR.xyz * EE_BACKGROUND_INTENSITY 
-			: pow(texture(UE_SKYBOX, normalize(fragPos - cameraPosition)).rgb, vec3(1.0 / EE_ENVIRONMENTAL_MAP_GAMMA)) * EE_BACKGROUND_INTENSITY;
+		vec3 envColor = EE_SKY_COLOR(fragPos - cameraPosition);
 		FragColor = vec4(envColor, 1.0);
 		return;
 	}

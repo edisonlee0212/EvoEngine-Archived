@@ -5,6 +5,7 @@
 #include "Console.hpp"
 #include "EditorLayer.hpp"
 #include "Graphics.hpp"
+#include "TextureStorage.hpp"
 
 using namespace EvoEngine;
 
@@ -123,6 +124,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 
 		m_sampler = std::make_unique<Sampler>(samplerInfo);
 		EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
+		TextureStorage::RegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
 	}
 	else
 	{
@@ -131,6 +133,16 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	}
 	stbi_image_free(data);
 	return true;
+}
+
+uint32_t Texture2D::GetTextureStorageIndex() const
+{
+	return m_textureStorageIndex;
+}
+
+Texture2D::~Texture2D()
+{
+	TextureStorage::UnRegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
 }
 
 void Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)

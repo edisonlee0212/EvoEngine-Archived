@@ -16,7 +16,7 @@ layout(location = 0) out VS_OUT {
 	vec2 TexCoord;
 } vs_out;
 
-layout(set = EE_PER_GROUP_SET, binding = 5) readonly buffer EE_ANIM_BONES_BLOCK
+layout(set = EE_PER_PASS_SET, binding = 5) readonly buffer EE_ANIM_BONES_BLOCK
 {
 	mat4 EE_ANIM_BONES[];
 };

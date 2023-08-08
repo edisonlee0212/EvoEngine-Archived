@@ -187,16 +187,16 @@ void Camera::UpdateGBuffer()
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_renderTexture->GetDepthImageView()->GetVkImageView();
 		imageInfo.sampler = m_renderTexture->m_depthSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(10, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(17, imageInfo);
 		imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
 		imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(11, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
 		imageInfo.imageView = m_gBufferAlbedoView->GetVkImageView();
 		imageInfo.sampler = m_gBufferAlbedoSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(12, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
 		imageInfo.imageView = m_gBufferMaterialView->GetVkImageView();
 		imageInfo.sampler = m_gBufferMaterialSampler->GetVkSampler();
-		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(13, imageInfo);
+		m_gBufferDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
 	}
 }
 
@@ -207,7 +207,7 @@ void Camera::TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLay
 	m_gBufferMaterial->TransitImageLayout(commandBuffer, targetLayout);
 }
 
-void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) const
+void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform)
 {
 	const auto rotation = globalTransform.GetRotation();
 	const auto position = globalTransform.GetPosition();
@@ -236,6 +236,30 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 	{
 		cameraInfoBlock.m_clearColor.w = 0.0f;
 	}
+
+	if (const auto cameraSkybox = m_skybox.Get<Cubemap>())
+	{
+		cameraInfoBlock.m_skyboxTextureIndex = cameraSkybox->GetTextureStorageIndex();
+	}
+	else {
+		auto defaultCubemap = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
+		cameraInfoBlock.m_skyboxTextureIndex = defaultCubemap->GetTextureStorageIndex();
+	}
+
+	const auto cameraPosition = globalTransform.GetPosition();
+	const auto scene = Application::GetActiveScene();
+	auto lightProbe = scene->m_environment.GetLightProbe(cameraPosition);
+	auto reflectionProbe = scene->m_environment.GetReflectionProbe(cameraPosition);
+	if (!lightProbe)
+	{
+		lightProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_lightProbe.Get<LightProbe>();
+	}
+	cameraInfoBlock.m_environmentalIrradianceTextureIndex = lightProbe->m_cubemap->GetTextureStorageIndex();
+	if (!reflectionProbe)
+	{
+		reflectionProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_reflectionProbe.Get<ReflectionProbe>();
+	}
+	cameraInfoBlock.m_environmentalPrefilteredIndex = reflectionProbe->m_cubemap->GetTextureStorageIndex();
 }
 
 void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const

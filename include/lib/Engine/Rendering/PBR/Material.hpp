@@ -7,12 +7,12 @@
 namespace EvoEngine
 {
 	struct MaterialInfoBlock {
-		alignas(4) int m_albedoEnabled = false;
-		alignas(4) int m_normalEnabled = false;
-		alignas(4) int m_metallicEnabled = false;
-		alignas(4) int m_roughnessEnabled = false;
+		alignas(4) int m_albedoTextureIndex = -1;
+		alignas(4) int m_normalTextureIndex = -1;
+		alignas(4) int m_metallicTextureIndex = -1;
+		alignas(4) int m_roughnessTextureIndex = -1;
 
-		alignas(4) int m_aoEnabled = false;
+		alignas(4) int m_aoTextureIndex = -1;
 		alignas(4) int m_castShadow = true;
 		alignas(4) int m_receiveShadow = true;
 		alignas(4) int m_enableShadow = true;
@@ -45,7 +45,6 @@ namespace EvoEngine
 	class Material final : public IAsset
 	{
 		friend class RenderLayer;
-		std::shared_ptr<DescriptorSet> m_descriptorSet = VK_NULL_HANDLE;
 		bool m_needUpdate = true;
 		AssetRef m_albedoTexture;
 		AssetRef m_normalTexture;
@@ -68,7 +67,6 @@ namespace EvoEngine
 		DrawSettings m_drawSettings;
 
 		void UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock);
-		void UpdateDescriptorBindings(bool forceUpdate = false);
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void CollectAssetRef(std::vector<AssetRef>& list) override;
 		void Serialize(YAML::Emitter& out) override;

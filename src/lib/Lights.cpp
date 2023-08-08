@@ -385,19 +385,16 @@ void Lighting::Initialize()
         VkDescriptorImageInfo imageInfo{};
         auto renderLayer = Application::GetLayer<RenderLayer>();
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = renderLayer->m_environmentalBRDFView->GetVkImageView();
-        imageInfo.sampler = renderLayer->m_environmentalBRDFSampler->GetVkSampler();
-
-        m_lightingDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
+        
         imageInfo.imageView = m_directionalLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_directionalShadowMapSampler->GetVkSampler();
-        m_lightingDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(14, imageInfo);
         imageInfo.imageView = m_pointLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_pointLightShadowMapSampler->GetVkSampler();
-        m_lightingDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(15, imageInfo);
         imageInfo.imageView = m_spotLightShadowMapView->GetVkImageView();
         imageInfo.sampler = m_spotLightShadowMapSampler->GetVkSampler();
-        m_lightingDescriptorSet->UpdateImageDescriptorBinding(21, imageInfo);
+        m_lightingDescriptorSet->UpdateImageDescriptorBinding(16, imageInfo);
     }
 }
 
@@ -437,7 +434,6 @@ VkRenderingAttachmentInfo Lighting::GetLayeredDirectionalLightDepthAttachmentInf
     attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     attachment.loadOp = loadOp;
     attachment.storeOp = storeOp;
-
     attachment.clearValue.depthStencil.depth = 1.0f;
     attachment.imageView = m_directionalLightShadowMapLayeredViews[split]->GetVkImageView();
     return attachment;

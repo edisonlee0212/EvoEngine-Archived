@@ -88,6 +88,7 @@ namespace EvoEngine
 		alignas(4) int m_directionalLightSize = 0;
 		alignas(4) int m_pointLightSize = 0;
 		alignas(4) int m_spotLightSize = 0;
+		alignas(4) int m_brdflutTextureIndex = 0;
 	};
 
 	struct EnvironmentInfoBlock {
@@ -158,14 +159,13 @@ namespace EvoEngine
 		void CollectSpotLights();
 
 		std::unique_ptr<Lighting> m_lighting;
-		std::shared_ptr<Image> m_environmentalBRDFLut = {};
-		std::shared_ptr<ImageView> m_environmentalBRDFView = {};
-		std::shared_ptr<Sampler> m_environmentalBRDFSampler = {};
+		std::shared_ptr<Texture2D> m_environmentalBRDFLut = {};
 
 		void ApplyAnimator() const;
 
 #pragma endregion
 #pragma region Per Frame Descriptor Sets
+		friend class TextureStorage;
 		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
 		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
