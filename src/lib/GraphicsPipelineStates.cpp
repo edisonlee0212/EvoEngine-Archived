@@ -10,7 +10,6 @@ void GraphicsPipelineStates::ResetAllStates(const VkCommandBuffer commandBuffer,
 	m_viewPort.width = 1;
 	m_viewPort.height = 1;
 	m_scissor = {};
-	m_patchControlPoints = 1;
 	m_depthClamp = false;
 	m_rasterizerDiscard = false;
 	m_polygonMode = VK_POLYGON_MODE_FILL;
@@ -69,11 +68,7 @@ void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer commandBuffer,
 		m_scissorApplied = m_scissor;
 		vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
 	}
-	
-	if (forceSet || m_patchControlPointsApplied != m_patchControlPoints) {
-		m_patchControlPointsApplied = m_patchControlPoints;
-		vkCmdSetPatchControlPointsEXT(commandBuffer, m_patchControlPointsApplied);
-	}
+
 	if (forceSet || m_depthClampApplied != m_depthClamp) {
 		m_depthClampApplied = m_depthClamp;
 		vkCmdSetDepthClampEnableEXT(commandBuffer, m_depthClampApplied);

@@ -64,6 +64,24 @@ void GraphicsPipeline::PreparePipeline()
 		geometryShaderStageInfo.pName = "main";
 		shaderStages.emplace_back(geometryShaderStageInfo);
 	}
+	if (m_taskShader && m_taskShader->m_shaderType == ShaderType::Task && m_taskShader->Compiled())
+	{
+		VkPipelineShaderStageCreateInfo taskShaderStageInfo{};
+		taskShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		taskShaderStageInfo.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
+		taskShaderStageInfo.module = m_taskShader->m_shaderModule->GetVkShaderModule();
+		taskShaderStageInfo.pName = "main";
+		shaderStages.emplace_back(taskShaderStageInfo);
+	}
+	if (m_meshShader && m_meshShader->m_shaderType == ShaderType::Mesh && m_meshShader->Compiled())
+	{
+		VkPipelineShaderStageCreateInfo meshShaderStageInfo{};
+		meshShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		meshShaderStageInfo.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+		meshShaderStageInfo.module = m_meshShader->m_shaderModule->GetVkShaderModule();
+		meshShaderStageInfo.pName = "main";
+		shaderStages.emplace_back(meshShaderStageInfo);
+	}
 	if (m_fragmentShader && m_fragmentShader->m_shaderType == ShaderType::Fragment && m_fragmentShader->Compiled())
 	{
 		VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{};
@@ -131,10 +149,7 @@ void GraphicsPipeline::PreparePipeline()
 	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 	depthStencil.depthBoundsTestEnable = VK_FALSE;
 	depthStencil.stencilTestEnable = VK_FALSE;
-
-	std::vector<VkDynamicState> dynamicStates = {
-		VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
-
+	std::vector dynamicStates = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR,
 
@@ -183,6 +198,7 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pStages = shaderStages.data();
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	if (m_meshShader) pipelineInfo.pVertexInputState = nullptr;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pMultisampleState = &multisampling;
@@ -191,6 +207,7 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
 	pipelineInfo.pNext = &renderingCreateInfo;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
 	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&pipelineInfo, nullptr, &m_vkGraphicsPipeline));
 }

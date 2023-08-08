@@ -7,8 +7,6 @@ namespace EvoEngine
 		VkViewport m_viewPortApplied = {};
 		VkRect2D m_scissorApplied = {};
 
-		uint32_t m_patchControlPointsApplied = 1;
-
 		bool m_depthClampApplied = false;
 		bool m_rasterizerDiscardApplied = false;
 		VkPolygonMode m_polygonModeApplied = VK_POLYGON_MODE_FILL;
@@ -39,7 +37,6 @@ namespace EvoEngine
 		void ResetAllStates(VkCommandBuffer commandBuffer, size_t colorAttachmentSize);
 		VkViewport m_viewPort = {};
 		VkRect2D m_scissor = {};
-		uint32_t m_patchControlPoints = 1;
 		bool m_depthClamp = false;
 		bool m_rasterizerDiscard = false;
 		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;

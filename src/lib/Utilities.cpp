@@ -307,9 +307,9 @@ std::vector<uint32_t> ShaderUtils::CompileFile(const std::string& sourceName, sh
     shaderc::CompileOptions options;
 
     // Like -DMY_DEFINE=1
-    options.AddMacroDefinition("MY_DEFINE", "1");
+    //options.AddMacroDefinition("MY_DEFINE", "1");
     if (optimize) options.SetOptimizationLevel(shaderc_optimization_level_size);
-
+    options.SetTargetSpirv(shaderc_spirv_version_1_4);
     shaderc::SpvCompilationResult module =
         compiler.CompileGlslToSpv(source, kind, sourceName.c_str(), options);
 

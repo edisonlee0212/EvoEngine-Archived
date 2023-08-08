@@ -10,6 +10,8 @@ namespace EvoEngine
 		TessellationControl,
 		TessellationEvaluation,
 		Geometry,
+		Task,
+		Mesh,
 		Fragment,
 		Compute,
 		Unknown

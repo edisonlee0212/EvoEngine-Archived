@@ -30,28 +30,35 @@ void Resources::LoadShaders()
 #pragma region Standard Shader
 	{
 		auto vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/Standard.vert");
 
 		auto standardVert = CreateResource<Shader>("STANDARD_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/StandardSkinned.vert");
 
 		standardVert = CreateResource<Shader>("STANDARD_SKINNED_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto meshShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/Standard.mesh");
+		auto standardMesh = CreateResource<Shader>("STANDARD_MESH");
+		standardMesh->Set(ShaderType::Mesh, meshShaderCode);
+
 	}
 
 #pragma endregion
-	auto texPassVertCode = std::string("#version 450 core\n") +
+	auto texPassVertCode = std::string("#version 450\n") +
 		FileUtils::LoadFileAsString(
 			std::filesystem::path("./DefaultResources") / "Shaders/Vertex/TexturePassThrough.vert");
 	auto texPassVert = CreateResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 	texPassVert->Set(ShaderType::Vertex, texPassVertCode);
 
-	auto texPassFragCode = std::string("#version 450 core\n") +
+	auto texPassFragCode = std::string("#version 450\n") +
 		FileUtils::LoadFileAsString(
 			std::filesystem::path("./DefaultResources") / "Shaders/Fragment/TexturePassThrough.frag");
 	auto texPassFrag = CreateResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");
@@ -60,7 +67,7 @@ void Resources::LoadShaders()
 #pragma region GBuffer
 	{
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
@@ -68,17 +75,18 @@ void Resources::LoadShaders()
 
 
 		fragShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLightingSceneCamera.frag");
 		standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 		
-		fragShaderCode = std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+		fragShaderCode = std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferred.frag");
 
 		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
+
 		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
@@ -90,7 +98,7 @@ void Resources::LoadShaders()
 
 	{
 		auto bloomSeparatorProgram = CreateResource<GraphicsPipeline>("BLOOM_SEPARATOR_PROGRAM");
-		auto fragShaderCode = std::string("#version 450 core\n") +
+		auto fragShaderCode = std::string("#version 450\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomSeparator.frag");
 		auto bloomSeparatorFrag = CreateResource<Shader>("BLOOM_SEPARATOR_FRAG");
@@ -99,7 +107,7 @@ void Resources::LoadShaders()
 		bloomSeparatorProgram->m_fragmentShader = bloomSeparatorFrag;
 
 		auto bloomFilterProgram = CreateResource<GraphicsPipeline>("BLOOM_FILTER_PROGRAM");
-		fragShaderCode = std::string("#version 450 core\n") +
+		fragShaderCode = std::string("#version 450\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
 		auto bloomFilterFrag = CreateResource<Shader>("BLOOM_FILTER_FRAG");
@@ -108,7 +116,7 @@ void Resources::LoadShaders()
 		bloomFilterProgram->m_fragmentShader = bloomFilterFrag;
 
 		auto bloomCombineProgram = CreateResource<GraphicsPipeline>("BLOOM_COMBINE_PROGRAM");
-		fragShaderCode = std::string("#version 450 core\n") +
+		fragShaderCode = std::string("#version 450\n") +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomCombine.frag");
 		auto bloomCombineFrag = CreateResource<Shader>("BLOOM_COMBINE_FRAG");
@@ -184,49 +192,49 @@ void Resources::LoadShaders()
 #pragma region Shadow Maps
 	{
 		auto vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/DirectionalLightShadowMap.vert");
 
 		auto vertShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/DirectionalLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Empty.frag");
 		auto fragShader = CreateResource<Shader>("EMPTY_FRAG");
@@ -236,31 +244,31 @@ void Resources::LoadShaders()
 #pragma region Environmental
 	{
 		auto vertShaderCode =
-			std::string("#version 450 core\n") + 
+			std::string("#version 450\n") + 
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/EquirectangularMapToCubemap.vert");
 		auto vertShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
-			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapBrdf.frag");
 		auto fragShader = CreateResource<Shader>("ENVIRONMENTAL_MAP_BRDF_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
-			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EquirectangularMapToCubemap.frag");
 		fragShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
-			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapIrradianceConvolution.frag");
 		fragShader = CreateResource<Shader>("IRRADIANCE_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 		fragShaderCode =
-			std::string("#version 450 core\n") + FileUtils::LoadFileAsString(
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Lighting/EnvironmentalMapPrefilter.frag");
 		fragShader = CreateResource<Shader>("PREFILTER_CONSTRUCT_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);

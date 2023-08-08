@@ -167,7 +167,7 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_spotLightInfoDescriptorBuffers = {};
 		void CreateStandardDescriptorBuffers();
-		void UpdateStandardBindings();
+		void CreatePerFrameDescriptorSets();
 
 		std::unordered_map<Handle, uint32_t> m_cameraIndices;
 		std::unordered_map<Handle, uint32_t> m_materialIndices;

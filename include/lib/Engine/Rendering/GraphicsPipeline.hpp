@@ -127,6 +127,9 @@ namespace EvoEngine
 		std::shared_ptr<Shader> m_tessellationControlShader;
 		std::shared_ptr<Shader> m_tessellationEvaluationShader;
 		std::shared_ptr<Shader> m_geometryShader;
+
+		std::shared_ptr<Shader> m_taskShader;
+		std::shared_ptr<Shader> m_meshShader;
 		std::shared_ptr<Shader> m_fragmentShader;
 		GeometryType m_geometryType = GeometryType::Mesh;
 
