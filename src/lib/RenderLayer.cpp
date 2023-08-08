@@ -15,52 +15,22 @@
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
 
-void RenderInstanceCollection::Add(const std::shared_ptr<Material>& material, const RenderInstance& renderInstance)
+void RenderInstanceCollection::Dispatch(const std::function<void(const RenderInstance&)>& commandAction) const
 {
-	auto& group = m_renderInstanceGroups[material->GetHandle()];
-	if(!group.m_material) group.m_material = material;
-	group.m_renderCommands[renderInstance.m_mesh->GetHandle()].push_back(renderInstance);
-}
-
-void RenderInstanceCollection::Dispatch(
-	const std::function<void(const std::shared_ptr<Material>&)>&
-	beginCommandGroupAction,
-	const std::function<void(const RenderInstance&)>& commandAction) const
-{
-	for (auto& renderInstanceGroup : m_renderInstanceGroups) {
-		beginCommandGroupAction(renderInstanceGroup.second.m_material);
-		for (const auto& renderCommands : renderInstanceGroup.second.m_renderCommands)
-		{
-			for (const auto& renderCommand : renderCommands.second)
-			{
-				commandAction(renderCommand);
-			}
-		}
+	for (const auto& renderCommand : m_renderCommands)
+	{
+		commandAction(renderCommand);
 	}
 }
 
-void SkinnedRenderInstanceCollection::Add(const std::shared_ptr<Material>& material,
-	const SkinnedRenderInstance& renderInstance)
+void SkinnedRenderInstanceCollection::Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const
 {
-	auto& group = m_renderInstanceGroups[material->GetHandle()];
-	if (!group.m_material) group.m_material = material;
-	group.m_renderCommands[renderInstance.m_skinnedMesh->GetHandle()].push_back(renderInstance);
-}
 
-void SkinnedRenderInstanceCollection::Dispatch(
-	const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
-	const std::function<void(const SkinnedRenderInstance&)>& commandAction) const
-{
-	for (auto& renderInstanceGroup : m_renderInstanceGroups) {
-		beginCommandGroupAction(renderInstanceGroup.second.m_material);
-		for (const auto& renderCommands : renderInstanceGroup.second.m_renderCommands)
-		{
-			for (const auto& renderCommand : renderCommands.second)
-			{
-				commandAction(renderCommand);
-			}
-		}
+	for (const auto& renderCommand : m_renderCommands)
+	{
+		commandAction(renderCommand);
 	}
+
 }
 
 void RenderLayer::OnCreate()
@@ -107,12 +77,12 @@ void RenderLayer::PreUpdate()
 
 	ApplyAnimator();
 
-	m_deferredRenderInstances.m_renderInstanceGroups.clear();
-	m_deferredSkinnedRenderInstances.m_renderInstanceGroups.clear();
-	m_deferredInstancedRenderInstances.m_renderInstanceGroups.clear();
-	m_transparentRenderInstances.m_renderInstanceGroups.clear();
-	m_transparentSkinnedRenderInstances.m_renderInstanceGroups.clear();
-	m_transparentInstancedRenderInstances.m_renderInstanceGroups.clear();
+	m_deferredRenderInstances.m_renderCommands.clear();
+	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
+	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentRenderInstances.m_renderCommands.clear();
+	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
+	m_transparentInstancedRenderInstances.m_renderCommands.clear();
 
 	m_cameraIndices.clear();
 	m_materialIndices.clear();
@@ -755,7 +725,7 @@ void RenderLayer::ApplyAnimator() const
 				const auto entity = owners->at(i);
 				if (!scene->IsEntityEnabled(entity)) return;
 				const auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(entity).lock();
-			if(!skinnedMeshRenderer->IsEnabled()) return;
+				if (!skinnedMeshRenderer->IsEnabled()) return;
 				skinnedMeshRenderer->UpdateBoneMatrices();
 			}, results);
 		for (const auto& i : results)
@@ -799,8 +769,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 			scissor.offset = { 0, 0 };
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
-			
-			
+
+
 #pragma endregion
 			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 			for (int face = 0; face < 6; face++) {
@@ -830,8 +800,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						scissor.extent.width = viewport.width;
 						scissor.extent.height = viewport.height;
 						pointLightShadowPipeline->m_states.m_scissor = scissor;
-						m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-							{}, [&](const RenderInstance& renderCommand)
+						m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 							{
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = face;
@@ -872,8 +841,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						scissor.extent.height = viewport.height;
 						pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 						pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
-						m_deferredSkinnedRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-							{}, [&](const SkinnedRenderInstance& renderCommand)
+						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 							{
 								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
@@ -907,10 +875,10 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
 
-			
+
 #pragma endregion
 			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			
+
 			{
 				VkRenderingInfo renderInfo{};
 				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
@@ -937,8 +905,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					scissor.extent.width = viewport.width;
 					scissor.extent.height = viewport.height;
 					spotLightShadowPipeline->m_states.m_scissor = scissor;
-					m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-						{}, [&](const RenderInstance& renderCommand)
+					m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 						{
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = 0;
@@ -977,8 +944,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					viewport.height = spotLightInfoBlock.m_viewPort.w;
 					spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 
-					m_deferredSkinnedRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-						{}, [&](const SkinnedRenderInstance& renderCommand)
+					m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 						{
 							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 							RenderInstancePushConstant pushConstant;
@@ -1057,11 +1023,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			if (renderInstance.m_selected) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
 			{
-				m_transparentRenderInstances.Add(material, renderInstance);
+				m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 			else
 			{
-				m_deferredRenderInstances.Add(material, renderInstance);
+				m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 		}
 	}
@@ -1122,11 +1088,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 
 			if (material->m_drawSettings.m_blending)
 			{
-				m_transparentSkinnedRenderInstances.Add(material, renderInstance);
+				m_transparentSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 			else
 			{
-				m_deferredSkinnedRenderInstances.Add(material, renderInstance);
+				m_deferredSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 		}
 	}
@@ -1518,12 +1484,12 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			scissor.extent.width = renderArea.extent.width;
 			scissor.extent.height = renderArea.extent.height;
 
-			
+
 #pragma endregion
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 			for (int split = 0; split < 4; split++) {
-				
+
 				{
 					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
 					VkRenderingInfo renderInfo{};
@@ -1554,8 +1520,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						directionalLightShadowPipeline->m_states.m_viewPort = viewport;
 						directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
 
-						m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-							{}, [&](const RenderInstance& renderCommand)
+						m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 							{
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = split;
@@ -1603,8 +1568,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						directionalLightShadowPipelineSkinned->m_states.m_viewPort = viewport;
 						directionalLightShadowPipelineSkinned->m_states.ApplyAllStates(commandBuffer);
 
-						m_deferredSkinnedRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-							{}, [&](const SkinnedRenderInstance& renderCommand)
+						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 							{
 								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
@@ -1615,7 +1579,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
 								skinnedMesh->Bind(commandBuffer);
 								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states);
-
 							}
 						);
 
@@ -1654,7 +1617,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		scissor.offset = { 0, 0 };
 		scissor.extent.width = camera->GetSize().x;
 		scissor.extent.height = camera->GetSize().y;
-		
+
 		camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 		camera->m_renderTexture->m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
@@ -1685,9 +1648,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			m_deferredRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-				{
-				}, [&](const RenderInstance& renderCommand)
+			m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 				{
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
@@ -1724,9 +1685,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredSkinnedPrepassPipeline->Bind(commandBuffer);
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			m_deferredSkinnedRenderInstances.Dispatch([&](const std::shared_ptr<Material>& material)
-				{
-				}, [&](const SkinnedRenderInstance& renderCommand)
+			m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 				{
 					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;

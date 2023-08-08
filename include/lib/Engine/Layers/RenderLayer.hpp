@@ -45,33 +45,15 @@ namespace EvoEngine
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
 	};
 
-	struct RenderInstanceGroup {
-		std::shared_ptr<Material> m_material;
-		std::unordered_map<Handle, std::vector<RenderInstance>> m_renderCommands;
-	};
-
-	struct SkinnedRenderInstanceGroup {
-		std::shared_ptr<Material> m_material;
-		std::unordered_map<Handle, std::vector<SkinnedRenderInstance>> m_renderCommands;
-	};
-
 	struct RenderInstanceCollection
 	{
-		std::unordered_map<Handle, RenderInstanceGroup> m_renderInstanceGroups;
-
-		void Add(const std::shared_ptr<Material>& material, const RenderInstance& renderInstance);
-
-		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
-			const std::function<void(const RenderInstance&)>& commandAction) const;
+		std::vector<RenderInstance> m_renderCommands;
+		void Dispatch(const std::function<void(const RenderInstance&)>& commandAction) const;
 	};
 	struct SkinnedRenderInstanceCollection
 	{
-		std::unordered_map<Handle, SkinnedRenderInstanceGroup> m_renderInstanceGroups;
-
-		void Add(const std::shared_ptr<Material>& material, const SkinnedRenderInstance& renderInstance);
-
-		void Dispatch(const std::function<void(const std::shared_ptr<Material>&)>& beginCommandGroupAction,
-			const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
+		std::vector<SkinnedRenderInstance> m_renderCommands;
+		void Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
 	};
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
