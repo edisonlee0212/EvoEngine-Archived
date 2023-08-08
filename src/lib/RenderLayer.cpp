@@ -36,7 +36,7 @@ void SkinnedRenderInstanceCollection::Dispatch(const std::function<void(const Sk
 void RenderLayer::OnCreate()
 {
 	CreateStandardDescriptorBuffers();
-	UpdateStandardBindings();
+	CreatePerFrameDescriptorSets();
 
 	std::vector<glm::vec4> kernels;
 	for (uint32_t i = 0; i < Graphics::Constants::MAX_KERNEL_AMOUNT; i++)
@@ -91,6 +91,7 @@ void RenderLayer::PreUpdate()
 	m_cameraInfoBlocks.clear();
 	m_materialInfoBlocks.clear();
 	m_instanceInfoBlocks.clear();
+	m_renderTaskInfoBlocks.clear();
 
 	m_directionalLightInfoBlocks.clear();
 	m_pointLightInfoBlocks.clear();
@@ -147,6 +148,7 @@ void RenderLayer::PreUpdate()
 	m_cameraInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_cameraInfoBlocks);
 	m_materialInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_materialInfoBlocks);
 	m_instanceInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_instanceInfoBlocks);
+	m_renderTaskInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_renderTaskInfoBlocks);
 
 	VkDescriptorBufferInfo bufferInfo;
 	bufferInfo.offset = 0;
@@ -175,6 +177,9 @@ void RenderLayer::PreUpdate()
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(10, bufferInfo);
 	bufferInfo.buffer = MeshStorage::GetMeshletBuffer()->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(11, bufferInfo);
+
+	bufferInfo.buffer = m_renderTaskInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(12, bufferInfo);
 
 	PreparePointAndSpotLightShadowMap();
 
@@ -1029,6 +1034,13 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			{
 				m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
+
+			for(const auto& i : mesh->PeekMeshletIndices())
+			{
+				auto& renderTask = m_renderTaskInfoBlocks.emplace_back();
+				renderTask.m_instanceIndex = instanceIndex;
+				renderTask.m_meshletIndex = i;
+			}
 		}
 	}
 	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
@@ -1260,6 +1272,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_cameraInfoDescriptorBuffers.clear();
 	m_materialInfoDescriptorBuffers.clear();
 	m_instanceInfoDescriptorBuffers.clear();
+	m_renderTaskInfoDescriptorBuffers.clear();
 	m_kernelDescriptorBuffers.clear();
 	m_directionalLightInfoDescriptorBuffers.clear();
 	m_pointLightInfoDescriptorBuffers.clear();
@@ -1285,6 +1298,9 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::Constants::INITIAL_INSTANCE_SIZE;
 		m_instanceInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		bufferCreateInfo.size = sizeof(RenderTaskInfoBlock) * Graphics::Constants::INITIAL_RENDER_TASK_SIZE;
+		m_renderTaskInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::Constants::MAX_KERNEL_AMOUNT * 2;
 		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
@@ -1301,7 +1317,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 
 
 
-void RenderLayer::UpdateStandardBindings()
+void RenderLayer::CreatePerFrameDescriptorSets()
 {
 	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
 
@@ -1309,29 +1325,6 @@ void RenderLayer::UpdateStandardBindings()
 	for (size_t i = 0; i < maxFramesInFlight; i++)
 	{
 		auto descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("PER_FRAME_LAYOUT"));
-
-		VkDescriptorBufferInfo bufferInfo;
-		bufferInfo.offset = 0;
-		bufferInfo.range = VK_WHOLE_SIZE;
-
-		bufferInfo.buffer = m_renderInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(0, bufferInfo);
-		bufferInfo.buffer = m_environmentInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(1, bufferInfo);
-		bufferInfo.buffer = m_cameraInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(2, bufferInfo);
-		bufferInfo.buffer = m_materialInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(3, bufferInfo);
-		bufferInfo.buffer = m_instanceInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(4, bufferInfo);
-		bufferInfo.buffer = m_kernelDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(6, bufferInfo);
-		bufferInfo.buffer = m_directionalLightInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(7, bufferInfo);
-		bufferInfo.buffer = m_pointLightInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(8, bufferInfo);
-		bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[i]->GetVkBuffer();
-		descriptorSet->UpdateBufferDescriptorBinding(9, bufferInfo);
 		m_perFrameDescriptorSets.emplace_back(descriptorSet);
 	}
 }

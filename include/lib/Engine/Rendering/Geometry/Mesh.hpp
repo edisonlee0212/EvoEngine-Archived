@@ -33,6 +33,7 @@ namespace EvoEngine
 
 		std::vector<uint32_t> m_meshletIndices;
 	public:
+		[[nodiscard]] const std::vector<uint32_t>& PeekMeshletIndices() const;
 		void OnCreate() override;
 		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const override;

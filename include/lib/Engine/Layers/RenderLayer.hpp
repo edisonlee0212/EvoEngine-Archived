@@ -84,6 +84,14 @@ namespace EvoEngine
 		int m_infoIndex2 = 0;
 		int m_infoIndex3 = 0;
 	};
+
+	struct RenderTaskInfoBlock
+	{
+		uint32_t m_meshletIndex = 0;
+		uint32_t m_instanceIndex = 0;
+		uint32_t m_infoIndex1 = 0;
+		uint32_t m_infoIndex2 = 0;
+	};
 #pragma endregion
 
 	class RenderLayer final : public ILayer {
@@ -153,6 +161,7 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_instanceInfoDescriptorBuffers = {};
+		std::vector<std::unique_ptr<Buffer>> m_renderTaskInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
@@ -168,6 +177,7 @@ namespace EvoEngine
 		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
 		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};
 		std::vector<InstanceInfoBlock> m_instanceInfoBlocks{};
+		std::vector<RenderTaskInfoBlock> m_renderTaskInfoBlocks{};
 
 		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;

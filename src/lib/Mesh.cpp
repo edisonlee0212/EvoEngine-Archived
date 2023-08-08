@@ -13,6 +13,11 @@ void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
+const std::vector<uint32_t>& Mesh::PeekMeshletIndices() const
+{
+	return m_meshletIndices;
+}
+
 void Mesh::OnCreate()
 {
 	VkBufferCreateInfo trianglesBufferCreateInfo{};
