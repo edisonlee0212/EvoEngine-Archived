@@ -19,15 +19,12 @@ namespace EvoEngine
 	struct RenderInstancePushConstant
 	{
 		int m_instanceIndex = 0;
-		int m_materialIndex = 0;
 		int m_cameraIndex = 0;
-		int m_infoIndex = 0;
+		int m_lightSplitIndex = 0;
 	};
 
 	struct RenderInstance {
 		uint32_t m_instanceIndex = 0;
-		uint32_t m_materialIndex = 0;
-		uint32_t m_selected = 0;
 		RenderCommandType m_commandType = RenderCommandType::None;
 		Entity m_owner = Entity();
 		std::shared_ptr<Mesh> m_mesh;
@@ -36,8 +33,6 @@ namespace EvoEngine
 
 	struct SkinnedRenderInstance {
 		uint32_t m_instanceIndex = 0;
-		uint32_t m_materialIndex = 0;
-		uint32_t m_selected = 0;
 		RenderCommandType m_commandType = RenderCommandType::None;
 		Entity m_owner = Entity();
 		std::shared_ptr<SkinnedMesh> m_skinnedMesh;
@@ -84,6 +79,10 @@ namespace EvoEngine
 	struct InstanceInfoBlock
 	{
 		GlobalTransform m_model;
+		int m_materialIndex;
+		int m_infoIndex1 = 0;
+		int m_infoIndex2 = 0;
+		int m_infoIndex3 = 0;
 	};
 #pragma endregion
 

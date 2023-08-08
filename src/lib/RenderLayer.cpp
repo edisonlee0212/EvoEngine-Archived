@@ -803,8 +803,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 							{
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = face;
-								pushConstant.m_materialIndex = i;
+								pushConstant.m_cameraIndex = i;
+								pushConstant.m_lightSplitIndex = face;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
@@ -845,8 +845,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							{
 								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = face;
-								pushConstant.m_materialIndex = i;
+								pushConstant.m_cameraIndex = i;
+								pushConstant.m_lightSplitIndex = face;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
@@ -908,8 +908,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 						{
 							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = 0;
-							pushConstant.m_materialIndex = i;
+							pushConstant.m_cameraIndex = i;
+							pushConstant.m_lightSplitIndex = 0;
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
@@ -948,8 +948,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						{
 							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = 0;
-							pushConstant.m_materialIndex = i;
+							pushConstant.m_cameraIndex = i;
+							pushConstant.m_lightSplitIndex = 0;
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto skinnedMesh = renderCommand.m_skinnedMesh;
@@ -1010,6 +1010,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
+			instanceInfoBlock.m_materialIndex = materialIndex;
+			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 			RenderInstance renderInstance;
@@ -1017,10 +1019,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = mmc->m_castShadow;
 
-			renderInstance.m_materialIndex = materialIndex;
 			renderInstance.m_instanceIndex = instanceIndex;
-			renderInstance.m_selected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			if (renderInstance.m_selected) m_needFade = true;
+			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
 			{
 				m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
@@ -1072,6 +1072,9 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
+			instanceInfoBlock.m_materialIndex = materialIndex;
+			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1081,10 +1084,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_castShadow = smmc->m_castShadow;
 			renderInstance.m_boneMatrices = smmc->m_boneMatrices;
 
-			renderInstance.m_materialIndex = materialIndex;
 			renderInstance.m_instanceIndex = instanceIndex;
-			renderInstance.m_selected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			if (renderInstance.m_selected) m_needFade = true;
+			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
 			{
@@ -1523,8 +1524,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 							{
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = split;
-								pushConstant.m_materialIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_lightSplitIndex = split;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
@@ -1572,8 +1573,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							{
 								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = split;
-								pushConstant.m_materialIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_lightSplitIndex = split;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
@@ -1652,9 +1653,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				{
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
-					pushConstant.m_materialIndex = renderCommand.m_materialIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					pushConstant.m_infoIndex = renderCommand.m_selected;
 					deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto mesh = renderCommand.m_mesh;
 					mesh->Bind(commandBuffer);
@@ -1690,9 +1689,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
-					pushConstant.m_materialIndex = renderCommand.m_materialIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					pushConstant.m_infoIndex = renderCommand.m_selected;
 					deferredSkinnedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto skinnedMesh = renderCommand.m_skinnedMesh;
 					skinnedMesh->Bind(commandBuffer);
@@ -1735,7 +1732,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredLightingPipeline->m_states.m_scissor = scissor;
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
-			pushConstant.m_materialIndex = needFade ? glm::max(32, 256 - editorLayer->m_selectionAlpha) : 256;
+			pushConstant.m_lightSplitIndex = needFade ? glm::max(32, 256 - editorLayer->m_selectionAlpha) : 256;
 			pushConstant.m_instanceIndex = needFade ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");

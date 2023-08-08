@@ -34,7 +34,7 @@ void main()
 					}
 				}
 			}
-			FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(envColor, 1.0), float(EE_MATERIAL_INDEX) / 256.0);
+			FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(envColor, 1.0), float(EE_LIGHT_SPLIT_INDEX) / 256.0);
 		}else{
 			FragColor = vec4(envColor, 1.0);
 		}
@@ -75,7 +75,7 @@ void main()
 				}
 			}
 		}
-		FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(color, 1.0), float(EE_MATERIAL_INDEX) / 256.0);
+		FragColor = mix(vec4(0.5, 0.5, 0.5, 1.0), vec4(color, 1.0), float(EE_LIGHT_SPLIT_INDEX) / 256.0);
 	}else{
 		FragColor = vec4(color, 1.0);
 	}

@@ -84,6 +84,10 @@ layout(set = EE_PER_FRAME_SET, binding = 3) readonly buffer EE_MATERIAL_BLOCK
 
 struct Instance {
 	mat4 model;
+	int materialIndex;
+	int infoIndex1;
+	int infoIndex2;
+	int infoIndex3;
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
@@ -91,13 +95,10 @@ layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
 	Instance EE_INSTANCES[];
 };
 
-
-
 layout(push_constant) uniform EE_PUSH_CONSTANTS{
 	int EE_INSTANCE_INDEX;
-	int EE_MATERIAL_INDEX;
 	int EE_CAMERA_INDEX;
-	int EE_INFO_INDEX;
+	int EE_LIGHT_SPLIT_INDEX;
 };
 
 //Lights
@@ -185,7 +186,7 @@ layout(set = EE_PER_FRAME_SET, binding = 22) readonly buffer EE_VERTICES_BLOCK
 
 struct Meshlet {
 	uint vertexIndices[MESHLET_MAX_VERTICES_SIZE];
-	uint triangles[MESHLET_MAX_INDICES_SIZE];
+	uint primitiveIndices[MESHLET_MAX_INDICES_SIZE];
 	uint verticesSize;
 	uint triangleSize;
 };

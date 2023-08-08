@@ -39,5 +39,5 @@ void main()
 		boneTransform += EE_ANIM_BONES[inBoneIds2[3]] * inWeights2[3];
 	}
 
-    gl_Position = EE_POINT_LIGHTS[EE_MATERIAL_INDEX].lightSpaceMatrix[EE_CAMERA_INDEX] * EE_INSTANCES[EE_INSTANCE_INDEX].model * boneTransform * vec4(inPosition, 1.0);
+    gl_Position = EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * EE_INSTANCES[EE_INSTANCE_INDEX].model * boneTransform * vec4(inPosition, 1.0);
 }

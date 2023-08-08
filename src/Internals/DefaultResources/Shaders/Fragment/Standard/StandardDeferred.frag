@@ -12,7 +12,7 @@ layout (location = 2) out vec4 outMaterial;
 
 void main()
 {
-    MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[EE_MATERIAL_INDEX];
+    MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[EE_INSTANCES[EE_INSTANCE_INDEX].materialIndex];
     
     vec2 texCoord = fs_in.TexCoord;
     vec4 albedo = materialProperties.EE_PBR_ALBEDO;
@@ -42,7 +42,7 @@ void main()
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
     outNormal.a = EE_INSTANCE_INDEX;
     outAlbedo = albedo;
-    outAlbedo.a = EE_INFO_INDEX;
+    outAlbedo.a = EE_INSTANCES[EE_INSTANCE_INDEX].infoIndex1;
 
     outMaterial = vec4(metallic, roughness, emission, ao);
 }

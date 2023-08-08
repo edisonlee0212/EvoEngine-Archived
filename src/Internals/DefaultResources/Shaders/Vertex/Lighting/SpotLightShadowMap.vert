@@ -6,5 +6,5 @@ layout (location = 4) in vec2 inColor;
 
 void main()
 {
-    gl_Position = EE_SPOT_LIGHTS[EE_MATERIAL_INDEX].lightSpaceMatrix * EE_INSTANCES[EE_INSTANCE_INDEX].model * vec4(inPosition, 1.0);
+    gl_Position = EE_SPOT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix * EE_INSTANCES[EE_INSTANCE_INDEX].model * vec4(inPosition, 1.0);
 }
