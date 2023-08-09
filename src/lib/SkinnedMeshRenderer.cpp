@@ -1,13 +1,13 @@
 #include "SkinnedMeshRenderer.hpp"
 
 #include "EditorLayer.hpp"
+#include "Gizmos.hpp"
 using namespace EvoEngine;
 void SkinnedMeshRenderer::RenderBound(glm::vec4& color)
 {
-	/*
-	auto scene = GetScene();
+	const auto scene = GetScene();
 	const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
-	glm::vec3 size = m_skinnedMesh.Get<SkinnedMesh>()->m_bound.Size();
+	glm::vec3 size = m_skinnedMesh.Get<SkinnedMesh>()->m_bound.Size() * 2.0f;
 	if (size.x < 0.01f)
 		size.x = 0.01f;
 	if (size.z < 0.01f)
@@ -15,16 +15,15 @@ void SkinnedMeshRenderer::RenderBound(glm::vec4& color)
 	if (size.y < 0.01f)
 		size.y = 0.01f;
 	GizmoSettings gizmoSettings;
-	gizmoSettings.m_drawSettings.m_cullFace = false;
+	gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
 	gizmoSettings.m_drawSettings.m_blending = true;
-	gizmoSettings.m_drawSettings.m_polygonMode = OpenGLPolygonMode::Line;
-	gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
+	gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
+	gizmoSettings.m_drawSettings.m_lineWidth = 5.0f;
 	Gizmos::DrawGizmoMesh(
-		DefaultResources::Primitives::Cube,
+		Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
 		color,
 		transform * (glm::translate(m_skinnedMesh.Get<SkinnedMesh>()->m_bound.Center()) * glm::scale(size)),
 		1, gizmoSettings);
-		*/
 }
 
 void SkinnedMeshRenderer::UpdateBoneMatrices()

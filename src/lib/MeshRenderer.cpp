@@ -9,8 +9,9 @@ using namespace EvoEngine;
 
 void MeshRenderer::RenderBound(const glm::vec4& color)
 {
-    const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
-    glm::vec3 size = m_mesh.Get<Mesh>()->GetBound().Size();
+    const auto scene = GetScene();
+    const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
+    glm::vec3 size = m_mesh.Get<Mesh>()->GetBound().Size() * 2.0f;
     if (size.x < 0.01f)
         size.x = 0.01f;
     if (size.z < 0.01f)
@@ -21,7 +22,7 @@ void MeshRenderer::RenderBound(const glm::vec4& color)
     gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
     gizmoSettings.m_drawSettings.m_blending = true;
     gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
-    gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
+    gizmoSettings.m_drawSettings.m_lineWidth = 5.0f;
     Gizmos::DrawGizmoMesh(
         Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
         color,
@@ -37,13 +38,13 @@ void MeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
     editorLayer->DragAndDropButton<Mesh>(m_mesh, "Mesh");
     if (m_mesh.Get<Mesh>())
     {
-        if (ImGui::TreeNode("Mesh##MeshRenderer"))
+        if (ImGui::TreeNodeEx("Mesh##MeshRenderer", ImGuiTreeNodeFlags_DefaultOpen))
         {
             static bool displayBound = true;
             ImGui::Checkbox("Display bounds##MeshRenderer", &displayBound);
             if (displayBound)
             {
-                static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
+                static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.1f);
                 ImGui::ColorEdit4("Color:##MeshRenderer", (float*)(void*)&displayBoundColor);
                 RenderBound(displayBoundColor);
             }

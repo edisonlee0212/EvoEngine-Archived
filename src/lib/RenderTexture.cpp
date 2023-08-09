@@ -285,14 +285,14 @@ void RenderTexture::ApplyGraphicsPipelineStates(GraphicsPipelineStates& globalPi
 	VkViewport viewport;
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = m_extent.depth;
+	viewport.width = m_extent.width;
 	viewport.height = m_extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor;
 	scissor.offset = { 0, 0 };
-	scissor.extent.width = m_extent.depth;
+	scissor.extent.width = m_extent.width;
 	scissor.extent.height = m_extent.height;
 	globalPipelineState.m_viewPort = viewport;
 	globalPipelineState.m_scissor = scissor;

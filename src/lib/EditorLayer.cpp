@@ -1431,10 +1431,10 @@ Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCa
 		imageCopy.imageOffset.y = point.y;
 		imageCopy.imageOffset.z = 0;
 		m_entityIndexReadBuffer->CopyFromImage(*gBufferNormal, imageCopy);
-		if (const float entityIndex = glm::roundEven(glm::detail::toFloat32(m_mappedEntityIndexData[3])); entityIndex > 0) {
+		if (const float instanceIndexWithOneAdded = glm::roundEven(glm::detail::toFloat32(m_mappedEntityIndexData[3])); instanceIndexWithOneAdded > 0) {
 			const auto renderLayer = Application::GetLayer<RenderLayer>();
 			const auto scene = GetScene();
-			retVal = scene->GetEntity(renderLayer->GetInstanceHandle(static_cast<uint32_t>(entityIndex)));
+			retVal = scene->GetEntity(renderLayer->GetInstanceHandle(static_cast<uint32_t>(instanceIndexWithOneAdded - 1)));
 		}
 	}
 	return retVal;

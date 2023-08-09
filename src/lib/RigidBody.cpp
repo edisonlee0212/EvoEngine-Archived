@@ -4,6 +4,7 @@
 #include "Transform.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
+#include "Gizmos.hpp"
 using namespace EvoEngine;
 
 void RigidBody::SetStatic(bool value)
@@ -197,13 +198,13 @@ void RigidBody::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
         ltw.SetScale(glm::vec3(1.0f));
         for (auto &collider : m_colliders)
         {
-            /*
+            
             switch (collider.Get<Collider>()->m_shapeType)
             {
             case ShapeType::Sphere:
                 if (m_drawBounds)
                     Gizmos::DrawGizmoMesh(
-                        DefaultResources::Primitives::Sphere,
+                        Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"),
                         displayBoundColor,
                         ltw.m_value *
                             (m_shapeTransform * glm::scale(glm::vec3(collider.Get<Collider>()->m_shapeParam.x))),
@@ -212,23 +213,22 @@ void RigidBody::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             case ShapeType::Box:
                 if (m_drawBounds)
                     Gizmos::DrawGizmoMesh(
-                        DefaultResources::Primitives::Cube,
+                        Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
                         displayBoundColor,
                         ltw.m_value *
-                            (m_shapeTransform * glm::scale(glm::vec3(collider.Get<Collider>()->m_shapeParam))),
+                            (m_shapeTransform * glm::scale(glm::vec3(collider.Get<Collider>()->m_shapeParam) * 2.0f)),
                         1);
                 break;
             case ShapeType::Capsule:
                 if (m_drawBounds)
                     Gizmos::DrawGizmoMesh(
-                        DefaultResources::Primitives::Cylinder,
+                        Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"),
                         displayBoundColor,
                         ltw.m_value *
                             (m_shapeTransform * glm::scale(glm::vec3(collider.Get<Collider>()->m_shapeParam))),
                         1);
                 break;
             }
-            */
         }
 
         if (staticChanged)

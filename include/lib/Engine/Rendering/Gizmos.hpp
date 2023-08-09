@@ -12,8 +12,8 @@ namespace EvoEngine
 			VertexColor,
 			NormalColor
 		} m_colorMode = ColorMode::Default;
-		bool m_depthTest = true;
-		bool m_depthWrite = true;
+		bool m_depthTest = false;
+		bool m_depthWrite = false;
 		void ApplySettings(GraphicsPipelineStates& globalPipelineState) const;
 	};
 	struct GizmosPushConstant

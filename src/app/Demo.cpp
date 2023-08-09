@@ -91,10 +91,10 @@ int main() {
             scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 			LoadScene(scene, "Rendering Demo");
-            const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+            //const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
             Transform physicsDemoTransform;
             physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-            scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+            //scene->SetDataComponent(physicsDemo, physicsDemoTransform);
 #pragma region Dynamic Lighting
             const auto dirLightEntity = scene->CreateEntity("Directional Light");
             const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -153,40 +153,20 @@ int main() {
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
 {
     auto baseEntity = scene->CreateEntity(baseEntityName);
-    /*
-#pragma region Create 9 spheres in different PBR properties
-    int amount = 6;
-    auto collection = scene->CreateEntity("Spheres");
-    auto spheres = scene->CreateEntities(amount * amount, "Instance");
-    for (int i = 0; i < amount; i++)
-    {
-        for (int j = 0; j < amount; j++)
-        {
-            auto& sphere = spheres[i * amount + j];
-            Transform transform;
-            glm::vec3 position = glm::vec3(i - amount / 2.0f, j - amount / 2.0f, 0);
-            transform.SetPosition(position * 0.2f);
-            transform.SetScale(glm::vec3(0.2f));
-            scene->SetDataComponent(sphere, transform);
-            auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(sphere).lock();
-            meshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
-            auto material = ProjectManager::CreateTemporaryAsset<Material>();
-            meshRenderer->m_material.Set<Material>(material);
-            material->m_materialProperties.m_roughness = static_cast<float>(i) / (amount - 1);
-            material->m_materialProperties.m_metallic = static_cast<float>(j) / (amount - 1);
+#pragma region Create ground
+    auto ground = scene->CreateEntity("Ground");
+    auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(ground).lock();
+    auto groundMat = ProjectManager::CreateTemporaryAsset<Material>();
 
-            scene->SetParent(sphere, collection);
-        }
-    }
-    Transform collectionTransform;
-    collectionTransform.SetPosition({ 0.0, -0.8, 0.5 });
-    collectionTransform.SetRotation(glm::radians(glm::vec3(-45, 0, 0)));
-    scene->SetDataComponent(collection, collectionTransform);
-    scene->SetParent(collection, baseEntity);
+    groundMeshRenderer->m_material = groundMat;
+    groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
+    Transform groundTransform;
+    groundTransform.SetValue(glm::vec3(0, -2.05, -0), glm::vec3(0), glm::vec3(30, 1, 60));
+    scene->SetDataComponent(ground, groundTransform);
+    scene->SetParent(ground, baseEntity);
 #pragma endregion
-	*/
 #pragma region Load models and display
-
+    return baseEntity;
     const auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
     const auto sponzaEntity = sponza->ToEntity(scene);
     Transform sponzaTransform;
@@ -251,18 +231,7 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
     scene->SetParent(capoeiraEntity, baseEntity);
 
 #pragma endregion
-#pragma region Create ground
-    auto ground = scene->CreateEntity("Ground");
-    auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(ground).lock();
-    auto groundMat = ProjectManager::CreateTemporaryAsset<Material>();
-    
-    groundMeshRenderer->m_material = groundMat;
-    groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
-    Transform groundTransform;
-    groundTransform.SetValue(glm::vec3(0, -2.05, -0), glm::vec3(0), glm::vec3(30, 1, 60));
-    scene->SetDataComponent(ground, groundTransform);
-    scene->SetParent(ground, baseEntity);
-#pragma endregion
+
     return baseEntity;
 }
 
