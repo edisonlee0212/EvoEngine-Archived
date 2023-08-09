@@ -206,7 +206,7 @@ struct InstancedData {
 	vec4 color;
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCED_DATA_BLOCK
+layout(set = EE_PER_PASS_SET, binding = 18) readonly buffer EE_INSTANCED_DATA_BLOCK
 {
 	InstancedData EE_INSTANCED_DATA[];
 };

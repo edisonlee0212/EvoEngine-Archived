@@ -18,7 +18,25 @@ namespace EvoEngine
 		void Serialize(YAML::Emitter& out) const;
 		void Deserialize(const YAML::Node& in);
 	};
-	
+
+	struct InstancedInfo
+	{
+		Transform m_instanceMatrix = {};
+		glm::vec4 m_instanceColor = glm::vec4(1.0f);
+	};
+
+	class InstancedInfoList
+	{
+		std::shared_ptr<Buffer> m_buffer;
+		std::shared_ptr<DescriptorSet> m_descriptorSet;
+	public:
+		void UploadData(bool force = false);
+		bool m_needUpdate = false;
+		InstancedInfoList();
+		std::vector<InstancedInfo> m_instancedInfos;
+		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
+	};
+
 	class Mesh final : public IAsset, public IGeometry
 	{
 		Bound m_bound = {};

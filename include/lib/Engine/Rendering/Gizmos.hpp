@@ -26,6 +26,11 @@ namespace EvoEngine
 	class Gizmos : public ISingleton<Gizmos>
 	{
 	public:
+		static void DrawGizmoMeshInstancedColored(
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<InstancedInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
 		static void DrawGizmoMesh(
 			const std::shared_ptr<Mesh>& mesh,
 			const glm::vec4& color = glm::vec4(1.0f),

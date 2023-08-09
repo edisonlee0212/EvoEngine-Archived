@@ -9,16 +9,15 @@ layout (location = 2) in vec3 inTangent;
 layout (location = 3) in vec2 inTexCoord;
 layout (location = 4) in vec4 inColor;
 
-layout (location = 12) in mat4 inInstanceMatrix;
-uniform mat4 model;
-uniform mat4 scaleMatrix;
-out VS_OUT {
+layout (location = 0) out VS_OUT {
 	vec4 Color;
 } vs_out;
 
 void main()
 {
-	mat4 matrix = model * inInstanceMatrix * scaleMatrix;
 	vs_out.Color = inColor;
-	gl_Position = EE_CAMERA_PROJECTION_VIEW * vec4(vec3(matrix * vec4(inPosition, 1.0)), 1.0);
+
+	mat4 scaleMatrix = mat4(1.0f);
+	mat4 matrix = EE_MODEL_MATRIX * EE_INSTANCED_DATA[gl_InstanceIndex].instanceMatrix * scaleMatrix;
+	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vec3(matrix * vec4(inPosition, 1.0)), 1.0);
 }

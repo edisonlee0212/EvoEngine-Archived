@@ -1198,6 +1198,12 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	boneMatricesLayout->PushDescriptorBinding(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
 	boneMatricesLayout->Initialize();
 	RegisterDescriptorSetLayout("BONE_MATRICES_LAYOUT", boneMatricesLayout);
+
+	const auto instancedDataLayout = std::make_shared<DescriptorSetLayout>();
+	instancedDataLayout->PushDescriptorBinding(18, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	instancedDataLayout->Initialize();
+	RegisterDescriptorSetLayout("INSTANCED_DATA_LAYOUT", instancedDataLayout);
+
 }
 
 void Graphics::CreateGraphicsPipelines() const
@@ -1207,6 +1213,23 @@ void Graphics::CreateGraphicsPipelines() const
 	auto lightingLayout = GetDescriptorSetLayout("LIGHTING_LAYOUT");
 
 	auto boneMatricesLayout = GetDescriptorSetLayout("BONE_MATRICES_LAYOUT");
+	auto instancedDataLayout = GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT");
+
+	if (const auto windowLayer = Application::GetLayer<WindowLayer>()) {
+		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
+		renderTexturePassThrough->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
+		renderTexturePassThrough->m_fragmentShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");
+		renderTexturePassThrough->m_geometryType = GeometryType::Mesh;
+		renderTexturePassThrough->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+
+		renderTexturePassThrough->m_depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		renderTexturePassThrough->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		renderTexturePassThrough->m_colorAttachmentFormats = { 1, m_swapchain->GetImageFormat() };
+
+		renderTexturePassThrough->PreparePipeline();
+		RegisterGraphicsPipeline("RENDER_TEXTURE_PRESENT", renderTexturePassThrough);
+	}
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		standardDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_VERT");
@@ -1525,20 +1548,26 @@ void Graphics::CreateGraphicsPipelines() const
 		gizmosVertexColored->PreparePipeline();
 		RegisterGraphicsPipeline("GIZMOS_VERTEX_COLORED", gizmosVertexColored);
 	}
-	if(const auto windowLayer = Application::GetLayer<WindowLayer>()){
-		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();
-		renderTexturePassThrough->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
-		renderTexturePassThrough->m_fragmentShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_FRAG");
-		renderTexturePassThrough->m_geometryType = GeometryType::Mesh;
-		renderTexturePassThrough->m_descriptorSetLayouts.emplace_back(GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+	{
+		const auto gizmosInstancedColored = std::make_shared<GraphicsPipeline>();
+		gizmosInstancedColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_INSTANCED_COLORED_VERT");
+		gizmosInstancedColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
+		gizmosInstancedColored->m_geometryType = GeometryType::Mesh;
 
-		renderTexturePassThrough->m_depthAttachmentFormat = VK_FORMAT_UNDEFINED;
-		renderTexturePassThrough->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		gizmosInstancedColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosInstancedColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-		renderTexturePassThrough->m_colorAttachmentFormats = { 1, m_swapchain->GetImageFormat() };
+		gizmosInstancedColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosInstancedColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		gizmosInstancedColored->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
 
-		renderTexturePassThrough->PreparePipeline();
-		RegisterGraphicsPipeline("RENDER_TEXTURE_PRESENT", renderTexturePassThrough);
+		auto& pushConstantRange = gizmosInstancedColored->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosInstancedColored->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_INSTANCED_COLORED", gizmosInstancedColored);
 	}
 }
 

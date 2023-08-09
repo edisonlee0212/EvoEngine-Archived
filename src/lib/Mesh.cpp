@@ -304,3 +304,34 @@ void VertexAttributes::Deserialize(const YAML::Node& in)
 	if (in["m_texCoord"]) m_texCoord = in["m_texCoord"].as<bool>();
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
 }
+
+void InstancedInfoList::UploadData(const bool force)
+{
+	if(force || m_needUpdate)
+	{
+		m_buffer->UploadVector(m_instancedInfos);
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.offset = 0;
+		bufferInfo.range = VK_WHOLE_SIZE;
+		bufferInfo.buffer = m_buffer->GetVkBuffer();
+		m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
+		m_needUpdate = false;
+	}
+}
+
+InstancedInfoList::InstancedInfoList()
+{
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.size = sizeof(InstancedInfo);
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
+	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_buffer = std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
+}
+
+const std::shared_ptr<DescriptorSet>& InstancedInfoList::GetDescriptorSet() const
+{
+	return m_descriptorSet;
+}
