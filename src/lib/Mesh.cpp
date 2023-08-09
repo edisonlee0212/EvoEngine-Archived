@@ -36,7 +36,7 @@ Mesh::~Mesh()
 	m_meshletIndices.clear();
 }
 
-void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
@@ -44,7 +44,7 @@ void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineSt
 		graphics.m_triangles += m_triangles.size();
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
 }
 
 void Mesh::UploadData()
@@ -325,6 +325,7 @@ InstancedInfoList::InstancedInfoList()
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferCreateInfo.size = sizeof(InstancedInfo);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_buffer = std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo);

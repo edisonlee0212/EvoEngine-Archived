@@ -187,7 +187,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 				constant.m_projectionView = captureProjection * captureViews[i];
 				constant.m_preset = roughness;
 				prefilterConstruct->PushConstant(commandBuffer, 0, constant);
-				mesh->DrawIndexed(commandBuffer, prefilterConstruct->m_states);
+				mesh->DrawIndexed(commandBuffer, prefilterConstruct->m_states, 1, false);
 				vkCmdEndRendering(commandBuffer);
 #pragma endregion
 

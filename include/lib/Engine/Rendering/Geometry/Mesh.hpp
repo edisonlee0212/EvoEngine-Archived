@@ -54,7 +54,8 @@ namespace EvoEngine
 		[[nodiscard]] const std::vector<uint32_t>& PeekMeshletIndices() const;
 		void OnCreate() override;
 		~Mesh() override;
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const override;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const override;
+
 		void Bind(VkCommandBuffer vkCommandBuffer) const override;
 
 		void UploadData();

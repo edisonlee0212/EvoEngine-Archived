@@ -814,7 +814,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
 								mesh->Bind(commandBuffer);
-								mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states);
+								mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states, 1, true);
 							}
 						);
 					}
@@ -856,7 +856,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
 								skinnedMesh->Bind(commandBuffer);
-								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states);
+								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1, true);
 							}
 						);
 					}
@@ -919,7 +919,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
 							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states);
+							mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states, 1, true);
 						}
 					);
 				}
@@ -959,7 +959,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto skinnedMesh = renderCommand.m_skinnedMesh;
 							skinnedMesh->Bind(commandBuffer);
-							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states);
+							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1, true);
 						}
 					);
 				}
@@ -1438,7 +1438,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			environmentalBrdfPipeline->Bind(commandBuffer);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states);
+			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states, 1, true);
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
@@ -1523,7 +1523,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
 								mesh->Bind(commandBuffer);
-								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states);
+								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states, 1, true);
 
 							}
 						);
@@ -1572,7 +1572,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
 								skinnedMesh->Bind(commandBuffer);
-								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states);
+								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states, 1, true);
 							}
 						);
 
@@ -1649,7 +1649,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto mesh = renderCommand.m_mesh;
 					mesh->Bind(commandBuffer);
-					mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states);
+					mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states, 1, true);
 				}
 				);
 
@@ -1685,7 +1685,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredSkinnedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto skinnedMesh = renderCommand.m_skinnedMesh;
 					skinnedMesh->Bind(commandBuffer);
-					skinnedMesh->DrawIndexed(commandBuffer, deferredSkinnedPrepassPipeline->m_states);
+					skinnedMesh->DrawIndexed(commandBuffer, deferredSkinnedPrepassPipeline->m_states, 1, true);
 				}
 				);
 
@@ -1729,7 +1729,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			mesh->Bind(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, false);
+			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, 1, false);
 			vkCmdEndRendering(commandBuffer);
 		}
 #pragma endregion

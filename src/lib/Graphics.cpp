@@ -1801,7 +1801,7 @@ void Graphics::LateUpdate()
 
 							const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 							mesh->Bind(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, false);
+							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, 1, false);
 							vkCmdEndRendering(commandBuffer);
 							TransitImageLayout(commandBuffer,
 								graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,

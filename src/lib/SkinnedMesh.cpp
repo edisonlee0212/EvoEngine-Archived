@@ -133,7 +133,7 @@ void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer) const
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
-void SkinnedMesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
+void SkinnedMesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount,
                               bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
@@ -142,7 +142,7 @@ void SkinnedMesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineS
 		graphics.m_triangles += m_triangles.size();
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), 1, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instanceCount, 0, 0, 0);
 }
 
 glm::vec3 SkinnedMesh::GetCenter() const

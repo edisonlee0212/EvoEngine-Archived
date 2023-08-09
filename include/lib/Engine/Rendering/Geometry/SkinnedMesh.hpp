@@ -43,8 +43,8 @@ namespace EvoEngine
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
 		void Bind(VkCommandBuffer vkCommandBuffer) const override;
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
-			bool enableMetrics = true) const override;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount,
+			bool enableMetrics) const override;
 		void OnCreate() override;
 		void FetchIndices();
 		//Need serialize

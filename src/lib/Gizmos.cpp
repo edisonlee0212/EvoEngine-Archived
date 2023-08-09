@@ -42,7 +42,7 @@ void Gizmos::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh, co
 				pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(sceneCamera->GetHandle());
 				gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 				mesh->Bind(commandBuffer);
-				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states);
+				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, instancedData->m_instancedInfos.size(), true);
 				sceneCamera->GetRenderTexture()->EndRendering(commandBuffer);
 			});
 	}
@@ -91,7 +91,7 @@ void Gizmos::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh, const glm::vec4& c
 				pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(sceneCamera->GetHandle());
 				gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 				mesh->Bind(commandBuffer);
-				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states);
+				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1, true);
 				sceneCamera->GetRenderTexture()->EndRendering(commandBuffer);
 			});
 	}

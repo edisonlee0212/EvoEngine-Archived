@@ -15,12 +15,7 @@ namespace EvoEngine
 	{
 	public:
 		virtual void Bind(VkCommandBuffer vkCommandBuffer) const = 0;
-		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, bool enableMetrics = true) const = 0;
-		//virtual void DrawInstanced(const std::vector<glm::mat4>& matrices) const {}
-		//virtual void DrawInstanced(const std::vector<GlobalTransform>& matrices) const {}
-		//virtual void DrawInstanced(const std::shared_ptr<ParticleMatrices>& matrices) const {}
-		//virtual void DrawInstancedColored(const std::vector<glm::vec4>& colors, const std::vector<glm::mat4>& matrices) const {}
-		//virtual void DrawInstancedColored(const std::vector<glm::vec4>& colors, const std::vector<GlobalTransform>& matrices) const {}
+		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount, bool enableMetrics) const = 0;
 		static const std::vector<VkVertexInputBindingDescription>& GetVertexBindingDescriptions(GeometryType geometryType);
 		static const std::vector<VkVertexInputAttributeDescription>& GetVertexAttributeDescriptions(GeometryType geometryType);
 	};
