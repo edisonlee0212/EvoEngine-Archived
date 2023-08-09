@@ -1269,6 +1269,25 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS", standardSkinnedDeferredPrepass);
 	}
 	{
+		const auto standardInstancedDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		standardInstancedDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_INSTANCED_VERT");
+		standardInstancedDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
+		standardInstancedDeferredPrepass->m_geometryType = GeometryType::Mesh;
+		standardInstancedDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardInstancedDeferredPrepass->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+
+		standardInstancedDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
+		standardInstancedDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		standardInstancedDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
+
+		auto& pushConstantRange = standardInstancedDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+		standardInstancedDeferredPrepass->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS", standardInstancedDeferredPrepass);
+	}
+	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 		standardDeferredLighting->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 		standardDeferredLighting->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
@@ -1346,6 +1365,24 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED", directionalLightShadowMapSkinned);
 	}
 	{
+		const auto directionalLightShadowMapInstanced = std::make_shared<GraphicsPipeline>();
+		directionalLightShadowMapInstanced->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED_VERT");
+		directionalLightShadowMapInstanced->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		directionalLightShadowMapInstanced->m_geometryType = GeometryType::Mesh;
+		directionalLightShadowMapInstanced->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		directionalLightShadowMapInstanced->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		directionalLightShadowMapInstanced->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		directionalLightShadowMapInstanced->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = directionalLightShadowMapInstanced->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		directionalLightShadowMapInstanced->PreparePipeline();
+		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED", directionalLightShadowMapInstanced);
+	}
+	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
 		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
@@ -1381,6 +1418,24 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_SKINNED", pointLightShadowMapSkinned);
 	}
 	{
+		const auto pointLightShadowMapInstanced = std::make_shared<GraphicsPipeline>();
+		pointLightShadowMapInstanced->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
+		pointLightShadowMapInstanced->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		pointLightShadowMapInstanced->m_geometryType = GeometryType::Mesh;
+		pointLightShadowMapInstanced->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		pointLightShadowMapInstanced->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		pointLightShadowMapInstanced->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		pointLightShadowMapInstanced->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = pointLightShadowMapInstanced->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		pointLightShadowMapInstanced->PreparePipeline();
+		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_INSTANCED", pointLightShadowMapInstanced);
+	}
+	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
 		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
 		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
@@ -1414,6 +1469,24 @@ void Graphics::CreateGraphicsPipelines() const
 
 		spotLightShadowMap->PreparePipeline();
 		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_SKINNED", spotLightShadowMap);
+	}
+	{
+		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
+		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
+		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		spotLightShadowMap->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		spotLightShadowMap->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = spotLightShadowMap->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		spotLightShadowMap->PreparePipeline();
+		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_INSTANCED", spotLightShadowMap);
 	}
 	{
 		const auto brdfLut = std::make_shared<GraphicsPipeline>();

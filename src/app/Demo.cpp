@@ -9,6 +9,7 @@
 #include "Time.hpp"
 #include "PhysicsLayer.hpp"
 #include "Gizmos.hpp"
+#include "Particles.hpp"
 using namespace EvoEngine;
 #pragma region Helpers
 void AddInstances(const std::shared_ptr<ParticleInfoList>& instancedInfoList);
@@ -124,13 +125,18 @@ int main() {
             pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
             scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
 
-            std::shared_ptr<ParticleInfoList> instancedInfoList = std::make_shared<ParticleInfoList>();
+            const auto instancedInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
             AddInstances(instancedInfoList);
             instancedInfoList->m_needUpdate = true;
+            auto particleEntity = scene->CreateEntity("Particles");
+            auto particles = scene->GetOrSetPrivateComponent<Particles>(particleEntity).lock();
+            particles->m_material = ProjectManager::CreateTemporaryAsset<Material>();
+            particles->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
+            particles->m_particleInfoList = instancedInfoList;
             Application::RegisterUpdateFunction([=]() {
                 //if (!Application::IsPlaying())
                 //    return;
-                Gizmos::DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), instancedInfoList);
+                //Gizmos::DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), instancedInfoList);
 
                 const auto currentScene = Application::GetActiveScene();
                 const float currentTime = Time::CurrentTime();
@@ -243,7 +249,7 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 void AddInstances(const std::shared_ptr<ParticleInfoList>& instancedInfoList)
 {
 #pragma region Create 9 spheres in different PBR properties
-    const int amount = 5;
+    const int amount = 50;
     const float scaleFactor = 0.03f;
     instancedInfoList->m_particleInfos.resize(amount * amount * amount);
     for (int i = 0; i < amount; i++)

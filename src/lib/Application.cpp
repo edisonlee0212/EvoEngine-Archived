@@ -27,6 +27,7 @@
 #include "RigidBody.hpp"
 #include "PhysicsLayer.hpp"
 #include "Joint.hpp"
+#include "Particles.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -380,14 +381,12 @@ void Application::InitializeRegistry()
 {
 	ClassRegistry::RegisterDataComponent<Ray>("Ray");
 
-	ClassRegistry::RegisterAsset<Collider>("Collider", { "uecollider" });
-
 	ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
 	ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
 	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
 	ClassRegistry::RegisterPrivateComponent<AnimationPlayer>("AnimationPlayer");
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
-	//ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
+	ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
 	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");
 	//ClassRegistry::RegisterPrivateComponent<PostProcessing>("PostProcessing");
 	ClassRegistry::RegisterPrivateComponent<SkinnedMeshRenderer>("SkinnedMeshRenderer");
@@ -401,23 +400,21 @@ void Application::InitializeRegistry()
 
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
-
-
-
+	ClassRegistry::RegisterAsset<Collider>("Collider", { ".uecollider" });
 	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".evecubemap" });
 	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".evelightprobe" });
 	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".evereflectionprobe" });
-	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvmap" });
+	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvironmentalmap" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
 
 	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });
-
+	ClassRegistry::RegisterAsset<ParticleInfoList>("ParticleInfoList", { ".eveparticleinfolist" });
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
-	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".evesmesh" });
-	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysmat" });
+	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".eveskinnedmesh" });
+	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysicsmaterial" });
 }
 
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)

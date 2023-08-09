@@ -23,13 +23,16 @@ namespace EvoEngine
 	{
 		Transform m_instanceMatrix = {};
 		glm::vec4 m_instanceColor = glm::vec4(1.0f);
+
 	};
 
-	class ParticleInfoList
+	class ParticleInfoList : public IAsset
 	{
 		std::shared_ptr<Buffer> m_buffer;
 		std::shared_ptr<DescriptorSet> m_descriptorSet;
 	public:
+		void Serialize(YAML::Emitter& out) override;
+		void Deserialize(const YAML::Node& in) override;
 		void UploadData(bool force = false);
 		bool m_needUpdate = false;
 		ParticleInfoList();

@@ -40,6 +40,16 @@ namespace EvoEngine
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
 	};
 
+	struct InstancedRenderInstance
+	{
+		uint32_t m_instanceIndex = 0;
+		RenderCommandType m_commandType = RenderCommandType::None;
+		Entity m_owner = Entity();
+		std::shared_ptr<Mesh> m_mesh;
+		bool m_castShadow = true;
+		std::shared_ptr<ParticleInfoList> m_particleInfos;
+	};
+
 	struct RenderInstanceCollection
 	{
 		std::vector<RenderInstance> m_renderCommands;
@@ -49,6 +59,12 @@ namespace EvoEngine
 	{
 		std::vector<SkinnedRenderInstance> m_renderCommands;
 		void Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
+	};
+
+	struct InstancedRenderInstanceCollection
+	{
+		std::vector<InstancedRenderInstance> m_renderCommands;
+		void Dispatch(const std::function<void(const InstancedRenderInstance&)>& commandAction) const;
 	};
 	struct RenderInfoBlock {
 		glm::vec4 m_splitDistances = {};
@@ -138,10 +154,10 @@ namespace EvoEngine
 #pragma region Render procedure
 		RenderInstanceCollection m_deferredRenderInstances;
 		SkinnedRenderInstanceCollection m_deferredSkinnedRenderInstances;
-		SkinnedRenderInstanceCollection m_deferredInstancedRenderInstances;
+		InstancedRenderInstanceCollection m_deferredInstancedRenderInstances;
 		RenderInstanceCollection m_transparentRenderInstances;
 		SkinnedRenderInstanceCollection m_transparentSkinnedRenderInstances;
-		SkinnedRenderInstanceCollection m_transparentInstancedRenderInstances;
+		InstancedRenderInstanceCollection m_transparentInstancedRenderInstances;
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);

@@ -37,12 +37,12 @@ Mesh::~Mesh()
 	m_meshletIndices.clear();
 }
 
-void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount, const bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
-		graphics.m_triangles += m_triangles.size();
+		graphics.m_triangles += m_triangles.size() * instancesCount;
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
@@ -304,6 +304,26 @@ void VertexAttributes::Deserialize(const YAML::Node& in)
 	if (in["m_tangent"]) m_tangent = in["m_tangent"].as<bool>();
 	if (in["m_texCoord"]) m_texCoord = in["m_texCoord"].as<bool>();
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
+}
+
+void ParticleInfoList::Serialize(YAML::Emitter& out)
+{
+	if (!m_particleInfos.empty())
+	{
+		out << YAML::Key << "m_particleInfos" << YAML::Value
+			<< YAML::Binary(reinterpret_cast<const unsigned char*>(m_particleInfos.data()), m_particleInfos.size() * sizeof(ParticleInfo));
+	}
+}
+
+void ParticleInfoList::Deserialize(const YAML::Node& in)
+{
+	if (in["m_particleInfos"])
+	{
+		const auto& vertexData = in["m_particleInfos"].as<YAML::Binary>();
+		m_particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
+		std::memcpy(m_particleInfos.data(), vertexData.data(), vertexData.size());
+		m_needUpdate = true;
+	}
 }
 
 void ParticleInfoList::UploadData(const bool force)

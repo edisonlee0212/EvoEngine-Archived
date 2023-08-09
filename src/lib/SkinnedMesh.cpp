@@ -55,7 +55,7 @@ void SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 }
 bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 {
-	if (path.extension() == ".evesmesh") {
+	if (path.extension() == ".eveskinnedmesh") {
 		return IAsset::SaveInternal(path);
 	}
 	else if (path.extension() == ".obj") {
@@ -133,16 +133,16 @@ void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer) const
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
-void SkinnedMesh::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount,
-                              bool enableMetrics) const
+void SkinnedMesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount,
+	const bool enableMetrics) const
 {
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
-		graphics.m_triangles += m_triangles.size();
+		graphics.m_triangles += m_triangles.size() * instancesCount;
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instanceCount, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
 }
 
 glm::vec3 SkinnedMesh::GetCenter() const
