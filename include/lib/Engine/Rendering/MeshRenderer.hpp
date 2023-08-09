@@ -6,7 +6,7 @@ namespace EvoEngine
     class MeshRenderer : public IPrivateComponent
     {
         
-        void RenderBound(glm::vec4& color);
+        void RenderBound(const glm::vec4& color);
     public:
         bool m_castShadow = true;
         AssetRef m_mesh;

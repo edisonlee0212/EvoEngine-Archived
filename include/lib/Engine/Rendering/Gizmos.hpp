@@ -13,6 +13,15 @@ namespace EvoEngine
 			NormalColor
 		} m_colorMode = ColorMode::Default;
 		bool m_depthTest = true;
+		bool m_depthWrite = true;
+		void ApplySettings(GraphicsPipelineStates& globalPipelineState) const;
+	};
+	struct GizmosPushConstant
+	{
+		glm::mat4 m_model;
+		glm::vec4 m_color;
+		float m_size;
+		uint32_t m_cameraIndex;
 	};
 	class Gizmos : public ISingleton<Gizmos>
 	{

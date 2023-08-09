@@ -95,6 +95,14 @@ void DrawSettings::ApplySettings(GraphicsPipelineStates& globalPipelineState) co
     globalPipelineState.m_cullMode = m_cullMode;
     globalPipelineState.m_polygonMode = m_polygonMode;
     globalPipelineState.m_lineWidth = m_lineWidth;
+    for(auto& i : globalPipelineState.m_colorBlendAttachmentStates)
+    {
+	    i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        i.blendEnable = m_blending;
+        i.srcAlphaBlendFactor = i.srcColorBlendFactor = m_blendingSrcFactor;
+        i.dstAlphaBlendFactor = i.dstColorBlendFactor = m_blendingDstFactor;
+        i.colorBlendOp = i.alphaBlendOp = m_blendOp;
+    }
 }
 
 void DrawSettings::Save(const std::string& name, YAML::Emitter& out) const

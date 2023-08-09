@@ -33,6 +33,8 @@ namespace EvoEngine
 		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 
 		bool m_blending = false;
+		VkBlendOp m_blendOp = VK_BLEND_OP_ADD;
+
 		VkBlendFactor m_blendingSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		VkBlendFactor m_blendingDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		bool OnInspect();

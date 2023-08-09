@@ -274,6 +274,42 @@ void Resources::LoadShaders()
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
+
+#pragma region Gizmos
+	{
+		auto vertShaderCode =
+			std::string("#version 450\n") +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/Gizmos.vert");
+		auto vertShader = CreateResource<Shader>("GIZMOS_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosNormalColored.vert");
+		vertShader = CreateResource<Shader>("GIZMOS_NORMAL_COLORED_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosVertexColored.vert");
+		vertShader = CreateResource<Shader>("GIZMOS_VERTEX_COLORED_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto fragShaderCode =
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/Gizmos.frag");
+		auto fragShader = CreateResource<Shader>("GIZMOS_FRAG");
+
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
+		fragShaderCode =
+			std::string("#version 450\n") + FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/GizmosColored.frag");
+		fragShader = CreateResource<Shader>("GIZMOS_COLORED_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
+
+
+	}
+#pragma endregion
 }
 
 void Resources::LoadPrimitives() const

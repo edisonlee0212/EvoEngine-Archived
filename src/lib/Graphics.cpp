@@ -9,6 +9,7 @@
 #include "Vertex.hpp"
 #include "vk_mem_alloc.h"
 #include "EditorLayer.hpp"
+#include "Gizmos.hpp"
 #include "MeshStorage.hpp"
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"
@@ -175,21 +176,13 @@ void Graphics::TransitImageLayout(VkCommandBuffer commandBuffer, VkImage targetI
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
-	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH)
+	else if (imageFormat == Constants::RENDER_TEXTURE_DEPTH || imageFormat == Constants::G_BUFFER_DEPTH || imageFormat == Constants::SHADOW_MAP)
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	}
-	else if (imageFormat == Constants::RENDER_TEXTURE_STENCIL)
-	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 	else if (const auto windowLayer = Application::GetLayer<WindowLayer>(); windowLayer && imageFormat == GetSwapchain()->GetImageFormat())
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	}
-	else if (imageFormat == Constants::G_BUFFER_DEPTH || imageFormat == Constants::SHADOW_MAP)
-	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
 	else
 	{
@@ -736,6 +729,11 @@ void Graphics::CreateLogicalDevice()
 	descriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
 	descriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
+	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures separateDepthStencilLayoutsFeatures{};
+	separateDepthStencilLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES;
+	separateDepthStencilLayoutsFeatures.pNext = &descriptorIndexingFeatures;
+	separateDepthStencilLayoutsFeatures.separateDepthStencilLayouts = VK_TRUE;
+
 	VkPhysicalDeviceFeatures2 deviceFeatures2{};
 	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	deviceFeatures2.pNext = &descriptorIndexingFeatures;
@@ -1259,6 +1257,7 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLighting->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
 		standardDeferredLighting->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		standardDeferredLighting->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		standardDeferredLighting->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
@@ -1280,7 +1279,7 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredLightingSceneCamera->m_descriptorSetLayouts.emplace_back(lightingLayout);
 
 		standardDeferredLightingSceneCamera->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
-
+		standardDeferredLightingSceneCamera->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 		standardDeferredLightingSceneCamera->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 
 		auto& pushConstantRange = standardDeferredLightingSceneCamera->m_pushConstantRanges.emplace_back();
@@ -1402,7 +1401,7 @@ void Graphics::CreateGraphicsPipelines() const
 		brdfLut->m_geometryType = GeometryType::Mesh;
 
 		brdfLut->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
-
+		brdfLut->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 		brdfLut->m_colorAttachmentFormats = { 1, VK_FORMAT_R16G16_SFLOAT };
 
 		brdfLut->PreparePipeline();
@@ -1467,6 +1466,66 @@ void Graphics::CreateGraphicsPipelines() const
 
 		prefilterConstruct->PreparePipeline();
 		RegisterGraphicsPipeline("PREFILTER_CONSTRUCT", prefilterConstruct);
+	}
+	{
+		const auto gizmos = std::make_shared<GraphicsPipeline>();
+		gizmos->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_VERT");
+		gizmos->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_FRAG");
+		gizmos->m_geometryType = GeometryType::Mesh;
+
+		gizmos->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmos->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmos->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmos->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmos->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmos->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS", gizmos);
+	}
+	{
+		const auto gizmosNormalColored = std::make_shared<GraphicsPipeline>();
+		gizmosNormalColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_NORMAL_COLORED_VERT");
+		gizmosNormalColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
+		gizmosNormalColored->m_geometryType = GeometryType::Mesh;
+
+		gizmosNormalColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosNormalColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmosNormalColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosNormalColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmosNormalColored->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosNormalColored->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_NORMAL_COLORED", gizmosNormalColored);
+	}
+	{
+		const auto gizmosVertexColored = std::make_shared<GraphicsPipeline>();
+		gizmosVertexColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_VERTEX_COLORED_VERT");
+		gizmosVertexColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
+		gizmosVertexColored->m_geometryType = GeometryType::Mesh;
+
+		gizmosVertexColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosVertexColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmosVertexColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosVertexColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmosVertexColored->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosVertexColored->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_VERTEX_COLORED", gizmosVertexColored);
 	}
 	if(const auto windowLayer = Application::GetLayer<WindowLayer>()){
 		const auto renderTexturePassThrough = std::make_shared<GraphicsPipeline>();

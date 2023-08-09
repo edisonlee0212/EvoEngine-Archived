@@ -132,6 +132,7 @@ namespace EvoEngine
 
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
+		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetPerFrameDescriptorSet() const;
 	private:
 		bool m_needFade = false;
 #pragma region Render procedure

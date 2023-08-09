@@ -4,13 +4,13 @@
 #include "Mesh.hpp"
 #include "Transform.hpp"
 #include "EditorLayer.hpp"
+#include "Gizmos.hpp"
 using namespace EvoEngine;
 
-void MeshRenderer::RenderBound(glm::vec4& color)
+void MeshRenderer::RenderBound(const glm::vec4& color)
 {
-    /*
     const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
-    glm::vec3 size = m_mesh.Get<Mesh>()->m_bound.Size();
+    glm::vec3 size = m_mesh.Get<Mesh>()->GetBound().Size();
     if (size.x < 0.01f)
         size.x = 0.01f;
     if (size.z < 0.01f)
@@ -18,16 +18,16 @@ void MeshRenderer::RenderBound(glm::vec4& color)
     if (size.y < 0.01f)
         size.y = 0.01f;
     GizmoSettings gizmoSettings;
-    gizmoSettings.m_drawSettings.m_cullFace = false;
+    gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
     gizmoSettings.m_drawSettings.m_blending = true;
-    gizmoSettings.m_drawSettings.m_polygonMode = OpenGLPolygonMode::Line;
+    gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
     gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
     Gizmos::DrawGizmoMesh(
-        DefaultResources::Primitives::Cube,
+        Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
         color,
-        transform * (glm::translate(m_mesh.Get<Mesh>()->m_bound.Center()) * glm::scale(size)),
+        transform * (glm::translate(m_mesh.Get<Mesh>()->GetBound().Center()) * glm::scale(size)),
         1, gizmoSettings);
-        */
+        
 }
 
 void MeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)

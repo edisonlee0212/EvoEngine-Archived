@@ -38,6 +38,10 @@ void GraphicsPipelineStates::ResetAllStates(const VkCommandBuffer commandBuffer,
 	{
 		i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		i.blendEnable = VK_FALSE;
+		i.colorBlendOp = i.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		i.srcColorBlendFactor = i.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		i.dstColorBlendFactor = i.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	}
 	m_blendConstants[0] = 0;
 	m_blendConstants[1] = 0;

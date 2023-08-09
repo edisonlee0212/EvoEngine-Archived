@@ -1,4 +1,5 @@
 #pragma once
+#include "GraphicsPipelineStates.hpp"
 #include "GraphicsResources.hpp"
 namespace EvoEngine{
 	class RenderTexture
@@ -10,15 +11,12 @@ namespace EvoEngine{
 		std::shared_ptr<ImageView> m_colorImageView = {};
 
 		std::shared_ptr<Image> m_depthImage = {};
-		std::shared_ptr<Image> m_stencilImage = {};
 		std::shared_ptr<ImageView> m_depthImageView = {};
-		std::shared_ptr<ImageView> m_stencilImageView = {};
 
 		VkExtent3D m_extent;
 		VkImageViewType m_imageViewType;
 		VkFormat m_colorFormat;
 		VkFormat m_depthFormat;
-
 		std::shared_ptr<Sampler> m_colorSampler = {};
 		std::shared_ptr<Sampler> m_depthSampler = {};
 		ImTextureID m_colorImTextureId = nullptr;
@@ -30,21 +28,21 @@ namespace EvoEngine{
 		void Resize(VkExtent3D extent);
 		void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
 		[[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
-		[[nodiscard]] VkRenderingAttachmentInfo GetStencilAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
 		[[nodiscard]] VkExtent3D GetExtent() const;
 		[[nodiscard]] VkImageViewType GetImageViewType() const;
 		[[nodiscard]] VkFormat GetColorFormat() const;
-		[[nodiscard]] VkFormat GetDepthStencilFormat() const;
+		[[nodiscard]] VkFormat GetDepthFormat() const;
 
 		[[nodiscard]] const std::shared_ptr<Sampler>& GetColorSampler() const;
 		[[nodiscard]] const std::shared_ptr<Sampler>& GetDepthSampler() const;
 		[[nodiscard]] const std::shared_ptr<Image>& GetColorImage();
-		[[nodiscard]] const std::shared_ptr<Image>& GetDepthStencilImage();
+		[[nodiscard]] const std::shared_ptr<Image>& GetDepthImage();
 		[[nodiscard]] const std::shared_ptr<ImageView>& GetColorImageView();
 		[[nodiscard]] const std::shared_ptr<ImageView>& GetDepthImageView();
-
+		void BeginRendering(VkCommandBuffer commandBuffer, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+		void EndRendering(VkCommandBuffer commandBuffer) const;
 		[[nodiscard]] ImTextureID GetColorImTextureId() const;
-
+		void ApplyGraphicsPipelineStates(GraphicsPipelineStates& globalPipelineState) const;
 		[[nodiscard]] static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
 		[[maybe_unused]] bool Save(const std::filesystem::path& path) const;
 		void StoreToPng(

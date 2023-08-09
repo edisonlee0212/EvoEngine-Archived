@@ -1592,7 +1592,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		if (m_needFade) needFade = true;
 	}
 
-	const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1613,7 +1612,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		scissor.extent.height = camera->GetSize().y;
 
 		camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		camera->m_renderTexture->m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		camera->m_renderTexture->GetDepthImage()->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 		VkRenderingInfo renderInfo{};
 		renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1696,7 +1695,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 #pragma region Lighting pass
 		{
 			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			camera->m_renderTexture->m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			camera->m_renderTexture->GetDepthImage()->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
 			camera->GetRenderTexture()->AppendColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
 			VkRenderingInfo renderInfo{};
@@ -1707,7 +1706,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 			renderInfo.pDepthAttachment = VK_NULL_HANDLE;
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+			const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredLightingPipeline->m_states.m_depthTest = false;
 			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.clear();
@@ -1740,4 +1739,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
+}
+
+const std::shared_ptr<DescriptorSet>& RenderLayer::GetPerFrameDescriptorSet() const
+{
+	return m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()];
 }
