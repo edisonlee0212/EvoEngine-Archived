@@ -13,7 +13,6 @@ namespace EvoEngine
 		None,
 		FromRenderer,
 		FromAPI,
-		FromAPIInstanced
 	};
 
 	struct RenderInstancePushConstant
@@ -127,6 +126,7 @@ namespace EvoEngine
 		void PreparePointAndSpotLightShadowMap() const;
 		
 		void PrepareEnvironmentalBrdfLut();
+		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	public:
 		bool m_enableRenderMenu = false;
@@ -145,11 +145,11 @@ namespace EvoEngine
 
 		RenderInfoBlock m_renderInfoBlock = {};
 		EnvironmentInfoBlock m_environmentInfoBlock = {};
-
-		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
-
+		void DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material, glm::mat4 model, bool castShadow);
+		
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetPerFrameDescriptorSet() const;
 	private:
+		std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> m_cameras;
 		bool m_needFade = false;
 #pragma region Render procedure
 		RenderInstanceCollection m_deferredRenderInstances;

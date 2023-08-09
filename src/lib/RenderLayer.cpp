@@ -85,38 +85,9 @@ void RenderLayer::PreUpdate()
 
 	ApplyAnimator();
 
-	m_deferredRenderInstances.m_renderCommands.clear();
-	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
-	m_deferredInstancedRenderInstances.m_renderCommands.clear();
-	m_transparentRenderInstances.m_renderCommands.clear();
-	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
-	m_transparentInstancedRenderInstances.m_renderCommands.clear();
-
-	m_cameraIndices.clear();
-	m_materialIndices.clear();
-	m_instanceIndices.clear();
-	m_instanceHandles.clear();
-	m_cameraInfoBlocks.clear();
-	m_materialInfoBlocks.clear();
-	m_instanceInfoBlocks.clear();
-	m_renderTaskInfoBlocks.clear();
-
-	m_directionalLightInfoBlocks.clear();
-	m_pointLightInfoBlocks.clear();
-	m_spotLightInfoBlocks.clear();
-
-	Bound worldBound;
-	std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
-	CollectCameras(cameras);
-	CollectRenderInstances(worldBound);
-	scene->SetBound(worldBound);
-
-	CollectDirectionalLights(cameras);
-	CollectPointLights();
-	CollectSpotLights();
+	
 
 	//The following data stays consistent during entire frame.
-
 	{
 		for (int split = 0; split < 4; split++)
 		{
@@ -191,7 +162,7 @@ void RenderLayer::PreUpdate()
 
 	PreparePointAndSpotLightShadowMap();
 
-	for (const auto& [cameraGlobalTransform, camera] : cameras)
+	for (const auto& [cameraGlobalTransform, camera] : m_cameras)
 	{
 		camera->m_rendered = false;
 		if (camera->m_requireRendering)
@@ -199,6 +170,39 @@ void RenderLayer::PreUpdate()
 			RenderToCamera(cameraGlobalTransform, camera);
 		}
 	}
+
+
+
+	m_deferredRenderInstances.m_renderCommands.clear();
+	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
+	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentRenderInstances.m_renderCommands.clear();
+	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
+	m_transparentInstancedRenderInstances.m_renderCommands.clear();
+
+	m_cameraIndices.clear();
+	m_materialIndices.clear();
+	m_instanceIndices.clear();
+	m_instanceHandles.clear();
+	m_cameraInfoBlocks.clear();
+	m_materialInfoBlocks.clear();
+	m_instanceInfoBlocks.clear();
+	m_renderTaskInfoBlocks.clear();
+
+	m_directionalLightInfoBlocks.clear();
+	m_pointLightInfoBlocks.clear();
+	m_spotLightInfoBlocks.clear();
+
+	m_cameras.clear();
+
+	CollectCameras(m_cameras);
+	Bound worldBound;
+	CollectRenderInstances(worldBound);
+	scene->SetBound(worldBound);
+
+	CollectDirectionalLights(m_cameras);
+	CollectPointLights();
+	CollectSpotLights();
 }
 
 void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -1119,6 +1123,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 			RenderInstance renderInstance;
+			renderInstance.m_commandType = RenderCommandType::FromRenderer;
 			renderInstance.m_owner = owner;
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = meshRenderer->m_castShadow;
@@ -1190,6 +1195,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
 			SkinnedRenderInstance renderInstance;
+			renderInstance.m_commandType = RenderCommandType::FromRenderer;
 			renderInstance.m_owner = owner;
 			renderInstance.m_skinnedMesh = skinnedMesh;
 			renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
@@ -1252,6 +1258,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
 			InstancedRenderInstance renderInstance;
+			renderInstance.m_commandType = RenderCommandType::FromRenderer;
 			renderInstance.m_owner = owner;
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = particles->m_castShadow;
@@ -1916,6 +1923,44 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
+}
+
+void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material,
+	glm::mat4 model, bool castShadow)
+{
+	auto scene = Application::GetActiveScene();
+	MaterialInfoBlock materialInfoBlock;
+	material->UpdateMaterialInfoBlock(materialInfoBlock);
+	auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+	InstanceInfoBlock instanceInfoBlock;
+	instanceInfoBlock.m_model.m_value = model;
+	instanceInfoBlock.m_materialIndex = materialIndex;
+	instanceInfoBlock.m_infoIndex1 = 0;
+	auto entityHandle = Handle();
+	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+	RenderInstance renderInstance;
+	renderInstance.m_commandType = RenderCommandType::FromAPI;
+	renderInstance.m_owner = Entity();
+	renderInstance.m_mesh = mesh;
+	renderInstance.m_castShadow = castShadow;
+
+	renderInstance.m_instanceIndex = instanceIndex;
+	if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+	if (material->m_drawSettings.m_blending)
+	{
+		m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	else
+	{
+		m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+
+	for (const auto& i : mesh->PeekMeshletIndices())
+	{
+		auto& renderTask = m_renderTaskInfoBlocks.emplace_back();
+		renderTask.m_instanceIndex = instanceIndex;
+		renderTask.m_meshletIndex = i;
+	}
 }
 
 const std::shared_ptr<DescriptorSet>& RenderLayer::GetPerFrameDescriptorSet() const

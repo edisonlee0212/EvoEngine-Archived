@@ -198,22 +198,26 @@ target_link_libraries(PyEvoEngine
             )
 
 # ------------------------------------------------------------------
-# Examples
+# Demo
 # ------------------------------------------------------------------
+
 if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPLES)
-    add_executable(Project
-            src/app/Project.cpp
+    file(GLOB PLANET_SOURCES_LOCAL "src/core/Planet/*.cpp")
+    file(GLOB STAR_CLUSTER_SOURCES_LOCAL "src/core/StarCluster/*.cpp")
+    add_library(examples-core
+            ${PLANET_SOURCES_LOCAL}
+            ${STAR_CLUSTER_SOURCES_LOCAL}
             )
-    target_include_directories(Project
-            PRIVATE
-            ${LOCAL_EVOENGINE_INCLUDES}
-            )
-    target_precompile_headers(Project
+    target_precompile_headers(examples-core
             PRIVATE
             ${LOCAL_EVOENGINE_PCH}
             )
-    target_link_libraries(Project
-            PRIVATE
+    target_include_directories(examples-core
+            PUBLIC
+            ${LOCAL_EVOENGINE_INCLUDES}
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/core
+            )
+    target_link_libraries(examples-core
             evoengine
             )
     add_executable(Demo
@@ -229,6 +233,7 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPL
             )
     target_link_libraries(Demo
             evoengine
+            examples-core
             )
     file(COPY src/app/imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif ()
