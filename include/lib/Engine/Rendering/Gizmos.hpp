@@ -27,12 +27,42 @@ namespace EvoEngine
 	{
 	public:
 		static void DrawGizmoMeshInstancedColored(
-			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<InstancedInfoList>& instancedData,
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
 			const glm::mat4& model = glm::mat4(1.0f),
 			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
 
 		static void DrawGizmoMesh(
 			const std::shared_ptr<Mesh>& mesh,
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoCubes(
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoCube(
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoSpheres(
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoSphere(
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoCylinders(
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		static void DrawGizmoCylinder(
 			const glm::vec4& color = glm::vec4(1.0f),
 			const glm::mat4& model = glm::mat4(1.0f),
 			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});

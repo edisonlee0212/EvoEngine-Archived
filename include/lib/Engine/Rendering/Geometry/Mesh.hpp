@@ -19,21 +19,27 @@ namespace EvoEngine
 		void Deserialize(const YAML::Node& in);
 	};
 
-	struct InstancedInfo
+	struct ParticleInfo
 	{
 		Transform m_instanceMatrix = {};
 		glm::vec4 m_instanceColor = glm::vec4(1.0f);
 	};
 
-	class InstancedInfoList
+	class ParticleInfoList
 	{
 		std::shared_ptr<Buffer> m_buffer;
 		std::shared_ptr<DescriptorSet> m_descriptorSet;
 	public:
 		void UploadData(bool force = false);
 		bool m_needUpdate = false;
-		InstancedInfoList();
-		std::vector<InstancedInfo> m_instancedInfos;
+		ParticleInfoList();
+		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth);
+		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth);
+		void ApplyConnections(const std::vector<glm::vec3>& starts,
+			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth);
+		void ApplyConnections(const std::vector<glm::vec3>& starts,
+			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth);
+;		std::vector<ParticleInfo> m_particleInfos;
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 	};
 

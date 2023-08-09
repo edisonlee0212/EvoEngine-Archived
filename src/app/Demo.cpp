@@ -11,7 +11,7 @@
 #include "Gizmos.hpp"
 using namespace EvoEngine;
 #pragma region Helpers
-void AddInstances(const std::shared_ptr<InstancedInfoList>& instancedInfoList);
+void AddInstances(const std::shared_ptr<ParticleInfoList>& instancedInfoList);
 Entity CreateDynamicCube(
     const float& mass,
     const glm::vec3& color,
@@ -124,7 +124,7 @@ int main() {
             pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
             scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
 
-            std::shared_ptr<InstancedInfoList> instancedInfoList = std::make_shared<InstancedInfoList>();
+            std::shared_ptr<ParticleInfoList> instancedInfoList = std::make_shared<ParticleInfoList>();
             AddInstances(instancedInfoList);
             instancedInfoList->m_needUpdate = true;
             Application::RegisterUpdateFunction([=]() {
@@ -240,19 +240,19 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 
     return baseEntity;
 }
-void AddInstances(const std::shared_ptr<InstancedInfoList>& instancedInfoList)
+void AddInstances(const std::shared_ptr<ParticleInfoList>& instancedInfoList)
 {
 #pragma region Create 9 spheres in different PBR properties
     const int amount = 5;
     const float scaleFactor = 0.03f;
-    instancedInfoList->m_instancedInfos.resize(amount * amount * amount);
+    instancedInfoList->m_particleInfos.resize(amount * amount * amount);
     for (int i = 0; i < amount; i++)
     {
         for (int j = 0; j < amount; j++)
         {
             for (int k = 0; k < amount; k++)
             {
-                auto& instancedInfo = instancedInfoList->m_instancedInfos[i * amount * amount + j * amount + k];
+                auto& instancedInfo = instancedInfoList->m_particleInfos[i * amount * amount + j * amount + k];
                 glm::vec3 position = glm::vec3(i + 0.5f - amount / 2.0f, j + 0.5f - amount / 2.0f, k + 0.5f - amount / 2.0f);
                 position += glm::linearRand(glm::vec3(-0.5f), glm::vec3(0.5f)) * scaleFactor;
                 instancedInfo.m_instanceMatrix.SetPosition(position * 5.f * scaleFactor);

@@ -11,7 +11,7 @@ void GizmoSettings::ApplySettings(GraphicsPipelineStates& globalPipelineState) c
 	globalPipelineState.m_depthWrite = m_depthWrite;
 }
 
-void Gizmos::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<InstancedInfoList>& instancedData, const glm::mat4& model, const float& size,
+void Gizmos::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData, const glm::mat4& model, const float& size,
 	const GizmoSettings& gizmoSettings)
 {
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
@@ -42,7 +42,7 @@ void Gizmos::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh, co
 				pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(sceneCamera->GetHandle());
 				gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 				mesh->Bind(commandBuffer);
-				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, instancedData->m_instancedInfos.size(), true);
+				mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, instancedData->m_particleInfos.size(), true);
 				sceneCamera->GetRenderTexture()->EndRendering(commandBuffer);
 			});
 	}
@@ -95,4 +95,42 @@ void Gizmos::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh, const glm::vec4& c
 				sceneCamera->GetRenderTexture()->EndRendering(commandBuffer);
 			});
 	}
+}
+
+void Gizmos::DrawGizmoCubes(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+	const glm::mat4& model, const float& size, const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), instancedData, model, size, gizmoSettings);
+}
+
+void Gizmos::DrawGizmoCube(const glm::vec4& color, const glm::mat4& model, const float& size,
+	const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), color, model, size, gizmoSettings);
+}
+
+void Gizmos::DrawGizmoSpheres(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+	const glm::mat4& model, const float& size, const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), instancedData, model, size, gizmoSettings);
+}
+
+void Gizmos::DrawGizmoSphere(const glm::vec4& color, const glm::mat4& model, const float& size,
+                             const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), color, model, size, gizmoSettings);
+}
+
+void Gizmos::DrawGizmoCylinders(const std::shared_ptr<Mesh>& mesh,
+	const std::shared_ptr<ParticleInfoList>& instancedData, const glm::mat4& model, const float& size,
+	const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), instancedData, model, size, gizmoSettings);
+}
+
+void Gizmos::DrawGizmoCylinder(const glm::vec4& color, const glm::mat4& model, const float& size,
+                               const GizmoSettings& gizmoSettings)
+{
+	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), color, model, size, gizmoSettings);
+
 }

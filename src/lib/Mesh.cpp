@@ -3,6 +3,7 @@
 #include "Console.hpp"
 #include "Graphics.hpp"
 #include "ClassRegistry.hpp"
+#include "Jobs.hpp"
 #include "MeshStorage.hpp"
 using namespace EvoEngine;
 
@@ -305,11 +306,11 @@ void VertexAttributes::Deserialize(const YAML::Node& in)
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
 }
 
-void InstancedInfoList::UploadData(const bool force)
+void ParticleInfoList::UploadData(const bool force)
 {
 	if(force || m_needUpdate)
 	{
-		m_buffer->UploadVector(m_instancedInfos);
+		m_buffer->UploadVector(m_particleInfos);
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.offset = 0;
 		bufferInfo.range = VK_WHOLE_SIZE;
@@ -319,11 +320,11 @@ void InstancedInfoList::UploadData(const bool force)
 	}
 }
 
-InstancedInfoList::InstancedInfoList()
+ParticleInfoList::ParticleInfoList()
 {
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.size = sizeof(InstancedInfo);
+	bufferCreateInfo.size = sizeof(ParticleInfo);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
@@ -332,7 +333,103 @@ InstancedInfoList::InstancedInfoList()
 	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
 }
 
-const std::shared_ptr<DescriptorSet>& InstancedInfoList::GetDescriptorSet() const
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
+{
+	m_particleInfos.resize(rays.size());
+	std::vector<std::shared_future<void>> results;
+	Jobs::ParallelFor(
+		rays.size(),
+		[&](unsigned i) {
+			auto& ray = rays[i];
+			glm::quat rotation = glm::quatLookAt(ray.m_direction,
+				{ ray.m_direction.y, ray.m_direction.z, ray.m_direction.x });
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((ray.m_start + ray.m_direction * ray.m_length / 2.0f)) * rotationMat *
+				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
+			m_particleInfos[i].m_instanceMatrix.m_value = model;
+			m_particleInfos[i].m_instanceColor = color;
+		},
+		results);
+	for (const auto& i : results)
+		i.wait();
+	m_needUpdate = true;
+}
+
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
+{
+	m_particleInfos.resize(rays.size());
+	std::vector<std::shared_future<void>> results;
+	Jobs::ParallelFor(
+		rays.size(),
+		[&](unsigned i) {
+			auto& ray = rays[i];
+			glm::quat rotation = glm::quatLookAt(ray.m_direction,
+				{ ray.m_direction.y, ray.m_direction.z, ray.m_direction.x });
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((ray.m_start + ray.m_direction * ray.m_length / 2.0f)) * rotationMat *
+				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
+			m_particleInfos[i].m_instanceMatrix.m_value = model;
+			m_particleInfos[i].m_instanceColor = colors[i];
+		},
+		results);
+	for (const auto& i : results)
+		i.wait();
+	m_needUpdate = true;
+}
+
+void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
+	const glm::vec4& color, float rayWidth)
+{
+	m_particleInfos.resize(starts.size());
+	std::vector<std::shared_future<void>> results;
+	Jobs::ParallelFor(
+		starts.size(),
+		[&](unsigned i) {
+			auto& start = starts[i];
+			auto& end = ends[i];
+			const auto direction = glm::normalize(end - start);
+			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
+				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
+			m_particleInfos[i].m_instanceMatrix.m_value = model;
+			m_particleInfos[i].m_instanceColor = color;
+		},
+		results);
+	for (const auto& i : results)
+		i.wait();
+	m_needUpdate = true;
+}
+
+void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
+                                        const std::vector<glm::vec4>& colors, float rayWidth)
+{
+	m_particleInfos.resize(starts.size());
+	std::vector<std::shared_future<void>> results;
+	Jobs::ParallelFor(
+		starts.size(),
+		[&](unsigned i) {
+			auto& start = starts[i];
+			auto& end = ends[i];
+			const auto direction = glm::normalize(end - start);
+			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
+				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
+			m_particleInfos[i].m_instanceMatrix.m_value = model;
+			m_particleInfos[i].m_instanceColor = colors[i];
+		},
+		results);
+	for (const auto& i : results)
+		i.wait();
+	m_needUpdate = true;
+}
+
+const std::shared_ptr<DescriptorSet>& ParticleInfoList::GetDescriptorSet() const
 {
 	return m_descriptorSet;
 }
