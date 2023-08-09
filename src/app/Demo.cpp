@@ -12,7 +12,7 @@ using namespace EvoEngine;
 #pragma region Helpers
 Entity CreateDynamicCube(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
@@ -20,14 +20,14 @@ Entity CreateDynamicCube(
 
 Entity CreateSolidCube(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
     const std::string& name);
 
 Entity CreateCube(
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
@@ -35,7 +35,7 @@ Entity CreateCube(
 
 Entity CreateDynamicSphere(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,
@@ -43,14 +43,14 @@ Entity CreateDynamicSphere(
 
 Entity CreateSolidSphere(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,
     const std::string& name);
 
 Entity CreateSphere(
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,
@@ -90,11 +90,11 @@ int main() {
             auto camera = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
             scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
-			LoadScene(scene, "Rendering Demo");
-            //const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+			//LoadScene(scene, "Rendering Demo");
+            const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
             Transform physicsDemoTransform;
             physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-            //scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+            scene->SetDataComponent(physicsDemo, physicsDemoTransform);
 #pragma region Dynamic Lighting
             const auto dirLightEntity = scene->CreateEntity("Directional Light");
             const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -166,7 +166,6 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
     scene->SetParent(ground, baseEntity);
 #pragma endregion
 #pragma region Load models and display
-    return baseEntity;
     const auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
     const auto sponzaEntity = sponza->ToEntity(scene);
     Transform sponzaTransform;
@@ -343,7 +342,7 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
 
 Entity CreateSolidCube(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
@@ -365,7 +364,7 @@ Entity CreateSolidCube(
 
 Entity CreateDynamicCube(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
@@ -388,7 +387,7 @@ Entity CreateDynamicCube(
 }
 
 Entity CreateCube(
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const glm::vec3& scale,
@@ -414,7 +413,7 @@ Entity CreateCube(
 
 Entity CreateDynamicSphere(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,
@@ -438,7 +437,7 @@ Entity CreateDynamicSphere(
 
 Entity CreateSolidSphere(
     const float& mass,
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,
@@ -459,7 +458,7 @@ Entity CreateSolidSphere(
 }
 
 Entity CreateSphere(
-    const glm::vec3 color,
+    const glm::vec3& color,
     const glm::vec3& position,
     const glm::vec3& rotation,
     const float& scale,

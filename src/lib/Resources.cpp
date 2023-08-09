@@ -23,6 +23,8 @@ void Resources::LoadShaders()
 	+ "\n";
 
 	Graphics::GetInstance().m_shaderBasic = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Basic.glsl");
+	Graphics::GetInstance().m_shaderBasicConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/BasicConstants.glsl");
+	Graphics::GetInstance().m_shaderGizmosConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/GizmosConstants.glsl");
 	Graphics::GetInstance().m_shaderLighting = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Lighting.glsl");
 
 #pragma endregion
@@ -30,21 +32,21 @@ void Resources::LoadShaders()
 #pragma region Standard Shader
 	{
 		auto vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/Standard.vert");
 
 		auto standardVert = CreateResource<Shader>("STANDARD_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/StandardSkinned.vert");
 
 		standardVert = CreateResource<Shader>("STANDARD_SKINNED_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto meshShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/Standard.mesh");
 		auto standardMesh = CreateResource<Shader>("STANDARD_MESH");
 		standardMesh->Set(ShaderType::Mesh, meshShaderCode);
@@ -67,7 +69,7 @@ void Resources::LoadShaders()
 #pragma region GBuffer
 	{
 		auto fragShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + Graphics::GetInstance().m_shaderBasic + "\n" + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLighting.frag");
 		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
@@ -75,13 +77,13 @@ void Resources::LoadShaders()
 
 
 		fragShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + Graphics::GetInstance().m_shaderBasic + "\n" + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLightingSceneCamera.frag");
 		standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
 		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
 		
-		fragShaderCode = std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+		fragShaderCode = std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferred.frag");
 
@@ -192,49 +194,49 @@ void Resources::LoadShaders()
 #pragma region Shadow Maps
 	{
 		auto vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/DirectionalLightShadowMap.vert");
 
 		auto vertShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/DirectionalLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMapSkinned.vert");
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_SKINNED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
-			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasic + "\n" +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Empty.frag");
 		auto fragShader = CreateResource<Shader>("EMPTY_FRAG");
@@ -278,32 +280,32 @@ void Resources::LoadShaders()
 #pragma region Gizmos
 	{
 		auto vertShaderCode =
-			std::string("#version 450\n") +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/Gizmos.vert");
 		auto vertShader = CreateResource<Shader>("GIZMOS_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosNormalColored.vert");
 		vertShader = CreateResource<Shader>("GIZMOS_NORMAL_COLORED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
-			std::string("#version 450\n") +
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosVertexColored.vert");
 		vertShader = CreateResource<Shader>("GIZMOS_VERTEX_COLORED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
-			std::string("#version 450\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/Gizmos.frag");
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/Gizmos.frag");
 		auto fragShader = CreateResource<Shader>("GIZMOS_FRAG");
 
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 		fragShaderCode =
-			std::string("#version 450\n") + FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/GizmosColored.frag");
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/GizmosColored.frag");
 		fragShader = CreateResource<Shader>("GIZMOS_COLORED_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 

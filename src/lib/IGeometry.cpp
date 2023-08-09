@@ -2,7 +2,6 @@
 
 using namespace EvoEngine;
 
-
 const std::vector<VkVertexInputBindingDescription>& IGeometry::GetVertexBindingDescriptions(GeometryType geometryType)
 {
 	static std::vector<VkVertexInputBindingDescription> mesh{};

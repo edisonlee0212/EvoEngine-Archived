@@ -14,7 +14,6 @@
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
-
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
@@ -876,7 +875,6 @@ void Graphics::CheckVk(const VkResult& result)
 	{
 		return;
 	}
-
 	const std::string failure = StringifyResultVk(result);
 	throw std::runtime_error("Vulkan error: " + failure);
 }

@@ -95,12 +95,6 @@ layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
 	Instance EE_INSTANCES[];
 };
 
-layout(push_constant) uniform EE_PUSH_CONSTANTS{
-	int EE_INSTANCE_INDEX;
-	int EE_CAMERA_INDEX;
-	int EE_LIGHT_SPLIT_INDEX;
-};
-
 //Lights
 struct DirectionalLight {
 	vec3 direction;
@@ -207,7 +201,15 @@ layout(set = EE_PER_FRAME_SET, binding = 12) readonly buffer EE_RENDER_TASKS_BLO
 layout(set = EE_PER_FRAME_SET, binding = 13) uniform sampler2D[] EE_TEXTURE_2DS;
 layout(set = EE_PER_FRAME_SET, binding = 14) uniform samplerCube[] EE_CUBEMAPS;
 
+struct InstancedData {
+	mat4 instanceMatrix;
+	vec4 color;
+};
 
+layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCED_DATA_BLOCK
+{
+	InstancedData EE_INSTANCED_DATA[];
+};
 
 vec3 EE_DEPTH_TO_CLIP_POS(vec2 texCoords, float ndcDepth);
 vec3 EE_DEPTH_TO_WORLD_POS(vec2 texCoords, float ndcDepth);

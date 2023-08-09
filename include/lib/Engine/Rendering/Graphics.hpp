@@ -72,6 +72,8 @@ namespace EvoEngine
 #pragma endregion
 #pragma region Shader related
 		std::string m_shaderBasic;
+		std::string m_shaderBasicConstants;
+		std::string m_shaderGizmosConstants;
 		std::string m_shaderLighting;
 		std::string m_shaderSkybox;
 		size_t m_maxBoneAmount = 65536;
