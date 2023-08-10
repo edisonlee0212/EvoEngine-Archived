@@ -29,7 +29,9 @@
 #include "Joint.hpp"
 #include "Particles.hpp"
 #include "PostProcessingStack.hpp"
+#include "StrandsRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
+#include "Strands.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -390,7 +392,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
 	ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
 	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");
-	
+	ClassRegistry::RegisterPrivateComponent<StrandsRenderer>("StrandsRenderer");
 	ClassRegistry::RegisterPrivateComponent<SkinnedMeshRenderer>("SkinnedMeshRenderer");
 	ClassRegistry::RegisterPrivateComponent<Animator>("Animator");
 	ClassRegistry::RegisterPrivateComponent<PointLight>("PointLight");
@@ -410,7 +412,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvironmentalmap" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
-
+	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands" });
 	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });
