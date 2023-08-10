@@ -337,6 +337,7 @@ void ParticleInfoList::UploadData(const bool force)
 		bufferInfo.buffer = m_buffer->GetVkBuffer();
 		m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
 		m_needUpdate = false;
+		m_version++;
 	}
 }
 
@@ -356,7 +357,6 @@ ParticleInfoList::ParticleInfoList()
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
 {
 	m_particleInfos.resize(rays.size());
-	std::vector<std::shared_future<void>> results;
 	Jobs::ParallelFor(
 		rays.size(),
 		[&](unsigned i) {
@@ -369,17 +369,13 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
 			m_particleInfos[i].m_instanceMatrix.m_value = model;
 			m_particleInfos[i].m_instanceColor = color;
-		},
-		results);
-	for (const auto& i : results)
-		i.wait();
+		});
 	m_needUpdate = true;
 }
 
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
 {
 	m_particleInfos.resize(rays.size());
-	std::vector<std::shared_future<void>> results;
 	Jobs::ParallelFor(
 		rays.size(),
 		[&](unsigned i) {
@@ -392,10 +388,8 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
 			m_particleInfos[i].m_instanceMatrix.m_value = model;
 			m_particleInfos[i].m_instanceColor = colors[i];
-		},
-		results);
-	for (const auto& i : results)
-		i.wait();
+		}
+	);
 	m_needUpdate = true;
 }
 
@@ -403,7 +397,6 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 	const glm::vec4& color, float rayWidth)
 {
 	m_particleInfos.resize(starts.size());
-	std::vector<std::shared_future<void>> results;
 	Jobs::ParallelFor(
 		starts.size(),
 		[&](unsigned i) {
@@ -417,10 +410,8 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
 			m_particleInfos[i].m_instanceMatrix.m_value = model;
 			m_particleInfos[i].m_instanceColor = color;
-		},
-		results);
-	for (const auto& i : results)
-		i.wait();
+		}
+	);
 	m_needUpdate = true;
 }
 
@@ -428,7 +419,6 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
                                         const std::vector<glm::vec4>& colors, float rayWidth)
 {
 	m_particleInfos.resize(starts.size());
-	std::vector<std::shared_future<void>> results;
 	Jobs::ParallelFor(
 		starts.size(),
 		[&](unsigned i) {
@@ -442,10 +432,8 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
 			m_particleInfos[i].m_instanceMatrix.m_value = model;
 			m_particleInfos[i].m_instanceColor = colors[i];
-		},
-		results);
-	for (const auto& i : results)
-		i.wait();
+		}
+	);
 	m_needUpdate = true;
 }
 

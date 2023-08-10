@@ -5,6 +5,7 @@
 #include "Console.hpp"
 #include "EditorLayer.hpp"
 #include "Graphics.hpp"
+#include "Jobs.hpp"
 #include "TextureStorage.hpp"
 
 using namespace EvoEngine;
@@ -319,4 +320,65 @@ VkSampler Texture2D::GetVkSampler() const
 		return m_sampler->GetVkSampler();
 	}
 	return VK_NULL_HANDLE;
+}
+
+void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX, int resizeY) const
+{
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
+	dst.resize(resolutionX * resolutionY);
+	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+	imageBuffer.CopyFromImage(*m_image);
+	imageBuffer.DownloadVector(dst, resolutionX * resolutionY);
+}
+
+void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX, int resizeY) const
+{
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
+	std::vector<glm::vec4> pixels;
+	pixels.resize(resolutionX * resolutionY);
+	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+	imageBuffer.CopyFromImage(*m_image);
+	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
+	dst.resize(pixels.size());
+	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+		{
+			dst[i] = pixels[i];
+		}
+	);
+}
+
+void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX, int resizeY) const
+{
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
+	std::vector<glm::vec4> pixels;
+	pixels.resize(resolutionX * resolutionY);
+	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+	imageBuffer.CopyFromImage(*m_image);
+	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
+	dst.resize(pixels.size());
+	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+		{
+			dst[i] = glm::vec2(pixels[i].r, pixels[i].g);
+		}
+	);
+}
+
+void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resizeY) const
+{
+	const auto resolutionX = m_image->GetExtent().width;
+	const auto resolutionY = m_image->GetExtent().height;
+	std::vector<glm::vec4> pixels;
+	pixels.resize(resolutionX * resolutionY);
+	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+	imageBuffer.CopyFromImage(*m_image);
+	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
+	dst.resize(pixels.size());
+	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+		{
+			dst[i] = pixels[i].r;
+		}
+	);
 }

@@ -5,8 +5,6 @@ namespace EvoEngine
 {
 	class FileUtils
 	{
-		friend class DefaultResources;
-
 	public:
 		static std::string LoadFileAsString(const std::filesystem::path& path = "");
 		static void OpenFolder(
@@ -63,6 +61,11 @@ namespace EvoEngine
 		                                  shaderc_shader_kind kind,
 		                                  const std::string& source,
 		                                  bool optimize = false);
+	};
+
+	class SphereMeshGenerator {
+	public:
+		static void Icosahedron(std::vector<glm::vec3>& vertices, std::vector<glm::uvec3>& triangles);
 	};
 }
 

@@ -46,5 +46,10 @@ namespace EvoEngine
 		[[nodiscard]] VkImage GetVkImage() const;
 		[[nodiscard]] VkImageView GetVkImageView() const;
 		[[nodiscard]] VkSampler GetVkSampler() const;
+
+		void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX = -1, int resizeY = -1) const;
+		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
+		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
+		void GetRedChannelData(std::vector<float>& dst, int resizeX = -1, int resizeY = -1) const;
 	};
 }

@@ -160,6 +160,31 @@ void Material::SetAOTexture(const std::shared_ptr<Texture2D>& texture)
     m_needUpdate = true;
 }
 
+std::shared_ptr<Texture2D> Material::GetAlbedoTexture()
+{
+    return m_albedoTexture.Get<Texture2D>();
+}
+
+std::shared_ptr<Texture2D> Material::GetNormalTexture()
+{
+    return m_normalTexture.Get<Texture2D>();
+}
+
+std::shared_ptr<Texture2D> Material::GetMetallicTexture()
+{
+    return m_metallicTexture.Get<Texture2D>();
+}
+
+std::shared_ptr<Texture2D> Material::GetRoughnessTexture()
+{
+    return m_roughnessTexture.Get<Texture2D>();
+}
+
+std::shared_ptr<Texture2D> Material::GetAoTexture()
+{
+    return m_aoTexture.Get<Texture2D>();
+}
+
 
 void Material::OnCreate()
 {

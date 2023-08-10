@@ -107,7 +107,6 @@ namespace EvoEngine
 		std::unordered_map<Handle, std::weak_ptr<AssetThumbnail>> m_assetThumbnails;
 		std::vector<std::shared_ptr<AssetThumbnail>> m_assetThumbnailStorage;
 		int m_maxThumbnailSize = 256;
-		friend class DefaultResources;
 		friend class AssetRegistry;
 		friend class ProjectManager;
 		

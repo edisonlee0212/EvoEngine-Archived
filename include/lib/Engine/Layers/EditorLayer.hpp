@@ -138,7 +138,6 @@ namespace EvoEngine
 		friend class ClassRegistry;
 		friend class RenderLayer;
 		friend class Application;
-		friend class DefaultResources;
 		friend class ProjectManager;
 		friend class Scene;
 		std::map<std::string, std::shared_ptr<Texture2D>> m_assetsIcons;

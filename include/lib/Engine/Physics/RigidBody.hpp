@@ -24,7 +24,6 @@ class RigidBody : public IPrivateComponent
     PxVec3 m_linearVelocity = PxVec3(0.0f);
     PxVec3 m_angularVelocity = PxVec3(0.0f);
     friend class Joint;
-    friend class Editor;
     bool m_kinematic = false;
     PxReal m_linearDamping = 0.5;
     PxReal m_angularDamping = 0.5;

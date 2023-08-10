@@ -721,8 +721,6 @@ void RenderLayer::ApplyAnimator() const
 	if (const auto* owners =
 		scene->UnsafeGetPrivateComponentOwnersList<Animator>())
 	{
-		std::vector<std::shared_future<void>> results;
-
 		Jobs::ParallelFor(owners->size(), [&](unsigned i)
 			{
 				const auto entity = owners->at(i);
@@ -730,14 +728,11 @@ void RenderLayer::ApplyAnimator() const
 				const auto animator = scene->GetOrSetPrivateComponent<Animator>(owners->at(i)).lock();
 				if (!animator->IsEnabled()) return;
 				animator->Apply();
-			}, results);
-		for (const auto& i : results)
-			i.wait();
+			});
 	}
 	if (const auto* owners =
 		scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
 	{
-		std::vector<std::shared_future<void>> results;
 		Jobs::ParallelFor(owners->size(), [&](unsigned i)
 			{
 				const auto entity = owners->at(i);
@@ -745,10 +740,8 @@ void RenderLayer::ApplyAnimator() const
 				const auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(entity).lock();
 				if (!skinnedMeshRenderer->IsEnabled()) return;
 				skinnedMeshRenderer->UpdateBoneMatrices();
-			}, results);
-		for (const auto& i : results)
-			i.wait();
-
+			}
+		);
 		for (const auto& i : *owners)
 		{
 			if (!scene->IsEntityEnabled(i)) return;

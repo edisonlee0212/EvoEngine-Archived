@@ -59,7 +59,11 @@ namespace EvoEngine
 		void SetMetallicTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetRoughnessTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetAOTexture(const std::shared_ptr<Texture2D>& texture);
-
+		[[nodiscard]] std::shared_ptr<Texture2D> GetAlbedoTexture();
+		[[nodiscard]] std::shared_ptr<Texture2D> GetNormalTexture();
+		[[nodiscard]] std::shared_ptr<Texture2D> GetMetallicTexture();
+		[[nodiscard]] std::shared_ptr<Texture2D> GetRoughnessTexture();
+		[[nodiscard]] std::shared_ptr<Texture2D> GetAoTexture();
 		void OnCreate() override;
 		~Material() override;
 		
