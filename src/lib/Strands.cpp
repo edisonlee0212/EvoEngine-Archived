@@ -367,7 +367,7 @@ void Strands::SetStrands(const StrandPointAttributes& strandPointAttributes, con
 	// index
 	for (auto strand = strands.begin(); strand != strands.end() - 1; ++strand) {
 		const int start = *(strand);                      // first vertex in first segment
-		const int end = *(strand + 1) - CurveDegree();  // second vertex of last segment
+		const int end = *(strand + 1) - 3;//CurveDegree();  // second vertex of last segment
 		for (int i = start; i < end; i++) {
 			m_segmentRawIndices.emplace_back(i);
 		}

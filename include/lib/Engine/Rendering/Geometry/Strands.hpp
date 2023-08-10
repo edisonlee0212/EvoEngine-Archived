@@ -57,8 +57,6 @@ namespace EvoEngine
         friend class RenderLayer;
         Bound m_bound;
 
-        [[nodiscard]] unsigned int CurveDegree() const;
-
         void PrepareStrands(const StrandPointAttributes& strandPointAttributes);
         //The starting index of the point where this segment starts;
         std::vector<glm::uint> m_segmentRawIndices;

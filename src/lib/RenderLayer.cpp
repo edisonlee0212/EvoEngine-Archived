@@ -1903,7 +1903,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredLightingPipeline->m_states.m_scissor = scissor;
 			RenderInstancePushConstant pushConstant;
 			pushConstant.m_cameraIndex = cameraIndex;
-			pushConstant.m_lightSplitIndex = needFade ? glm::max(32, 256 - editorLayer->m_selectionAlpha) : 256;
+			pushConstant.m_lightSplitIndex = needFade ? glm::max(128, 256 - editorLayer->m_selectionAlpha) : 256;
 			pushConstant.m_instanceIndex = needFade ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
