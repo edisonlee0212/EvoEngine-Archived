@@ -49,6 +49,7 @@ namespace EvoEngine
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
+		~SkinnedMesh() override;
 		[[nodiscard]] const std::vector<uint32_t>& PeekSkinnedMeshletIndices() const;
 		void Bind(VkCommandBuffer vkCommandBuffer) const override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount,

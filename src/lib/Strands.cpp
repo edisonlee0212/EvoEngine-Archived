@@ -5,6 +5,7 @@
 #include "Strands.hpp"
 #include "Console.hpp"
 #include "ClassRegistry.hpp"
+#include "GeometryStorage.hpp"
 #include "Jobs.hpp"
 #include "RenderLayer.hpp"
 using namespace EvoEngine;
@@ -25,47 +26,29 @@ void StrandPointAttributes::Deserialize(const YAML::Node& in)
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
 }
 
-unsigned int Strands::CurveDegree() const {
-	switch (m_splineMode) {
-	case SplineMode::Linear:
-		return 1;
-	case SplineMode::Quadratic:
-		return 2;
-	case SplineMode::Cubic:
-		return 3;
-	default: EVOENGINE_ERROR("Invalid spline mode.");
-	}
-}
-
-Strands::SplineMode Strands::GetSplineMode() const { return m_splineMode; }
-
-
-std::vector<StrandPoint>& Strands::UnsafeGetPoints() {
-	return m_points;
+std::vector<StrandPoint>& Strands::UnsafeGetStrandPoints() {
+	return m_strandPoints;
 }
 
 std::vector<glm::uint>& Strands::UnsafeGetSegments() {
-	return m_segments;
+	return m_segmentRawIndices;
 }
 
 void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes) {
-	m_strandPointAttributes = strandPointAttributes;
-
-	m_splineMode = SplineMode::Cubic;
-	m_segmentIndices.resize(m_segments.size());
-	Jobs::ParallelFor(m_segments.size(), [&](unsigned i)
+	m_segments.resize(m_segmentRawIndices.size());
+	Jobs::ParallelFor(m_segmentRawIndices.size(), [&](unsigned i)
 		{
-			m_segmentIndices[i].x = m_segments[i];
-			m_segmentIndices[i].y = m_segments[i] + 1;
-			m_segmentIndices[i].z = m_segments[i] + 2;
-			m_segmentIndices[i].w = m_segments[i] + 3;
+			m_segments[i].x = m_segmentRawIndices[i];
+			m_segments[i].y = m_segmentRawIndices[i] + 1;
+			m_segments[i].z = m_segmentRawIndices[i] + 2;
+			m_segments[i].w = m_segmentRawIndices[i] + 3;
 		}
 	);
 
 #pragma region Bound
-	glm::vec3 minBound = m_points.at(0).m_position;
-	glm::vec3 maxBound = m_points.at(0).m_position;
-	for (auto& vertex : m_points)
+	glm::vec3 minBound = m_strandPoints.at(0).m_position;
+	glm::vec3 maxBound = m_strandPoints.at(0).m_position;
+	for (auto& vertex : m_strandPoints)
 	{
 		minBound = glm::vec3(
 			(glm::min)(minBound.x, vertex.m_position.x),
@@ -80,9 +63,32 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	m_bound.m_min = minBound;
 #pragma endregion
 
-	if (!m_strandPointAttributes.m_normal) RecalculateNormal();
+	if (!m_strandPointAttributes.m_normal) 
+		RecalculateNormal();
 
-	Upload();
+	m_strandPointAttributes = strandPointAttributes;
+	m_strandPointAttributes.m_normal = true;
+
+	GeometryStorage::FreeStrands(m_strandMeshletIndices);
+	m_strandMeshletIndices.clear();
+	GeometryStorage::AllocateStrands(m_strandPoints, m_segments, m_strandMeshletIndices);
+
+	m_geometryStorageSegments.resize(m_segments.size());
+	size_t currentTriangleIndex = 0;
+	for (const auto& meshletIndex : m_strandMeshletIndices)
+	{
+		auto& strandMeshlet = GeometryStorage::PeekStrandMeshlet(meshletIndex);
+		for (size_t i = 0; i < strandMeshlet.m_segmentSize; i++)
+		{
+			m_geometryStorageSegments[currentTriangleIndex].x = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].x];
+			m_geometryStorageSegments[currentTriangleIndex].y = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].y];
+			m_geometryStorageSegments[currentTriangleIndex].z = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].z];
+			m_geometryStorageSegments[currentTriangleIndex].w = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].w];
+			currentTriangleIndex++;
+		}
+	}
+
+	UploadData();
 	
 	m_version++;
 	m_saved = false;
@@ -243,35 +249,30 @@ static const char* SplineModes[]{ "Linear", "Quadratic", "Cubic" };
 
 void Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 	bool changed = false;
-	ImGui::Text(("Point size: " + std::to_string(m_points.size())).c_str());
+	ImGui::Text(("Point size: " + std::to_string(m_strandPoints.size())).c_str());
 	if (changed) m_saved = false;
 }
 
 void Strands::Serialize(YAML::Emitter& out) {
-	out << YAML::Key << "m_offset" << YAML::Value << m_offset;
-	out << YAML::Key << "m_version" << YAML::Value << m_version;
-
-	if (!m_segments.empty() && !m_points.empty()) {
-		out << YAML::Key << "m_segments" << YAML::Value
-			<< YAML::Binary((const unsigned char*)m_segments.data(), m_segments.size() * sizeof(glm::uint));
+	
+	if (!m_segmentRawIndices.empty() && !m_strandPoints.empty()) {
+		out << YAML::Key << "m_segmentRawIndices" << YAML::Value
+			<< YAML::Binary((const unsigned char*)m_segmentRawIndices.data(), m_segmentRawIndices.size() * sizeof(glm::uint));
 
 		out << YAML::Key << "m_scatteredPoints" << YAML::Value
-			<< YAML::Binary((const unsigned char*)m_points.data(), m_points.size() * sizeof(StrandPoint));
+			<< YAML::Binary((const unsigned char*)m_strandPoints.data(), m_strandPoints.size() * sizeof(StrandPoint));
 	}
 }
 
 void Strands::Deserialize(const YAML::Node& in) {
-	if (in["m_offset"]) m_offset = in["m_offset"].as<size_t>();
-	if (in["m_version"]) m_version = in["m_version"].as<size_t>();
-
-	if (in["m_segments"] && in["m_scatteredPoints"]) {
-		auto segmentData = in["m_segments"].as<YAML::Binary>();
-		m_segments.resize(segmentData.size() / sizeof(glm::uint));
-		std::memcpy(m_segments.data(), segmentData.data(), segmentData.size());
+	if (in["m_segmentRawIndices"] && in["m_scatteredPoints"]) {
+		auto segmentData = in["m_segmentRawIndices"].as<YAML::Binary>();
+		m_segmentRawIndices.resize(segmentData.size() / sizeof(glm::uint));
+		std::memcpy(m_segmentRawIndices.data(), segmentData.data(), segmentData.size());
 
 		auto pointData = in["m_scatteredPoints"].as<YAML::Binary>();
-		m_points.resize(pointData.size() / sizeof(StrandPoint));
-		std::memcpy(m_points.data(), pointData.data(), pointData.size());
+		m_strandPoints.resize(pointData.size() / sizeof(StrandPoint));
+		std::memcpy(m_strandPoints.data(), pointData.data(), pointData.size());
 
 		StrandPointAttributes strandPointAttributes{};
 		strandPointAttributes.m_thickness = true;
@@ -283,47 +284,65 @@ void Strands::Deserialize(const YAML::Node& in) {
 
 }
 
-void Strands::Upload()
+void Strands::UploadData()
 {
-	if (m_segmentIndices.empty())
+	if (m_segments.empty())
 	{
 		EVOENGINE_ERROR("Indices empty!")
 			return;
 	}
-	if (m_points.empty())
+	if (m_strandPoints.empty())
 	{
 		EVOENGINE_ERROR("Points empty!")
 			return;
 	}
 
-
-	m_pointSize = m_points.size();
-	m_segmentIndicesSize = m_segmentIndices.size();
 	m_version++;
+	m_segmentsBuffer->UploadVector(m_geometryStorageSegments);
 }
 
 void Strands::Bind(VkCommandBuffer vkCommandBuffer) const
 {
-
+	GeometryStorage::BindStrandPoints(vkCommandBuffer);
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_segmentsBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
 void Strands::OnCreate()
 {
+	VkBufferCreateInfo trianglesBufferCreateInfo{};
+	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	trianglesBufferCreateInfo.size = 1;
+	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
+	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	m_segmentsBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
 	m_bound = Bound();
 }
-Bound Strands::GetBound()
+Bound Strands::GetBound() const
 {
 	return m_bound;
 }
 
 size_t Strands::GetSegmentAmount() const
 {
-	return m_segmentIndicesSize;
+	return m_segments.size();
 }
 
-size_t Strands::GetPointAmount() const
+Strands::~Strands()
 {
-	return m_pointSize;
+	GeometryStorage::FreeStrands(m_strandMeshletIndices);
+	m_strandMeshletIndices.clear();
+}
+
+size_t Strands::GetStrandPointAmount() const
+{
+	return m_strandPoints.size();
+}
+
+const std::vector<uint32_t>& Strands::PeekStrandMeshletIndices() const
+{
+	return m_strandMeshletIndices;
 }
 
 void Strands::SetSegments(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& segments, const std::vector<StrandPoint>& points) {
@@ -331,8 +350,8 @@ void Strands::SetSegments(const StrandPointAttributes& strandPointAttributes, co
 		return;
 	}
 
-	m_segments = segments;
-	m_points = points;
+	m_segmentRawIndices = segments;
+	m_strandPoints = points;
 
 	PrepareStrands(strandPointAttributes);
 }
@@ -343,17 +362,17 @@ void Strands::SetStrands(const StrandPointAttributes& strandPointAttributes, con
 		return;
 	}
 
-	m_segments.clear();
+	m_segmentRawIndices.clear();
 	// loop to one before end, as last strand value is the "past last valid vertex"
 	// index
 	for (auto strand = strands.begin(); strand != strands.end() - 1; ++strand) {
 		const int start = *(strand);                      // first vertex in first segment
 		const int end = *(strand + 1) - CurveDegree();  // second vertex of last segment
 		for (int i = start; i < end; i++) {
-			m_segments.emplace_back(i);
+			m_segmentRawIndices.emplace_back(i);
 		}
 	}
-	m_points = points;
+	m_strandPoints = points;
 	PrepareStrands(strandPointAttributes);
 }
 
@@ -374,25 +393,33 @@ void CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec
 void Strands::RecalculateNormal()
 {
 	glm::vec3 tangent, temp;
-	for (const auto& indices : m_segmentIndices)
+	for (const auto& indices : m_segments)
 	{
-		CubicInterpolation(m_points[indices[0]].m_position, m_points[indices[1]].m_position, m_points[indices[2]].m_position, m_points[indices[3]].m_position, temp, tangent, 0.0f);
-		m_points[indices[0]].m_normal = glm::vec3(tangent.y, tangent.z, tangent.x);
+		CubicInterpolation(m_strandPoints[indices[0]].m_position, m_strandPoints[indices[1]].m_position, m_strandPoints[indices[2]].m_position, m_strandPoints[indices[3]].m_position, temp, tangent, 0.0f);
+		m_strandPoints[indices[0]].m_normal = glm::vec3(tangent.y, tangent.z, tangent.x);
 
-		CubicInterpolation(m_points[indices[0]].m_position, m_points[indices[1]].m_position, m_points[indices[2]].m_position, m_points[indices[3]].m_position, temp, tangent, 0.25f);
-		m_points[indices[1]].m_normal = glm::cross(glm::cross(tangent, m_points[indices[0]].m_normal), tangent);
+		CubicInterpolation(m_strandPoints[indices[0]].m_position, m_strandPoints[indices[1]].m_position, m_strandPoints[indices[2]].m_position, m_strandPoints[indices[3]].m_position, temp, tangent, 0.25f);
+		m_strandPoints[indices[1]].m_normal = glm::cross(glm::cross(tangent, m_strandPoints[indices[0]].m_normal), tangent);
 
-		CubicInterpolation(m_points[indices[0]].m_position, m_points[indices[1]].m_position, m_points[indices[2]].m_position, m_points[indices[3]].m_position, temp, tangent, 0.75f);
-		m_points[indices[2]].m_normal = glm::cross(glm::cross(tangent, m_points[indices[1]].m_normal), tangent);
+		CubicInterpolation(m_strandPoints[indices[0]].m_position, m_strandPoints[indices[1]].m_position, m_strandPoints[indices[2]].m_position, m_strandPoints[indices[3]].m_position, temp, tangent, 0.75f);
+		m_strandPoints[indices[2]].m_normal = glm::cross(glm::cross(tangent, m_strandPoints[indices[1]].m_normal), tangent);
 
-		CubicInterpolation(m_points[indices[0]].m_position, m_points[indices[1]].m_position, m_points[indices[2]].m_position, m_points[indices[3]].m_position, temp, tangent, 1.0f);
-		m_points[indices[3]].m_normal = glm::cross(glm::cross(tangent, m_points[indices[2]].m_normal), tangent);
+		CubicInterpolation(m_strandPoints[indices[0]].m_position, m_strandPoints[indices[1]].m_position, m_strandPoints[indices[2]].m_position, m_strandPoints[indices[3]].m_position, temp, tangent, 1.0f);
+		m_strandPoints[indices[3]].m_normal = glm::cross(glm::cross(tangent, m_strandPoints[indices[2]].m_normal), tangent);
 	}
 }
 
 void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
 	int instanceCount, bool enableMetrics) const
 {
+	auto& graphics = Graphics::GetInstance();
+	if (enableMetrics) {
+		graphics.m_drawCall++;
+		graphics.m_triangles += m_segments.size() * instanceCount;
+	}
+	globalPipelineState.ApplyAllStates(vkCommandBuffer);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 3), instanceCount, 0, 0, 0);
+
 }
 
 

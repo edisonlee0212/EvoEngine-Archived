@@ -28,9 +28,6 @@ void StrandsRenderer::RenderBound(glm::vec4& color)
 
 void StrandsRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    ImGui::Checkbox("Forward Rendering##StrandsRenderer", &m_forwardRendering);
-    if (!m_forwardRendering)
-        ImGui::Checkbox("Receive shadow##StrandsRenderer", &m_receiveShadow);
     ImGui::Checkbox("Cast shadow##StrandsRenderer:", &m_castShadow);
     editorLayer->DragAndDropButton<Material>(m_material, "Material");
     editorLayer->DragAndDropButton<Strands>(m_strands, "Strands");
@@ -59,9 +56,7 @@ void StrandsRenderer::OnCreate()
 
 void StrandsRenderer::Serialize(YAML::Emitter& out)
 {
-    out << YAML::Key << "m_forwardRendering" << m_forwardRendering;
     out << YAML::Key << "m_castShadow" << m_castShadow;
-    out << YAML::Key << "m_receiveShadow" << m_receiveShadow;
 
     m_strands.Save("m_strands", out);
     m_material.Save("m_material", out);
@@ -69,9 +64,7 @@ void StrandsRenderer::Serialize(YAML::Emitter& out)
 
 void StrandsRenderer::Deserialize(const YAML::Node& in)
 {
-    m_forwardRendering = in["m_forwardRendering"].as<bool>();
     m_castShadow = in["m_castShadow"].as<bool>();
-    m_receiveShadow = in["m_receiveShadow"].as<bool>();
 
     m_strands.Load("m_strands", in);
     m_material.Load("m_material", in);
@@ -90,8 +83,6 @@ void StrandsRenderer::OnDestroy()
     m_material.Clear();
 
     m_material.Clear();
-    m_forwardRendering = false;
     m_castShadow = true;
-    m_receiveShadow = true;
 }
 

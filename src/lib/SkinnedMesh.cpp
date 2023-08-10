@@ -143,6 +143,12 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 	return false;
 }
 
+SkinnedMesh::~SkinnedMesh()
+{
+	GeometryStorage::FreeSkinnedMesh(m_skinnedMeshletIndices);
+	m_skinnedMeshletIndices.clear();
+}
+
 const std::vector<uint32_t>& SkinnedMesh::PeekSkinnedMeshletIndices() const
 {
 	return m_skinnedMeshletIndices;

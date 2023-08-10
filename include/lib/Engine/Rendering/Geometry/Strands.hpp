@@ -17,14 +17,8 @@ namespace EvoEngine
     };
     class Strands : public IAsset, public IGeometry {
     public:
-        enum class SplineMode {
-            Linear = 2,
-            Quadratic = 3,
-            Cubic = 4
-        };
-        [[nodiscard]] SplineMode GetSplineMode() const;
         [[nodiscard]] std::vector<glm::uint>& UnsafeGetSegments();
-        [[nodiscard]] std::vector<StrandPoint>& UnsafeGetPoints();
+        [[nodiscard]] std::vector<StrandPoint>& UnsafeGetStrandPoints();
         void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
         void Serialize(YAML::Emitter& out) override;
@@ -38,23 +32,26 @@ namespace EvoEngine
             const std::vector<StrandPoint>& points);
         void RecalculateNormal();
         void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount, bool enableMetrics) const override;
-        void Upload();
+        void UploadData();
         void Bind(VkCommandBuffer vkCommandBuffer) const override;
         void OnCreate() override;
 
-        [[nodiscard]] Bound GetBound();
+        [[nodiscard]] Bound GetBound() const;
 
         [[nodiscard]] size_t GetSegmentAmount() const;
-        [[nodiscard]] size_t GetPointAmount() const;
+        ~Strands() override;
+        [[nodiscard]] size_t GetStrandPointAmount() const;
+        [[nodiscard]] const std::vector<uint32_t>& PeekStrandMeshletIndices() const;
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
     private:
-        StrandPointAttributes m_strandPointAttributes = {};
+        std::vector<glm::uvec4> m_geometryStorageSegments;
+        std::unique_ptr<Buffer> m_segmentsBuffer = {};
 
-        size_t m_offset = 0;
-        unsigned m_segmentIndicesSize = 0;
-        unsigned m_pointSize = 0;
+        std::vector<uint32_t> m_strandMeshletIndices;
+
+        StrandPointAttributes m_strandPointAttributes = {};
 
         friend class StrandsRenderer;
         friend class RenderLayer;
@@ -64,11 +61,9 @@ namespace EvoEngine
 
         void PrepareStrands(const StrandPointAttributes& strandPointAttributes);
         //The starting index of the point where this segment starts;
-        std::vector<glm::uint> m_segments;
+        std::vector<glm::uint> m_segmentRawIndices;
 
-        std::vector<glm::uvec4> m_segmentIndices;
-        std::vector<StrandPoint> m_points;
-
-        SplineMode m_splineMode = SplineMode::Cubic;
+        std::vector<glm::uvec4> m_segments;
+        std::vector<StrandPoint> m_strandPoints;
     };
 }
