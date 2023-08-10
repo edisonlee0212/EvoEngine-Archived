@@ -29,6 +29,7 @@
 #include "Joint.hpp"
 #include "Particles.hpp"
 #include "PostProcessingStack.hpp"
+#include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -395,7 +396,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<PointLight>("PointLight");
 	ClassRegistry::RegisterPrivateComponent<SpotLight>("SpotLight");
 	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
-	//ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
+	ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
 	ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
 

@@ -5,6 +5,7 @@
 #include "EntityMetadata.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
+#include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 
 void Scene::Purge()
@@ -531,6 +532,7 @@ void Scene::Deserialize(const YAML::Node& in)
                         Serialization::ProduceSerializable("UnknownPrivateComponent", hashCode));
                     ptr->m_enabled = false;
                     ptr->m_started = false;
+                    std::dynamic_pointer_cast<UnknownPrivateComponent>(ptr)->m_originalTypeName = name;
                     m_sceneDataStorage.m_entityPrivateComponentStorage.SetPrivateComponent(entity, hashCode);
                     entityMetadata.m_privateComponentElements.emplace_back(hashCode, ptr, entity, self);
                 }

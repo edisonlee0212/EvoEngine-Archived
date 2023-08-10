@@ -7,6 +7,7 @@
 #include "SkinnedMeshRenderer.hpp"
 #include "Utilities.hpp"
 #include "ClassRegistry.hpp"
+#include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 void Prefab::OnCreate()
 {
@@ -1065,6 +1066,7 @@ void PrivateComponentHolder::Deserialize(const YAML::Node& in)
         size_t hashCode;
         m_data = std::dynamic_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(
             "UnknownPrivateComponent", hashCode, Handle(inData["m_handle"].as<uint64_t>())));
+        std::dynamic_pointer_cast<UnknownPrivateComponent>(m_data)->m_originalTypeName = typeName;
     }
     m_data->OnCreate();
     m_data->Deserialize(inData);
