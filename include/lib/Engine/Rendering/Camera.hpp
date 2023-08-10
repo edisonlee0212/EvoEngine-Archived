@@ -1,7 +1,6 @@
 #pragma once
 #include "Bound.hpp"
 #include "IPrivateComponent.hpp"
-#include "Texture2D.hpp"
 #include "RenderTexture.hpp"
 #include "Transform.hpp"
 
@@ -32,7 +31,7 @@ namespace EvoEngine
         friend class RenderLayer;
         friend class EditorLayer;
         friend struct CameraInfoBlock;
-        friend class PostProcessing;
+        friend class PostProcessingStack;
         friend class Bloom;
         friend class SSAO;
         friend class SSR;
@@ -83,7 +82,7 @@ namespace EvoEngine
         bool m_useClearColor = false;
         glm::vec3 m_clearColor = glm::vec3(0.0f);
         AssetRef m_skybox;
-
+        AssetRef m_postProcessingStack;
         static void CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view);
         static void CalculateFrustumPoints(
             const std::shared_ptr<Camera>& cameraComponent,

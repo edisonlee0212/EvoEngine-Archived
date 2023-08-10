@@ -28,6 +28,7 @@
 #include "PhysicsLayer.hpp"
 #include "Joint.hpp"
 #include "Particles.hpp"
+#include "PostProcessingStack.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -388,7 +389,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
 	ClassRegistry::RegisterPrivateComponent<Particles>("Particles");
 	ClassRegistry::RegisterPrivateComponent<MeshRenderer>("MeshRenderer");
-	//ClassRegistry::RegisterPrivateComponent<PostProcessing>("PostProcessing");
+	
 	ClassRegistry::RegisterPrivateComponent<SkinnedMeshRenderer>("SkinnedMeshRenderer");
 	ClassRegistry::RegisterPrivateComponent<Animator>("Animator");
 	ClassRegistry::RegisterPrivateComponent<PointLight>("PointLight");
@@ -398,6 +399,7 @@ void Application::InitializeRegistry()
 
 	ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
 
+	ClassRegistry::RegisterAsset<PostProcessingStack>("PostProcessingStack", { ".evepostprocessingstack" });
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
 	ClassRegistry::RegisterAsset<Collider>("Collider", { ".uecollider" });

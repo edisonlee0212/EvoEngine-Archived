@@ -8,9 +8,10 @@
 #include "EditorLayer.hpp"
 #include "MeshRenderer.hpp"
 #include "GraphicsPipeline.hpp"
-#include "Cubemap.hpp"
+#include "PostProcessingStack.hpp"
 #include "Jobs.hpp"
 #include "MeshStorage.hpp"
+#include "PostProcessingStack.hpp"
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
 
@@ -1548,6 +1549,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 {
 	const int cameraIndex = GetCameraIndex(camera->GetHandle());
 	const auto scene = Application::GetActiveScene();
+#pragma region Directional Light Shadows
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 	const auto& directionalLightShadowPipelineSkinned = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
 	const auto& directionalLightShadowPipelineInstanced = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED");
@@ -1729,7 +1731,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			}
 		}
 	);
-
+#pragma endregion
 	const auto editorLayer = Application::GetLayer<EditorLayer>();
 	bool isSceneCamera = false;
 	bool needFade = false;
@@ -1738,7 +1740,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		if (camera.get() == editorLayer->m_sceneCamera.get()) isSceneCamera = true;
 		if (m_needFade) needFade = true;
 	}
-
+#pragma region Deferred Rendering
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
@@ -1919,7 +1921,13 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 #pragma endregion
 		}
 	);
+#pragma endregion
 
+	//Post processing
+	if(const auto postProcessingStack = camera->m_postProcessingStack.Get<PostProcessingStack>())
+	{
+		postProcessingStack->Process(camera);
+	}
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;

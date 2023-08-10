@@ -7,6 +7,7 @@
 #include "Utilities.hpp"
 #include "RenderLayer.hpp"
 #include "Scene.hpp"
+#include "PostProcessingStack.hpp"
 using namespace EvoEngine;
 
 
@@ -506,6 +507,7 @@ void Camera::Serialize(YAML::Emitter& out)
 	out << YAML::Key << "m_fov" << YAML::Value << m_fov;
 
 	m_skybox.Save("m_skybox", out);
+	m_postProcessingStack.Save("m_postProcessingStack", out);
 }
 
 void Camera::Deserialize(const YAML::Node& in)
@@ -519,6 +521,7 @@ void Camera::Deserialize(const YAML::Node& in)
 	m_fov = in["m_fov"].as<float>();
 	Resize({ resolutionX, resolutionY });
 	m_skybox.Load("m_skybox", in);
+	m_postProcessingStack.Load("m_postProcessingStack", in);
 	m_rendered = false;
 	m_requireRendering = false;
 }
@@ -597,6 +600,9 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		editorLayer->DragAndDropButton<Cubemap>(m_skybox, "Skybox");
 	}
+
+	editorLayer->DragAndDropButton<PostProcessingStack>(m_postProcessingStack, "PostProcessingStack");
+
 	if (ImGui::TreeNode("Intrinsic Settings")) {
 		ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);
 		ImGui::DragFloat("Far", &m_farDistance, m_farDistance / 10.0f, m_nearDistance);
@@ -614,4 +620,5 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 void Camera::CollectAssetRef(std::vector<AssetRef>& list)
 {
 	list.push_back(m_skybox);
+	list.push_back(m_postProcessingStack);
 }
