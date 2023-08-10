@@ -147,7 +147,7 @@ void Planet::TerrainChunk::GenerateTerrain(std::mutex &mutex, std::shared_ptr<Te
     }
     std::lock_guard<std::mutex> lock(mutex);
     auto mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
-    VertexAttributes attributes;
+    VertexAttributes attributes{};
     attributes.m_texCoord = true;
 
     mesh->SetVertices(attributes,

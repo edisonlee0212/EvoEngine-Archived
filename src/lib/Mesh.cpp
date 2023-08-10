@@ -123,7 +123,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	
 	MeshStorage::Free(m_meshletIndices);
 	m_meshletIndices.clear();
-	MeshStorage::Allocate(vertices, triangles, m_meshletIndices);
+	MeshStorage::Allocate(m_vertices, m_triangles, m_meshletIndices);
 
 	m_meshStorageTriangles.resize(m_triangles.size());
 	size_t currentTriangleIndex = 0;
