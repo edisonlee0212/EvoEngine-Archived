@@ -773,6 +773,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 
 	const auto& pointLightShadowInstancedPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_INSTANCED");
 	const auto& spotLightShadowInstancedPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_INSTANCED");
+
+	const auto& pointLightShadowStrandsPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_STRANDS");
+	const auto& spotLightShadowStrandsPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_STRANDS");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
@@ -927,6 +930,49 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
+
+				{
+					VkRenderingInfo renderInfo{};
+					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+					renderInfo.renderArea = renderArea;
+					renderInfo.layerCount = 1;
+					renderInfo.colorAttachmentCount = 0;
+					renderInfo.pColorAttachments = nullptr;
+					renderInfo.pDepthAttachment = &depthAttachment;
+					pointLightShadowStrandsPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
+					pointLightShadowStrandsPipeline->m_states.m_scissor = scissor;
+					vkCmdBeginRendering(commandBuffer, &renderInfo);
+					pointLightShadowStrandsPipeline->Bind(commandBuffer);
+					pointLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
+					{
+						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
+						viewport.x = pointLightInfoBlock.m_viewPort.x;
+						viewport.y = pointLightInfoBlock.m_viewPort.y;
+						viewport.width = pointLightInfoBlock.m_viewPort.z;
+						viewport.height = pointLightInfoBlock.m_viewPort.w;
+						scissor.extent.width = viewport.width;
+						scissor.extent.height = viewport.height;
+						pointLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
+						pointLightShadowStrandsPipeline->m_states.m_scissor = scissor;
+						m_deferredStrandsRenderInstances.Dispatch([&](const StrandsRenderInstance& renderCommand)
+							{
+								if (!renderCommand.m_castShadow) return;
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = i;
+								pushConstant.m_lightSplitIndex = face;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								pointLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
+								const auto strands = renderCommand.m_strands;
+								strands->Bind(commandBuffer);
+								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1, true);
+							}
+						);
+					}
+					vkCmdEndRendering(commandBuffer);
+				}
 			}
 #pragma region Viewport and scissor
 
@@ -1068,6 +1114,46 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							const auto mesh = renderCommand.m_mesh;
 							mesh->Bind(commandBuffer);
 							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+						}
+					);
+				}
+				vkCmdEndRendering(commandBuffer);
+			}
+			{
+				VkRenderingInfo renderInfo{};
+				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 0;
+				renderInfo.pColorAttachments = nullptr;
+				renderInfo.pDepthAttachment = &depthAttachment;
+				spotLightShadowStrandsPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
+				spotLightShadowStrandsPipeline->m_states.m_scissor = scissor;
+				vkCmdBeginRendering(commandBuffer, &renderInfo);
+				spotLightShadowStrandsPipeline->Bind(commandBuffer);
+				spotLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
+				{
+					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
+					viewport.x = spotLightInfoBlock.m_viewPort.x;
+					viewport.y = spotLightInfoBlock.m_viewPort.y;
+					viewport.width = spotLightInfoBlock.m_viewPort.z;
+					viewport.height = spotLightInfoBlock.m_viewPort.w;
+					spotLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
+
+					m_deferredStrandsRenderInstances.Dispatch([&](const StrandsRenderInstance& renderCommand)
+						{
+							if (!renderCommand.m_castShadow) return;
+							RenderInstancePushConstant pushConstant;
+							pushConstant.m_cameraIndex = i;
+							pushConstant.m_lightSplitIndex = 0;
+							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+							spotLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
+							const auto strands = renderCommand.m_strands;
+							strands->Bind(commandBuffer);
+							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1, true);
 						}
 					);
 				}
@@ -1537,7 +1623,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 	const auto& directionalLightShadowPipelineSkinned = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
 	const auto& directionalLightShadowPipelineInstanced = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED");
-
+	const auto& directionalLightShadowPipelineStrands = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS");
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
@@ -1706,6 +1792,53 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								const auto mesh = renderCommand.m_mesh;
 								mesh->Bind(commandBuffer);
 								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+							}
+						);
+
+					}
+					vkCmdEndRendering(commandBuffer);
+				}
+				{
+					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+					VkRenderingInfo renderInfo{};
+					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+					renderInfo.renderArea = renderArea;
+					renderInfo.layerCount = 1;
+					renderInfo.colorAttachmentCount = 0;
+					renderInfo.pColorAttachments = nullptr;
+					renderInfo.pDepthAttachment = &depthAttachment;
+					directionalLightShadowPipelineStrands->m_states.m_scissor = scissor;
+					directionalLightShadowPipelineStrands->m_states.m_viewPort = viewport;
+					directionalLightShadowPipelineStrands->m_states.m_colorBlendAttachmentStates.clear();
+
+					vkCmdBeginRendering(commandBuffer, &renderInfo);
+					directionalLightShadowPipelineStrands->Bind(commandBuffer);
+					directionalLightShadowPipelineStrands->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+
+					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
+					{
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						viewport.x = directionalLightInfoBlock.m_viewPort.x;
+						viewport.y = directionalLightInfoBlock.m_viewPort.y;
+						viewport.width = directionalLightInfoBlock.m_viewPort.z;
+						viewport.height = directionalLightInfoBlock.m_viewPort.w;
+						scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
+						scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
+						directionalLightShadowPipelineStrands->m_states.m_scissor = scissor;
+						directionalLightShadowPipelineStrands->m_states.m_viewPort = viewport;
+						directionalLightShadowPipelineStrands->m_states.ApplyAllStates(commandBuffer);
+
+						m_deferredStrandsRenderInstances.Dispatch([&](const StrandsRenderInstance& renderCommand)
+							{
+								if (!renderCommand.m_castShadow) return;
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_lightSplitIndex = split;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
+								const auto strands = renderCommand.m_strands;
+								strands->Bind(commandBuffer);
+								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1, true);
 							}
 						);
 

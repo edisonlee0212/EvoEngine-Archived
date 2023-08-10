@@ -197,7 +197,6 @@ VkShaderModule ShaderModule::GetVkShaderModule() const
 }
 
 
-
 PipelineLayout::PipelineLayout(const VkPipelineLayoutCreateInfo& pipelineLayoutCreateInfo)
 {
 	Graphics::CheckVk(vkCreatePipelineLayout(Graphics::GetVkDevice(), &pipelineLayoutCreateInfo, nullptr, &m_vkPipelineLayout));

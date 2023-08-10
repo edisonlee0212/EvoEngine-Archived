@@ -252,6 +252,13 @@ void Resources::LoadShaders()
 
 		vertShaderCode =
 			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/DirectionalLightShadowMapStrands.vert");
+
+		vertShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMap.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
@@ -269,6 +276,13 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMapInstanced.vert");
 
 		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/PointLightShadowMapStrands.vert");
+
+		vertShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_STRANDS_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		vertShaderCode =
@@ -291,6 +305,48 @@ void Resources::LoadShaders()
 
 		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/SpotLightShadowMapStrands.vert");
+
+		vertShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto tescShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/Lighting/ShadowMapStrands.tesc");
+
+		auto tescShader = CreateResource<Shader>("SHADOW_MAP_STRANDS_TESC");
+		tescShader->Set(ShaderType::TessellationControl, tescShaderCode);
+
+		auto teseShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/Lighting/ShadowMapStrands.tese");
+
+		auto teseShader = CreateResource<Shader>("SHADOW_MAP_STRANDS_TESE");
+		teseShader->Set(ShaderType::TessellationEvaluation, teseShaderCode);
+
+		auto geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Lighting/DirectionalLightShadowMapStrands.geom");
+
+		auto geomShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Lighting/PointLightShadowMapStrands.geom");
+
+		geomShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Lighting/SpotLightShadowMapStrands.geom");
+
+		geomShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
 
 		auto fragShaderCode =
 			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +

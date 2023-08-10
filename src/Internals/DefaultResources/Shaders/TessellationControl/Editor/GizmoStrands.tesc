@@ -1,12 +1,12 @@
 layout(vertices = 4) out;
 
-in VS_OUT {
+layout (location = 0) in VS_OUT {
     vec3 FragPos;
 	float Thickness;
 	vec3 Normal;
 } vs_in[];
 
-out TCS_OUT {
+layout (location = 0) out TCS_OUT {
 	vec3 FragPos;
 	float Thickness;
 	vec3 Normal;

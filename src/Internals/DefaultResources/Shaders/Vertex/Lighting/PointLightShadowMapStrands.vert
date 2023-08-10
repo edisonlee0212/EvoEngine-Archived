@@ -14,5 +14,5 @@ void main()
 {
 	vs_out.FragPos = vec3(EE_INSTANCES[EE_INSTANCE_INDEX].model * vec4(inPosition, 1.0));
 	vs_out.Thickness = inThickness;
-	vs_out.Normal = vec3(EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * vec4(inNormal, 0.0));
+	vs_out.Normal = vec3(EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * vec4(inNormal, 0.0));
 }

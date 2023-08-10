@@ -1405,6 +1405,27 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED", directionalLightShadowMapInstanced);
 	}
 	{
+		const auto directionalLightShadowMapStrand = std::make_shared<GraphicsPipeline>();
+		directionalLightShadowMapStrand->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS_VERT");
+		directionalLightShadowMapStrand->m_tessellationControlShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESC");
+		directionalLightShadowMapStrand->m_tessellationEvaluationShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESE");
+		directionalLightShadowMapStrand->m_geometryShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		directionalLightShadowMapStrand->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		directionalLightShadowMapStrand->m_geometryType = GeometryType::Mesh;
+		directionalLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		directionalLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		directionalLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		directionalLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = directionalLightShadowMapStrand->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		directionalLightShadowMapStrand->PreparePipeline();
+		RegisterGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS", directionalLightShadowMapStrand);
+	}
+	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
 		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
@@ -1458,6 +1479,27 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_INSTANCED", pointLightShadowMapInstanced);
 	}
 	{
+		const auto pointLightShadowMapStrand = std::make_shared<GraphicsPipeline>();
+		pointLightShadowMapStrand->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_STRANDS_VERT");
+		pointLightShadowMapStrand->m_tessellationControlShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESC");
+		pointLightShadowMapStrand->m_tessellationEvaluationShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESE");
+		pointLightShadowMapStrand->m_geometryShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		pointLightShadowMapStrand->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		pointLightShadowMapStrand->m_geometryType = GeometryType::Mesh;
+		pointLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		pointLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		pointLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		pointLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = pointLightShadowMapStrand->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		pointLightShadowMapStrand->PreparePipeline();
+		RegisterGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_STRANDS", pointLightShadowMapStrand);
+	}
+	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
 		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
 		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
@@ -1509,6 +1551,27 @@ void Graphics::CreateGraphicsPipelines() const
 
 		spotLightShadowMap->PreparePipeline();
 		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_INSTANCED", spotLightShadowMap);
+	}
+	{
+		const auto spotLightShadowMapStrand = std::make_shared<GraphicsPipeline>();
+		spotLightShadowMapStrand->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_VERT");
+		spotLightShadowMapStrand->m_tessellationControlShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESC");
+		spotLightShadowMapStrand->m_tessellationEvaluationShader = Resources::GetResource<Shader>("SHADOW_MAP_STRANDS_TESE");
+		spotLightShadowMapStrand->m_geometryShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
+		spotLightShadowMapStrand->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
+		spotLightShadowMapStrand->m_geometryType = GeometryType::Mesh;
+		spotLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		spotLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+		spotLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
+		spotLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		auto& pushConstantRange = spotLightShadowMapStrand->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		spotLightShadowMapStrand->PreparePipeline();
+		RegisterGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_STRANDS", spotLightShadowMapStrand);
 	}
 	{
 		const auto brdfLut = std::make_shared<GraphicsPipeline>();

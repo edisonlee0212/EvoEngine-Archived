@@ -1,31 +1,18 @@
 layout(lines, invocations = 1) in;
 layout(triangle_strip, max_vertices = 6) out;
 
-in TES_OUT {
+layout (location = 0) in TES_OUT {
 	vec3 FragPos;
 	float Thickness;
 	vec3 Normal;
 	vec3 Tangent;
 } tes_in[];
-
-//out GS_OUT {
-//	vec3 FragPos;
-//	vec3 Normal;
-//	vec3 Tangent;
-//	vec2 TexCoords;
-//} gs_out;
-
 const float PI2 = 6.28318531;
-
-uniform int index;
-
-uniform mat4 model;
-
 void main(){
-
-	mat4 lightSpaceMatrix = EE_SPOT_LIGHTS[index].lightSpaceMatrix;
+	mat4 model = EE_INSTANCES[EE_INSTANCE_INDEX].model;
+	mat4 lightSpaceMatrix = EE_SPOT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix;
 	mat4 inverseModel = inverse(model);
-	for(int i = 0; i < gl_VerticesIn - 1; ++i)
+	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
 		//Reading Data
 		vec3 worldPosS = tes_in[i].FragPos;
