@@ -5,6 +5,17 @@
 #include "GraphicsResources.hpp"
 namespace EvoEngine
 {
+	struct SkinnedVertexAttributes
+	{
+		bool m_normal = false;
+		bool m_tangent = false;
+		bool m_texCoord = false;
+		bool m_color = false;
+
+		void Serialize(YAML::Emitter& out) const;
+		void Deserialize(const YAML::Node& in);
+	};
+
 	class BoneMatrices
 	{
 		size_t m_version = 0;
@@ -20,28 +31,25 @@ namespace EvoEngine
 	};
 	class SkinnedMesh : public IAsset, public IGeometry
 	{
-		std::unique_ptr<Buffer> m_verticesBuffer = {};
+		std::vector<glm::uvec3> m_geometryStorageTriangles;
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
-		
-		size_t m_offset = 0;
-
-		unsigned m_mask = 0;
 		Bound m_bound;
 		friend class SkinnedMeshRenderer;
 		friend class Particles;
 		friend class Graphics;
 		friend class RenderLayer;
-
+		SkinnedVertexAttributes m_skinnedVertexAttributes = {};
 		std::vector<SkinnedVertex> m_skinnedVertices;
 		std::vector<glm::uvec3> m_triangles;
 		friend struct SkinnedMeshBonesBlock;
-
+		std::vector<uint32_t> m_skinnedMeshletIndices;
 		//Don't serialize.
 		std::vector<std::shared_ptr<Bone>> m_bones;
 		friend class Prefab;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
+		[[nodiscard]] const std::vector<uint32_t>& PeekSkinnedMeshletIndices() const;
 		void Bind(VkCommandBuffer vkCommandBuffer) const override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount,
 			bool enableMetrics) const override;
@@ -53,8 +61,8 @@ namespace EvoEngine
 		[[nodiscard]] glm::vec3 GetCenter() const;
 		[[nodiscard]] Bound GetBound() const;
 		void UploadData();
-		void SetVertices(const unsigned& mask, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices);
-		void SetVertices(const unsigned& mask, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles);
+		void SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices);
+		void SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles);
 		[[nodiscard]] size_t GetSkinnedVerticesAmount() const;
 		[[nodiscard]] size_t GetTriangleAmount() const;
 		void RecalculateNormal();

@@ -9,7 +9,6 @@ namespace EvoEngine
 {
 	struct VertexAttributes
 	{
-		bool m_position = true;
 		bool m_normal = false;
 		bool m_tangent = false;
 		bool m_texCoord = false;
@@ -55,7 +54,7 @@ namespace EvoEngine
 
 		VertexAttributes m_vertexAttributes = {};
 
-		std::vector<glm::uvec3> m_meshStorageTriangles;
+		std::vector<glm::uvec3> m_geometryStorageTriangles;
 		std::unique_ptr<Buffer> m_trianglesBuffer = {};
 
 		std::vector<uint32_t> m_meshletIndices;

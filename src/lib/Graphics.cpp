@@ -10,7 +10,7 @@
 #include "vk_mem_alloc.h"
 #include "EditorLayer.hpp"
 #include "Gizmos.hpp"
-#include "MeshStorage.hpp"
+#include "GeometryStorage.hpp"
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
@@ -1748,7 +1748,7 @@ void Graphics::Initialize()
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
 
-	MeshStorage::Initialize();
+	GeometryStorage::Initialize();
 	TextureStorage::Initialize();
 }
 
@@ -1792,7 +1792,7 @@ void Graphics::PreUpdate()
 	graphics.m_triangles = 0;
 	graphics.m_strandsSegments = 0;
 	graphics.m_drawCall = 0;
-	MeshStorage::PreUpdate();
+	GeometryStorage::PreUpdate();
 	TextureStorage::PreUpdate();
 	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 		if (const auto scene = Application::GetActiveScene()) {

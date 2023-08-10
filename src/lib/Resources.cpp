@@ -5,7 +5,7 @@
 #include "Utilities.hpp"
 #include "ProjectManager.hpp"
 #include "EditorLayer.hpp"
-#include "MeshStorage.hpp"
+#include "GeometryStorage.hpp"
 #include "Shader.hpp"
 using namespace EvoEngine;
 
@@ -472,7 +472,7 @@ void Resources::InitializeEnvironmentalMap()
 {
 	auto& resources = GetInstance();
 	resources.LoadPrimitives();
-	MeshStorage::GetInstance().UploadData();
+	GeometryStorage::GetInstance().UploadData();
 	const auto defaultEnvironmentalMapTexture = CreateResource<Texture2D>("DEFAULT_ENVIRONMENTAL_MAP_TEXTURE");
 	defaultEnvironmentalMapTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
 	

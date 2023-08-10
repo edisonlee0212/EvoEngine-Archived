@@ -234,7 +234,7 @@ void PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
     ImGui::DragScalarN("Offset", ImGuiDataType_Double, &m_offset.x, 3);
     ImGui::Text(("Original amount: " + std::to_string(m_points.size())).c_str());
     ImGui::DragFloat("Point size", &m_pointSize, 0.01f, 0.01f, 100.0f);
-    ImGui::DragFloat("Compress factor", &m_compressFactor, 0.001f, 0.0001f, 10.0f)
+    ImGui::DragFloat("Compress factor", &m_compressFactor, 0.001f, 0.0001f, 10.0f);
 
     if (ImGui::Button("Apply compressed"))
     {

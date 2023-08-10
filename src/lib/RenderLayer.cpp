@@ -10,7 +10,7 @@
 #include "GraphicsPipeline.hpp"
 #include "PostProcessingStack.hpp"
 #include "Jobs.hpp"
-#include "MeshStorage.hpp"
+#include "GeometryStorage.hpp"
 #include "PostProcessingStack.hpp"
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
@@ -153,9 +153,9 @@ void RenderLayer::PreUpdate()
 	bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
 
-	bufferInfo.buffer = MeshStorage::GetVertexBuffer()->GetVkBuffer();
+	bufferInfo.buffer = GeometryStorage::GetVertexBuffer()->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(10, bufferInfo);
-	bufferInfo.buffer = MeshStorage::GetMeshletBuffer()->GetVkBuffer();
+	bufferInfo.buffer = GeometryStorage::GetMeshletBuffer()->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(11, bufferInfo);
 
 	bufferInfo.buffer = m_renderTaskInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();

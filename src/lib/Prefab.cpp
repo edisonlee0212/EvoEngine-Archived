@@ -575,7 +575,7 @@ std::shared_ptr<Mesh> Prefab::ReadMesh(aiMesh* importerMesh)
 std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
     std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh)
 {
-    unsigned mask = 1;
+    SkinnedVertexAttributes skinnedVertexAttributes{};
     std::vector<SkinnedVertex> vertices;
     std::vector<unsigned> indices;
     if (importerMesh->mNumVertices == 0 || !importerMesh->HasFaces())
@@ -598,7 +598,7 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
             v3.y = importerMesh->mNormals[i].y;
             v3.z = importerMesh->mNormals[i].z;
             vertex.m_normal = v3;
-            mask = mask | static_cast<unsigned>(VertexAttribute::Normal);
+            skinnedVertexAttributes.m_normal = true;
         }
         if (importerMesh->HasTangentsAndBitangents())
         {
@@ -606,7 +606,7 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
             v3.y = importerMesh->mTangents[i].y;
             v3.z = importerMesh->mTangents[i].z;
             vertex.m_tangent = v3;
-            mask = mask | static_cast<unsigned>(VertexAttribute::Tangent);
+            skinnedVertexAttributes.m_tangent = true;
         }
         if (importerMesh->HasVertexColors(0))
         {
@@ -614,7 +614,7 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
             v3.y = importerMesh->mColors[0][i].g;
             v3.z = importerMesh->mColors[0][i].b;
             vertex.m_color = glm::vec4(v3, 1.0f);
-            mask = mask | static_cast<unsigned>(VertexAttribute::Color);
+            skinnedVertexAttributes.m_color = true;
         }
         glm::vec2 v2;
         if (importerMesh->HasTextureCoords(0))
@@ -622,12 +622,12 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
             v2.x = importerMesh->mTextureCoords[0][i].x;
             v2.y = importerMesh->mTextureCoords[0][i].y;
             vertex.m_texCoord = v2;
-            mask = mask | static_cast<unsigned>(VertexAttribute::TexCoord);
+            skinnedVertexAttributes.m_texCoord = true;
         }
         else
         {
             vertex.m_texCoord = glm::vec2(0.0f, 0.0f);
-            mask = mask | static_cast<unsigned>(VertexAttribute::TexCoord);
+            skinnedVertexAttributes.m_texCoord = true;
         }
         vertices[i] = vertex;
     }
@@ -723,7 +723,7 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
         vertices[i].m_weight2 = weights;
     }
 #pragma endregion
-    skinnedMesh->SetVertices(mask, vertices, indices);
+    skinnedMesh->SetVertices(skinnedVertexAttributes, vertices, indices);
     return skinnedMesh;
 }
 void Prefab::ApplyBoneIndices(Prefab* node)

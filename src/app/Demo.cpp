@@ -73,7 +73,7 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Planets;
+	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();

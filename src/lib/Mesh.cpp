@@ -4,13 +4,13 @@
 #include "Graphics.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
-#include "MeshStorage.hpp"
+#include "GeometryStorage.hpp"
 using namespace EvoEngine;
 
 void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
 {
 	constexpr VkDeviceSize offsets[] = { 0 };
-	MeshStorage::Bind(vkCommandBuffer);
+	GeometryStorage::BindVertices(vkCommandBuffer);
 	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
@@ -29,11 +29,12 @@ void Mesh::OnCreate()
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+	m_bound = Bound();
 }
 
 Mesh::~Mesh()
 {
-	MeshStorage::Free(m_meshletIndices);
+	GeometryStorage::FreeMesh(m_meshletIndices);
 	m_meshletIndices.clear();
 }
 
@@ -55,13 +56,13 @@ void Mesh::UploadData()
 		EVOENGINE_ERROR("Vertices empty!");
 		return;
 	}
-	if (m_meshStorageTriangles.empty())
+	if (m_geometryStorageTriangles.empty())
 	{
 		EVOENGINE_ERROR("Triangles empty!");
 		return;
 	}
 	m_version++;
-	m_trianglesBuffer->UploadVector(m_meshStorageTriangles);
+	m_trianglesBuffer->UploadVector(m_geometryStorageTriangles);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -84,11 +85,6 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	if (vertices.empty() || triangles.empty())
 	{
 		EVOENGINE_LOG("Vertices or triangles empty!");
-		return;
-	}
-	if (!vertexAttributes.m_position)
-	{
-		EVOENGINE_ERROR("No Position Data!");
 		return;
 	}
 	m_vertices = vertices;
@@ -121,20 +117,20 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes.m_tangent = true;
 
 	
-	MeshStorage::Free(m_meshletIndices);
+	GeometryStorage::FreeMesh(m_meshletIndices);
 	m_meshletIndices.clear();
-	MeshStorage::Allocate(m_vertices, m_triangles, m_meshletIndices);
+	GeometryStorage::AllocateMesh(m_vertices, m_triangles, m_meshletIndices);
 
-	m_meshStorageTriangles.resize(m_triangles.size());
+	m_geometryStorageTriangles.resize(m_triangles.size());
 	size_t currentTriangleIndex = 0;
 	for(const auto& meshletIndex : m_meshletIndices)
 	{
-		auto& meshlet = MeshStorage::PeekMeshlet(meshletIndex);
+		auto& meshlet = GeometryStorage::PeekMeshlet(meshletIndex);
 		for(size_t i = 0; i < meshlet.m_triangleSize; i++)
 		{
-			m_meshStorageTriangles[currentTriangleIndex].x = meshlet.m_vertexIndices[meshlet.m_triangles[i].x];
-			m_meshStorageTriangles[currentTriangleIndex].y = meshlet.m_vertexIndices[meshlet.m_triangles[i].y];
-			m_meshStorageTriangles[currentTriangleIndex].z = meshlet.m_vertexIndices[meshlet.m_triangles[i].z];
+			m_geometryStorageTriangles[currentTriangleIndex].x = meshlet.m_vertexIndices[meshlet.m_triangles[i].x];
+			m_geometryStorageTriangles[currentTriangleIndex].y = meshlet.m_vertexIndices[meshlet.m_triangles[i].y];
+			m_geometryStorageTriangles[currentTriangleIndex].z = meshlet.m_vertexIndices[meshlet.m_triangles[i].z];
 			currentTriangleIndex++;
 		}
 	}
@@ -243,8 +239,6 @@ Bound Mesh::GetBound() const
 
 void Mesh::Serialize(YAML::Emitter& out)
 {
-	out << YAML::Key << "m_version" << YAML::Value << m_version;
-
 	out << YAML::Key << "m_vertexAttributes" << YAML::BeginMap;
 	m_vertexAttributes.Serialize(out);
 	out << YAML::EndMap;
@@ -290,7 +284,6 @@ void Mesh::Deserialize(const YAML::Node& in)
 }
 void VertexAttributes::Serialize(YAML::Emitter& out) const
 {
-	out << YAML::Key << "m_position" << YAML::Value << m_position;
 	out << YAML::Key << "m_normal" << YAML::Value << m_normal;
 	out << YAML::Key << "m_tangent" << YAML::Value << m_tangent;
 	out << YAML::Key << "m_texCoord" << YAML::Value << m_texCoord;
@@ -299,7 +292,6 @@ void VertexAttributes::Serialize(YAML::Emitter& out) const
 
 void VertexAttributes::Deserialize(const YAML::Node& in)
 {
-	if (in["m_position"]) m_position = in["m_position"].as<bool>();
 	if (in["m_normal"]) m_normal = in["m_normal"].as<bool>();
 	if (in["m_tangent"]) m_tangent = in["m_tangent"].as<bool>();
 	if (in["m_texCoord"]) m_texCoord = in["m_texCoord"].as<bool>();
