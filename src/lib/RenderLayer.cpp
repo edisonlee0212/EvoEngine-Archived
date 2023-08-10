@@ -12,6 +12,7 @@
 #include "Jobs.hpp"
 #include "GeometryStorage.hpp"
 #include "PostProcessingStack.hpp"
+#include "StrandsRenderer.hpp"
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
 
@@ -25,12 +26,19 @@ void RenderInstanceCollection::Dispatch(const std::function<void(const RenderIns
 
 void SkinnedRenderInstanceCollection::Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const
 {
-
 	for (const auto& renderCommand : m_renderCommands)
 	{
 		commandAction(renderCommand);
 	}
+}
 
+void StrandsRenderInstanceCollection::Dispatch(
+	const std::function<void(const StrandsRenderInstance&)>& commandAction) const
+{
+	for (const auto& renderCommand : m_renderCommands)
+	{
+		commandAction(renderCommand);
+	}
 }
 
 void InstancedRenderInstanceCollection::Dispatch(
@@ -177,9 +185,11 @@ void RenderLayer::PreUpdate()
 	m_deferredRenderInstances.m_renderCommands.clear();
 	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
 	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_deferredStrandsRenderInstances.m_renderCommands.clear();
 	m_transparentRenderInstances.m_renderCommands.clear();
 	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
 	m_transparentInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentStrandsRenderInstances.m_renderCommands.clear();
 
 	m_cameraIndices.clear();
 	m_materialIndices.clear();
@@ -1208,9 +1218,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			}
 		}
 	}
-	
-	const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<Particles>();
-	if (owners)
+
+	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<Particles>())
 	{
 		for (auto owner : *owners)
 		{
@@ -1271,19 +1280,17 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			}
 		}
 	}
-	/*
-	owners =
-		scene->UnsafeGetPrivateComponentOwnersList<StrandsRenderer>();
-	if (owners)
+
+	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<StrandsRenderer>())
 	{
 		for (auto owner : *owners)
 		{
 			if (!scene->IsEntityEnabled(owner))
 				continue;
-			auto mmc = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
-			auto material = mmc->m_material.Get<Material>();
-			auto strands = mmc->m_strands.Get<Strands>();
-			if (!mmc->IsEnabled() || material == nullptr || strands == nullptr)
+			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
+			auto material = strandsRenderer->m_material.Get<Material>();
+			auto strands = strandsRenderer->m_strands.Get<Strands>();
+			if (!strandsRenderer->IsEnabled() || material == nullptr || strands == nullptr)
 				continue;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
@@ -1301,52 +1308,36 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 				(glm::max)(maxBound.y, center.y + size.y),
 				(glm::max)(maxBound.z, center.z + size.z));
 
-			auto meshCenter = gt.m_value * glm::vec4(center, 1.0);
-			for (const auto& pair : cameraPairs)
+			MaterialInfoBlock materialInfoBlock;
+			material->UpdateMaterialInfoBlock(materialInfoBlock);
+			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+			InstanceInfoBlock instanceInfoBlock;
+			instanceInfoBlock.m_model = gt;
+			instanceInfoBlock.m_materialIndex = materialIndex;
+			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+
+			auto entityHandle = scene->GetEntityHandle(owner);
+			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+			StrandsRenderInstance renderInstance;
+			renderInstance.m_commandType = RenderCommandType::FromRenderer;
+			renderInstance.m_owner = owner;
+			renderInstance.m_strands = strands;
+			renderInstance.m_castShadow = strandsRenderer->m_castShadow;
+
+			renderInstance.m_instanceIndex = instanceIndex;
+			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+
+			if (material->m_drawSettings.m_blending)
 			{
-				auto& deferredRenderInstances = m_deferredRenderInstances[pair.first->GetHandle()];
-				auto& deferredInstancedRenderInstances = m_deferredInstancedRenderInstances[pair.first->GetHandle()];
-				auto& forwardRenderInstances = m_forwardRenderInstances[pair.first->GetHandle()];
-				auto& forwardInstancedRenderInstances = m_forwardInstancedRenderInstances[pair.first->GetHandle()];
-				auto& transparentRenderInstances = m_transparentRenderInstances[pair.first->GetHandle()];
-				auto& instancedTransparentRenderInstances = m_instancedTransparentRenderInstances[pair.first->GetHandle()];
-
-				deferredRenderInstances.m_camera = pair.first;
-				deferredInstancedRenderInstances.m_camera = pair.first;
-				forwardRenderInstances.m_camera = pair.first;
-				forwardInstancedRenderInstances.m_camera = pair.first;
-				transparentRenderInstances.m_camera = pair.first;
-				instancedTransparentRenderInstances.m_camera = pair.first;
-
-				RenderInstance renderInstance;
-				renderInstance.m_owner = owner;
-				renderInstance.m_globalTransform = gt;
-				renderInstance.m_mesh = strands;
-				renderInstance.m_castShadow = mmc->m_castShadow;
-				renderInstance.m_receiveShadow = mmc->m_receiveShadow;
-				renderInstance.m_geometryType = RenderGeometryType::Strands;
-				if (material->m_drawSettings.m_blending)
-				{
-					auto& group = transparentRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[strands->GetHandle()].push_back(renderInstance);
-				}
-				else if (mmc->m_forwardRendering)
-				{
-					auto& group = forwardRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[strands->GetHandle()].push_back(renderInstance);
-				}
-				else
-				{
-					auto& group = deferredRenderInstances.m_renderCommandsGroups[material->GetHandle()];
-					group.m_material = material;
-					group.m_renderCommands[strands->GetHandle()].push_back(renderInstance);
-				}
+				m_transparentStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+			}
+			else
+			{
+				m_deferredStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 		}
 	}
-	*/
 }
 
 
@@ -1865,6 +1856,41 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					const auto mesh = renderCommand.m_mesh;
 					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, deferredInstancedPrepassPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+				}
+			);
+
+			vkCmdEndRendering(commandBuffer);
+		}
+		{
+			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.pDepthAttachment = &depthAttachment;
+			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
+			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+			renderInfo.pColorAttachments = colorAttachmentInfos.data();
+
+			const auto& deferredStrandsPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS");
+			deferredStrandsPrepassPipeline->m_states.m_viewPort = viewport;
+			deferredStrandsPrepassPipeline->m_states.m_scissor = scissor;
+			deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates)
+			{
+				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				i.blendEnable = VK_FALSE;
+			}
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredStrandsPrepassPipeline->Bind(commandBuffer);
+			deferredStrandsPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			m_deferredStrandsRenderInstances.Dispatch([&](const StrandsRenderInstance& renderCommand)
+				{
+					RenderInstancePushConstant pushConstant;
+					pushConstant.m_cameraIndex = cameraIndex;
+					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredStrandsPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+					const auto strands = renderCommand.m_strands;
+					strands->Bind(commandBuffer);
+					strands->DrawIndexed(commandBuffer, deferredStrandsPrepassPipeline->m_states, 1, true);
 				}
 			);
 

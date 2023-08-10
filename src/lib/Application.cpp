@@ -412,7 +412,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvironmentalmap" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
-	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands" });
+	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands", ".hair"});
 	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });

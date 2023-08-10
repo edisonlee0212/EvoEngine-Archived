@@ -1288,6 +1288,28 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS", standardInstancedDeferredPrepass);
 	}
 	{
+		const auto standardStrandsDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		standardStrandsDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_STRANDS_VERT");
+		standardStrandsDeferredPrepass->m_tessellationControlShader = Resources::GetResource<Shader>("STANDARD_STRANDS_TESC");
+		standardStrandsDeferredPrepass->m_tessellationEvaluationShader = Resources::GetResource<Shader>("STANDARD_STRANDS_TESE");
+		standardStrandsDeferredPrepass->m_geometryShader = Resources::GetResource<Shader>("STANDARD_STRANDS_GEOM");
+		standardStrandsDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
+		standardStrandsDeferredPrepass->m_geometryType = GeometryType::Strands;
+		standardStrandsDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+		standardStrandsDeferredPrepass->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
+
+		standardStrandsDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
+		standardStrandsDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		standardStrandsDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
+
+		auto& pushConstantRange = standardStrandsDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+		standardStrandsDeferredPrepass->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS", standardStrandsDeferredPrepass);
+	}
+	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 		standardDeferredLighting->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
 		standardDeferredLighting->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");

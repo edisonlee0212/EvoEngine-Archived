@@ -28,6 +28,12 @@ void GraphicsPipeline::PreparePipeline()
 	m_pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutInfo);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages {};
+
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssembly.primitiveRestartEnable = VK_FALSE;
+
 	if (m_vertexShader && m_vertexShader->m_shaderType == ShaderType::Vertex && m_vertexShader->Compiled())
 	{
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -45,6 +51,7 @@ void GraphicsPipeline::PreparePipeline()
 		tessControlShaderStageInfo.module = m_tessellationControlShader->m_shaderModule->GetVkShaderModule();
 		tessControlShaderStageInfo.pName = "main";
 		shaderStages.emplace_back(tessControlShaderStageInfo);
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 	}
 	if (m_tessellationEvaluationShader && m_tessellationEvaluationShader->m_shaderType == ShaderType::TessellationEvaluation && m_tessellationEvaluationShader->Compiled())
 	{
@@ -54,6 +61,7 @@ void GraphicsPipeline::PreparePipeline()
 		tessEvaluationShaderStageInfo.module = m_tessellationEvaluationShader->m_shaderModule->GetVkShaderModule();
 		tessEvaluationShaderStageInfo.pName = "main";
 		shaderStages.emplace_back(tessEvaluationShaderStageInfo);
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 	}
 	if (m_geometryShader && m_geometryShader->m_shaderType == ShaderType::Geometry && m_geometryShader->Compiled())
 	{
@@ -101,16 +109,17 @@ void GraphicsPipeline::PreparePipeline()
 	vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
+	
 
 	VkPipelineViewportStateCreateInfo viewportState{};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	viewportState.viewportCount = 1;
 	viewportState.scissorCount = 1;
 
+	VkPipelineTessellationStateCreateInfo tessInfo{};
+	tessInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	tessInfo.patchControlPoints = m_tessellationPatchControlPoints;
+	
 	VkPipelineRasterizationStateCreateInfo rasterizer{};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
@@ -195,6 +204,7 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.stageCount = shaderStages.size();
+	pipelineInfo.pTessellationState = &tessInfo;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pStages = shaderStages.data();
 	pipelineInfo.pVertexInputState = &vertexInputInfo;

@@ -22,7 +22,7 @@ void main(){
 	mat4 model = EE_INSTANCES[EE_INSTANCE_INDEX].model;
 	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
 	mat4 inverseModel = inverse(model);
-	for(int i = 0; i < gl_VerticesIn - 1; ++i)
+	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
 		//Reading Data
 		vec3 worldPosS = tes_in[i].FragPos;

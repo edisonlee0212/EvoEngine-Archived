@@ -63,7 +63,7 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	m_bound.m_min = minBound;
 #pragma endregion
 
-	if (!m_strandPointAttributes.m_normal) 
+	if (!m_strandPointAttributes.m_normal)
 		RecalculateNormal();
 
 	m_strandPointAttributes = strandPointAttributes;
@@ -89,7 +89,7 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	}
 
 	UploadData();
-	
+
 	m_version++;
 	m_saved = false;
 }
@@ -153,7 +153,7 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
 	if (path.extension() == ".uestrands") {
 		return IAsset::LoadInternal(path);
 	}
-	else if (path.extension() == ".hair") {
+	if (path.extension() == ".hair") {
 		try {
 			std::string fileName = path.string();
 			std::ifstream input(fileName.c_str(), std::ios::binary);
@@ -245,8 +245,6 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
 	return false;
 }
 
-static const char* SplineModes[]{ "Linear", "Quadratic", "Cubic" };
-
 void Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 	bool changed = false;
 	ImGui::Text(("Point size: " + std::to_string(m_strandPoints.size())).c_str());
@@ -254,7 +252,7 @@ void Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 }
 
 void Strands::Serialize(YAML::Emitter& out) {
-	
+
 	if (!m_segmentRawIndices.empty() && !m_strandPoints.empty()) {
 		out << YAML::Key << "m_segmentRawIndices" << YAML::Value
 			<< YAML::Binary((const unsigned char*)m_segmentRawIndices.data(), m_segmentRawIndices.size() * sizeof(glm::uint));
@@ -415,11 +413,10 @@ void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineState
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
-		graphics.m_triangles += m_segments.size() * instanceCount;
+		graphics.m_strandsSegments += m_segments.size() * instanceCount;
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 3), instanceCount, 0, 0, 0);
-
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instanceCount, 0, 0, 0);
 }
 
 

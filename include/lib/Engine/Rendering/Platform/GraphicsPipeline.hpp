@@ -138,6 +138,8 @@ namespace EvoEngine
 		VkFormat m_depthAttachmentFormat;
 		VkFormat m_stencilAttachmentFormat;
 
+		uint32_t m_tessellationPatchControlPoints = 4;
+
 		std::vector<VkPushConstantRange> m_pushConstantRanges;
 
 

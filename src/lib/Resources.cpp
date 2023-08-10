@@ -53,6 +53,34 @@ void Resources::LoadShaders()
 		standardVert = CreateResource<Shader>("STANDARD_INSTANCED_VERT");
 		standardVert->Set(ShaderType::Vertex, vertShaderCode);
 
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Standard/StandardStrands.vert");
+
+		standardVert = CreateResource<Shader>("STANDARD_STRANDS_VERT");
+		standardVert->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto tescShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/Standard/StandardStrands.tesc");
+
+		auto standardTesc = CreateResource<Shader>("STANDARD_STRANDS_TESC");
+		standardTesc->Set(ShaderType::TessellationControl, tescShaderCode);
+
+		auto teseShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/Standard/StandardStrands.tese");
+
+		auto standardTese = CreateResource<Shader>("STANDARD_STRANDS_TESE");
+		standardTese->Set(ShaderType::TessellationEvaluation, teseShaderCode);
+
+		auto geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Standard/StandardStrands.geom");
+
+		auto standardGeom = CreateResource<Shader>("STANDARD_STRANDS_GEOM");
+		standardGeom->Set(ShaderType::Geometry, geomShaderCode);
+
 		auto meshShaderCode =
 			std::string("#version 450\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/Standard.mesh");

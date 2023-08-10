@@ -6,6 +6,8 @@
 #include "IGeometry.hpp"
 #include "Lights.hpp"
 #include "SkinnedMeshRenderer.hpp"
+#include "Strands.hpp"
+
 namespace EvoEngine
 {
 #pragma region Enums Structs
@@ -49,6 +51,15 @@ namespace EvoEngine
 		std::shared_ptr<ParticleInfoList> m_particleInfos;
 	};
 
+	struct StrandsRenderInstance
+	{
+		uint32_t m_instanceIndex = 0;
+		RenderCommandType m_commandType = RenderCommandType::None;
+		Entity m_owner = Entity();
+		std::shared_ptr<Strands> m_strands;
+		bool m_castShadow = true;
+	};
+
 	struct RenderInstanceCollection
 	{
 		std::vector<RenderInstance> m_renderCommands;
@@ -59,7 +70,11 @@ namespace EvoEngine
 		std::vector<SkinnedRenderInstance> m_renderCommands;
 		void Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
 	};
-
+	struct StrandsRenderInstanceCollection
+	{
+		std::vector<StrandsRenderInstance> m_renderCommands;
+		void Dispatch(const std::function<void(const StrandsRenderInstance&)>& commandAction) const;
+	};
 	struct InstancedRenderInstanceCollection
 	{
 		std::vector<InstancedRenderInstance> m_renderCommands;
@@ -155,9 +170,12 @@ namespace EvoEngine
 		RenderInstanceCollection m_deferredRenderInstances;
 		SkinnedRenderInstanceCollection m_deferredSkinnedRenderInstances;
 		InstancedRenderInstanceCollection m_deferredInstancedRenderInstances;
+		StrandsRenderInstanceCollection m_deferredStrandsRenderInstances;
+
 		RenderInstanceCollection m_transparentRenderInstances;
 		SkinnedRenderInstanceCollection m_transparentSkinnedRenderInstances;
 		InstancedRenderInstanceCollection m_transparentInstancedRenderInstances;
+		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
