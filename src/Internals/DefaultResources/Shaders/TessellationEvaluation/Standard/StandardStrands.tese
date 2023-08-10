@@ -1,13 +1,13 @@
 layout(isolines, equal_spacing) in;
 
-in TCS_OUT {
+layout (location = 0) in TCS_OUT {
 	vec3 FragPos;
 	float Thickness;
 	vec3 Normal;
 	float TexCoord;
 } tcs_in[];
 
-out TES_OUT {
+layout (location = 0) out TES_OUT {
 	vec3 FragPos;
 	float Thickness;
 	vec3 Normal;

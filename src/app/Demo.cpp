@@ -117,7 +117,7 @@ int main() {
 				const auto dirLightEntity = scene->CreateEntity("Directional Light");
 				const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
 				dirLight->m_diffuseBrightness = 2.5f;
-				dirLight->m_lightSize = 0.1f;
+				dirLight->m_lightSize = 0.2f;
 				const auto pointLightRightEntity = scene->CreateEntity("Left Point Light");
 				const auto pointLightRightRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(pointLightRightEntity).lock();
 				const auto pointLightRightMaterial = ProjectManager::CreateTemporaryAsset<Material>();
@@ -127,13 +127,13 @@ int main() {
 				pointLightRightRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
 				const auto pointLightRight = scene->GetOrSetPrivateComponent<PointLight>(pointLightRightEntity).lock();
 				pointLightRight->m_diffuseBrightness = 4;
-				pointLightRight->m_lightSize = 0.01f;
-				pointLightRight->m_linear = 0.02f;
-				pointLightRight->m_quadratic = 0.0001f;
+				pointLightRight->m_lightSize = 0.001f;
+				pointLightRight->m_linear = 0.5f;
+				pointLightRight->m_quadratic = 0.1f;
 				pointLightRight->m_diffuse = glm::vec3(1.0, 0.8, 0.0);
 
 				Transform dirLightTransform;
-				dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, 0, 0.0f)));
+				dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(105.0f, 0, 0.0f)));
 				scene->SetDataComponent(dirLightEntity, dirLightTransform);
 				Transform pointLightRightTransform;
 				pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, -5));
@@ -142,13 +142,12 @@ int main() {
 
 				Application::RegisterUpdateFunction([=]() {
 
+					if (!Application::IsPlaying()) return;
 					const auto currentScene = Application::GetActiveScene();
 					const float currentTime = Time::CurrentTime();
 					const float cosTime = glm::cos(currentTime / 5.0f);
 					Transform dirLightTransform;
-					dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(10.0f, currentTime, 0.0f)));
-					currentScene->SetDataComponent(dirLightEntity, dirLightTransform);
-					dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(100.0f, currentTime * 10, 0.0f)));
+					dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(105.0f, currentTime * 20, 0.0f)));
 					currentScene->SetDataComponent(dirLightEntity, dirLightTransform);
 
 					Transform pointLightRightTransform;
