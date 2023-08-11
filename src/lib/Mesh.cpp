@@ -7,10 +7,15 @@
 #include "GeometryStorage.hpp"
 using namespace EvoEngine;
 
-void Mesh::Bind(const VkCommandBuffer vkCommandBuffer) const
+void Mesh::Bind(const VkCommandBuffer vkCommandBuffer)
 {
 	GeometryStorage::BindVertices(vkCommandBuffer);
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if (m_uploadPending[currentFrameIndex]) {
+		m_trianglesBuffer[currentFrameIndex]->UploadVector(m_geometryStorageTriangles);
+		m_uploadPending[currentFrameIndex] = false;
+	}
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
 const std::vector<uint32_t>& Mesh::PeekMeshletIndices() const
@@ -27,24 +32,32 @@ void Mesh::OnCreate()
 	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	m_uploadPending.resize(maxFramesInFlight);
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		m_trianglesBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
+		m_uploadPending[i] = false;
+	}
 	m_bound = Bound();
 }
 
 Mesh::~Mesh()
 {
 	GeometryStorage::FreeMesh(m_meshletIndices);
+	m_trianglesBuffer.clear();
 	m_meshletIndices.clear();
 }
 
 void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount, const bool enableMetrics) const
 {
+	if (instancesCount == 0) return;
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
 		graphics.m_triangles += m_triangles.size() * instancesCount;
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
+	
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
 }
 
@@ -60,8 +73,12 @@ void Mesh::UploadData()
 		EVOENGINE_ERROR("Triangles empty!");
 		return;
 	}
+	if(Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
+	{
+		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
+	}
 	m_version++;
-	m_trianglesBuffer->UploadVector(m_geometryStorageTriangles);
+	for (auto& i : m_uploadPending) i = true;
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -313,23 +330,29 @@ void ParticleInfoList::Deserialize(const YAML::Node& in)
 		const auto& vertexData = in["m_particleInfos"].as<YAML::Binary>();
 		m_particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
 		std::memcpy(m_particleInfos.data(), vertexData.data(), vertexData.size());
-		m_needUpdate = true;
+		SetPendingUpdate();
 	}
 }
 
 void ParticleInfoList::UploadData(const bool force)
 {
-	if(force || m_needUpdate)
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if(force || m_pendingUpdate[currentFrameIndex])
 	{
-		m_buffer->UploadVector(m_particleInfos);
+		m_buffer[currentFrameIndex]->UploadVector(m_particleInfos);
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.offset = 0;
 		bufferInfo.range = VK_WHOLE_SIZE;
-		bufferInfo.buffer = m_buffer->GetVkBuffer();
-		m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
-		m_needUpdate = false;
+		bufferInfo.buffer = m_buffer[currentFrameIndex]->GetVkBuffer();
+		m_descriptorSet[currentFrameIndex]->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
+		m_pendingUpdate[currentFrameIndex] = false;
 		m_version++;
 	}
+}
+
+void ParticleInfoList::SetPendingUpdate()
+{
+	for (auto& i : m_pendingUpdate) i = true;
 }
 
 ParticleInfoList::ParticleInfoList()
@@ -341,8 +364,13 @@ ParticleInfoList::ParticleInfoList()
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
 	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_buffer = std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo);
-	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	m_pendingUpdate.resize(maxFramesInFlight);
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		m_pendingUpdate[i] = false;
+		m_buffer.emplace_back(std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		m_descriptorSet.emplace_back(std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT")));
+	}
 }
 
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
@@ -361,7 +389,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 			m_particleInfos[i].m_instanceMatrix.m_value = model;
 			m_particleInfos[i].m_instanceColor = color;
 		});
-	m_needUpdate = true;
+	SetPendingUpdate();
 }
 
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
@@ -381,7 +409,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 			m_particleInfos[i].m_instanceColor = colors[i];
 		}
 	);
-	m_needUpdate = true;
+	SetPendingUpdate();
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
@@ -403,7 +431,7 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 			m_particleInfos[i].m_instanceColor = color;
 		}
 	);
-	m_needUpdate = true;
+	SetPendingUpdate();
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
@@ -425,10 +453,11 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 			m_particleInfos[i].m_instanceColor = colors[i];
 		}
 	);
-	m_needUpdate = true;
+	SetPendingUpdate();
 }
 
 const std::shared_ptr<DescriptorSet>& ParticleInfoList::GetDescriptorSet() const
 {
-	return m_descriptorSet;
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	return m_descriptorSet[currentFrameIndex];
 }

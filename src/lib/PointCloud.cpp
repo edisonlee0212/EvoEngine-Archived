@@ -289,7 +289,7 @@ void PointCloud::ApplyCompressed()
         particleInfoList->m_particleInfos[i].m_instanceMatrix.m_value = glm::translate((glm::vec3)(compressed[i] + m_offset)) * glm::scale(glm::vec3(m_pointSize));
         particleInfoList->m_particleInfos[i].m_instanceColor = m_colors[i];
     }
-    particleInfoList->m_needUpdate = true;
+    particleInfoList->SetPendingUpdate();
 }
 void PointCloud::Compress(std::vector<glm::dvec3> &points)
 {
@@ -455,7 +455,7 @@ void PointCloud::ApplyOriginal()
         particleInfoList->m_particleInfos[i].m_instanceMatrix.m_value = glm::translate((glm::vec3)(m_points[i] + m_offset)) * glm::scale(glm::vec3(m_pointSize));
         particleInfoList->m_particleInfos[i].m_instanceColor = m_colors[i];
     }
-    particleInfoList->m_needUpdate = true;
+    particleInfoList->SetPendingUpdate();
 }
 
 void PointCloud::Save(const std::filesystem::path &path)

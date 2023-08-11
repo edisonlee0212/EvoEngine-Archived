@@ -26,6 +26,14 @@ namespace EvoEngine {
 		OnDestroy
 	};
 
+	enum class ApplicationExecutionStatus
+	{
+		None,
+		PreUpdate,
+		Update,
+		LateUpdate
+	};
+
 	class Application final : public ISingleton<Application>
 	{
 		friend class ProjectManager;
@@ -47,7 +55,10 @@ namespace EvoEngine {
 		std::vector<std::function<void(const std::shared_ptr<Scene>& newScene)>> m_postAttachSceneFunctions;
 
 		static void InitializeRegistry();
+
+		ApplicationExecutionStatus m_applicationExecutionStatus = ApplicationExecutionStatus::None;
 	public:
+		[[nodiscard]] static ApplicationExecutionStatus GetApplicationExecutionStatus();
 		static void RegisterPreUpdateFunction(const std::function<void()>& func);
 		static void RegisterUpdateFunction(const std::function<void()>& func);
 		static void RegisterLateUpdateFunction(const std::function<void()>& func);

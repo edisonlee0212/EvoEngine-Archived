@@ -36,7 +36,7 @@ using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
 {
-	const auto& application = GetInstance();
+	auto& application = GetInstance();
 	const auto now = std::chrono::system_clock::now();
 	const std::chrono::duration<double> deltaTime = now - Time::m_lastUpdateTime;
 	Time::m_deltaTime = deltaTime.count();
@@ -47,6 +47,8 @@ void Application::PreUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+
+	application.m_applicationExecutionStatus = ApplicationExecutionStatus::PreUpdate;
 	Input::PreUpdate();
 	Graphics::PreUpdate();
 
@@ -96,7 +98,7 @@ void Application::PreUpdateInternal()
 
 void Application::UpdateInternal()
 {
-	const auto& application = GetInstance();
+	auto& application = GetInstance();
 	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
 	{
 		EVOENGINE_ERROR("Application uninitialized!")
@@ -104,7 +106,7 @@ void Application::UpdateInternal()
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
 	if (application.m_applicationStatus == ApplicationStatus::NoProject) return;
-
+	application.m_applicationExecutionStatus = ApplicationExecutionStatus::Update;
 	for (const auto& i : application.m_externalUpdateFunctions)
 		i();
 
@@ -127,9 +129,10 @@ void Application::LateUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
+	
 	if (application.m_applicationStatus == ApplicationStatus::NoProject)
 	{
-		const auto editorLayer = GetLayer<EditorLayer>();
+		
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -194,6 +197,11 @@ void Application::LateUpdateInternal()
 
 	}
 	else {
+		if(const auto editorLayer = GetLayer<EditorLayer>())
+		{
+			for (const auto& layer : application.m_layers) layer->OnInspect(editorLayer);
+		}
+		application.m_applicationExecutionStatus = ApplicationExecutionStatus::LateUpdate;
 		for (const auto& i : application.m_externalLateUpdateFunctions)
 			i();
 
@@ -420,6 +428,11 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
 	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".eveskinnedmesh" });
 	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysicsmaterial" });
+}
+
+ApplicationExecutionStatus Application::GetApplicationExecutionStatus()
+{
+	return GetInstance().m_applicationExecutionStatus;
 }
 
 void Application::RegisterPreUpdateFunction(const std::function<void()>& func)

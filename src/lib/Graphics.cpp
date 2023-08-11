@@ -55,6 +55,9 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
 	{
 		msg += "-[Error]: ";
+#ifndef NDEBUG
+		throw std::runtime_error("Graphics Error!");
+#endif
 	}
 	break;
 	}
@@ -736,7 +739,7 @@ void Graphics::CreateLogicalDevice()
 	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	deviceFeatures2.pNext = &descriptorIndexingFeatures;
 	vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &deviceFeatures2);
-	
+
 	VkDeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 #pragma region Queues requirement
@@ -1931,7 +1934,8 @@ void Graphics::PreUpdate()
 		{
 			graphics.SwapChainSwapImage();
 		}
-	}else
+	}
+	else
 	{
 		if (Application::GetLayer<RenderLayer>())
 		{
@@ -1950,7 +1954,7 @@ void Graphics::PreUpdate()
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
 			{
 				mainCamera->SetRequireRendering(true);
-				if(windowLayer) mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
+				if (windowLayer) mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
 			}
 		}
 	}
@@ -1964,7 +1968,7 @@ void Graphics::LateUpdate()
 		if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 			if (const auto scene = Application::GetActiveScene()) {
 				if (const auto mainCamera = scene->m_mainCamera.Get<Camera>();
-					 mainCamera->IsEnabled() && mainCamera->m_rendered)
+					mainCamera->IsEnabled() && mainCamera->m_rendered)
 				{
 					const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];
 					AppendCommands([&](VkCommandBuffer commandBuffer)

@@ -45,24 +45,27 @@ namespace EvoEngine
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
+		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
-		std::queue<uint32_t> m_vertexDataChunkPool = {};
+		std::queue<uint32_t> m_vertexDataVertexPool = {};
 		std::queue<uint32_t> m_meshletPool = {};
 		std::vector<std::unique_ptr<Buffer>> m_vertexBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_meshletBuffer = {};
 		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
+		uint32_t m_skinnedVerticesCount = 0;
 		std::vector<SkinnedMeshlet> m_skinnedMeshlets = {};
-		std::queue<uint32_t> m_skinnedVertexDataChunkPool = {};
+		std::queue<uint32_t> m_skinnedVertexDataPool = {};
 		std::queue<uint32_t> m_skinnedMeshletPool = {};
 		std::vector<std::unique_ptr<Buffer>> m_skinnedVertexBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_skinnedMeshletBuffer = {};
 		std::vector<bool> m_requireSkinnedMeshDataDeviceUpdate = {};
 
 		std::vector<StrandPointDataChunk> m_strandPointDataChunks = {};
+		uint32_t m_strandPointsCount = 0;
 		std::vector<StrandMeshlet> m_strandMeshlets = {};
-		std::queue<uint32_t> m_strandPointDataChunkPool = {};
+		std::queue<uint32_t> m_strandPointDataPool = {};
 		std::queue<uint32_t> m_strandMeshletPool = {};
 		std::vector<std::unique_ptr<Buffer>> m_strandPointBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_strandMeshletBuffer = {};

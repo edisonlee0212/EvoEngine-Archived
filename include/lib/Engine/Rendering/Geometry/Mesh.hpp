@@ -27,13 +27,15 @@ namespace EvoEngine
 
 	class ParticleInfoList : public IAsset
 	{
-		std::shared_ptr<Buffer> m_buffer;
-		std::shared_ptr<DescriptorSet> m_descriptorSet;
+		std::vector<std::shared_ptr<Buffer>> m_buffer;
+		std::vector<std::shared_ptr<DescriptorSet>> m_descriptorSet;
+
+		std::vector<bool> m_pendingUpdate;
 	public:
 		void Serialize(YAML::Emitter& out) override;
 		void Deserialize(const YAML::Node& in) override;
 		void UploadData(bool force = false);
-		bool m_needUpdate = false;
+		void SetPendingUpdate();
 		ParticleInfoList();
 		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth);
 		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth);
@@ -55,8 +57,8 @@ namespace EvoEngine
 		VertexAttributes m_vertexAttributes = {};
 
 		std::vector<glm::uvec3> m_geometryStorageTriangles;
-		std::unique_ptr<Buffer> m_trianglesBuffer = {};
-
+		std::vector<std::unique_ptr<Buffer>> m_trianglesBuffer = {};
+		std::vector<bool> m_uploadPending;
 		std::vector<uint32_t> m_meshletIndices;
 	public:
 		[[nodiscard]] const std::vector<uint32_t>& PeekMeshletIndices() const;
@@ -64,7 +66,7 @@ namespace EvoEngine
 		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const override;
 
-		void Bind(VkCommandBuffer vkCommandBuffer) const override;
+		void Bind(VkCommandBuffer vkCommandBuffer) override;
 
 		void UploadData();
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);

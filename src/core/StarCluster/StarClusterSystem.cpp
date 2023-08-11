@@ -323,7 +323,7 @@ void StarClusterSystem::CopyPosition(const bool &reverse)
             matrices->m_particleInfos[i].m_instanceColor = glm::vec4(displayColor.m_value * displayColor.m_intensity, 1.0f);
         },
         false);
-    matrices->m_needUpdate = true;
+    matrices->SetPendingUpdate();
 }
 
 void StarClusterSystem::OnCreate()

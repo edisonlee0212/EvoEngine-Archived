@@ -295,14 +295,23 @@ void Strands::UploadData()
 			return;
 	}
 
+	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
+	{
+		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
+	}
 	m_version++;
-	m_segmentsBuffer->UploadVector(m_geometryStorageSegments);
+	for (auto& i : m_uploadPending) i = true;
 }
 
-void Strands::Bind(VkCommandBuffer vkCommandBuffer) const
+void Strands::Bind(VkCommandBuffer vkCommandBuffer)
 {
 	GeometryStorage::BindStrandPoints(vkCommandBuffer);
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_segmentsBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if (m_uploadPending[currentFrameIndex]) {
+		m_segmentsBuffer[currentFrameIndex]->UploadVector(m_geometryStorageSegments);
+		m_uploadPending[currentFrameIndex] = false;
+	}
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_segmentsBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
 void Strands::OnCreate()
@@ -314,7 +323,13 @@ void Strands::OnCreate()
 	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_segmentsBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
+
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	m_uploadPending.resize(maxFramesInFlight);
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		m_segmentsBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
+		m_uploadPending[i] = false;
+	}
 	m_bound = Bound();
 }
 Bound Strands::GetBound() const
@@ -330,6 +345,7 @@ size_t Strands::GetSegmentAmount() const
 Strands::~Strands()
 {
 	GeometryStorage::FreeStrands(m_strandMeshletIndices);
+	m_segmentsBuffer.clear();
 	m_strandMeshletIndices.clear();
 }
 
@@ -408,15 +424,16 @@ void Strands::RecalculateNormal()
 }
 
 void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
-	int instanceCount, bool enableMetrics) const
+	int instancesCount, bool enableMetrics) const
 {
+	if (instancesCount == 0) return;
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
-		graphics.m_strandsSegments += m_segments.size() * instanceCount;
+		graphics.m_strandsSegments += m_segments.size() * instancesCount;
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instanceCount, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instancesCount, 0, 0, 0);
 }
 
 

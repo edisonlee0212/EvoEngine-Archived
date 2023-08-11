@@ -1,6 +1,7 @@
 #include "Mesh.hpp"
 #include "SkinnedMesh.hpp"
 
+#include "Application.hpp"
 #include "GeometryStorage.hpp"
 using namespace EvoEngine;
 void SkinnedVertexAttributes::Serialize(YAML::Emitter& out) const
@@ -21,7 +22,8 @@ void SkinnedVertexAttributes::Deserialize(const YAML::Node& in)
 
 const std::shared_ptr<DescriptorSet>& BoneMatrices::GetDescriptorSet() const
 {
-	return m_descriptorSet;
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	return m_descriptorSet[currentFrameIndex];
 }
 
 BoneMatrices::BoneMatrices()
@@ -33,9 +35,11 @@ BoneMatrices::BoneMatrices()
 	boneMatricesCrateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo allocationCreateInfo{};
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_boneMatricesBuffer = std::make_unique<Buffer>(boneMatricesCrateInfo, allocationCreateInfo);
-
-	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("BONE_MATRICES_LAYOUT"));
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		m_boneMatricesBuffer.emplace_back(std::make_unique<Buffer>(boneMatricesCrateInfo, allocationCreateInfo));
+		m_descriptorSet.emplace_back(std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("BONE_MATRICES_LAYOUT")));
+	}
 }
 
 size_t& BoneMatrices::GetVersion()
@@ -47,12 +51,13 @@ size_t& BoneMatrices::GetVersion()
 void BoneMatrices::UploadData()
 {
 	m_version++;
-	if (!m_value.empty())m_boneMatricesBuffer->UploadVector(m_value);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if (!m_value.empty())m_boneMatricesBuffer[currentFrameIndex]->UploadVector(m_value);
 	VkDescriptorBufferInfo bufferInfo;
 	bufferInfo.offset = 0;
-	bufferInfo.buffer = m_boneMatricesBuffer->GetVkBuffer();
+	bufferInfo.buffer = m_boneMatricesBuffer[currentFrameIndex]->GetVkBuffer();
 	bufferInfo.range = VK_WHOLE_SIZE;
-	m_descriptorSet->UpdateBufferDescriptorBinding(5, bufferInfo);
+	m_descriptorSet[currentFrameIndex]->UpdateBufferDescriptorBinding(5, bufferInfo);
 }
 
 
@@ -146,6 +151,7 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 SkinnedMesh::~SkinnedMesh()
 {
 	GeometryStorage::FreeSkinnedMesh(m_skinnedMeshletIndices);
+	m_trianglesBuffer.clear();
 	m_skinnedMeshletIndices.clear();
 }
 
@@ -154,16 +160,22 @@ const std::vector<uint32_t>& SkinnedMesh::PeekSkinnedMeshletIndices() const
 	return m_skinnedMeshletIndices;
 }
 
-void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer) const
+void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer)
 {
 	constexpr VkDeviceSize offsets[] = { 0 };
 	GeometryStorage::BindSkinnedVertices(vkCommandBuffer);
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+	if (m_uploadPending[currentFrameIndex]) {
+		m_trianglesBuffer[currentFrameIndex]->UploadVector(m_geometryStorageTriangles);
+		m_uploadPending[currentFrameIndex] = false;
+	}
+	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
 void SkinnedMesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount,
 	const bool enableMetrics) const
 {
+	if (instancesCount == 0) return;
 	auto& graphics = Graphics::GetInstance();
 	if (enableMetrics) {
 		graphics.m_drawCall++;
@@ -200,8 +212,12 @@ void SkinnedMesh::OnCreate()
 	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
 	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	m_trianglesBuffer = std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo);
-
+	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
+	m_uploadPending.resize(maxFramesInFlight);
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		m_trianglesBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
+		m_uploadPending[i] = false;
+	}
 	m_bound = Bound();
 }
 void SkinnedMesh::UploadData()
@@ -216,8 +232,12 @@ void SkinnedMesh::UploadData()
 		EVOENGINE_ERROR("Triangles empty!")
 			return;
 	}
+	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
+	{
+		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
+	}
 	m_version++;
-	m_trianglesBuffer->UploadVector(m_geometryStorageTriangles);
+	for (auto& i : m_uploadPending) i = true;
 }
 
 void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices)

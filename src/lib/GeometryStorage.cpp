@@ -142,47 +142,48 @@ const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strandPointInde
 }
 
 void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
-                               std::vector<uint32_t>& meshletIndices)
+	std::vector<uint32_t>& meshletIndices)
 {
-	if(vertices.empty() || triangles.empty()) return;
+	if (vertices.empty() || triangles.empty()) return;
 	auto& storage = GetInstance();
 	/* From mesh vertices to vertex data indices
 	 */
 	std::vector<uint32_t> vertexIndices;
 	vertexIndices.resize(vertices.size());
-	size_t currentChunkIndex = 0;
-	size_t currentVertexIndexInChunk = Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1;
-	for(uint32_t i = 0; i < vertexIndices.size(); i++)
+	
+	for (uint32_t i = 0; i < vertexIndices.size(); i++)
 	{
-		if(currentVertexIndexInChunk == Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1)
+		size_t currentVertexIndex;
+		if (!storage.m_vertexDataVertexPool.empty())
 		{
-			currentVertexIndexInChunk = 0;
-			if (!storage.m_vertexDataChunkPool.empty())
-			{
-				currentChunkIndex = storage.m_vertexDataChunkPool.front();
-				storage.m_vertexDataChunkPool.pop();
-			}
-			else
-			{
-				currentChunkIndex = storage.m_vertexDataChunks.size();
-				storage.m_vertexDataChunks.emplace_back();
-			}
+			currentVertexIndex = storage.m_vertexDataVertexPool.front();
+			storage.m_vertexDataVertexPool.pop();
 		}
-		vertexIndices[i] = currentChunkIndex * Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE + currentVertexIndexInChunk;
-		storage.m_vertexDataChunks[currentChunkIndex].m_vertexData[currentVertexIndexInChunk] = vertices[i];
-		currentVertexIndexInChunk++;
+		else
+		{
+			currentVertexIndex = storage.m_verticesCount;
+			storage.m_verticesCount++;
+		}
+
+		vertexIndices[i] = currentVertexIndex;
+		if (currentVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_vertexDataChunks.size())
+		{
+			storage.m_vertexDataChunks.emplace_back();
+		}
+		storage.m_vertexDataChunks[currentVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_vertexData[currentVertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = vertices[i];
 	}
 
 	meshletIndices.clear();
 	uint32_t currentTriangleIndex = 0;
-	while(currentTriangleIndex < triangles.size())
+	while (currentTriangleIndex < triangles.size())
 	{
 		uint32_t currentMeshletIndex;
-		if(!storage.m_meshletPool.empty())
+		if (!storage.m_meshletPool.empty())
 		{
 			currentMeshletIndex = storage.m_meshletPool.front();
 			storage.m_meshletPool.pop();
-		}else
+		}
+		else
 		{
 			currentMeshletIndex = storage.m_meshlets.size();
 			storage.m_meshlets.emplace_back();
@@ -191,12 +192,12 @@ void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const st
 		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
 
 		std::unordered_map<uint32_t, uint32_t> assignedVertices{};
-		while(currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
+		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
 		{
 			const auto& currentTriangle = triangles[currentTriangleIndex];
 			uint32_t newVerticesAmount = 0;
 			auto searchX = assignedVertices.find(currentTriangle.x);
-			if(searchX == assignedVertices.end()) newVerticesAmount++;
+			if (searchX == assignedVertices.end()) newVerticesAmount++;
 
 			auto searchY = assignedVertices.find(currentTriangle.y);
 			if (searchY == assignedVertices.end()) newVerticesAmount++;
@@ -204,7 +205,7 @@ void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const st
 			auto searchZ = assignedVertices.find(currentTriangle.z);
 			if (searchZ == assignedVertices.end()) newVerticesAmount++;
 
-			if(currentMeshlet.m_verticesSize + newVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
+			if (currentMeshlet.m_verticesSize + newVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 			{
 				break;
 			}
@@ -213,7 +214,8 @@ void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const st
 			if (searchX != assignedVertices.end())
 			{
 				currentMeshletTriangle.x = searchX->second;
-			}else
+			}
+			else
 			{
 				//Add current vertex index into the map.
 				assignedVertices[currentTriangle.x] = currentMeshlet.m_verticesSize;
@@ -260,51 +262,51 @@ void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const st
 		}
 		meshletIndices.emplace_back(currentMeshletIndex);
 	}
-	for(auto& i : storage.m_requireMeshDataDeviceUpdate) i = true;
+	for (auto& i : storage.m_requireMeshDataDeviceUpdate) i = true;
 }
 
 void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skinnedVertices,
 	const std::vector<glm::uvec3>& triangles, std::vector<uint32_t>& skinnedMeshletIndices)
 {
-	if(skinnedVertices.empty() || triangles.empty()) return;
+	if (skinnedVertices.empty() || triangles.empty()) return;
 	auto& storage = GetInstance();
 	/* From mesh skinnedVertices to skinnedVertex data indices
 	 */
 	std::vector<uint32_t> skinnedVertexIndices;
 	skinnedVertexIndices.resize(skinnedVertices.size());
-	size_t currentChunkIndex = 0;
-	size_t currentSkinnedVertexIndexInChunk = Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1;
-	for(uint32_t i = 0; i < skinnedVertexIndices.size(); i++)
+	for (uint32_t i = 0; i < skinnedVertexIndices.size(); i++)
 	{
-		if(currentSkinnedVertexIndexInChunk == Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1)
+		size_t currentSkinnedVertexIndex;
+		if (!storage.m_skinnedVertexDataPool.empty())
 		{
-			currentSkinnedVertexIndexInChunk = 0;
-			if (!storage.m_skinnedVertexDataChunkPool.empty())
-			{
-				currentChunkIndex = storage.m_skinnedVertexDataChunkPool.front();
-				storage.m_skinnedVertexDataChunkPool.pop();
-			}
-			else
-			{
-				currentChunkIndex = storage.m_skinnedVertexDataChunks.size();
-				storage.m_skinnedVertexDataChunks.emplace_back();
-			}
+			currentSkinnedVertexIndex = storage.m_skinnedVertexDataPool.front();
+			storage.m_skinnedVertexDataPool.pop();
 		}
-		skinnedVertexIndices[i] = currentChunkIndex * Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE + currentSkinnedVertexIndexInChunk;
-		storage.m_skinnedVertexDataChunks[currentChunkIndex].m_skinnedVertexData[currentSkinnedVertexIndexInChunk] = skinnedVertices[i];
-		currentSkinnedVertexIndexInChunk++;
+		else
+		{
+			currentSkinnedVertexIndex = storage.m_skinnedVerticesCount;
+			storage.m_skinnedVerticesCount++;
+		}
+
+		skinnedVertexIndices[i] = currentSkinnedVertexIndex;
+		if (currentSkinnedVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_skinnedVertexDataChunks.size())
+		{
+			storage.m_skinnedVertexDataChunks.emplace_back();
+		}
+		storage.m_skinnedVertexDataChunks[currentSkinnedVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_skinnedVertexData[currentSkinnedVertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = skinnedVertices[i];
 	}
 
 	skinnedMeshletIndices.clear();
 	uint32_t currentTriangleIndex = 0;
-	while(currentTriangleIndex < triangles.size())
+	while (currentTriangleIndex < triangles.size())
 	{
 		uint32_t currentSkinnedMeshletIndex;
-		if(!storage.m_skinnedMeshletPool.empty())
+		if (!storage.m_skinnedMeshletPool.empty())
 		{
 			currentSkinnedMeshletIndex = storage.m_skinnedMeshletPool.front();
 			storage.m_skinnedMeshletPool.pop();
-		}else
+		}
+		else
 		{
 			currentSkinnedMeshletIndex = storage.m_skinnedMeshlets.size();
 			storage.m_skinnedMeshlets.emplace_back();
@@ -313,12 +315,12 @@ void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skin
 		currentSkinnedMeshlet.m_skinnedVerticesSize = currentSkinnedMeshlet.m_triangleSize = 0;
 
 		std::unordered_map<uint32_t, uint32_t> assignedSkinnedVertices{};
-		while(currentSkinnedMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
+		while (currentSkinnedMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
 		{
 			const auto& currentTriangle = triangles[currentTriangleIndex];
 			uint32_t newSkinnedVerticesAmount = 0;
 			auto searchX = assignedSkinnedVertices.find(currentTriangle.x);
-			if(searchX == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
+			if (searchX == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
 
 			auto searchY = assignedSkinnedVertices.find(currentTriangle.y);
 			if (searchY == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
@@ -326,7 +328,7 @@ void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skin
 			auto searchZ = assignedSkinnedVertices.find(currentTriangle.z);
 			if (searchZ == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
 
-			if(currentSkinnedMeshlet.m_skinnedVerticesSize + newSkinnedVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
+			if (currentSkinnedMeshlet.m_skinnedVerticesSize + newSkinnedVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 			{
 				break;
 			}
@@ -335,7 +337,8 @@ void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skin
 			if (searchX != assignedSkinnedVertices.end())
 			{
 				currentSkinnedMeshletTriangle.x = searchX->second;
-			}else
+			}
+			else
 			{
 				//Add current skinnedVertex index into the map.
 				assignedSkinnedVertices[currentTriangle.x] = currentSkinnedMeshlet.m_skinnedVerticesSize;
@@ -382,7 +385,7 @@ void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skin
 		}
 		skinnedMeshletIndices.emplace_back(currentSkinnedMeshletIndex);
 	}
-	for(auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
+	for (auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
 }
 
 void GeometryStorage::AllocateStrands(const std::vector<StrandPoint>& strandPoints,
@@ -394,27 +397,26 @@ void GeometryStorage::AllocateStrands(const std::vector<StrandPoint>& strandPoin
 	 */
 	std::vector<uint32_t> strandPointIndices;
 	strandPointIndices.resize(strandPoints.size());
-	size_t currentChunkIndex = 0;
-	size_t currentStrandPointIndexInChunk = Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1;
 	for (uint32_t i = 0; i < strandPointIndices.size(); i++)
 	{
-		if (currentStrandPointIndexInChunk == Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE - 1)
+		size_t currentStrandPointIndex;
+		if (!storage.m_strandPointDataPool.empty())
 		{
-			currentStrandPointIndexInChunk = 0;
-			if (!storage.m_strandPointDataChunkPool.empty())
-			{
-				currentChunkIndex = storage.m_strandPointDataChunkPool.front();
-				storage.m_strandPointDataChunkPool.pop();
-			}
-			else
-			{
-				currentChunkIndex = storage.m_strandPointDataChunks.size();
-				storage.m_strandPointDataChunks.emplace_back();
-			}
+			currentStrandPointIndex = storage.m_strandPointDataPool.front();
+			storage.m_strandPointDataPool.pop();
 		}
-		strandPointIndices[i] = currentChunkIndex * Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE + currentStrandPointIndexInChunk;
-		storage.m_strandPointDataChunks[currentChunkIndex].m_strandPointData[currentStrandPointIndexInChunk] = strandPoints[i];
-		currentStrandPointIndexInChunk++;
+		else
+		{
+			currentStrandPointIndex = storage.m_strandPointsCount;
+			storage.m_strandPointsCount++;
+		}
+
+		strandPointIndices[i] = currentStrandPointIndex;
+		if (currentStrandPointIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_strandPointDataChunks.size())
+		{
+			storage.m_strandPointDataChunks.emplace_back();
+		}
+		storage.m_strandPointDataChunks[currentStrandPointIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_strandPointData[currentStrandPointIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = strandPoints[i];
 	}
 
 	strandMeshletIndices.clear();
@@ -532,19 +534,19 @@ void GeometryStorage::FreeMesh(const std::vector<uint32_t>& meshletIndices)
 {
 	auto& storage = GetInstance();
 	std::unordered_set<uint32_t> vertexIndices;
-	for(const auto& i : meshletIndices)
+	for (const auto& i : meshletIndices)
 	{
 		storage.m_meshletPool.emplace(i);
 		auto& meshlet = storage.m_meshlets[i];
-		for(const auto& j : meshlet.m_vertexIndices)
+		for (int j = 0; j < meshlet.m_verticesSize; j++)
 		{
-			vertexIndices.emplace(j);
+			vertexIndices.emplace(meshlet.m_vertexIndices[j]);
 		}
 		meshlet.m_verticesSize = meshlet.m_triangleSize = 0;
 	}
-	for(const auto& i : vertexIndices)
+	for (const auto& i : vertexIndices)
 	{
-		storage.m_vertexDataChunkPool.push(i);
+		storage.m_vertexDataVertexPool.push(i);
 	}
 }
 
@@ -556,15 +558,15 @@ void GeometryStorage::FreeSkinnedMesh(const std::vector<uint32_t>& skinnedMeshle
 	{
 		storage.m_skinnedMeshletPool.emplace(i);
 		auto& skinnedMeshlet = storage.m_skinnedMeshlets[i];
-		for (const auto& j : skinnedMeshlet.m_skinnedVertexIndices)
+		for (int j = 0; j < skinnedMeshlet.m_skinnedVerticesSize; j++)
 		{
-			skinnedVertexIndices.emplace(j);
+			skinnedVertexIndices.emplace(skinnedMeshlet.m_skinnedVertexIndices[j]);
 		}
 		skinnedMeshlet.m_skinnedVerticesSize = skinnedMeshlet.m_triangleSize = 0;
 	}
 	for (const auto& i : skinnedVertexIndices)
 	{
-		storage.m_skinnedVertexDataChunkPool.push(i);
+		storage.m_skinnedVertexDataPool.push(i);
 	}
 }
 
@@ -576,15 +578,15 @@ void GeometryStorage::FreeStrands(const std::vector<uint32_t>& strandMeshletIndi
 	{
 		storage.m_strandMeshletPool.emplace(i);
 		auto& strandMeshlet = storage.m_strandMeshlets[i];
-		for (const auto& j : strandMeshlet.m_strandPointIndices)
+		for (int j = 0; j < strandMeshlet.m_strandPointsSize; j++)
 		{
-			strandPointIndices.emplace(j);
+			strandPointIndices.emplace(strandMeshlet.m_strandPointIndices[j]);
 		}
 		strandMeshlet.m_strandPointsSize = strandMeshlet.m_segmentSize = 0;
 	}
 	for (const auto& i : strandPointIndices)
 	{
-		storage.m_strandPointDataChunkPool.push(i);
+		storage.m_strandPointDataPool.push(i);
 	}
 }
 

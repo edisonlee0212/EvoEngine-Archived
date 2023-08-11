@@ -89,13 +89,50 @@ void RenderLayer::OnDestroy()
 
 void RenderLayer::PreUpdate()
 {
+
+	m_deferredRenderInstances.m_renderCommands.clear();
+	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
+	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_deferredStrandsRenderInstances.m_renderCommands.clear();
+	m_transparentRenderInstances.m_renderCommands.clear();
+	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
+	m_transparentInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentStrandsRenderInstances.m_renderCommands.clear();
+
+	m_cameraIndices.clear();
+	m_materialIndices.clear();
+	m_instanceIndices.clear();
+	m_instanceHandles.clear();
+	m_cameraInfoBlocks.clear();
+	m_materialInfoBlocks.clear();
+	m_instanceInfoBlocks.clear();
+	m_renderTaskInfoBlocks.clear();
+
+	m_directionalLightInfoBlocks.clear();
+	m_pointLightInfoBlocks.clear();
+	m_spotLightInfoBlocks.clear();
+
+	m_cameras.clear();
+
+	const auto scene = GetScene();
+	if (!scene) return;
+
+	CollectCameras(m_cameras);
+	Bound worldBound;
+	CollectRenderInstances(worldBound);
+	scene->SetBound(worldBound);
+
+	CollectDirectionalLights(m_cameras);
+	CollectPointLights();
+	CollectSpotLights();
+}
+
+void RenderLayer::LateUpdate()
+{
 	const auto scene = GetScene();
 	if (!scene) return;
 
 	ApplyAnimator();
-
-	
-
 	//The following data stays consistent during entire frame.
 	{
 		for (int split = 0; split < 4; split++)
@@ -179,41 +216,6 @@ void RenderLayer::PreUpdate()
 			RenderToCamera(cameraGlobalTransform, camera);
 		}
 	}
-
-
-
-	m_deferredRenderInstances.m_renderCommands.clear();
-	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
-	m_deferredInstancedRenderInstances.m_renderCommands.clear();
-	m_deferredStrandsRenderInstances.m_renderCommands.clear();
-	m_transparentRenderInstances.m_renderCommands.clear();
-	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
-	m_transparentInstancedRenderInstances.m_renderCommands.clear();
-	m_transparentStrandsRenderInstances.m_renderCommands.clear();
-
-	m_cameraIndices.clear();
-	m_materialIndices.clear();
-	m_instanceIndices.clear();
-	m_instanceHandles.clear();
-	m_cameraInfoBlocks.clear();
-	m_materialInfoBlocks.clear();
-	m_instanceInfoBlocks.clear();
-	m_renderTaskInfoBlocks.clear();
-
-	m_directionalLightInfoBlocks.clear();
-	m_pointLightInfoBlocks.clear();
-	m_spotLightInfoBlocks.clear();
-
-	m_cameras.clear();
-
-	CollectCameras(m_cameras);
-	Bound worldBound;
-	CollectRenderInstances(worldBound);
-	scene->SetBound(worldBound);
-
-	CollectDirectionalLights(m_cameras);
-	CollectPointLights();
-	CollectSpotLights();
 }
 
 void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -874,7 +876,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 							{
 								if (!renderCommand.m_castShadow) return;
-								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
+								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = i;
 								pushConstant.m_lightSplitIndex = face;
@@ -1065,7 +1067,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 						{
 							if (!renderCommand.m_castShadow) return;
-							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
+							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = i;
 							pushConstant.m_lightSplitIndex = 0;
@@ -1735,7 +1737,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 							{
 								if (!renderCommand.m_castShadow) return;
-								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
+								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 								pushConstant.m_lightSplitIndex = split;
@@ -1946,7 +1948,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 				{
-					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->m_descriptorSet->GetVkDescriptorSet());
+					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;

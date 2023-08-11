@@ -41,6 +41,36 @@ namespace EvoEngine
 		std::shared_ptr<Camera> m_camera;
 	};
 
+	struct GizmoMeshTask
+	{
+		std::shared_ptr<Mesh> m_mesh;
+		std::shared_ptr<Camera> m_editorCameraComponent;
+		glm::vec4 m_color;
+		glm::mat4 m_model;
+		float m_size;
+		GizmoSettings m_gizmoSettings;
+	};
+
+	struct GizmoInstancedMeshTask
+	{
+		std::shared_ptr<Mesh> m_mesh;
+		std::shared_ptr<Camera> m_editorCameraComponent;
+		std::shared_ptr<ParticleInfoList> m_instancedData;
+		glm::mat4 m_model;
+		float m_size;
+		GizmoSettings m_gizmoSettings;
+	};
+
+	struct GizmoStrandsTask
+	{
+		std::shared_ptr<Strands> m_strands;
+		std::shared_ptr<Camera> m_editorCameraComponent;
+		glm::vec4 m_color;
+		glm::mat4 m_model;
+		float m_size;
+		GizmoSettings m_gizmoSettings;
+	};
+
 	class EditorLayer : public ILayer
 	{
 		void LoadIcons();
@@ -56,6 +86,10 @@ namespace EvoEngine
 		void ResizeCameras();
 		Handle m_sceneCameraHandle = 0;
 		std::unordered_map<Handle, EditorCamera> m_editorCameras;
+
+		std::vector<GizmoMeshTask> m_gizmoMeshTasks;
+		std::vector<GizmoInstancedMeshTask> m_gizmoInstancedMeshTasks;
+		std::vector<GizmoStrandsTask> m_gizmoStrandsTasks;
 	public:
 		void RegisterEditorCamera(const std::shared_ptr<Camera>& camera);
 

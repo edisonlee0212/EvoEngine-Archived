@@ -31,9 +31,9 @@ namespace EvoEngine
         void SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& strands,
             const std::vector<StrandPoint>& points);
         void RecalculateNormal();
-        void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount, bool enableMetrics) const override;
+        void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const override;
         void UploadData();
-        void Bind(VkCommandBuffer vkCommandBuffer) const override;
+        void Bind(VkCommandBuffer vkCommandBuffer) override;
         void OnCreate() override;
 
         [[nodiscard]] Bound GetBound() const;
@@ -47,7 +47,8 @@ namespace EvoEngine
 
     private:
         std::vector<glm::uvec4> m_geometryStorageSegments;
-        std::unique_ptr<Buffer> m_segmentsBuffer = {};
+        std::vector<std::unique_ptr<Buffer>> m_segmentsBuffer = {};
+        std::vector<bool> m_uploadPending;
 
         std::vector<uint32_t> m_strandMeshletIndices;
 

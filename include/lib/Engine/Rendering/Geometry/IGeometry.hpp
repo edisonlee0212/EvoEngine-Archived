@@ -14,7 +14,7 @@ namespace EvoEngine
 	class IGeometry
 	{
 	public:
-		virtual void Bind(VkCommandBuffer vkCommandBuffer) const = 0;
+		virtual void Bind(VkCommandBuffer vkCommandBuffer) = 0;
 		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount, bool enableMetrics) const = 0;
 		static const std::vector<VkVertexInputBindingDescription>& GetVertexBindingDescriptions(GeometryType geometryType);
 		static const std::vector<VkVertexInputAttributeDescription>& GetVertexAttributeDescriptions(GeometryType geometryType);

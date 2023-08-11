@@ -159,6 +159,27 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 	m_descriptorSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
 }
 
+void RenderTexture::Clear(const VkCommandBuffer commandBuffer)
+{
+	VkImageSubresourceRange depthSubresourceRange{};
+	depthSubresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	depthSubresourceRange.baseMipLevel = 0;
+	depthSubresourceRange.levelCount = 1;
+	depthSubresourceRange.baseArrayLayer = 0;
+	VkClearDepthStencilValue depthStencilValue{};
+	depthStencilValue = { 1, 0 };
+	vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), &
+		depthStencilValue, 1, &depthSubresourceRange);
+	VkImageSubresourceRange colorSubresourceRange{};
+	colorSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	colorSubresourceRange.baseMipLevel = 0;
+	colorSubresourceRange.levelCount = 1;
+	colorSubresourceRange.baseArrayLayer = 0;
+	VkClearColorValue colorValue{};
+	colorValue = { 0, 0, 0, 1 };
+	vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), &colorValue, 1, &colorSubresourceRange);
+}
+
 RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imageViewType)
 {
 	Initialize(extent, imageViewType);

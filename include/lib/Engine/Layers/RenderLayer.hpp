@@ -135,7 +135,7 @@ namespace EvoEngine
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;
-
+		void LateUpdate() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
 		void PreparePointAndSpotLightShadowMap() const;

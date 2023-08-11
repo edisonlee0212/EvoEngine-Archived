@@ -24,6 +24,7 @@ namespace EvoEngine{
 		void Initialize(VkExtent3D extent, VkImageViewType imageViewType);
 		std::shared_ptr<DescriptorSet> m_descriptorSet;
 	public:
+		void Clear(VkCommandBuffer commandBuffer);
 		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 		void Resize(VkExtent3D extent);
 		void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;

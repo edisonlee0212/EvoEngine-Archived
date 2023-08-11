@@ -19,20 +19,22 @@ namespace EvoEngine
 	class BoneMatrices
 	{
 		size_t m_version = 0;
-		std::unique_ptr<Buffer> m_boneMatricesBuffer = {};
-		std::shared_ptr<DescriptorSet> m_descriptorSet = VK_NULL_HANDLE;
+		std::vector<std::unique_ptr<Buffer>> m_boneMatricesBuffer = {};
+		std::vector<std::shared_ptr<DescriptorSet>> m_descriptorSet;
 		friend class RenderLayer;
+		void UploadData();
 	public:
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 		BoneMatrices();
 		[[nodiscard]] size_t& GetVersion();
-		void UploadData();
+		
 		std::vector<glm::mat4> m_value;
 	};
 	class SkinnedMesh : public IAsset, public IGeometry
 	{
 		std::vector<glm::uvec3> m_geometryStorageTriangles;
-		std::unique_ptr<Buffer> m_trianglesBuffer = {};
+		std::vector<std::unique_ptr<Buffer>> m_trianglesBuffer = {};
+		std::vector<bool> m_uploadPending;
 		Bound m_bound;
 		friend class SkinnedMeshRenderer;
 		friend class Particles;
@@ -51,7 +53,7 @@ namespace EvoEngine
 	public:
 		~SkinnedMesh() override;
 		[[nodiscard]] const std::vector<uint32_t>& PeekSkinnedMeshletIndices() const;
-		void Bind(VkCommandBuffer vkCommandBuffer) const override;
+		void Bind(VkCommandBuffer vkCommandBuffer) override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount,
 			bool enableMetrics) const override;
 		void OnCreate() override;
