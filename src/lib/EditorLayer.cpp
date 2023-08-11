@@ -629,17 +629,6 @@ void EditorLayer::LateUpdate()
 	}
 
 	if (const auto renderLayer = Application::GetLayer<RenderLayer>()) {
-		Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
-			{
-				for (const auto& i : m_editorCameras)
-				{
-					if (renderLayer->m_cameraIndices.find(i.first) == renderLayer->m_cameraIndices.end())
-					{
-						i.second.m_camera->GetRenderTexture()->Clear(commandBuffer);
-					}
-				}
-			}
-		);
 		//Gizmos rendering
 		for (const auto& i : m_gizmoMeshTasks)
 		{

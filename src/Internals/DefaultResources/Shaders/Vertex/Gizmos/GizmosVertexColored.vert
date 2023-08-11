@@ -17,6 +17,6 @@ layout(location = 0) out VS_OUT {
 void main()
 {
     vs_out.Color = inColor;
-	mat4 scaleMatrix = mat4(1.0f);
+	mat4 scaleMatrix = EE_GET_SCALE_MATRIX();
 	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vec3(EE_MODEL_MATRIX * scaleMatrix * vec4(inPosition, 1.0)), 1.0);
 }

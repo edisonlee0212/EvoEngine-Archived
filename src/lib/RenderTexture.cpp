@@ -161,11 +161,16 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 
 void RenderTexture::Clear(const VkCommandBuffer commandBuffer)
 {
+	const auto prevDepthLayout = m_depthImage->GetLayout();
+	const auto prevColorLayout = m_colorImage->GetLayout();
+	m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	VkImageSubresourceRange depthSubresourceRange{};
 	depthSubresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthSubresourceRange.baseMipLevel = 0;
 	depthSubresourceRange.levelCount = 1;
 	depthSubresourceRange.baseArrayLayer = 0;
+	depthSubresourceRange.layerCount = 1;
 	VkClearDepthStencilValue depthStencilValue{};
 	depthStencilValue = { 1, 0 };
 	vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), &
@@ -175,9 +180,13 @@ void RenderTexture::Clear(const VkCommandBuffer commandBuffer)
 	colorSubresourceRange.baseMipLevel = 0;
 	colorSubresourceRange.levelCount = 1;
 	colorSubresourceRange.baseArrayLayer = 0;
+	colorSubresourceRange.layerCount = 1;
 	VkClearColorValue colorValue{};
 	colorValue = { 0, 0, 0, 1 };
 	vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), &colorValue, 1, &colorSubresourceRange);
+
+	m_depthImage->TransitImageLayout(commandBuffer, prevDepthLayout);
+	m_colorImage->TransitImageLayout(commandBuffer, prevColorLayout);
 }
 
 RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imageViewType)

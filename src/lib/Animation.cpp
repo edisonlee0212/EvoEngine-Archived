@@ -1,6 +1,5 @@
 #include "Animation.hpp"
 using namespace EvoEngine;
-
 void Bone::Animate(
     const std::string &name,
     const float &animationTime,
@@ -25,6 +24,7 @@ void Bone::Animate(
         i->Animate(name, animationTime, globalTransform, rootTransform, results);
     }
 }
+
 
 void Bone::OnInspect()
 {

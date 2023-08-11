@@ -18,7 +18,7 @@ layout(location = 0) out VS_OUT {
 
 void main()
 {
-	mat4 scaleMatrix = mat4(1.0f);
+	mat4 scaleMatrix = EE_GET_SCALE_MATRIX();
 	mat4 matrix = EE_MODEL_MATRIX * scaleMatrix;
 	vs_out.FragPos = vec3(matrix * vec4(inPosition, 1.0));
 	vs_out.Thickness = inThickness;

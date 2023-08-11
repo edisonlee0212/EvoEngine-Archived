@@ -14,7 +14,6 @@
 #include "Strands.hpp"
 namespace EvoEngine
 {
-
 	struct GizmoSettings {
 		DrawSettings m_drawSettings;
 		enum class ColorMode {

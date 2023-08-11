@@ -125,12 +125,23 @@ void RenderLayer::PreUpdate()
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
 	CollectSpotLights();
+
+		
 }
 
 void RenderLayer::LateUpdate()
 {
 	const auto scene = GetScene();
 	if (!scene) return;
+
+	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+		{
+			for (const auto& i : m_cameras)
+			{
+				i.second->GetRenderTexture()->Clear(commandBuffer);
+			}
+		}
+	);
 
 	ApplyAnimator();
 	//The following data stays consistent during entire frame.
