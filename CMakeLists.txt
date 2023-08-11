@@ -291,15 +291,6 @@ foreach (PHYSX_DLL ${PHYSX_DLLS})
 endforeach ()
 
 if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
-    if (WIN32)
-        add_custom_command(
-                TARGET evoengine
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy
-                ${PROJECT_BINARY_DIR}/evoengine.dll
-                ${CMAKE_BINARY_DIR}
-        )
-    endif ()
     set(EVOENGINE_INCLUDES ${LOCAL_EVOENGINE_INCLUDES} PARENT_SCOPE)
     set(EVOENGINE_PCH ${LOCAL_EVOENGINE_PCH} PARENT_SCOPE)
 endif ()

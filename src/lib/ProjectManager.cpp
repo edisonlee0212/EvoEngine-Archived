@@ -129,7 +129,7 @@ void AssetRecord::SetAssetExtension(const std::string& newExtension)
 }
 void AssetRecord::Save() const
 {
-	auto path = GetAbsolutePath().string() + ".umeta";
+	auto path = GetAbsolutePath().string() + ".evefilemeta";
 	YAML::Emitter out;
 	out << YAML::BeginMap;
 	out << YAML::Key << "m_assetExtension" << YAML::Value << m_assetExtension;
@@ -152,7 +152,7 @@ Handle AssetRecord::GetAssetHandle() const
 }
 void AssetRecord::DeleteMetadata() const
 {
-	auto path = GetAbsolutePath().string() + ".umeta";
+	auto path = GetAbsolutePath().string() + ".evefilemeta";
 	std::filesystem::remove(path);
 }
 void AssetRecord::Load(const std::filesystem::path& path)
@@ -222,7 +222,7 @@ void Folder::Rename(const std::string& newName)
 }
 void Folder::Save() const
 {
-	auto path = GetAbsolutePath().string() + ".ufmeta";
+	auto path = GetAbsolutePath().string() + ".evefoldermeta";
 	YAML::Emitter out;
 	out << YAML::BeginMap;
 	out << YAML::Key << "m_handle" << YAML::Value << m_handle;
@@ -254,7 +254,7 @@ void Folder::Load(const std::filesystem::path& path)
 }
 void Folder::DeleteMetadata() const
 {
-	auto path = GetAbsolutePath().replace_extension(".ufmeta");
+	auto path = GetAbsolutePath().replace_extension(".evefoldermeta");
 	std::filesystem::remove(path);
 }
 void Folder::MoveChild(const Handle& childHandle, const std::shared_ptr<Folder>& dest)

@@ -13,6 +13,7 @@
 #include "RenderLayer.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
+#include "RigidBody.hpp"
 using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
@@ -42,15 +43,15 @@ void EditorLayer::OnCreate()
 		bool reload = previousEntity != entity;
 		bool readOnly = false;
 		auto scene = Application::GetActiveScene();
-		/*
+		
 		if (Application::IsPlaying() && scene->HasPrivateComponent<RigidBody>(entity)) {
-			auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(entity).lock();
+			const auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(entity).lock();
 			if (!rigidBody->IsKinematic() && rigidBody->Registered()) {
 				reload = true;
 				readOnly = true;
 			}
 		}
-		*/
+		
 		if (reload) {
 			previousEntity = entity;
 			ltp->Decompose(m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
@@ -1209,6 +1210,26 @@ KeyActionType EditorLayer::GetKey(const int key) const
 std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 {
 	return m_editorCameras.at(m_sceneCameraHandle).m_camera;
+}
+
+glm::vec3 EditorLayer::GetSceneCameraPosition() const
+{
+	return m_editorCameras.at(m_sceneCameraHandle).m_position;
+}
+
+glm::quat EditorLayer::GetSceneCameraRotation() const
+{
+	return m_editorCameras.at(m_sceneCameraHandle).m_rotation;
+}
+
+void EditorLayer::SetCameraPosition(const std::shared_ptr<Camera>& camera, const glm::vec3& targetPosition)
+{
+	m_editorCameras.at(camera->GetHandle()).m_position = targetPosition;
+}
+
+void EditorLayer::SetCameraRotation(const std::shared_ptr<Camera>& camera, const glm::quat& targetRotation)
+{
+	m_editorCameras.at(camera->GetHandle()).m_rotation = targetRotation;
 }
 
 void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout)

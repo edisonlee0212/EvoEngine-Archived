@@ -71,7 +71,7 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Planets;
+	DemoSetup demoSetup = DemoSetup::Empty;
 	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();
@@ -84,6 +84,14 @@ int main() {
 	{
 		if (i.is_directory()) continue;
 		if (i.path().extension().string() == ".evescene" || i.path().extension().string() == ".evefilemeta" || i.path().extension().string() == ".eveproj" || i.path().extension().string() == ".evefoldermeta")
+		{
+			std::filesystem::remove(i.path());
+		}
+	}
+	for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
+	{
+		if (i.is_directory()) continue;
+		if (i.path().extension().string() == ".uescene" || i.path().extension().string() == ".umeta" || i.path().extension().string() == ".ueproj" || i.path().extension().string() == ".ufmeta")
 		{
 			std::filesystem::remove(i.path());
 		}

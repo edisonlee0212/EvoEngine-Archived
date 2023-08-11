@@ -63,6 +63,11 @@ namespace EvoEngine
 
 		[[nodiscard]] KeyActionType GetKey(int key) const;
 		[[nodiscard]] std::shared_ptr<Camera> GetSceneCamera();
+		[[nodiscard]] glm::vec3 GetSceneCameraPosition() const;
+		[[nodiscard]] glm::quat GetSceneCameraRotation() const;
+
+		void SetCameraPosition(const std::shared_ptr<Camera>& camera, const glm::vec3& targetPosition);
+		void SetCameraRotation(const std::shared_ptr<Camera>& camera, const glm::quat& targetRotation);
 		void MoveCamera(
 			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
 
