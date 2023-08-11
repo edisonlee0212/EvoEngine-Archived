@@ -4,7 +4,6 @@
 #include "Transform.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
-#include "Gizmos.hpp"
 using namespace EvoEngine;
 
 void RigidBody::SetStatic(bool value)
@@ -203,7 +202,7 @@ void RigidBody::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             {
             case ShapeType::Sphere:
                 if (m_drawBounds)
-                    Gizmos::DrawGizmoMesh(
+                    editorLayer->DrawGizmoMesh(
                         Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"),
                         displayBoundColor,
                         ltw.m_value *
@@ -212,7 +211,7 @@ void RigidBody::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                 break;
             case ShapeType::Box:
                 if (m_drawBounds)
-                    Gizmos::DrawGizmoMesh(
+                    editorLayer->DrawGizmoMesh(
                         Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
                         displayBoundColor,
                         ltw.m_value *
@@ -221,7 +220,7 @@ void RigidBody::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
                 break;
             case ShapeType::Capsule:
                 if (m_drawBounds)
-                    Gizmos::DrawGizmoMesh(
+                    editorLayer->DrawGizmoMesh(
                         Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"),
                         displayBoundColor,
                         ltw.m_value *

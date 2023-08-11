@@ -7,10 +7,40 @@
 #include "Texture2D.hpp"
 #include "Application.hpp"
 #include "Camera.hpp"
+#include "Material.hpp"
 #include "ProjectManager.hpp"
 #include "Scene.hpp"
+#include "Mesh.hpp"
+#include "Strands.hpp"
 namespace EvoEngine
 {
+
+	struct GizmoSettings {
+		DrawSettings m_drawSettings;
+		enum class ColorMode {
+			Default,
+			VertexColor,
+			NormalColor
+		} m_colorMode = ColorMode::Default;
+		bool m_depthTest = false;
+		bool m_depthWrite = false;
+		void ApplySettings(GraphicsPipelineStates& globalPipelineState) const;
+	};
+	struct GizmosPushConstant
+	{
+		glm::mat4 m_model;
+		glm::vec4 m_color;
+		float m_size;
+		uint32_t m_cameraIndex;
+	};
+
+	struct EditorCamera
+	{
+		glm::quat m_rotation = glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
+		glm::vec3 m_position = glm::vec3(0, 2, 5);
+		std::shared_ptr<Camera> m_camera;
+	};
+
 	class EditorLayer : public ILayer
 	{
 		void LoadIcons();
@@ -19,22 +49,28 @@ namespace EvoEngine
 		void PreUpdate() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void LateUpdate() override;
-		std::shared_ptr<Camera> m_sceneCamera;
-
+		
 		void SceneCameraWindow();
 		void MainCameraWindow();
 		void OnInputEvent(const InputEvent& inputEvent) override;
 		void ResizeCameras();
+		Handle m_sceneCameraHandle = 0;
+		std::unordered_map<Handle, EditorCamera> m_editorCameras;
 	public:
+		void RegisterEditorCamera(const std::shared_ptr<Camera>& camera);
+
+		[[nodiscard]] glm::vec2 GetMouseSceneCameraPosition() const;
+
+		[[nodiscard]] KeyActionType GetKey(int key) const;
 		[[nodiscard]] std::shared_ptr<Camera> GetSceneCamera();
 		void MoveCamera(
 			const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime = 1.0f);
 
 		static void UpdateTextureId(ImTextureID& target, VkSampler imageSampler, VkImageView imageView, VkImageLayout imageLayout);
-
+		[[nodiscard]] Entity GetSelectedEntity() const;
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;
-
+		[[nodiscard]] bool GetLockEntitySelection() const;
 		bool m_showSceneWindow = true;
 		bool m_showCameraWindow = true;
 		bool m_showCameraInfo = true;
@@ -54,8 +90,6 @@ namespace EvoEngine
 		bool m_applyTransformToMainCamera = false;
 		bool m_lockCamera;
 
-		glm::quat m_sceneCameraRotation = glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
-		glm::vec3 m_sceneCameraPosition = glm::vec3(0, 2, 5);
 		glm::quat m_defaultSceneCameraRotation = glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
 		glm::vec3 m_defaultSceneCameraPosition = glm::vec3(0, 2, 5);
 
@@ -116,6 +150,74 @@ namespace EvoEngine
 		template <typename T = IPrivateComponent>  bool Remove(PrivateComponentRef& target) const;
 		[[nodiscard]] bool Remove(EntityRef& entityRef);
 
+#pragma endregion
+
+#pragma region Gizmos
+		void DrawGizmoMesh(
+			const std::shared_ptr<Mesh>& mesh,
+			const std::shared_ptr<Camera>& editorCameraComponent,
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoStrands(
+			const std::shared_ptr<Strands>& strands,
+			const std::shared_ptr<Camera>& editorCameraComponent,
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoMeshInstancedColored(
+			const std::shared_ptr<Mesh>& mesh,
+			const std::shared_ptr<Camera>& editorCameraComponent,
+			const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoMeshInstancedColored(
+			const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoMesh(
+			const std::shared_ptr<Mesh>& mesh,
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoStrands(
+			const std::shared_ptr<Strands>& strands,
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		
+		void DrawGizmoCubes(const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoCube(
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoSpheres(const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoSphere(
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoCylinders(const std::shared_ptr<ParticleInfoList>& instancedData,
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
+
+		void DrawGizmoCylinder(
+			const glm::vec4& color = glm::vec4(1.0f),
+			const glm::mat4& model = glm::mat4(1.0f),
+			const float& size = 1.0f, const GizmoSettings& gizmoSettings = {});
 #pragma endregion
 	private:
 		int m_selectionAlpha = 0;

@@ -1,11 +1,10 @@
 #include "EditorLayer.hpp"
-#include "Gizmos.hpp"
 #include "StrandsRenderer.hpp"
 #include "Strands.hpp"
 #include "ClassRegistry.hpp"
 #include "Prefab.hpp"
 using namespace EvoEngine;
-void StrandsRenderer::RenderBound(glm::vec4& color)
+void StrandsRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color)
 {
     const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
     glm::vec3 size = m_strands.Get<Strands>()->m_bound.Size();
@@ -20,7 +19,7 @@ void StrandsRenderer::RenderBound(glm::vec4& color)
     gizmoSettings.m_drawSettings.m_blending = true;
     gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
     gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
-    Gizmos::DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
+    editorLayer->DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
         color,
         transform * (glm::translate(m_strands.Get<Strands>()->m_bound.Center()) * glm::scale(size)),
         1, gizmoSettings);
@@ -41,7 +40,7 @@ void StrandsRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             {
                 static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
                 ImGui::ColorEdit4("Color:##StrandsRenderer", (float*)(void*)&displayBoundColor);
-                RenderBound(displayBoundColor);
+                RenderBound(editorLayer, displayBoundColor);
             }
             ImGui::TreePop();
         }

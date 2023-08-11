@@ -1,9 +1,8 @@
 #include "SkinnedMeshRenderer.hpp"
 
 #include "EditorLayer.hpp"
-#include "Gizmos.hpp"
 using namespace EvoEngine;
-void SkinnedMeshRenderer::RenderBound(glm::vec4& color)
+void SkinnedMeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color)
 {
 	const auto scene = GetScene();
 	const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
@@ -19,7 +18,7 @@ void SkinnedMeshRenderer::RenderBound(glm::vec4& color)
 	gizmoSettings.m_drawSettings.m_blending = true;
 	gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
 	gizmoSettings.m_drawSettings.m_lineWidth = 5.0f;
-	Gizmos::DrawGizmoMesh(
+	editorLayer->DrawGizmoMesh(
 		Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
 		color,
 		transform * (glm::translate(m_skinnedMesh.Get<SkinnedMesh>()->m_bound.Center()) * glm::scale(size)),
@@ -112,7 +111,7 @@ void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 			{
 				static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
 				ImGui::ColorEdit4("Color:##SkinnedMeshRenderer", static_cast<float*>(static_cast<void*>(&displayBoundColor)));
-				RenderBound(displayBoundColor);
+				RenderBound(editorLayer, displayBoundColor);
 			}
 			ImGui::TreePop();
 		}

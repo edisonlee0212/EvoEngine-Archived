@@ -9,7 +9,6 @@
 #include "Vertex.hpp"
 #include "vk_mem_alloc.h"
 #include "EditorLayer.hpp"
-#include "Gizmos.hpp"
 #include "GeometryStorage.hpp"
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"

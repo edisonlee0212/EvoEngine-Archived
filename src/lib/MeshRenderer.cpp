@@ -4,10 +4,9 @@
 #include "Mesh.hpp"
 #include "Transform.hpp"
 #include "EditorLayer.hpp"
-#include "Gizmos.hpp"
 using namespace EvoEngine;
 
-void MeshRenderer::RenderBound(const glm::vec4& color)
+void MeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, const glm::vec4& color)
 {
     const auto scene = GetScene();
     const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
@@ -23,7 +22,7 @@ void MeshRenderer::RenderBound(const glm::vec4& color)
     gizmoSettings.m_drawSettings.m_blending = true;
     gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
     gizmoSettings.m_drawSettings.m_lineWidth = 5.0f;
-    Gizmos::DrawGizmoMesh(
+    editorLayer->DrawGizmoMesh(
         Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
         color,
         transform * (glm::translate(m_mesh.Get<Mesh>()->GetBound().Center()) * glm::scale(size)),
@@ -46,7 +45,7 @@ void MeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             {
                 static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.1f);
                 ImGui::ColorEdit4("Color:##MeshRenderer", (float*)(void*)&displayBoundColor);
-                RenderBound(displayBoundColor);
+                RenderBound(editorLayer, displayBoundColor);
             }
             ImGui::TreePop();
         }

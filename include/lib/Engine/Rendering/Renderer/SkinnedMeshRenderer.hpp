@@ -11,7 +11,7 @@ namespace EvoEngine
 		friend class AnimationLayer;
 		friend class Prefab;
 		friend class RenderLayer;
-		void RenderBound(glm::vec4& color);
+		void RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color);
 		friend class Graphics;
 		bool m_ragDoll = false;
 		std::vector<glm::mat4> m_ragDollTransformChain;

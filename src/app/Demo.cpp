@@ -9,8 +9,6 @@
 #include "Prefab.hpp"
 #include "Time.hpp"
 #include "PhysicsLayer.hpp"
-#include "Gizmos.hpp"
-#include "Particles.hpp"
 #include "Planet/PlanetTerrainSystem.hpp"
 #include "StarCluster/StarClusterSystem.hpp"
 using namespace Planet;

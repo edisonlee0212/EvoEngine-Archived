@@ -359,16 +359,18 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 
 	if (auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
-		if (auto sceneCamera = editorLayer->GetSceneCamera(); sceneCamera || sceneCamera->IsEnabled() || sceneCamera->m_requireRendering)
-		{
-			cameraPairs.emplace_back(sceneCamera, editorLayer->m_sceneCameraPosition);
-			CameraInfoBlock cameraInfoBlock;
-			GlobalTransform sceneCameraGT;
-			sceneCameraGT.SetValue(editorLayer->m_sceneCameraPosition, editorLayer->m_sceneCameraRotation, glm::vec3(1.0f));
-			sceneCamera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
-			RegisterCameraIndex(sceneCamera->GetHandle(), cameraInfoBlock);
+		for (const auto& [cameraHandle, editorCamera] : editorLayer->m_editorCameras) {
+			if (editorCamera.m_camera || editorCamera.m_camera->IsEnabled() || editorCamera.m_camera->m_requireRendering)
+			{
+				cameraPairs.emplace_back(editorCamera.m_camera, editorCamera.m_position);
+				CameraInfoBlock cameraInfoBlock;
+				GlobalTransform sceneCameraGT;
+				sceneCameraGT.SetValue(editorCamera.m_position, editorCamera.m_rotation, glm::vec3(1.0f));
+				editorCamera.m_camera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
+				RegisterCameraIndex(cameraHandle, cameraInfoBlock);
 
-			cameras.emplace_back(sceneCameraGT, sceneCamera);
+				cameras.emplace_back(sceneCameraGT, editorCamera.m_camera);
+			}
 		}
 	}
 	if (const std::vector<Entity>* cameraEntities = scene->UnsafeGetPrivateComponentOwnersList<Camera>())
@@ -1854,7 +1856,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	bool needFade = false;
 	if (editorLayer)
 	{
-		if (camera.get() == editorLayer->m_sceneCamera.get()) isSceneCamera = true;
+		if (camera.get() == editorLayer->GetSceneCamera().get()) isSceneCamera = true;
 		if (m_needFade) needFade = true;
 	}
 #pragma region Deferred Rendering

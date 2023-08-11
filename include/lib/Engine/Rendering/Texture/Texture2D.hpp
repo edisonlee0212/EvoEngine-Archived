@@ -23,6 +23,8 @@ namespace EvoEngine
 		ImTextureID m_imTextureId = VK_NULL_HANDLE;
 
 		uint32_t m_textureStorageIndex = UINT32_MAX;
+		void SetData(const void* data, const glm::uvec2& resolution);
+
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 		bool LoadInternal(const std::filesystem::path& path) override;
@@ -51,5 +53,10 @@ namespace EvoEngine
 		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRedChannelData(std::vector<float>& dst, int resizeX = -1, int resizeY = -1) const;
+
+		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
+		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
+		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
+		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
 	};
 }

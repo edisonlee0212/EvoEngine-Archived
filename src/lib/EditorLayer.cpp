@@ -134,12 +134,13 @@ void EditorLayer::OnCreate()
 	m_entityIndexReadBuffer = std::make_unique<Buffer>(entityIndexReadBuffer, entityIndexReadBufferCreateInfo);
 	vmaMapMemory(Graphics::GetVmaAllocator(), m_entityIndexReadBuffer->GetVmaAllocation(), static_cast<void**>(static_cast<void*>(&m_mappedEntityIndexData)));
 
-	
-	m_sceneCamera = Serialization::ProduceSerializable<Camera>();
-	m_sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
-	m_sceneCamera->m_useClearColor = false;
-	m_sceneCamera->OnCreate();
 
+	const auto sceneCamera = Serialization::ProduceSerializable<Camera>();
+	sceneCamera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
+	sceneCamera->m_useClearColor = false;
+	sceneCamera->OnCreate();
+	RegisterEditorCamera(sceneCamera);
+	m_sceneCameraHandle = sceneCamera->GetHandle();
 }
 
 void EditorLayer::OnDestroy()
@@ -342,9 +343,10 @@ void EditorLayer::PreUpdate()
 		const auto scene = Application::GetActiveScene();
 		if (const auto camera = scene->m_mainCamera.Get<Camera>(); camera && scene->IsEntityValid(camera->GetOwner()))
 		{
+			auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
 			GlobalTransform globalTransform;
-			globalTransform.SetPosition(m_sceneCameraPosition);
-			globalTransform.SetRotation(m_sceneCameraRotation);
+			globalTransform.SetPosition(sceneCameraPosition);
+			globalTransform.SetRotation(sceneCameraRotation);
 			scene->SetDataComponent(camera->GetOwner(), globalTransform);
 		}
 	}
@@ -605,16 +607,17 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 void EditorLayer::LateUpdate()
 {
 	if (m_lockCamera) {
+		auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
 		const float elapsedTime = Time::CurrentTime() - m_transitionTimer;
 		float a = 1.0f - glm::pow(1.0 - elapsedTime / m_transitionTime, 4.0f);
 		if (elapsedTime >= m_transitionTime)
 			a = 1.0f;
-		m_sceneCameraRotation = glm::mix(m_previousRotation, m_targetRotation, a);
-		m_sceneCameraPosition = glm::mix(m_previousPosition, m_targetPosition, a);
+		sceneCameraRotation = glm::mix(m_previousRotation, m_targetRotation, a);
+		sceneCameraPosition = glm::mix(m_previousPosition, m_targetPosition, a);
 		if (a >= 1.0f) {
 			m_lockCamera = false;
-			m_sceneCameraRotation = m_targetRotation;
-			m_sceneCameraPosition = m_targetPosition;
+			sceneCameraRotation = m_targetRotation;
+			sceneCameraPosition = m_targetPosition;
 			Camera::ReverseAngle(m_targetRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
 		}
 	}
@@ -767,6 +770,7 @@ void EditorLayer::SceneCameraWindow()
 	const auto scene = GetScene();
 	auto windowLayer = Application::GetLayer<WindowLayer>();
 	const auto& graphics = Graphics::GetInstance();
+	auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
 #pragma region Scene Window
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	if (ImGui::Begin("Scene")) {
@@ -779,10 +783,10 @@ void EditorLayer::SceneCameraWindow()
 			m_sceneCameraResolutionX = viewPortSize.x * m_sceneCameraResolutionMultiplier;
 			m_sceneCameraResolutionY = viewPortSize.y * m_sceneCameraResolutionMultiplier;
 			const ImVec2 overlayPos = ImGui::GetWindowPos();
-			if (m_sceneCamera && m_sceneCamera->m_rendered) {
+			if (sceneCamera && sceneCamera->m_rendered) {
 				// Because I use the texture from OpenGL, I need to invert the V from the UV.
-				ImGui::Image(m_sceneCamera->GetRenderTexture()->GetColorImTextureId(),
-					ImVec2(m_sceneCamera->GetSize().x, m_sceneCamera->GetSize().y),
+				ImGui::Image(sceneCamera->GetRenderTexture()->GetColorImTextureId(),
+					ImVec2(sceneCamera->GetSize().x, sceneCamera->GetSize().y),
 					ImVec2(0, 1),
 					ImVec2(1, 0));
 				CameraWindowDragAndDrop();
@@ -828,19 +832,19 @@ void EditorLayer::SceneCameraWindow()
 						MoveCamera(m_defaultSceneCameraRotation, m_defaultSceneCameraPosition);
 					}
 					if (ImGui::Button("Set default")) {
-						m_defaultSceneCameraPosition = m_sceneCameraPosition;
-						m_defaultSceneCameraRotation = m_sceneCameraRotation;
+						m_defaultSceneCameraPosition = sceneCameraPosition;
+						m_defaultSceneCameraRotation = sceneCameraRotation;
 					}
 					ImGui::PushItemWidth(100);
-					ImGui::Checkbox("Use background color", &m_sceneCamera->m_useClearColor);
-					ImGui::ColorEdit3("Bg color", &m_sceneCamera->m_clearColor.x);
-					ImGui::SliderFloat("Fov", &m_sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
-					ImGui::DragFloat3("Position", &m_sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
+					ImGui::Checkbox("Use background color", &sceneCamera->m_useClearColor);
+					ImGui::ColorEdit3("Bg color", &sceneCamera->m_clearColor.x);
+					ImGui::SliderFloat("Fov", &sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
+					ImGui::DragFloat3("Position", &sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
 					ImGui::DragFloat("Speed", &m_velocity, 0.1f, 0, 0, "%.1f");
 					ImGui::DragFloat("Sensitivity", &m_sensitivity, 0.1f, 0, 0, "%.1f");
 					ImGui::Checkbox("Apply transform to main camera", &m_applyTransformToMainCamera);
 					ImGui::DragFloat("Resolution multiplier", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
-					DragAndDropButton<Cubemap>(m_sceneCamera->m_skybox, "Skybox", true);
+					DragAndDropButton<Cubemap>(sceneCamera->m_skybox, "Skybox", true);
 					ImGui::PopItemWidth();
 				}
 				ImGui::EndChild();
@@ -868,29 +872,29 @@ void EditorLayer::SceneCameraWindow()
 				isDraggingPreviously = mouseDrag;
 
 				if (mouseDrag && !m_lockCamera) {
-					const glm::vec3 front = m_sceneCameraRotation * glm::vec3(0, 0, -1);
-					const glm::vec3 right = m_sceneCameraRotation * glm::vec3(1, 0, 0);
+					const glm::vec3 front = sceneCameraRotation * glm::vec3(0, 0, -1);
+					const glm::vec3 right = sceneCameraRotation * glm::vec3(1, 0, 0);
 					if (Input::GetKey(GLFW_KEY_W) == KeyActionType::Hold) {
-						m_sceneCameraPosition +=
+						sceneCameraPosition +=
 							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_S) == KeyActionType::Hold) {
-						m_sceneCameraPosition -=
+						sceneCameraPosition -=
 							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_A) == KeyActionType::Hold) {
-						m_sceneCameraPosition -=
+						sceneCameraPosition -=
 							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_D) == KeyActionType::Hold) {
-						m_sceneCameraPosition +=
+						sceneCameraPosition +=
 							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_LEFT_SHIFT) == KeyActionType::Hold) {
-						m_sceneCameraPosition.y += m_velocity * static_cast<float>(Time::DeltaTime());
+						sceneCameraPosition.y += m_velocity * static_cast<float>(Time::DeltaTime());
 					}
 					if (Input::GetKey(GLFW_KEY_LEFT_CONTROL) == KeyActionType::Hold) {
-						m_sceneCameraPosition.y -= m_velocity * static_cast<float>(Time::DeltaTime());
+						sceneCameraPosition.y -= m_velocity * static_cast<float>(Time::DeltaTime());
 					}
 					if (xOffset != 0.0f || yOffset != 0.0f) {
 						m_sceneCameraYawAngle += xOffset * m_sensitivity;
@@ -899,7 +903,7 @@ void EditorLayer::SceneCameraWindow()
 							m_sceneCameraPitchAngle = 89.0f;
 						if (m_sceneCameraPitchAngle < -89.0f)
 							m_sceneCameraPitchAngle = -89.0f;
-						m_sceneCameraRotation =
+						sceneCameraRotation =
 							Camera::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false);
 					}
 #pragma endregion
@@ -915,8 +919,8 @@ void EditorLayer::SceneCameraWindow()
 			ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, viewPortSize.x,
 				viewPortSize.y);
 			glm::mat4 cameraView =
-				glm::inverse(glm::translate(m_sceneCameraPosition) * glm::mat4_cast(m_sceneCameraRotation));
-			glm::mat4 cameraProjection = m_sceneCamera->GetProjection();
+				glm::inverse(glm::translate(sceneCameraPosition) * glm::mat4_cast(sceneCameraRotation));
+			glm::mat4 cameraProjection = sceneCamera->GetProjection();
 			const auto op = m_localPositionSelected ? ImGuizmo::OPERATION::TRANSLATE
 				: m_localRotationSelected ? ImGuizmo::OPERATION::ROTATE
 				: ImGuizmo::OPERATION::SCALE;
@@ -952,7 +956,7 @@ void EditorLayer::SceneCameraWindow()
 			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
 			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
 				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
-			if (const auto focusedEntity = MouseEntitySelection(m_sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
+			if (const auto focusedEntity = MouseEntitySelection(sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
 				SetSelectedEntity(Entity());
 			}
 			else {
@@ -991,7 +995,7 @@ void EditorLayer::SceneCameraWindow()
 	else {
 		m_sceneCameraWindowFocused = false;
 	}
-	m_sceneCamera->SetRequireRendering(
+	sceneCamera->SetRequireRendering(
 		!(ImGui::GetCurrentWindowRead()->Hidden && !ImGui::GetCurrentWindowRead()->Collapsed));
 
 	ImGui::End();
@@ -1171,10 +1175,11 @@ void EditorLayer::ResizeCameras()
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (!renderLayer)
 		return;
-	const auto resolution = m_sceneCamera->GetSize();
+	const auto& sceneCamera = GetSceneCamera();
+	const auto resolution = sceneCamera->GetSize();
 	if (m_sceneCameraResolutionX != 0 && m_sceneCameraResolutionY != 0 &&
 		(resolution.x != m_sceneCameraResolutionX || resolution.y != m_sceneCameraResolutionY)) {
-		m_sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
+		sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
 	}
 	const auto scene = Application::GetActiveScene();
 	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
@@ -1183,9 +1188,27 @@ void EditorLayer::ResizeCameras()
 	}
 }
 
+void EditorLayer::RegisterEditorCamera(const std::shared_ptr<Camera>& camera)
+{
+	if (m_editorCameras.find(camera->GetHandle()) == m_editorCameras.end()) {
+		m_editorCameras[camera->GetHandle()] = {};
+		m_editorCameras.at(camera->GetHandle()).m_camera = camera;
+	}
+}
+
+glm::vec2 EditorLayer::GetMouseSceneCameraPosition() const
+{
+	return m_mouseSceneWindowPosition;
+}
+
+KeyActionType EditorLayer::GetKey(const int key) const
+{
+	return Input::GetKey(key);
+}
+
 std::shared_ptr<Camera> EditorLayer::GetSceneCamera()
 {
-	return m_sceneCamera;
+	return m_editorCameras.at(m_sceneCameraHandle).m_camera;
 }
 
 void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, const VkImageView imageView, VkImageLayout imageLayout)
@@ -1193,6 +1216,11 @@ void EditorLayer::UpdateTextureId(ImTextureID& target, VkSampler imageSampler, c
 	if (!Application::GetLayer<EditorLayer>()) return;
 	if (target != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(target));
 	target = ImGui_ImplVulkan_AddTexture(imageSampler, imageView, imageLayout);
+}
+
+Entity EditorLayer::GetSelectedEntity() const
+{
+	return m_selectedEntity;
 }
 
 void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
@@ -1231,6 +1259,11 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		m_selectedEntityHierarchyList.push_back(walker);
 		walker = scene->GetParent(walker);
 	}
+}
+
+bool EditorLayer::GetLockEntitySelection() const
+{
+	return m_lockEntitySelection;
 }
 
 bool EditorLayer::UnsafeDroppableAsset(AssetRef& target, const std::vector<std::string>& typeNames)
@@ -1644,8 +1677,9 @@ void EditorLayer::CameraWindowDragAndDrop() {
 
 void EditorLayer::MoveCamera(
 	const glm::quat& targetRotation, const glm::vec3& targetPosition, const float& transitionTime) {
-	m_previousRotation = m_sceneCameraRotation;
-	m_previousPosition = m_sceneCameraPosition;
+	auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
+	m_previousRotation = sceneCameraRotation;
+	m_previousPosition = sceneCameraPosition;
 	m_transitionTime = transitionTime;
 	m_transitionTimer = Time::CurrentTime();
 	m_targetRotation = targetRotation;

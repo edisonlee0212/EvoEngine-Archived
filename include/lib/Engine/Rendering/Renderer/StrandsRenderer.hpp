@@ -4,7 +4,7 @@
 #include "IPrivateComponent.hpp"
 namespace EvoEngine {
     class StrandsRenderer : public IPrivateComponent {
-        void RenderBound(glm::vec4& color);
+        void RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color);
     public:
         bool m_castShadow = true;
         AssetRef m_strands;

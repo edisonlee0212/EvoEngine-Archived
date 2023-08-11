@@ -10,6 +10,85 @@
 
 using namespace EvoEngine;
 
+void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
+{
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(resolution.x, resolution.y)))) + 1;
+	VkImageCreateInfo imageInfo{};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = resolution.x;
+	imageInfo.extent.height = resolution.y;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = Graphics::Constants::TEXTURE_2D;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	m_image = std::make_unique<Image>(imageInfo);
+	const auto imageSize = resolution.x * resolution.y * sizeof(glm::vec4);
+	VkBufferCreateInfo stagingBufferCreateInfo{};
+	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	stagingBufferCreateInfo.size = imageSize;
+	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
+	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
+	void* deviceData = nullptr;
+	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
+	memcpy(deviceData, data, imageSize);
+	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
+
+	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+		{
+			m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			m_image->CopyFromBuffer(commandBuffer, stagingBuffer.GetVkBuffer());
+			m_image->GenerateMipmaps(commandBuffer);
+			m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		});
+
+	VkImageViewCreateInfo viewInfo{};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = m_image->GetVkImage();
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = Graphics::Constants::TEXTURE_2D;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	m_imageView = std::make_unique<ImageView>(viewInfo);
+
+
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.minLod = 0;
+	samplerInfo.maxLod = static_cast<float>(mipLevels);
+	samplerInfo.mipLodBias = 0.0f;
+
+	m_sampler = std::make_unique<Sampler>(samplerInfo);
+	EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
+	TextureStorage::RegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
+}
+
 bool Texture2D::SaveInternal(const std::filesystem::path& path)
 {
 	if (path.extension() == ".png") {
@@ -51,81 +130,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
-		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = width;
-		imageInfo.extent.height = height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = mipLevels;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = Graphics::Constants::TEXTURE_2D;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		m_image = std::make_unique<Image>(imageInfo);
-		const auto imageSize = width * height * 4 * sizeof(float);
-		VkBufferCreateInfo stagingBufferCreateInfo{};
-		stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		stagingBufferCreateInfo.size = imageSize;
-		stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
-		stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-		stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-		Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
-		void* deviceData = nullptr;
-		vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
-		memcpy(deviceData, data, imageSize);
-		vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
-
-		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-			{
-				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-				m_image->CopyFromBuffer(commandBuffer, stagingBuffer.GetVkBuffer());
-				m_image->GenerateMipmaps(commandBuffer);
-				m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			});
-
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_image->GetVkImage();
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::Constants::TEXTURE_2D;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		m_imageView = std::make_unique<ImageView>(viewInfo);
-
-
-		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.minLod = 0;
-		samplerInfo.maxLod = static_cast<float>(mipLevels);
-		samplerInfo.mipLodBias = 0.0f;
-
-		m_sampler = std::make_unique<Sampler>(samplerInfo);
-		EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
-		TextureStorage::RegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
+		SetData(data, { width, height });
 	}
 	else
 	{
@@ -381,4 +386,45 @@ void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resi
 			dst[i] = pixels[i].r;
 		}
 	);
+}
+
+void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution)
+{
+	SetData(src.data(), resolution);
+}
+
+void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution)
+{
+	std::vector<glm::vec4> imageData;
+	imageData.resize(resolution.x * resolution.y);
+	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+		{
+			imageData[i] = glm::vec4(src[i], 1.0f);
+		}
+	);
+	SetData(imageData.data(), resolution);
+}
+
+void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution)
+{
+	std::vector<glm::vec4> imageData;
+	imageData.resize(resolution.x * resolution.y);
+	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+		{
+			imageData[i] = glm::vec4(src[i], 0.0f, 1.0f);
+		}
+	);
+	SetData(imageData.data(), resolution);
+}
+
+void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution)
+{
+	std::vector<glm::vec4> imageData;
+	imageData.resize(resolution.x * resolution.y);
+	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+		{
+			imageData[i] = glm::vec4(src[i], 0.0f, 0.0f, 1.0f);
+		}
+	);
+	SetData(imageData.data(), resolution);
 }

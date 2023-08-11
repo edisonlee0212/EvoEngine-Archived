@@ -11,7 +11,6 @@
 #include "Graphics.hpp"
 #include "EditorLayer.hpp"
 #include "ClassRegistry.hpp"
-#include "Gizmos.hpp"
 using namespace EvoEngine;
 using namespace tinyply;
 

@@ -1,6 +1,5 @@
 #include "EditorLayer.hpp"
 #include "Particles.hpp"
-#include "Gizmos.hpp"
 
 using namespace EvoEngine;
 
@@ -69,7 +68,7 @@ void Particles::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
             gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
             gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
 
-            Gizmos::DrawGizmoCube(displayBoundColor,
+            editorLayer->DrawGizmoCube(displayBoundColor,
                 transform * glm::translate(m_boundingBox.Center()) * glm::scale(m_boundingBox.Size()),
                 1, gizmoSettings);
         }
