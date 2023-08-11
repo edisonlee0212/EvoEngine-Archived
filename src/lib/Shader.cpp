@@ -41,7 +41,6 @@ void Shader::Set(const ShaderType shaderType, const std::string& shaderCode)
 	createInfo.codeSize = binary.size() * sizeof(uint32_t);
 	m_shaderModule = std::make_unique<ShaderModule>(createInfo);
 }
-
 const std::unique_ptr<ShaderModule>& Shader::GetShaderModule() const
 {
 	return m_shaderModule;

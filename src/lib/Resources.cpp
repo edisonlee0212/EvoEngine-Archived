@@ -400,6 +400,12 @@ void Resources::LoadShaders()
 
 		vertShaderCode =
 			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosStrands.vert");
+		vertShader = CreateResource<Shader>("GIZMOS_STRANDS_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosInstancedColored.vert");
 		vertShader = CreateResource<Shader>("GIZMOS_INSTANCED_COLORED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
@@ -412,8 +418,56 @@ void Resources::LoadShaders()
 
 		vertShaderCode =
 			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosStrandsNormalColored.vert");
+		vertShader = CreateResource<Shader>("GIZMOS_STRANDS_NORMAL_COLORED_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosVertexColored.vert");
 		vertShader = CreateResource<Shader>("GIZMOS_VERTEX_COLORED_VERT");
+		vertShader->Set(ShaderType::Vertex, vertShaderCode);
+
+		auto tescShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/Gizmos/GizmosStrands.tesc");
+		auto tescShader = CreateResource<Shader>("GIZMOS_STRANDS_TESC");
+		tescShader->Set(ShaderType::TessellationControl, tescShaderCode);
+
+		tescShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationControl/Gizmos/GizmosStrandsColored.tesc");
+		tescShader = CreateResource<Shader>("GIZMOS_STRANDS_COLORED_TESC");
+		tescShader->Set(ShaderType::TessellationControl, tescShaderCode);
+
+		auto teseShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/Gizmos/GizmosStrands.tese");
+		auto teseShader = CreateResource<Shader>("GIZMOS_STRANDS_TESE");
+		teseShader->Set(ShaderType::TessellationEvaluation, teseShaderCode);
+
+		teseShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/TessellationEvaluation/Gizmos/GizmosStrandsColored.tese");
+		teseShader = CreateResource<Shader>("GIZMOS_STRANDS_COLORED_TESE");
+		teseShader->Set(ShaderType::TessellationEvaluation, teseShaderCode);
+
+		auto geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Gizmos/GizmosStrands.geom");
+		auto geomShader = CreateResource<Shader>("GIZMOS_STRANDS_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		geomShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Geometry/Gizmos/GizmosStrandsColored.geom");
+		geomShader = CreateResource<Shader>("GIZMOS_STRANDS_COLORED_GEOM");
+		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		vertShaderCode =
+			std::string("#version 450\n") + Graphics::GetInstance().m_shaderGizmosConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Gizmos/GizmosStrandsVertexColored.vert");
+		vertShader = CreateResource<Shader>("GIZMOS_STRANDS_VERTEX_COLORED_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
 
 		auto fragShaderCode =
@@ -427,7 +481,6 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Gizmos/GizmosColored.frag");
 		fragShader = CreateResource<Shader>("GIZMOS_COLORED_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
-		
 	}
 #pragma endregion
 }

@@ -1,28 +1,25 @@
 layout(lines, invocations = 1) in;
 layout(triangle_strip, max_vertices = 128) out;
 
-in TES_OUT {
+layout (location = 0) in TES_OUT {
 	vec3 FragPos;
 	float Thickness;
 	vec3 Normal;
 	vec3 Tangent;
+	vec4 Color;
 } tes_in[];
 
-//out GS_OUT {
-//	vec3 FragPos;
-//	vec3 Normal;
-//	vec3 Tangent;
-//	vec2 TexCoords;
-//} gs_out;
+layout (location = 0) out VS_OUT {
+	vec4 Color;
+} gs_out;
 
 const float PI2 = 6.28318531;
-const float c = 1000.0;
-uniform mat4 model;
 
 void main(){
-	mat4 cameraProjectionView = EE_CAMERA_PROJECTION_VIEW;
+	mat4 model = EE_MODEL_MATRIX;
+	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
 	mat4 inverseModel = inverse(model);
-	for(int i = 0; i < gl_VerticesIn - 1; ++i)
+	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
 		//Reading Data
 		vec3 worldPosS = tes_in[i].FragPos;
@@ -62,10 +59,12 @@ void main(){
 			vec3 newPT = vec3(model * vec4(modelPosT.xyz + (v21 * sin(-angleT) + v22 * cos(-angleT)) * thickT, 1.0));
 
 			//Source Vertex
+			gs_out.Color = tes_in[i].Color;
 			gl_Position = cameraProjectionView * vec4(newPS, 1);
 			EmitVertex();
 
 			//Target Vertex
+			gs_out.Color = tes_in[i + 1].Color;
 			gl_Position = cameraProjectionView * vec4(newPT, 1);
 			EmitVertex();
 		}

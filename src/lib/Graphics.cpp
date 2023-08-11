@@ -866,8 +866,6 @@ std::string Graphics::StringifyResultVk(const VkResult& result)
 
 }
 
-
-
 void Graphics::CheckVk(const VkResult& result)
 {
 	if (result >= 0)
@@ -1666,6 +1664,29 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("GIZMOS", gizmos);
 	}
 	{
+		const auto gizmosStrands = std::make_shared<GraphicsPipeline>();
+		gizmosStrands->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_VERT");
+		gizmosStrands->m_tessellationControlShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_TESC");
+		gizmosStrands->m_tessellationEvaluationShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_TESE");
+		gizmosStrands->m_geometryShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_GEOM");
+		gizmosStrands->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_FRAG");
+		gizmosStrands->m_geometryType = GeometryType::Strands;
+
+		gizmosStrands->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosStrands->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmosStrands->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosStrands->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmosStrands->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosStrands->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_STRANDS", gizmosStrands);
+	}
+	{
 		const auto gizmosNormalColored = std::make_shared<GraphicsPipeline>();
 		gizmosNormalColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_NORMAL_COLORED_VERT");
 		gizmosNormalColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
@@ -1686,6 +1707,29 @@ void Graphics::CreateGraphicsPipelines() const
 		RegisterGraphicsPipeline("GIZMOS_NORMAL_COLORED", gizmosNormalColored);
 	}
 	{
+		const auto gizmosStrandsNormalColored = std::make_shared<GraphicsPipeline>();
+		gizmosStrandsNormalColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_NORMAL_COLORED_VERT");
+		gizmosStrandsNormalColored->m_tessellationControlShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_TESC");
+		gizmosStrandsNormalColored->m_tessellationEvaluationShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_TESE");
+		gizmosStrandsNormalColored->m_geometryShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_GEOM");
+		gizmosStrandsNormalColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
+		gizmosStrandsNormalColored->m_geometryType = GeometryType::Strands;
+
+		gizmosStrandsNormalColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosStrandsNormalColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmosStrandsNormalColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosStrandsNormalColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmosStrandsNormalColored->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosStrandsNormalColored->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_STRANDS_NORMAL_COLORED", gizmosStrandsNormalColored);
+	}
+	{
 		const auto gizmosVertexColored = std::make_shared<GraphicsPipeline>();
 		gizmosVertexColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_VERTEX_COLORED_VERT");
 		gizmosVertexColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
@@ -1704,6 +1748,29 @@ void Graphics::CreateGraphicsPipelines() const
 
 		gizmosVertexColored->PreparePipeline();
 		RegisterGraphicsPipeline("GIZMOS_VERTEX_COLORED", gizmosVertexColored);
+	}
+	{
+		const auto gizmosStrandsVertexColored = std::make_shared<GraphicsPipeline>();
+		gizmosStrandsVertexColored->m_vertexShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_VERTEX_COLORED_VERT");
+		gizmosStrandsVertexColored->m_tessellationControlShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_TESC");
+		gizmosStrandsVertexColored->m_tessellationEvaluationShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_TESE");
+		gizmosStrandsVertexColored->m_geometryShader = Resources::GetResource<Shader>("GIZMOS_STRANDS_COLORED_GEOM");
+		gizmosStrandsVertexColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
+		gizmosStrandsVertexColored->m_geometryType = GeometryType::Strands;
+
+		gizmosStrandsVertexColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
+		gizmosStrandsVertexColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		gizmosStrandsVertexColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
+		gizmosStrandsVertexColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		auto& pushConstantRange = gizmosStrandsVertexColored->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(GizmosPushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		gizmosStrandsVertexColored->PreparePipeline();
+		RegisterGraphicsPipeline("GIZMOS_STRANDS_VERTEX_COLORED", gizmosStrandsVertexColored);
 	}
 	{
 		const auto gizmosInstancedColored = std::make_shared<GraphicsPipeline>();
