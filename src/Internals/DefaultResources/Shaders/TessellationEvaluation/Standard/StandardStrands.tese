@@ -15,7 +15,11 @@ layout (location = 0) out TES_OUT {
 	float TexCoord;
 } tes_out;
 
+layout(location = 5) in flat uint currentInstanceIndexIn[];
+layout(location = 5) out flat uint currentInstanceIndexOut;
+
 void main(){
+	currentInstanceIndexOut = currentInstanceIndexIn[0];
 	vec3 position, normal, tangent, tempV;
 	float thickness, texCoord, tempF;
 	EE_SPLINE_INTERPOLATION(tcs_in[0].FragPos, tcs_in[1].FragPos, tcs_in[2].FragPos, tcs_in[3].FragPos, position, tangent, gl_TessCoord.x);

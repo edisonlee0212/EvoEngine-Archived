@@ -18,12 +18,17 @@ layout (location = 0) out VS_OUT {
 
 const float PI2 = 6.28318531;
 
+layout(location = 5) in flat uint currentInstanceIndexIn[];
+layout(location = 5) out flat uint currentInstanceIndexOut;
+
 void main(){
+	
 	mat4 model = EE_INSTANCES[EE_INSTANCE_INDEX].model;
 	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
 	mat4 inverseModel = inverse(model);
 	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
+		currentInstanceIndexOut = currentInstanceIndexIn[i];
 		//Reading Data
 		vec3 worldPosS = tes_in[i].FragPos;
 		vec3 worldPosT = tes_in[i + 1].FragPos;

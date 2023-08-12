@@ -4,15 +4,6 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles) out;
 layout(max_vertices = MESHLET_MAX_VERTICES_SIZE, max_primitives = MESHLET_MAX_TRIANGLES_SIZE) out;
 
-layout(location = 0) out MS_V_OUT {
-	vec3 FragPos;
-	vec3 Normal;
-	vec3 Tangent;
-	vec2 TexCoord;
-} ms_v_out[];
-
-layout(location = 5) out flat uint currentInstanceIndex[];
-
 void main()
 {
 	uint localMeshletIndex = gl_WorkGroupID.x;
@@ -28,16 +19,8 @@ void main()
 	for (uint i = 0; i < verticesSize; ++i)
 	{
 		uint vertexIndex = EE_MESHLETS[meshletIndex].vertexIndices[i];
-		vec3 N = normalize(vec3(model * vec4(EE_GET_VERTEX(vertexIndex).normal.xyz, 0.0)));
-		vec3 T = normalize(vec3(model * vec4(EE_GET_VERTEX(vertexIndex).tangent.xyz, 0.0)));
-		// re-orthogonalize T with respect to N
-		T = normalize(T - dot(T, N) * N);
-		ms_v_out[i].FragPos =	vec3(model * vec4(EE_GET_VERTEX(vertexIndex).position.xyz, 1.0));
-		ms_v_out[i].Normal = N;
-		ms_v_out[i].Tangent = T;
-		ms_v_out[i].TexCoord = EE_GET_VERTEX(vertexIndex).texCoord.xy;
-		gl_MeshVerticesEXT[i].gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(ms_v_out[i].FragPos, 1.0);
-		currentInstanceIndex[i] = instanceIndex;
+		gl_MeshVerticesEXT[i].gl_Position = 
+			EE_SPOT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix * model * vec4(EE_GET_VERTEX(vertexIndex).position.xyz, 1.0);
 	}
 
 	for (uint i = 0; i < triangleSize; ++i)

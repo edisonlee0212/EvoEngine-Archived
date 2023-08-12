@@ -88,7 +88,6 @@ void Resources::LoadShaders()
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/Standard.mesh");
 		auto standardMesh = CreateResource<Shader>("STANDARD_MESH");
 		standardMesh->Set(ShaderType::Mesh, meshShaderCode);
-
 	}
 
 #pragma endregion
@@ -349,6 +348,27 @@ void Resources::LoadShaders()
 
 		geomShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
 		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		auto meshShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Lighting/DirectionalLightShadowMap.mesh");
+
+		auto meshShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH");
+		meshShader->Set(ShaderType::Mesh, meshShaderCode);
+
+		meshShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Lighting/PointLightShadowMap.mesh");
+
+		meshShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_MESH");
+		meshShader->Set(ShaderType::Mesh, meshShaderCode);
+
+		meshShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Lighting/SpotLightShadowMap.mesh");
+
+		meshShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
+		meshShader->Set(ShaderType::Mesh, meshShaderCode);
 
 		auto fragShaderCode =
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +

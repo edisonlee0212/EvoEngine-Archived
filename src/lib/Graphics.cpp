@@ -66,7 +66,6 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	return VK_FALSE;
 }
 
-
 #pragma region Helpers
 uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
 {
@@ -1179,7 +1178,7 @@ void Graphics::PrepareDescriptorSetLayouts() const
 	perFrameLayout->PushDescriptorBinding(8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
 	perFrameLayout->PushDescriptorBinding(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
 	perFrameLayout->PushDescriptorBinding(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
-	perFrameLayout->PushDescriptorBinding(11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
+
 	perFrameLayout->PushDescriptorBinding(12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, 0);
 	perFrameLayout->PushDescriptorBinding(13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, Constants::MAX_TEXTURE_2D_RESOURCE_SIZE);
 	perFrameLayout->PushDescriptorBinding(14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, Constants::MAX_CUBEMAP_RESOURCE_SIZE);
@@ -1240,7 +1239,12 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-		standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESH");
+		if (ENABLE_MESH_SHADER) {
+			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESH");
+		}else
+		{
+			standardDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_VERT");
+		}
 		standardDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_FRAG");
 		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
 		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1257,7 +1261,7 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredPrepass->PreparePipeline();
 		RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS", standardDeferredPrepass);
 	}
-	/*
+	
 	{
 		const auto standardSkinnedDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		standardSkinnedDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_SKINNED_VERT");
@@ -1317,7 +1321,7 @@ void Graphics::CreateGraphicsPipelines() const
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 		standardStrandsDeferredPrepass->PreparePipeline();
 		RegisterGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS", standardStrandsDeferredPrepass);
-	}*/
+	}
 	{
 		const auto standardDeferredLighting = std::make_shared<GraphicsPipeline>();
 		standardDeferredLighting->m_vertexShader = Resources::GetResource<Shader>("TEXTURE_PASS_THROUGH_VERT");
@@ -1362,7 +1366,12 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
-		directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
+		if (ENABLE_MESH_SHADER) {
+			directionalLightShadowMap->m_meshShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH");
+		}else
+		{
+			directionalLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
+		}
 		directionalLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		directionalLightShadowMap->m_geometryType = GeometryType::Mesh;
 		directionalLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1436,7 +1445,12 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
-		pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
+		if (ENABLE_MESH_SHADER) {
+			pointLightShadowMap->m_meshShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_MESH");
+		}else
+		{
+			pointLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
+		}
 		pointLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		pointLightShadowMap->m_geometryType = GeometryType::Mesh;
 		pointLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1510,7 +1524,12 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
-		spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
+		if (ENABLE_MESH_SHADER) {
+			spotLightShadowMap->m_meshShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
+		}else
+		{
+			spotLightShadowMap->m_vertexShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
+		}
 		spotLightShadowMap->m_fragmentShader = Resources::GetResource<Shader>("EMPTY_FRAG");
 		spotLightShadowMap->m_geometryType = GeometryType::Mesh;
 		spotLightShadowMap->m_descriptorSetLayouts.emplace_back(perFrameLayout);
@@ -1953,9 +1972,7 @@ void Graphics::PreUpdate()
 	}
 
 	graphics.ResetCommandBuffers();
-	graphics.m_triangles = 0;
-	graphics.m_strandsSegments = 0;
-	graphics.m_drawCall = 0;
+	
 	
 	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 		if (const auto scene = Application::GetActiveScene()) {
@@ -2036,7 +2053,7 @@ void Graphics::LateUpdate()
 							renderTexturePresent->BindDescriptorSet(commandBuffer, 0, mainCamera->GetRenderTexture()->m_descriptorSet->GetVkDescriptorSet());
 
 							const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
-							mesh->Bind(commandBuffer);
+							GeometryStorage::BindVertices(commandBuffer);
 							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, 1, false);
 							vkCmdEndRendering(commandBuffer);
 							TransitImageLayout(commandBuffer,

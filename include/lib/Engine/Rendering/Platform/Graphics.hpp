@@ -3,6 +3,7 @@
 #include "ISingleton.hpp"
 #include "GraphicsResources.hpp"
 #include "GraphicsPipelineStates.hpp"
+#define ENABLE_MESH_SHADER false
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {

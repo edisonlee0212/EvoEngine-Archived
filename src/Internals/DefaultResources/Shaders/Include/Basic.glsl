@@ -199,11 +199,6 @@ layout(set = EE_PER_FRAME_SET, binding = 10) readonly buffer EE_MESHLETS_BLOCK
 	Meshlet EE_MESHLETS[];
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 11) readonly buffer EE_MESHLETS_INDICES_BLOCK
-{
-	uint EE_MESHLET_INDICES[];
-};
-
 layout(set = EE_PER_FRAME_SET, binding = 13) uniform sampler2D[] EE_TEXTURE_2DS;
 layout(set = EE_PER_FRAME_SET, binding = 14) uniform samplerCube[] EE_CUBEMAPS;
 

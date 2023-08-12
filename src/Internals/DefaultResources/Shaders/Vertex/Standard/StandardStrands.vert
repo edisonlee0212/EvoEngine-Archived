@@ -1,3 +1,4 @@
+#extension GL_ARB_shader_draw_parameters : enable
 layout (location = 0) in vec3 inPosition;
 layout (location = 1) in float inThickness;
 layout (location = 2) in vec3 inNormal;
@@ -12,9 +13,12 @@ layout(location = 0) out VS_OUT {
 	float TexCoord;
 } vs_out;
 
+layout(location = 5) out flat uint currentInstanceIndex;
+
 void main()
 {
-	vs_out.FragPos = vec3(EE_INSTANCES[EE_INSTANCE_INDEX].model * vec4(inPosition, 1.0));
+	currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
+	vs_out.FragPos = vec3(EE_INSTANCES[currentInstanceIndex].model * vec4(inPosition, 1.0));
 	vs_out.Thickness = inThickness;
 	vs_out.TexCoord = inTexCoord;
 	vs_out.Normal = vec3(EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(inNormal, 0.0));

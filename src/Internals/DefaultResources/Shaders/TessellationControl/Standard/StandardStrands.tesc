@@ -14,8 +14,11 @@ layout (location = 0) out TCS_OUT {
 	float TexCoord;
 } tcs_out[];
 
-void main(){
+layout(location = 5) in flat uint currentInstanceIndexIn[];
+layout(location = 5) out flat uint currentInstanceIndexOut[];
 
+void main(){
+	currentInstanceIndexOut[gl_InvocationID] = currentInstanceIndexIn[gl_InvocationID];
 	if(gl_InvocationID == 0){
 		gl_TessLevelOuter[0] = 1;
 		gl_TessLevelOuter[1] = EE_STRANDS_SEGMENT_SUBDIVISION(vs_in[0].FragPos, vs_in[3].FragPos);

@@ -669,8 +669,8 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_size = i.m_size;
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						i.m_mesh->Bind(commandBuffer);
-						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1, true);
+						GeometryStorage::BindVertices(commandBuffer);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1, false);
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}
@@ -702,8 +702,8 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_size = i.m_size;
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						i.m_mesh->Bind(commandBuffer);
-						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size(), true);
+						GeometryStorage::BindVertices(commandBuffer);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size(), false);
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}

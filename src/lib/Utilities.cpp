@@ -299,7 +299,6 @@ std::string ShaderUtils::CompileFileToAssembly(const std::string& sourceName, sh
 
 	return { result.cbegin(), result.cend() };
 }
-
 std::vector<uint32_t> ShaderUtils::CompileFile(const std::string& sourceName, shaderc_shader_kind kind,
 	const std::string& source, bool optimize)
 {

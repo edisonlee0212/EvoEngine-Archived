@@ -1,5 +1,6 @@
 #pragma once
 #include "Bound.hpp"
+#include "GeometryStorage.hpp"
 #include "Graphics.hpp"
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
@@ -46,7 +47,7 @@ namespace EvoEngine
 ;		std::vector<ParticleInfo> m_particleInfos;
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 	};
-
+	
 	class Mesh final : public IAsset, public IGeometry
 	{
 		Bound m_bound = {};
@@ -55,20 +56,14 @@ namespace EvoEngine
 		std::vector<glm::uvec3> m_triangles;
 
 		VertexAttributes m_vertexAttributes = {};
-
-		std::vector<glm::uvec3> m_geometryStorageTriangles;
-		std::vector<std::unique_ptr<Buffer>> m_trianglesBuffer = {};
-		std::vector<bool> m_uploadPending;
-		std::vector<uint32_t> m_meshletIndices;
+		friend class RenderLayer;
+		std::shared_ptr<RangeDescriptor> m_triangleRange;
+		std::shared_ptr<RangeDescriptor> m_meshletRange;
 	public:
-		[[nodiscard]] const std::vector<uint32_t>& PeekMeshletIndices() const;
 		void OnCreate() override;
 		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const override;
 
-		void Bind(VkCommandBuffer vkCommandBuffer) override;
-
-		void UploadData();
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles);
 		[[nodiscard]] size_t GetVerticesAmount() const;

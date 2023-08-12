@@ -41,16 +41,28 @@ namespace EvoEngine
 		uint32_t m_strandPointsSize = 0;
 		uint32_t m_segmentSize = 0;
 	};
-
+	class RangeDescriptor
+	{
+		friend class GeometryStorage;
+		Handle m_handle;
+	public:
+		uint32_t m_offset;
+		uint32_t m_size;
+	};
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
+		std::queue<uint32_t> m_vertexDataVertexPool = {};
 		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
-		std::queue<uint32_t> m_vertexDataVertexPool = {};
-		std::queue<uint32_t> m_meshletPool = {};
+		std::vector<std::shared_ptr<RangeDescriptor>> m_meshletRangeDescriptor;
+
+		std::vector<glm::uvec3> m_triangles;
+		std::vector<std::shared_ptr<RangeDescriptor>> m_triangleRangeDescriptor;
+
 		std::vector<std::unique_ptr<Buffer>> m_vertexBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_meshletBuffer = {};
+		std::vector<std::unique_ptr<Buffer>> m_triangleBuffer = {};
 		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
@@ -95,14 +107,14 @@ namespace EvoEngine
 		[[nodiscard]] static const SkinnedVertex& PeekSkinnedVertex(size_t skinnedVertexIndex);
 		[[nodiscard]] static const StrandPoint& PeekStrandPoint(size_t strandPointIndex);
 
-		static void AllocateMesh(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
-			std::vector<uint32_t>& meshletIndices);
+		static void AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
+			std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange);
 		static void AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles,
 			std::vector<uint32_t>& skinnedMeshletIndices);
 		static void AllocateStrands(const std::vector<StrandPoint>& strandPoints, const std::vector<glm::uvec4>& segments,
 			std::vector<uint32_t>& strandMeshletIndices);
 
-		static void FreeMesh(const std::vector<uint32_t>& meshletIndices);
+		static void FreeMesh(const Handle& handle);
 		static void FreeSkinnedMesh(const std::vector<uint32_t>& skinnedMeshletIndices);
 		static void FreeStrands(const std::vector<uint32_t>& strandMeshletIndices);
 

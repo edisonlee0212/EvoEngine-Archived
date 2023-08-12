@@ -1,3 +1,4 @@
+#extension GL_ARB_shader_draw_parameters : enable
 layout (location = 0) in vec3 inPosition;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inTangent;
@@ -16,8 +17,11 @@ layout(location = 0) out VS_OUT {
 	vec2 TexCoord;
 } vs_out;
 
+layout(location = 5) out flat uint currentInstanceIndex;
+
 void main()
 {
+	currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
 	mat4 boneTransform = EE_ANIM_BONES[inBoneIds[0]] * inWeights[0];
     if(inBoneIds[1] != -1){
 		boneTransform += EE_ANIM_BONES[inBoneIds[1]] * inWeights[1];
@@ -41,7 +45,7 @@ void main()
 		boneTransform += EE_ANIM_BONES[inBoneIds2[3]] * inWeights2[3];
 	}
 
-	boneTransform = EE_INSTANCES[EE_INSTANCE_INDEX].model * boneTransform;
+	boneTransform = EE_INSTANCES[currentInstanceIndex].model * boneTransform;
 	vs_out.FragPos = vec3(boneTransform * vec4(inPosition, 1.0));
 	vec3 N = normalize(vec3(boneTransform * vec4(inNormal, 0.0)));
 	vec3 T = normalize(vec3(boneTransform * vec4(inTangent, 0.0)));

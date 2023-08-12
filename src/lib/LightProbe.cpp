@@ -110,6 +110,7 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 		irradianceConstruct->m_states.m_viewPort = viewport;
 		irradianceConstruct->m_states.m_scissor = scissor;
 #pragma endregion
+		GeometryStorage::BindVertices(commandBuffer);
 		for (int i = 0; i < 6; i++) {
 #pragma region Lighting pass
 
@@ -152,7 +153,6 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 			irradianceConstruct->Bind(commandBuffer);
 			irradianceConstruct->BindDescriptorSet(commandBuffer, 0, tempSet->GetVkDescriptorSet());
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_RENDERING_CUBE");
-			mesh->Bind(commandBuffer);
 			EquirectangularToCubemapConstant constant{};
 			constant.m_projectionView = captureProjection * captureViews[i];
 			irradianceConstruct->PushConstant(commandBuffer, 0, constant);

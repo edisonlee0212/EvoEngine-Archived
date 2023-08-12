@@ -7,45 +7,16 @@
 #include "GeometryStorage.hpp"
 using namespace EvoEngine;
 
-void Mesh::Bind(const VkCommandBuffer vkCommandBuffer)
-{
-	GeometryStorage::BindVertices(vkCommandBuffer);
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	if (m_uploadPending[currentFrameIndex]) {
-		m_trianglesBuffer[currentFrameIndex]->UploadVector(m_geometryStorageTriangles);
-		m_uploadPending[currentFrameIndex] = false;
-	}
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-}
-
-const std::vector<uint32_t>& Mesh::PeekMeshletIndices() const
-{
-	return m_meshletIndices;
-}
-
 void Mesh::OnCreate()
 {
-	VkBufferCreateInfo trianglesBufferCreateInfo{};
-	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	trianglesBufferCreateInfo.size = 1;
-	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
-	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	m_uploadPending.resize(maxFramesInFlight);
-	for (int i = 0; i < maxFramesInFlight; i++) {
-		m_trianglesBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
-		m_uploadPending[i] = false;
-	}
 	m_bound = Bound();
 }
 
 Mesh::~Mesh()
 {
-	GeometryStorage::FreeMesh(m_meshletIndices);
-	m_trianglesBuffer.clear();
-	m_meshletIndices.clear();
+	GeometryStorage::FreeMesh(GetHandle());
+	m_triangleRange.reset();
+	m_meshletRange.reset();
 }
 
 void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount, const bool enableMetrics) const
@@ -58,27 +29,7 @@ void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineSt
 	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
-}
-
-void Mesh::UploadData()
-{
-	if (m_vertices.empty())
-	{
-		EVOENGINE_ERROR("Vertices empty!");
-		return;
-	}
-	if (m_geometryStorageTriangles.empty())
-	{
-		EVOENGINE_ERROR("Triangles empty!");
-		return;
-	}
-	if(Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
-	}
-	m_version++;
-	for (auto& i : m_uploadPending) i = true;
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, m_triangleRange->m_offset * 3, 0, 0);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -133,24 +84,10 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes.m_tangent = true;
 
 	
-	GeometryStorage::FreeMesh(m_meshletIndices);
-	m_meshletIndices.clear();
-	GeometryStorage::AllocateMesh(m_vertices, m_triangles, m_meshletIndices);
-
-	m_geometryStorageTriangles.resize(m_triangles.size());
-	size_t currentTriangleIndex = 0;
-	for(const auto& meshletIndex : m_meshletIndices)
-	{
-		auto& meshlet = GeometryStorage::PeekMeshlet(meshletIndex);
-		for(size_t i = 0; i < meshlet.m_triangleSize; i++)
-		{
-			m_geometryStorageTriangles[currentTriangleIndex].x = meshlet.m_vertexIndices[meshlet.m_triangles[i].x];
-			m_geometryStorageTriangles[currentTriangleIndex].y = meshlet.m_vertexIndices[meshlet.m_triangles[i].y];
-			m_geometryStorageTriangles[currentTriangleIndex].z = meshlet.m_vertexIndices[meshlet.m_triangles[i].z];
-			currentTriangleIndex++;
-		}
-	}
-	UploadData();
+	GeometryStorage::FreeMesh(GetHandle());
+	m_triangleRange.reset();
+	m_meshletRange.reset();
+	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
 }
 
 size_t Mesh::GetVerticesAmount() const

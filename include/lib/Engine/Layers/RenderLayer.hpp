@@ -137,6 +137,7 @@ namespace EvoEngine
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	public:
+		bool m_enableIndirectRendering = true;
 		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 100;
@@ -191,7 +192,6 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_instanceInfoDescriptorBuffers = {};
 		
-		std::vector<std::unique_ptr<Buffer>> m_meshletIndicesDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
@@ -208,7 +208,10 @@ namespace EvoEngine
 		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
 		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};
 		std::vector<InstanceInfoBlock> m_instanceInfoBlocks{};
-		std::vector<uint32_t> m_meshletIndices;
+
+		std::vector<std::unique_ptr<Buffer>> m_meshDrawIndexedIndirectCommandsBuffers = {};
+		std::vector<VkDrawIndexedIndirectCommand> m_meshDrawIndexedIndirectCommands{};
+		uint32_t m_totalMeshTriangles = 0;
 
 		std::vector<std::unique_ptr<Buffer>> m_drawMeshTasksIndirectCommandsBuffers = {};
 		std::vector<VkDrawMeshTasksIndirectCommandEXT> m_drawMeshTasksIndirectCommands{};
