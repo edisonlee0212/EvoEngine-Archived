@@ -57,7 +57,7 @@ void BoneMatrices::UploadData()
 	bufferInfo.offset = 0;
 	bufferInfo.buffer = m_boneMatricesBuffer[currentFrameIndex]->GetVkBuffer();
 	bufferInfo.range = VK_WHOLE_SIZE;
-	m_descriptorSet[currentFrameIndex]->UpdateBufferDescriptorBinding(5, bufferInfo);
+	m_descriptorSet[currentFrameIndex]->UpdateBufferDescriptorBinding(18, bufferInfo);
 }
 
 

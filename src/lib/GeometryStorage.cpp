@@ -21,7 +21,7 @@ void GeometryStorage::UploadData()
 	}
 }
 
-void GeometryStorage::PreUpdate()
+void GeometryStorage::DeviceSync()
 {
 	auto& storage = GetInstance();
 	storage.UploadData();
@@ -126,19 +126,19 @@ void GeometryStorage::BindStrandPoints(const VkCommandBuffer commandBuffer)
 const Vertex& GeometryStorage::PeekVertex(const size_t vertexIndex)
 {
 	const auto& storage = GetInstance();
-	return storage.m_vertexDataChunks[vertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_vertexData[vertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE];
+	return storage.m_vertexDataChunks[vertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_vertexData[vertexIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE];
 }
 
 const SkinnedVertex& GeometryStorage::PeekSkinnedVertex(const size_t skinnedVertexIndex)
 {
 	const auto& storage = GetInstance();
-	return storage.m_skinnedVertexDataChunks[skinnedVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_skinnedVertexData[skinnedVertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE];
+	return storage.m_skinnedVertexDataChunks[skinnedVertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_skinnedVertexData[skinnedVertexIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE];
 }
 
 const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strandPointIndex)
 {
 	const auto& storage = GetInstance();
-	return storage.m_strandPointDataChunks[strandPointIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_strandPointData[strandPointIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE];
+	return storage.m_strandPointDataChunks[strandPointIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_strandPointData[strandPointIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE];
 }
 
 void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
@@ -166,11 +166,11 @@ void GeometryStorage::AllocateMesh(const std::vector<Vertex>& vertices, const st
 		}
 
 		vertexIndices[i] = currentVertexIndex;
-		if (currentVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_vertexDataChunks.size())
+		if (currentVertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE >= storage.m_vertexDataChunks.size())
 		{
 			storage.m_vertexDataChunks.emplace_back();
 		}
-		storage.m_vertexDataChunks[currentVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_vertexData[currentVertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = vertices[i];
+		storage.m_vertexDataChunks[currentVertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_vertexData[currentVertexIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = vertices[i];
 	}
 
 	meshletIndices.clear();
@@ -289,11 +289,11 @@ void GeometryStorage::AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skin
 		}
 
 		skinnedVertexIndices[i] = currentSkinnedVertexIndex;
-		if (currentSkinnedVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_skinnedVertexDataChunks.size())
+		if (currentSkinnedVertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE >= storage.m_skinnedVertexDataChunks.size())
 		{
 			storage.m_skinnedVertexDataChunks.emplace_back();
 		}
-		storage.m_skinnedVertexDataChunks[currentSkinnedVertexIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_skinnedVertexData[currentSkinnedVertexIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = skinnedVertices[i];
+		storage.m_skinnedVertexDataChunks[currentSkinnedVertexIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_skinnedVertexData[currentSkinnedVertexIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = skinnedVertices[i];
 	}
 
 	skinnedMeshletIndices.clear();
@@ -412,11 +412,11 @@ void GeometryStorage::AllocateStrands(const std::vector<StrandPoint>& strandPoin
 		}
 
 		strandPointIndices[i] = currentStrandPointIndex;
-		if (currentStrandPointIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE >= storage.m_strandPointDataChunks.size())
+		if (currentStrandPointIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE >= storage.m_strandPointDataChunks.size())
 		{
 			storage.m_strandPointDataChunks.emplace_back();
 		}
-		storage.m_strandPointDataChunks[currentStrandPointIndex / Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE].m_strandPointData[currentStrandPointIndex % Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = strandPoints[i];
+		storage.m_strandPointDataChunks[currentStrandPointIndex / Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE].m_strandPointData[currentStrandPointIndex % Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = strandPoints[i];
 	}
 
 	strandMeshletIndices.clear();

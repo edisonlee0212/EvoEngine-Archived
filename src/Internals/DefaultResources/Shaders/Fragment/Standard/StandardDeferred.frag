@@ -1,3 +1,5 @@
+#extension GL_ARB_shader_draw_parameters : enable
+
 precision highp float;
 layout (location = 0) in VS_OUT {
     vec3 FragPos;
@@ -10,9 +12,12 @@ layout (location = 0) out vec4 outNormal;
 layout (location = 1) out vec4 outAlbedo;
 layout (location = 2) out vec4 outMaterial;
 
+layout(location = 4) in flat uint currentInstanceIndex;
+
 void main()
 {
-    MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[EE_INSTANCES[EE_INSTANCE_INDEX].materialIndex];
+    uint instanceIndex = currentInstanceIndex;
+    MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[EE_INSTANCES[instanceIndex].materialIndex];
     
     vec2 texCoord = fs_in.TexCoord;
     vec4 albedo = materialProperties.EE_PBR_ALBEDO;
@@ -40,9 +45,9 @@ void main()
 
     // also store the per-fragment normals into the gbuffer
     outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
-    outNormal.a = EE_INSTANCE_INDEX + 1;
+    outNormal.a = instanceIndex + 1;
     outAlbedo = albedo;
-    outAlbedo.a = EE_INSTANCES[EE_INSTANCE_INDEX].infoIndex1;
+    outAlbedo.a = EE_INSTANCES[instanceIndex].infoIndex1;
 
     outMaterial = vec4(metallic, roughness, emission, ao);
 }

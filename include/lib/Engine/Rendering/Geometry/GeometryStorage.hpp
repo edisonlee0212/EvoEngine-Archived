@@ -8,7 +8,7 @@ namespace EvoEngine
 {
 	struct VertexDataChunk
 	{
-		Vertex m_vertexData[Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = {};
+		Vertex m_vertexData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
 	};
 	struct Meshlet
 	{
@@ -20,7 +20,7 @@ namespace EvoEngine
 
 	struct SkinnedVertexDataChunk
 	{
-		SkinnedVertex m_skinnedVertexData[Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = {};
+		SkinnedVertex m_skinnedVertexData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
 	};
 	struct SkinnedMeshlet
 	{
@@ -32,7 +32,7 @@ namespace EvoEngine
 
 	struct StrandPointDataChunk
 	{
-		StrandPoint m_strandPointData[Graphics::Constants::VERTEX_CHUNK_VERTICES_SIZE] = {};
+		StrandPoint m_strandPointData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
 	};
 	struct StrandMeshlet
 	{
@@ -72,9 +72,10 @@ namespace EvoEngine
 		std::vector<bool> m_requireStrandMeshDataDeviceUpdate = {};
 
 		void UploadData();
-		friend class Graphics;
+		friend class RenderLayer;
 		friend class Resources;
-		static void PreUpdate();
+		friend class Graphics;
+		static void DeviceSync();
 		static void Initialize();
 	public:
 		static const std::unique_ptr<Buffer>& GetVertexBuffer();

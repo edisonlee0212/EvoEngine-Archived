@@ -11,8 +11,11 @@ namespace EvoEngine
 
 		std::vector<std::vector<bool>> m_texture2DPendingUpdates;
 		std::vector<std::vector<bool>> m_cubemapPendingUpdates;
+
+		friend class RenderLayer;
+		static void DeviceSync();
 	public:
-		static void PreUpdate();
+		
 		static void UnRegisterTexture2D(const std::shared_ptr<Texture2D>& texture2D);
 		static void UnRegisterCubemap(const std::shared_ptr<Cubemap>& cubemap);
 		static void RegisterTexture2D(const std::shared_ptr<Texture2D>& texture2D);

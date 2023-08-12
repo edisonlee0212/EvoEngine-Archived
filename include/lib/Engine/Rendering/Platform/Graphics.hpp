@@ -147,7 +147,7 @@ namespace EvoEngine
 			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1024;
 			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 8192;
 			inline constexpr static uint32_t INITIAL_RENDER_TASK_SIZE = 8192;
-			inline constexpr static uint32_t VERTEX_CHUNK_VERTICES_SIZE = 64;
+			inline constexpr static uint32_t VERTEX_DATA_CHUNK_VERTICES_SIZE = 64;
 			inline constexpr static uint32_t MAX_KERNEL_AMOUNT = 64;
 			inline constexpr static uint32_t MAX_DIRECTIONAL_LIGHT_SIZE = 16;
 			inline constexpr static uint32_t MAX_POINT_LIGHT_SIZE = 16;

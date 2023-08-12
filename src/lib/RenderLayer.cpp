@@ -106,11 +106,15 @@ void RenderLayer::PreUpdate()
 	m_cameraInfoBlocks.clear();
 	m_materialInfoBlocks.clear();
 	m_instanceInfoBlocks.clear();
-	m_renderTaskInfoBlocks.clear();
+	m_meshletIndices.clear();
+
+	
 
 	m_directionalLightInfoBlocks.clear();
 	m_pointLightInfoBlocks.clear();
 	m_spotLightInfoBlocks.clear();
+
+	m_drawMeshTasksIndirectCommands.clear();
 
 	m_cameras.clear();
 
@@ -142,6 +146,10 @@ void RenderLayer::LateUpdate()
 			}
 		}
 	);
+
+
+	GeometryStorage::DeviceSync();
+	TextureStorage::DeviceSync();
 
 	ApplyAnimator();
 	//The following data stays consistent during entire frame.
@@ -184,7 +192,10 @@ void RenderLayer::LateUpdate()
 	m_cameraInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_cameraInfoBlocks);
 	m_materialInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_materialInfoBlocks);
 	m_instanceInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_instanceInfoBlocks);
-	m_renderTaskInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_renderTaskInfoBlocks);
+	m_meshletIndicesDescriptorBuffers[currentFrameIndex]->UploadVector(m_meshletIndices);
+
+
+	m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->UploadVector(m_drawMeshTasksIndirectCommands);
 
 	VkDescriptorBufferInfo bufferInfo;
 	bufferInfo.offset = 0;
@@ -201,22 +212,21 @@ void RenderLayer::LateUpdate()
 	bufferInfo.buffer = m_instanceInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(4, bufferInfo);
 	bufferInfo.buffer = m_kernelDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(6, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(5, bufferInfo);
 	bufferInfo.buffer = m_directionalLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(7, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(6, bufferInfo);
 	bufferInfo.buffer = m_pointLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(8, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(7, bufferInfo);
 	bufferInfo.buffer = m_spotLightInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(8, bufferInfo);
 
 	bufferInfo.buffer = GeometryStorage::GetVertexBuffer()->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(10, bufferInfo);
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(9, bufferInfo);
 	bufferInfo.buffer = GeometryStorage::GetMeshletBuffer()->GetVkBuffer();
+	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(10, bufferInfo);
+	bufferInfo.buffer = m_meshletIndicesDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
 	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(11, bufferInfo);
-
-	bufferInfo.buffer = m_renderTaskInfoDescriptorBuffers[currentFrameIndex]->GetVkBuffer();
-	m_perFrameDescriptorSets[currentFrameIndex]->UpdateBufferDescriptorBinding(12, bufferInfo);
-
+	
 	PreparePointAndSpotLightShadowMap();
 
 	for (const auto& [cameraGlobalTransform, camera] : m_cameras)
@@ -1224,7 +1234,12 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+
+			instanceInfoBlock.m_meshletIndexOffset = m_meshletIndices.size();
+			instanceInfoBlock.m_meshletSize = mesh->PeekMeshletIndices().size();
+			m_meshletIndices.insert(m_meshletIndices.end(), mesh->PeekMeshletIndices().begin(), mesh->PeekMeshletIndices().end());
+
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 			RenderInstance renderInstance;
@@ -1234,7 +1249,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_castShadow = meshRenderer->m_castShadow;
 
 			renderInstance.m_instanceIndex = instanceIndex;
-			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
 			{
 				m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
@@ -1243,13 +1258,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			{
 				m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
-
-			for(const auto& i : mesh->PeekMeshletIndices())
-			{
-				auto& renderTask = m_renderTaskInfoBlocks.emplace_back();
-				renderTask.m_instanceIndex = instanceIndex;
-				renderTask.m_meshletIndex = i;
-			}
+			
+			auto& newTask = m_drawMeshTasksIndirectCommands.emplace_back();
+			newTask.groupCountX = instanceInfoBlock.m_meshletSize;
+			newTask.groupCountY = 1;
+			newTask.groupCountZ = 1;
 		}
 	}
 	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
@@ -1294,7 +1307,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1307,7 +1320,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
 
 			renderInstance.m_instanceIndex = instanceIndex;
-			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
 			{
@@ -1356,7 +1369,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1369,7 +1382,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_particleInfos = particleInfoList;
 
 			renderInstance.m_instanceIndex = instanceIndex;
-			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
 			{
@@ -1415,7 +1428,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_infoIndex1 = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1427,7 +1440,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_castShadow = strandsRenderer->m_castShadow;
 
 			renderInstance.m_instanceIndex = instanceIndex;
-			if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
 			{
@@ -1452,11 +1465,15 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_cameraInfoDescriptorBuffers.clear();
 	m_materialInfoDescriptorBuffers.clear();
 	m_instanceInfoDescriptorBuffers.clear();
-	m_renderTaskInfoDescriptorBuffers.clear();
+	
+	m_meshletIndicesDescriptorBuffers.clear();
 	m_kernelDescriptorBuffers.clear();
 	m_directionalLightInfoDescriptorBuffers.clear();
 	m_pointLightInfoDescriptorBuffers.clear();
 	m_spotLightInfoDescriptorBuffers.clear();
+
+
+	m_drawMeshTasksIndirectCommandsBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1478,8 +1495,9 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		m_materialInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(InstanceInfoBlock) * Graphics::Constants::INITIAL_INSTANCE_SIZE;
 		m_instanceInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(RenderTaskInfoBlock) * Graphics::Constants::INITIAL_RENDER_TASK_SIZE;
-		m_renderTaskInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		
+		bufferCreateInfo.size = sizeof(uint32_t) * Graphics::Constants::INITIAL_INSTANCE_SIZE;
+		m_meshletIndicesDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::Constants::MAX_KERNEL_AMOUNT * 2;
@@ -1491,6 +1509,10 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(SpotLightInfo) * Graphics::Constants::MAX_SPOT_LIGHT_SIZE;
 		m_spotLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+
+		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+		bufferCreateInfo.size = sizeof(VkDrawMeshTasksIndirectCommandEXT) * Graphics::Constants::INITIAL_RENDER_TASK_SIZE;
+		m_drawMeshTasksIndirectCommandsBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 	}
 #pragma endregion
 }
@@ -1872,6 +1894,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		if (camera.get() == editorLayer->GetSceneCamera().get()) isSceneCamera = true;
 		if (m_needFade) needFade = true;
 	}
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 #pragma region Deferred Rendering
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer) {
 #pragma region Viewport and scissor
@@ -1922,20 +1945,30 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			/*
 			m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
 				{
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 					deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+					
 					const auto mesh = renderCommand.m_mesh;
 					mesh->Bind(commandBuffer);
 					mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states, 1, true);
+				
+					
 				}
-				);
-
+			);
+			*/
+			RenderInstancePushConstant pushConstant;
+			pushConstant.m_cameraIndex = cameraIndex;
+			pushConstant.m_instanceIndex = 0;
+			deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+			vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 			vkCmdEndRendering(commandBuffer);
 		}
+		/*
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2044,6 +2077,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 			vkCmdEndRendering(commandBuffer);
 		}
+		*/
 #pragma endregion
 #pragma region Lighting pass
 		{
@@ -2110,7 +2144,12 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	InstanceInfoBlock instanceInfoBlock;
 	instanceInfoBlock.m_model.m_value = model;
 	instanceInfoBlock.m_materialIndex = materialIndex;
-	instanceInfoBlock.m_infoIndex1 = 0;
+	instanceInfoBlock.m_entitySelected = 0;
+	instanceInfoBlock.m_meshletIndexOffset = m_meshletIndices.size();
+	instanceInfoBlock.m_meshletSize = mesh->PeekMeshletIndices().size();
+	m_meshletIndices.insert(m_meshletIndices.end(), mesh->PeekMeshletIndices().begin(), mesh->PeekMeshletIndices().end());
+
+
 	auto entityHandle = Handle();
 	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 	RenderInstance renderInstance;
@@ -2120,7 +2159,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	renderInstance.m_castShadow = castShadow;
 
 	renderInstance.m_instanceIndex = instanceIndex;
-	if (instanceInfoBlock.m_infoIndex1 == 1) m_needFade = true;
+	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 	if (material->m_drawSettings.m_blending)
 	{
 		m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
@@ -2130,12 +2169,9 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 		m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 	}
 
-	for (const auto& i : mesh->PeekMeshletIndices())
-	{
-		auto& renderTask = m_renderTaskInfoBlocks.emplace_back();
-		renderTask.m_instanceIndex = instanceIndex;
-		renderTask.m_meshletIndex = i;
-	}
+	auto& renderTask = m_drawMeshTasksIndirectCommands.emplace_back();
+	renderTask.groupCountX = instanceInfoBlock.m_meshletSize;
+	renderTask.groupCountY = renderTask.groupCountZ = 1;
 }
 
 const std::shared_ptr<DescriptorSet>& RenderLayer::GetPerFrameDescriptorSet() const

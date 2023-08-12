@@ -57,6 +57,7 @@ layout(set = EE_PER_FRAME_SET, binding = 2) readonly buffer EE_CAMERA_BLOCK
 {
 	Camera EE_CAMERAS[];
 };
+
 struct MaterialProperties {
 	int EE_ALBEDO_MAP_INDEX;
 	int EE_NORMAL_MAP_INDEX;
@@ -81,13 +82,12 @@ layout(set = EE_PER_FRAME_SET, binding = 3) readonly buffer EE_MATERIAL_BLOCK
 	MaterialProperties EE_MATERIAL_PROPERTIES[];
 };
 
-
 struct Instance {
 	mat4 model;
-	int materialIndex;
-	int infoIndex1;
-	int infoIndex2;
-	int infoIndex3;
+	uint materialIndex;
+	uint infoIndex1;
+	uint meshletIndexOffset;
+	uint meshletSize;
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 4) readonly buffer EE_INSTANCE_BLOCK
@@ -141,23 +141,23 @@ struct SpotLight {
 	int viewPortXSize;
 	int viewPortYSize;
 };
-layout(set = EE_PER_FRAME_SET, binding = 6) uniform EE_KERNEL_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 5) uniform EE_KERNEL_BLOCK
 {
 	vec4 EE_UNIFORM_KERNEL[MAX_KERNEL_AMOUNT];
 	vec4 EE_GAUSS_KERNEL[MAX_KERNEL_AMOUNT];
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 7) readonly buffer EE_DIRECTIONAL_LIGHT_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 6) readonly buffer EE_DIRECTIONAL_LIGHT_BLOCK
 {
 	DirectionalLight EE_DIRECTIONAL_LIGHTS[];
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 8) readonly buffer EE_POINT_LIGHT_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 7) readonly buffer EE_POINT_LIGHT_BLOCK
 {
 	PointLight EE_POINT_LIGHTS[];
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_SPOT_LIGHT_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 8) readonly buffer EE_SPOT_LIGHT_BLOCK
 {
 	SpotLight EE_SPOT_LIGHTS[];
 };
@@ -169,10 +169,23 @@ struct Vertex {
 	vec4 color;
 	vec4 texCoord;
 };
-layout(set = EE_PER_FRAME_SET, binding = 10) readonly buffer EE_VERTICES_BLOCK
-{
-	Vertex EE_VERTICES[];
+
+Vertex EE_GET_VERTEX(uint vertexIndex);
+
+struct VertexDataChunk {
+	Vertex vertices[VERTEX_DATA_CHUNK_VERTICES_SIZE];
 };
+
+
+layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_VERTICES_BLOCK
+{
+	VertexDataChunk EE_VERTEX_DATA_CHUNKS[];
+};
+
+
+Vertex EE_GET_VERTEX(uint vertexIndex) {
+	return EE_VERTEX_DATA_CHUNKS[vertexIndex / VERTEX_DATA_CHUNK_VERTICES_SIZE].vertices[vertexIndex % VERTEX_DATA_CHUNK_VERTICES_SIZE];
+}
 
 struct Meshlet {
 	uint vertexIndices[MESHLET_MAX_VERTICES_SIZE];
@@ -181,21 +194,14 @@ struct Meshlet {
 	uint triangleSize;
 };
 
-layout(set = EE_PER_FRAME_SET, binding = 11) readonly buffer EE_MESHLETS_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 10) readonly buffer EE_MESHLETS_BLOCK
 {
 	Meshlet EE_MESHLETS[];
 };
 
-struct RenderTask {
-	uint meshletIndex;
-	uint instanceIndex;
-	uint infoIndex1;
-	uint infoIndex2;
-};
-
-layout(set = EE_PER_FRAME_SET, binding = 12) readonly buffer EE_RENDER_TASKS_BLOCK
+layout(set = EE_PER_FRAME_SET, binding = 11) readonly buffer EE_MESHLETS_INDICES_BLOCK
 {
-	RenderTask EE_RENDER_TASKS[];
+	uint EE_MESHLET_INDICES[];
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 13) uniform sampler2D[] EE_TEXTURE_2DS;
@@ -204,6 +210,11 @@ layout(set = EE_PER_FRAME_SET, binding = 14) uniform samplerCube[] EE_CUBEMAPS;
 struct InstancedData {
 	mat4 instanceMatrix;
 	vec4 color;
+};
+
+layout(set = EE_PER_PASS_SET, binding = 18) readonly buffer EE_ANIM_BONES_BLOCK
+{
+	mat4 EE_ANIM_BONES[];
 };
 
 layout(set = EE_PER_PASS_SET, binding = 18) readonly buffer EE_INSTANCED_DATA_BLOCK

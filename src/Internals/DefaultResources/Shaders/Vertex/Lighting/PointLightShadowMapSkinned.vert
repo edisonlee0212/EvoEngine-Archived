@@ -9,11 +9,6 @@ layout (location = 6) in vec4 inWeights;
 layout (location = 7) in ivec4 inBoneIds2; 
 layout (location = 8) in vec4 inWeights2;
 
-layout(set = EE_PER_PASS_SET, binding = 5) readonly buffer EE_ANIM_BONES_BLOCK
-{
-	mat4 EE_ANIM_BONES[];
-};
-
 void main()
 {
 	mat4 boneTransform = EE_ANIM_BONES[inBoneIds[0]] * inWeights[0];

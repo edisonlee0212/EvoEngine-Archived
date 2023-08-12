@@ -108,20 +108,13 @@ namespace EvoEngine
 
 	struct InstanceInfoBlock
 	{
-		GlobalTransform m_model;
-		int m_materialIndex;
-		int m_infoIndex1 = 0;
-		int m_infoIndex2 = 0;
-		int m_infoIndex3 = 0;
+		GlobalTransform m_model = {};
+		uint32_t m_materialIndex = 0;
+		uint32_t m_entitySelected = 0;
+		uint32_t m_meshletIndexOffset = 0;
+		uint32_t m_meshletSize = 0;
 	};
 
-	struct RenderTaskInfoBlock
-	{
-		uint32_t m_meshletIndex = 0;
-		uint32_t m_instanceIndex = 0;
-		uint32_t m_infoIndex1 = 0;
-		uint32_t m_infoIndex2 = 0;
-	};
 #pragma endregion
 
 	class RenderLayer final : public ILayer {
@@ -191,16 +184,19 @@ namespace EvoEngine
 #pragma region Per Frame Descriptor Sets
 		friend class TextureStorage;
 		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
+
 		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_instanceInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_renderTaskInfoDescriptorBuffers = {};
+		
+		std::vector<std::unique_ptr<Buffer>> m_meshletIndicesDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
 		std::vector<std::unique_ptr<Buffer>> m_spotLightInfoDescriptorBuffers = {};
+
 		void CreateStandardDescriptorBuffers();
 		void CreatePerFrameDescriptorSets();
 
@@ -212,7 +208,10 @@ namespace EvoEngine
 		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
 		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};
 		std::vector<InstanceInfoBlock> m_instanceInfoBlocks{};
-		std::vector<RenderTaskInfoBlock> m_renderTaskInfoBlocks{};
+		std::vector<uint32_t> m_meshletIndices;
+
+		std::vector<std::unique_ptr<Buffer>> m_drawMeshTasksIndirectCommandsBuffers = {};
+		std::vector<VkDrawMeshTasksIndirectCommandEXT> m_drawMeshTasksIndirectCommands{};
 
 		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;

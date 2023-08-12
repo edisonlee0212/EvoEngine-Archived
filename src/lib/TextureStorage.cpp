@@ -6,7 +6,7 @@
 using namespace EvoEngine;
 
 
-void TextureStorage::PreUpdate()
+void TextureStorage::DeviceSync()
 {
 	auto& storage = GetInstance();
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
