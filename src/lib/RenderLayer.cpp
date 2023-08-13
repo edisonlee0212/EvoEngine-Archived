@@ -895,7 +895,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
+										vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -1123,7 +1123,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								{
 									graphics.m_drawCall[currentFrameIndex]++;
 									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-									vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
+									vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
@@ -1318,7 +1318,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
+			instanceInfoBlock.m_renderBufferIndex = 0;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1327,7 +1327,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_owner = owner;
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = meshRenderer->m_castShadow;
-
+			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
 			renderInstance.m_instanceIndex = instanceIndex;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
@@ -1340,7 +1340,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			}
 
 			auto& newMeshTask = m_drawMeshTasksIndirectCommands.emplace_back();
-			newMeshTask.groupCountX = instanceInfoBlock.m_meshletSize;
+			newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
 			newMeshTask.groupCountY = 1;
 			newMeshTask.groupCountZ = 1;
 
@@ -1397,7 +1397,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-
+			instanceInfoBlock.m_renderBufferIndex = 0;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1407,7 +1407,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_skinnedMesh = skinnedMesh;
 			renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
 			renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
-
+			renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
 			renderInstance.m_instanceIndex = instanceIndex;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
@@ -1459,7 +1459,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-
+			instanceInfoBlock.m_renderBufferIndex = 0;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1469,6 +1469,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = particles->m_castShadow;
 			renderInstance.m_particleInfos = particleInfoList;
+			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
 
 			renderInstance.m_instanceIndex = instanceIndex;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
@@ -1518,7 +1519,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-
+			instanceInfoBlock.m_renderBufferIndex = 0;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1527,6 +1528,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_owner = owner;
 			renderInstance.m_strands = strands;
 			renderInstance.m_castShadow = strandsRenderer->m_castShadow;
+			renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_size;
 
 			renderInstance.m_instanceIndex = instanceIndex;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
@@ -1840,7 +1842,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
+										vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -2099,7 +2101,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						{
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-							vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
+							vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
 						}
 						else {
 							const auto mesh = renderCommand.m_mesh;
@@ -2296,7 +2298,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	instanceInfoBlock.m_materialIndex = materialIndex;
 	instanceInfoBlock.m_entitySelected = 0;
 	instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
+	instanceInfoBlock.m_renderBufferIndex = 0;
 
 	auto entityHandle = Handle();
 	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -2305,7 +2307,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	renderInstance.m_owner = Entity();
 	renderInstance.m_mesh = mesh;
 	renderInstance.m_castShadow = castShadow;
-
+	renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
 	renderInstance.m_instanceIndex = instanceIndex;
 	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 	if (material->m_drawSettings.m_blending)
@@ -2318,7 +2320,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	}
 
 	auto& newMeshTask = m_drawMeshTasksIndirectCommands.emplace_back();
-	newMeshTask.groupCountX = instanceInfoBlock.m_meshletSize;
+	newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
 	newMeshTask.groupCountY = 1;
 	newMeshTask.groupCountZ = 1;
 

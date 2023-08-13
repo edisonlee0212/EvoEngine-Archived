@@ -30,6 +30,8 @@ namespace EvoEngine
 		Entity m_owner = Entity();
 		std::shared_ptr<Mesh> m_mesh;
 		bool m_castShadow = true;
+
+		uint32_t m_meshletSize = 0;
 	};
 
 	struct SkinnedRenderInstance {
@@ -39,6 +41,8 @@ namespace EvoEngine
 		std::shared_ptr<SkinnedMesh> m_skinnedMesh;
 		bool m_castShadow = true;
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
+
+		uint32_t m_skinnedMeshletSize = 0;
 	};
 
 	struct InstancedRenderInstance
@@ -49,6 +53,8 @@ namespace EvoEngine
 		std::shared_ptr<Mesh> m_mesh;
 		bool m_castShadow = true;
 		std::shared_ptr<ParticleInfoList> m_particleInfos;
+
+		uint32_t m_meshletSize = 0;
 	};
 
 	struct StrandsRenderInstance
@@ -58,6 +64,8 @@ namespace EvoEngine
 		Entity m_owner = Entity();
 		std::shared_ptr<Strands> m_strands;
 		bool m_castShadow = true;
+
+		uint32_t m_strandMeshletSize = 0;
 	};
 
 	struct RenderInstanceCollection
@@ -112,7 +120,7 @@ namespace EvoEngine
 		uint32_t m_materialIndex = 0;
 		uint32_t m_entitySelected = 0;
 		uint32_t m_meshletIndexOffset = 0;
-		uint32_t m_meshletSize = 0;
+		uint32_t m_renderBufferIndex = 0;
 	};
 
 #pragma endregion
