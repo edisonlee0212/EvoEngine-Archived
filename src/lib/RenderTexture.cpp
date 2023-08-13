@@ -201,6 +201,9 @@ RenderTexture::RenderTexture(const RenderTextureCreateInfo& renderTextureCreateI
 }
 void RenderTexture::Resize(const VkExtent3D extent)
 {
+	if(extent.width == m_extent.width
+		&& extent.height == m_extent.height
+		&& extent.depth == m_extent.depth) return;
 	RenderTextureCreateInfo renderTextureCreateInfo;
 	renderTextureCreateInfo.m_extent = extent;
 	renderTextureCreateInfo.m_color = m_color;

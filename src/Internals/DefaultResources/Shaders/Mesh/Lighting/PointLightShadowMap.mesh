@@ -12,23 +12,27 @@ void main()
 
 	mat4 model = EE_INSTANCES[instanceIndex].model;
 
-	uint verticesSize = EE_MESHLETS[meshletIndex].verticesSize;
-	uint triangleSize = EE_MESHLETS[meshletIndex].triangleSize;
+	Meshlet meshlet = EE_MESHLETS[meshletIndex];
+
+	uint verticesSize = meshlet.verticesSize;
+	uint triangleSize = meshlet.triangleSize;
+	uint chunkIndex = meshletIndex;
+
 	SetMeshOutputsEXT(verticesSize, triangleSize);
 
 	for (uint i = 0; i < verticesSize; ++i)
 	{
-		uint vertexIndex = EE_MESHLETS[meshletIndex].vertexIndices[i];
+		Vertex v = EE_GET_VERTEX(chunkIndex, i);
 		gl_MeshVerticesEXT[i].gl_Position = 
-			EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * model * vec4(EE_GET_VERTEX(vertexIndex).position.xyz, 1.0);
+			EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * model * vec4(v.position.xyz, 1.0);
 	}
 
 	for (uint i = 0; i < triangleSize; ++i)
 	{
 		gl_PrimitiveTriangleIndicesEXT[i] = 
 			uvec3(
-				EE_MESHLETS[meshletIndex].primitiveIndices[i * 3],
-				EE_MESHLETS[meshletIndex].primitiveIndices[i * 3 + 1],
-				EE_MESHLETS[meshletIndex].primitiveIndices[i * 3 + 2]);
+				meshlet.primitiveIndices[i * 3],
+				meshlet.primitiveIndices[i * 3 + 1],
+				meshlet.primitiveIndices[i * 3 + 2]);
 	}
 }

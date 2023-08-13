@@ -11,14 +11,12 @@ using namespace EvoEngine;
 
 void Resources::LoadShaders()
 {
-
 #pragma region Shaders
 #pragma region Shader Includes
 	std::string add;
 
 	add += "\n#define MAX_DIRECTIONAL_LIGHT_SIZE " + std::to_string(Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE)
 		 + "\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::Constants::MAX_KERNEL_AMOUNT)
-		+ "\n#define VERTEX_DATA_CHUNK_VERTICES_SIZE " + std::to_string(Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE)
 		+ "\n#define MESHLET_MAX_VERTICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 		+ "\n#define MESHLET_MAX_TRIANGLES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE)
 		+ "\n#define MESHLET_MAX_INDICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3)
@@ -369,6 +367,7 @@ void Resources::LoadShaders()
 
 		meshShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
 		meshShader->Set(ShaderType::Mesh, meshShaderCode);
+
 
 		auto fragShaderCode =
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +

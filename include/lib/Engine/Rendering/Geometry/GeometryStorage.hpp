@@ -8,19 +8,20 @@ namespace EvoEngine
 {
 	struct VertexDataChunk
 	{
-		Vertex m_vertexData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
+		Vertex m_vertexData[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 	};
+
 	struct Meshlet
 	{
-		uint32_t m_vertexIndices[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 		glm::uvec3 m_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_verticesSize = 0;
 		uint32_t m_triangleSize = 0;
+		uint32_t m_vertexChunkIndex = 0;
 	};
 
 	struct SkinnedVertexDataChunk
 	{
-		SkinnedVertex m_skinnedVertexData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
+		SkinnedVertex m_skinnedVertexData[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 	};
 	struct SkinnedMeshlet
 	{
@@ -32,7 +33,7 @@ namespace EvoEngine
 
 	struct StrandPointDataChunk
 	{
-		StrandPoint m_strandPointData[Graphics::Constants::VERTEX_DATA_CHUNK_VERTICES_SIZE] = {};
+		StrandPoint m_strandPointData[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 	};
 	struct StrandMeshlet
 	{
@@ -52,7 +53,7 @@ namespace EvoEngine
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
-		std::queue<uint32_t> m_vertexDataVertexPool = {};
+		std::queue<uint32_t> m_vertexDataChunkPool = {};
 		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_meshletRangeDescriptor;

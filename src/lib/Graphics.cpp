@@ -66,6 +66,7 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	return VK_FALSE;
 }
 
+
 #pragma region Helpers
 uint32_t Graphics::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)
 {
@@ -884,6 +885,7 @@ void Graphics::CheckVk(const VkResult& result)
 	const std::string failure = StringifyResultVk(result);
 	throw std::runtime_error("Vulkan error: " + failure);
 }
+
 
 void Graphics::AppendCommands(const std::function<void(VkCommandBuffer commandBuffer)>& action)
 {

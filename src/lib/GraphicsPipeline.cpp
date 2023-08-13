@@ -215,10 +215,10 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.layout = m_pipelineLayout->GetVkPipelineLayout();
 	pipelineInfo.pNext = &renderingCreateInfo;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
 	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&pipelineInfo, nullptr, &m_vkGraphicsPipeline));
 }
+
 
 bool GraphicsPipeline::PipelineReady() const
 {
