@@ -82,6 +82,9 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_triangleRange.reset();
 	m_meshletRange.reset();
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
+
+	m_version++;
+	m_saved = false;
 }
 
 size_t Mesh::GetVerticesAmount() const

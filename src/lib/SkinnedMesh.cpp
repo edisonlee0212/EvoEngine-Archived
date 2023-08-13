@@ -64,7 +64,7 @@ void BoneMatrices::UploadData()
 void SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	ImGui::Text(("Vertices size: " + std::to_string(m_skinnedVertices.size())).c_str());
-	ImGui::Text(("Triangle amount: " + std::to_string(m_triangles.size())).c_str());
+	ImGui::Text(("Triangle amount: " + std::to_string(m_skinnedTriangles.size())).c_str());
 
 	if (!m_skinnedVertices.empty()) {
 		FileUtils::SaveFile(
@@ -88,11 +88,11 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 			start += "\n";
 			of.write(start.c_str(), start.size());
 			of.flush();
-			if (!m_triangles.empty()) {
+			if (!m_skinnedTriangles.empty()) {
 				unsigned startIndex = 1;
 				std::string header =
 					"#Vertices: " + std::to_string(m_skinnedVertices.size()) +
-					", tris: " + std::to_string(m_triangles.size());
+					", tris: " + std::to_string(m_skinnedTriangles.size());
 				header += "\n";
 				of.write(header.c_str(), header.size());
 				of.flush();
@@ -120,8 +120,8 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 				}
 				// data += "s off\n";
 				data += "# List of indices for faces vertices, with (x, y, z).\n";
-				auto& triangles = m_triangles;
-				for (auto i = 0; i < m_triangles.size(); i++) {
+				auto& triangles = m_skinnedTriangles;
+				for (auto i = 0; i < m_skinnedTriangles.size(); i++) {
 					const auto triangle = triangles[i];
 					const auto f1 = triangle.x + startIndex;
 					const auto f2 = triangle.y + startIndex;
@@ -150,33 +150,16 @@ bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
 
 SkinnedMesh::~SkinnedMesh()
 {
-	GeometryStorage::FreeSkinnedMesh(m_skinnedMeshletIndices);
-	m_trianglesBuffer.clear();
-	m_skinnedMeshletIndices.clear();
-}
-
-const std::vector<uint32_t>& SkinnedMesh::PeekSkinnedMeshletIndices() const
-{
-	return m_skinnedMeshletIndices;
-}
-
-void SkinnedMesh::Bind(VkCommandBuffer vkCommandBuffer)
-{
-	constexpr VkDeviceSize offsets[] = { 0 };
-	GeometryStorage::BindSkinnedVertices(vkCommandBuffer);
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	if (m_uploadPending[currentFrameIndex]) {
-		m_trianglesBuffer[currentFrameIndex]->UploadVector(m_geometryStorageTriangles);
-		m_uploadPending[currentFrameIndex] = false;
-	}
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_trianglesBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	GeometryStorage::FreeSkinnedMesh(GetHandle());
+	m_skinnedTriangleRange.reset();
+	m_skinnedMeshletRange.reset();
 }
 
 void SkinnedMesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount) const
 {
 	if (instancesCount == 0) return;
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_skinnedTriangles.size() * 3), instancesCount, m_skinnedTriangleRange->m_offset * 3, 0, 0);
 }
 
 glm::vec3 SkinnedMesh::GetCenter() const
@@ -199,39 +182,7 @@ void SkinnedMesh::FetchIndices()
 
 void SkinnedMesh::OnCreate()
 {
-	VkBufferCreateInfo trianglesBufferCreateInfo{};
-	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	trianglesBufferCreateInfo.size = 1;
-	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
-	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	m_uploadPending.resize(maxFramesInFlight);
-	for (int i = 0; i < maxFramesInFlight; i++) {
-		m_trianglesBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
-		m_uploadPending[i] = false;
-	}
 	m_bound = Bound();
-}
-void SkinnedMesh::UploadData()
-{
-	if (m_skinnedVertices.empty())
-	{
-		EVOENGINE_ERROR("Vertices empty!")
-			return;
-	}
-	if (m_triangles.empty())
-	{
-		EVOENGINE_ERROR("Triangles empty!")
-			return;
-	}
-	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
-	}
-	m_version++;
-	for (auto& i : m_uploadPending) i = true;
 }
 
 void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices)
@@ -256,7 +207,7 @@ void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttrib
 	}
 	
 	m_skinnedVertices = skinnedVertices;
-	m_triangles = triangles;
+	m_skinnedTriangles = triangles;
 #pragma region Bound
 	glm::vec3 minBound = m_skinnedVertices.at(0).m_position;
 	glm::vec3 maxBound = m_skinnedVertices.at(0).m_position;
@@ -283,24 +234,13 @@ void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttrib
 	m_skinnedVertexAttributes.m_normal = true;
 	m_skinnedVertexAttributes.m_tangent = true;
 
-	GeometryStorage::FreeSkinnedMesh(m_skinnedMeshletIndices);
-	m_skinnedMeshletIndices.clear();
-	GeometryStorage::AllocateSkinnedMesh(m_skinnedVertices, m_triangles, m_skinnedMeshletIndices);
+	if(m_skinnedTriangleRange || m_skinnedMeshletRange) GeometryStorage::FreeSkinnedMesh(GetHandle());
+	m_skinnedTriangleRange.reset();
+	m_skinnedMeshletRange.reset();
+	GeometryStorage::AllocateSkinnedMesh(GetHandle(), m_skinnedVertices, m_skinnedTriangles, m_skinnedMeshletRange, m_skinnedTriangleRange);
 
-	m_geometryStorageTriangles.resize(m_triangles.size());
-	size_t currentTriangleIndex = 0;
-	for (const auto& meshletIndex : m_skinnedMeshletIndices)
-	{
-		auto& meshlet = GeometryStorage::PeekSkinnedMeshlet(meshletIndex);
-		for (size_t i = 0; i < meshlet.m_triangleSize; i++)
-		{
-			m_geometryStorageTriangles[currentTriangleIndex].x = meshlet.m_skinnedVertexIndices[meshlet.m_triangles[i].x];
-			m_geometryStorageTriangles[currentTriangleIndex].y = meshlet.m_skinnedVertexIndices[meshlet.m_triangles[i].y];
-			m_geometryStorageTriangles[currentTriangleIndex].z = meshlet.m_skinnedVertexIndices[meshlet.m_triangles[i].z];
-			currentTriangleIndex++;
-		}
-	}
-	UploadData();
+	m_version++;
+	m_saved = false;
 }
 
 size_t SkinnedMesh::GetSkinnedVerticesAmount() const
@@ -310,7 +250,7 @@ size_t SkinnedMesh::GetSkinnedVerticesAmount() const
 
 size_t SkinnedMesh::GetTriangleAmount() const
 {
-	return m_triangles.size();
+	return m_skinnedTriangles.size();
 }
 
 void SkinnedMesh::RecalculateNormal()
@@ -321,7 +261,7 @@ void SkinnedMesh::RecalculateNormal()
 	{
 		normalLists.emplace_back();
 	}
-	for (const auto& triangle : m_triangles)
+	for (const auto& triangle : m_skinnedTriangles)
 	{
 		const auto i1 = triangle.x;
 		const auto i2 = triangle.y;
@@ -353,7 +293,7 @@ void SkinnedMesh::RecalculateTangent()
 	{
 		tangentLists.emplace_back();
 	}
-	for (auto& triangle : m_triangles)
+	for (auto& triangle : m_skinnedTriangles)
 	{
 		const auto i1 = triangle.x;
 		const auto i2 = triangle.y;
@@ -389,7 +329,7 @@ void SkinnedMesh::RecalculateTangent()
 
 std::vector<glm::uvec3>& SkinnedMesh::UnsafeGetTriangles()
 {
-	return m_triangles;
+	return m_skinnedTriangles;
 }
 std::vector<SkinnedVertex>& SkinnedMesh::UnsafeGetSkinnedVertices()
 {
@@ -410,13 +350,13 @@ void SkinnedMesh::Serialize(YAML::Emitter& out)
 	m_skinnedVertexAttributes.Serialize(out);
 	out << YAML::EndMap;
 
-	if (!m_skinnedVertices.empty() && !m_triangles.empty())
+	if (!m_skinnedVertices.empty() && !m_skinnedTriangles.empty())
 	{
 		out << YAML::Key << "m_skinnedVertices" << YAML::Value
 			<< YAML::Binary(
 				reinterpret_cast<const unsigned char*>(m_skinnedVertices.data()), m_skinnedVertices.size() * sizeof(SkinnedVertex));
-		out << YAML::Key << "m_triangles" << YAML::Value
-			<< YAML::Binary(reinterpret_cast<const unsigned char*>(m_triangles.data()), m_triangles.size() * sizeof(glm::uvec3));
+		out << YAML::Key << "m_skinnedTriangles" << YAML::Value
+			<< YAML::Binary(reinterpret_cast<const unsigned char*>(m_skinnedTriangles.data()), m_skinnedTriangles.size() * sizeof(glm::uvec3));
 	}
 }
 void SkinnedMesh::Deserialize(const YAML::Node& in)
@@ -442,14 +382,14 @@ void SkinnedMesh::Deserialize(const YAML::Node& in)
 		m_skinnedVertexAttributes.m_color = true;
 	}
 
-	if (in["m_skinnedVertices"] && in["m_triangles"])
+	if (in["m_skinnedVertices"] && in["m_skinnedTriangles"])
 	{
 		const YAML::Binary& skinnedVertexData = in["m_skinnedVertices"].as<YAML::Binary>();
 		std::vector<SkinnedVertex> skinnedVertices;
 		skinnedVertices.resize(skinnedVertexData.size() / sizeof(SkinnedVertex));
 		std::memcpy(skinnedVertices.data(), skinnedVertexData.data(), skinnedVertexData.size());
 
-		const YAML::Binary& triangleData = in["m_triangles"].as<YAML::Binary>();
+		const YAML::Binary& triangleData = in["m_skinnedTriangles"].as<YAML::Binary>();
 		std::vector<glm::uvec3> triangles;
 		triangles.resize(triangleData.size() / sizeof(glm::uvec3));
 		std::memcpy(triangles.data(), triangleData.data(), triangleData.size());

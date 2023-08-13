@@ -69,26 +69,10 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	m_strandPointAttributes = strandPointAttributes;
 	m_strandPointAttributes.m_normal = true;
 
-	GeometryStorage::FreeStrands(m_strandMeshletIndices);
-	m_strandMeshletIndices.clear();
-	GeometryStorage::AllocateStrands(m_strandPoints, m_segments, m_strandMeshletIndices);
-
-	m_geometryStorageSegments.resize(m_segments.size());
-	size_t currentTriangleIndex = 0;
-	for (const auto& meshletIndex : m_strandMeshletIndices)
-	{
-		auto& strandMeshlet = GeometryStorage::PeekStrandMeshlet(meshletIndex);
-		for (size_t i = 0; i < strandMeshlet.m_segmentSize; i++)
-		{
-			m_geometryStorageSegments[currentTriangleIndex].x = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].x];
-			m_geometryStorageSegments[currentTriangleIndex].y = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].y];
-			m_geometryStorageSegments[currentTriangleIndex].z = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].z];
-			m_geometryStorageSegments[currentTriangleIndex].w = strandMeshlet.m_strandPointIndices[strandMeshlet.m_segments[i].w];
-			currentTriangleIndex++;
-		}
-	}
-
-	UploadData();
+	if(m_segmentRange || m_strandMeshletRange) GeometryStorage::FreeStrands(GetHandle());
+	m_segmentRange.reset();
+	m_strandMeshletRange.reset();
+	GeometryStorage::AllocateStrands(GetHandle(), m_strandPoints, m_segments, m_strandMeshletRange, m_segmentRange);
 
 	m_version++;
 	m_saved = false;
@@ -282,54 +266,8 @@ void Strands::Deserialize(const YAML::Node& in) {
 
 }
 
-void Strands::UploadData()
-{
-	if (m_segments.empty())
-	{
-		EVOENGINE_ERROR("Indices empty!")
-			return;
-	}
-	if (m_strandPoints.empty())
-	{
-		EVOENGINE_ERROR("Points empty!")
-			return;
-	}
-
-	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("You can't upload mesh during LateUpdate!");
-	}
-	m_version++;
-	for (auto& i : m_uploadPending) i = true;
-}
-
-void Strands::Bind(VkCommandBuffer vkCommandBuffer)
-{
-	GeometryStorage::BindStrandPoints(vkCommandBuffer);
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	if (m_uploadPending[currentFrameIndex]) {
-		m_segmentsBuffer[currentFrameIndex]->UploadVector(m_geometryStorageSegments);
-		m_uploadPending[currentFrameIndex] = false;
-	}
-	vkCmdBindIndexBuffer(vkCommandBuffer, m_segmentsBuffer[currentFrameIndex]->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-}
-
 void Strands::OnCreate()
 {
-	VkBufferCreateInfo trianglesBufferCreateInfo{};
-	trianglesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	trianglesBufferCreateInfo.size = 1;
-	trianglesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	trianglesBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo trianglesVmaAllocationCreateInfo{};
-	trianglesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	m_uploadPending.resize(maxFramesInFlight);
-	for (int i = 0; i < maxFramesInFlight; i++) {
-		m_segmentsBuffer.emplace_back(std::make_unique<Buffer>(trianglesBufferCreateInfo, trianglesVmaAllocationCreateInfo));
-		m_uploadPending[i] = false;
-	}
 	m_bound = Bound();
 }
 Bound Strands::GetBound() const
@@ -344,19 +282,14 @@ size_t Strands::GetSegmentAmount() const
 
 Strands::~Strands()
 {
-	GeometryStorage::FreeStrands(m_strandMeshletIndices);
-	m_segmentsBuffer.clear();
-	m_strandMeshletIndices.clear();
+	GeometryStorage::FreeStrands(GetHandle());
+	m_segmentRange.reset();
+	m_strandMeshletRange.reset();
 }
 
 size_t Strands::GetStrandPointAmount() const
 {
 	return m_strandPoints.size();
-}
-
-const std::vector<uint32_t>& Strands::PeekStrandMeshletIndices() const
-{
-	return m_strandMeshletIndices;
 }
 
 void Strands::SetSegments(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& segments, const std::vector<StrandPoint>& points) {

@@ -831,7 +831,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 
 #pragma endregion
 			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			
 			for (int face = 0; face < 6; face++) {
+				GeometryStorage::BindVertices(commandBuffer);
 				{
 					VkRenderingInfo renderInfo{};
 					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
@@ -844,10 +846,11 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
 					pointLightShadowPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowPipeline->m_states.m_scissor = scissor;
+					
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowPipeline->Bind(commandBuffer);
 					pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					GeometryStorage::BindVertices(commandBuffer);
+					
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -951,6 +954,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
+				GeometryStorage::BindSkinnedVertices(commandBuffer);
 				{
 					VkRenderingInfo renderInfo{};
 					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -966,7 +970,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowSkinnedPipeline->Bind(commandBuffer);
 					pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					//GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -988,15 +991,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								skinnedMesh->Bind(commandBuffer);
 								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1);
 							}
 						);
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
+				GeometryStorage::BindStrandPoints(commandBuffer);
 				{
 					VkRenderingInfo renderInfo{};
 					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1032,7 +1035,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								strands->Bind(commandBuffer);
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1);
@@ -1062,6 +1064,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 
 #pragma endregion
 			m_lighting->m_spotLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			GeometryStorage::BindVertices(commandBuffer);
 			{
 				VkRenderingInfo renderInfo{};
 				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1075,7 +1078,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				spotLightShadowPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
-				GeometryStorage::BindVertices(commandBuffer);
 				spotLightShadowPipeline->Bind(commandBuffer);
 				spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
@@ -1103,7 +1105,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						}
 						else
 						{
-							GeometryStorage::BindVertices(commandBuffer);
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
@@ -1179,6 +1180,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				}
 				vkCmdEndRendering(commandBuffer);
 			}
+			GeometryStorage::BindSkinnedVertices(commandBuffer);
 			{
 				VkRenderingInfo renderInfo{};
 				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1213,16 +1215,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto skinnedMesh = renderCommand.m_skinnedMesh;
-							skinnedMesh->Bind(commandBuffer);
 							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+							graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1);
 						}
 					);
 				}
 				vkCmdEndRendering(commandBuffer);
 			}
-			
+			GeometryStorage::BindStrandPoints(commandBuffer);
 			{
 				VkRenderingInfo renderInfo{};
 				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1256,7 +1257,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto strands = renderCommand.m_strands;
-							strands->Bind(commandBuffer);
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1);
@@ -1365,7 +1365,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
 			if (!skinnedMeshRenderer->IsEnabled() || material == nullptr || skinnedMesh == nullptr)
 				continue;
-			if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_triangles.empty()) continue;
+			if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) continue;
 			GlobalTransform gt;
 			if (auto animator = skinnedMeshRenderer->m_animator.Get<Animator>(); !animator)
 			{
@@ -1906,6 +1906,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
+				GeometryStorage::BindSkinnedVertices(commandBuffer);
 				{
 					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 					VkRenderingInfo renderInfo{};
@@ -1946,9 +1947,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								skinnedMesh->Bind(commandBuffer);
 								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states, 1);
 							}
 						);
@@ -1956,8 +1956,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
-
-				
+				GeometryStorage::BindStrandPoints(commandBuffer);
 				{
 					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 					VkRenderingInfo renderInfo{};
@@ -1997,7 +1996,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								strands->Bind(commandBuffer);
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1);
@@ -2049,6 +2047,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 		renderInfo.layerCount = 1;
 #pragma endregion
 #pragma region Geometry pass
+		GeometryStorage::BindVertices(commandBuffer);
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2070,7 +2069,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			GeometryStorage::BindVertices(commandBuffer);
+			
 			if (m_enableIndirectRendering) {
 				RenderInstancePushConstant pushConstant;
 				pushConstant.m_cameraIndex = cameraIndex;
@@ -2152,6 +2151,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 			vkCmdEndRendering(commandBuffer);
 		}
+		GeometryStorage::BindSkinnedVertices(commandBuffer);
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2181,16 +2181,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 					deferredSkinnedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto skinnedMesh = renderCommand.m_skinnedMesh;
-					skinnedMesh->Bind(commandBuffer);
 					graphics.m_drawCall[currentFrameIndex]++;
-					graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+					graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 					skinnedMesh->DrawIndexed(commandBuffer, deferredSkinnedPrepassPipeline->m_states, 1);
 				}
 			);
 
 			vkCmdEndRendering(commandBuffer);
 		}
-		
+		GeometryStorage::BindStrandPoints(commandBuffer);
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2219,7 +2218,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 					deferredStrandsPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto strands = renderCommand.m_strands;
-					strands->Bind(commandBuffer);
 					graphics.m_drawCall[currentFrameIndex]++;
 					graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 					strands->DrawIndexed(commandBuffer, deferredStrandsPrepassPipeline->m_states, 1);
@@ -2231,6 +2229,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 #pragma endregion
 #pragma region Lighting pass
+		GeometryStorage::BindVertices(commandBuffer);
 		{
 			camera->TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			camera->m_renderTexture->GetDepthImage()->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -2266,7 +2265,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			pushConstant.m_instanceIndex = needFade ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
-			GeometryStorage::BindVertices(commandBuffer);
+			
 			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, 1);
 			vkCmdEndRendering(commandBuffer);
 		}

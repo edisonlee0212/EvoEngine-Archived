@@ -27,7 +27,7 @@ namespace EvoEngine
 		uint32_t m_skinnedVertexIndices[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 		glm::uvec3 m_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_skinnedVerticesSize = 0;
-		uint32_t m_triangleSize = 0;
+		uint32_t m_skinnedTriangleSize = 0;
 	};
 
 	struct StrandPointDataChunk
@@ -56,7 +56,6 @@ namespace EvoEngine
 		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_meshletRangeDescriptor;
-
 		std::vector<glm::uvec3> m_triangles;
 		std::vector<std::shared_ptr<RangeDescriptor>> m_triangleRangeDescriptor;
 
@@ -66,21 +65,29 @@ namespace EvoEngine
 		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
+		std::queue<uint32_t> m_skinnedVertexDataPool = {};
 		uint32_t m_skinnedVerticesCount = 0;
 		std::vector<SkinnedMeshlet> m_skinnedMeshlets = {};
-		std::queue<uint32_t> m_skinnedVertexDataPool = {};
-		std::queue<uint32_t> m_skinnedMeshletPool = {};
+		std::vector<std::shared_ptr<RangeDescriptor>> m_skinnedMeshletRangeDescriptor;
+		std::vector<glm::uvec3> m_skinnedTriangles;
+		std::vector<std::shared_ptr<RangeDescriptor>> m_skinnedTriangleRangeDescriptor;
+
 		std::vector<std::unique_ptr<Buffer>> m_skinnedVertexBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_skinnedMeshletBuffer = {};
+		std::vector<std::unique_ptr<Buffer>> m_skinnedTriangleBuffer = {};
 		std::vector<bool> m_requireSkinnedMeshDataDeviceUpdate = {};
 
 		std::vector<StrandPointDataChunk> m_strandPointDataChunks = {};
+		std::queue<uint32_t> m_strandPointDataPool = {};
 		uint32_t m_strandPointsCount = 0;
 		std::vector<StrandMeshlet> m_strandMeshlets = {};
-		std::queue<uint32_t> m_strandPointDataPool = {};
-		std::queue<uint32_t> m_strandMeshletPool = {};
+		std::vector<std::shared_ptr<RangeDescriptor>> m_strandMeshletRangeDescriptor;
+		std::vector<glm::uvec4> m_segments;
+		std::vector<std::shared_ptr<RangeDescriptor>> m_segmentRangeDescriptor;
+
 		std::vector<std::unique_ptr<Buffer>> m_strandPointBuffer = {};
 		std::vector<std::unique_ptr<Buffer>> m_strandMeshletBuffer = {};
+		std::vector<std::unique_ptr<Buffer>> m_segmentBuffer = {};
 		std::vector<bool> m_requireStrandMeshDataDeviceUpdate = {};
 
 		void UploadData();
@@ -109,14 +116,14 @@ namespace EvoEngine
 
 		static void AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
 			std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange);
-		static void AllocateSkinnedMesh(const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles,
-			std::vector<uint32_t>& skinnedMeshletIndices);
-		static void AllocateStrands(const std::vector<StrandPoint>& strandPoints, const std::vector<glm::uvec4>& segments,
-			std::vector<uint32_t>& strandMeshletIndices);
+		static void AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles,
+			std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange);
+		static void AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints, const std::vector<glm::uvec4>& segments,
+			std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange, std::shared_ptr<RangeDescriptor>& targetSegmentRange);
 
 		static void FreeMesh(const Handle& handle);
-		static void FreeSkinnedMesh(const std::vector<uint32_t>& skinnedMeshletIndices);
-		static void FreeStrands(const std::vector<uint32_t>& strandMeshletIndices);
+		static void FreeSkinnedMesh(const Handle& handle);
+		static void FreeStrands(const Handle& handle);
 
 		[[nodiscard]] static const Meshlet& PeekMeshlet(uint32_t meshletIndex);
 		[[nodiscard]] static const SkinnedMeshlet& PeekSkinnedMeshlet(uint32_t skinnedMeshletIndex);

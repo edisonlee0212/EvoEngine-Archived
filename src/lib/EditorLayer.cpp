@@ -747,7 +747,7 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_size = i.m_size;
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						i.m_strands->Bind(commandBuffer);
+						GeometryStorage::BindStrandPoints(commandBuffer);
 						i.m_strands->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1);
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});

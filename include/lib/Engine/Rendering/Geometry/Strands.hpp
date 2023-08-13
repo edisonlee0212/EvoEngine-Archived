@@ -3,6 +3,7 @@
 #include "IAsset.hpp"
 #include "Particles.hpp"
 #include "Vertex.hpp"
+#include "GeometryStorage.hpp"
 namespace EvoEngine
 {
     struct StrandPointAttributes
@@ -32,8 +33,6 @@ namespace EvoEngine
             const std::vector<StrandPoint>& points);
         void RecalculateNormal();
         void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
-        void UploadData();
-        void Bind(VkCommandBuffer vkCommandBuffer) override;
         void OnCreate() override;
 
         [[nodiscard]] Bound GetBound() const;
@@ -41,16 +40,12 @@ namespace EvoEngine
         [[nodiscard]] size_t GetSegmentAmount() const;
         ~Strands() override;
         [[nodiscard]] size_t GetStrandPointAmount() const;
-        [[nodiscard]] const std::vector<uint32_t>& PeekStrandMeshletIndices() const;
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
     private:
-        std::vector<glm::uvec4> m_geometryStorageSegments;
-        std::vector<std::unique_ptr<Buffer>> m_segmentsBuffer = {};
-        std::vector<bool> m_uploadPending;
-
-        std::vector<uint32_t> m_strandMeshletIndices;
+        std::shared_ptr<RangeDescriptor> m_segmentRange;
+        std::shared_ptr<RangeDescriptor> m_strandMeshletRange;
 
         StrandPointAttributes m_strandPointAttributes = {};
 

@@ -3,6 +3,7 @@
 #include "Scene.hpp"
 #include "Vertex.hpp"
 #include "GraphicsResources.hpp"
+#include "GeometryStorage.hpp"
 namespace EvoEngine
 {
 	struct SkinnedVertexAttributes
@@ -32,9 +33,6 @@ namespace EvoEngine
 	};
 	class SkinnedMesh : public IAsset, public IGeometry
 	{
-		std::vector<glm::uvec3> m_geometryStorageTriangles;
-		std::vector<std::unique_ptr<Buffer>> m_trianglesBuffer = {};
-		std::vector<bool> m_uploadPending;
 		Bound m_bound;
 		friend class SkinnedMeshRenderer;
 		friend class Particles;
@@ -42,9 +40,12 @@ namespace EvoEngine
 		friend class RenderLayer;
 		SkinnedVertexAttributes m_skinnedVertexAttributes = {};
 		std::vector<SkinnedVertex> m_skinnedVertices;
-		std::vector<glm::uvec3> m_triangles;
+		std::vector<glm::uvec3> m_skinnedTriangles;
+		std::shared_ptr<RangeDescriptor> m_skinnedTriangleRange;
+		std::shared_ptr<RangeDescriptor> m_skinnedMeshletRange;
+
+
 		friend struct SkinnedMeshBonesBlock;
-		std::vector<uint32_t> m_skinnedMeshletIndices;
 		//Don't serialize.
 		std::vector<std::shared_ptr<Bone>> m_bones;
 		friend class Prefab;
@@ -52,8 +53,6 @@ namespace EvoEngine
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
 		~SkinnedMesh() override;
-		[[nodiscard]] const std::vector<uint32_t>& PeekSkinnedMeshletIndices() const;
-		void Bind(VkCommandBuffer vkCommandBuffer) override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
 		void OnCreate() override;
 		void FetchIndices();
@@ -62,7 +61,6 @@ namespace EvoEngine
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] glm::vec3 GetCenter() const;
 		[[nodiscard]] Bound GetBound() const;
-		void UploadData();
 		void SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices);
 		void SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles);
 		[[nodiscard]] size_t GetSkinnedVerticesAmount() const;
