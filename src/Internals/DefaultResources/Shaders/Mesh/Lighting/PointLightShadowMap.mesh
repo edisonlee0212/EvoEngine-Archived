@@ -14,13 +14,14 @@ void main()
 
 	uint verticesSize = EE_MESHLETS[meshletIndex].verticesSize;
 	uint triangleSize = EE_MESHLETS[meshletIndex].triangleSize;
+	uint chunkIndex = EE_MESHLETS[meshletIndex].vertexChunkIndex;
 	SetMeshOutputsEXT(verticesSize, triangleSize);
 
 	for (uint i = 0; i < verticesSize; ++i)
 	{
-		uint vertexIndex = EE_MESHLETS[meshletIndex].vertexIndices[i];
+		Vertex vertex = EE_VERTEX_DATA_CHUNKS[chunkIndex].vertices[i];
 		gl_MeshVerticesEXT[i].gl_Position = 
-			EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * model * vec4(EE_GET_VERTEX(vertexIndex).position.xyz, 1.0);
+			EE_POINT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * model * vec4(vertex.position.xyz, 1.0);
 	}
 
 	for (uint i = 0; i < triangleSize; ++i)

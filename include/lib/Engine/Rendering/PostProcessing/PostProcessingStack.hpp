@@ -17,14 +17,17 @@ namespace EvoEngine
 
 	struct SSRSettings
 	{
-		
+
+
 	};
 
 	class PostProcessingStack : public IAsset
 	{
-		std::shared_ptr<RenderTexture> m_renderTexture;
-		void Resize(const glm::uvec2& size) const;
+		std::shared_ptr<RenderTexture> m_renderTexture0;
+		std::shared_ptr<RenderTexture> m_renderTexture1;
+		std::shared_ptr<RenderTexture> m_renderTexture2;
 
+		void Resize(const glm::uvec2& size) const;
 	public:
 
 		void OnCreate() override;

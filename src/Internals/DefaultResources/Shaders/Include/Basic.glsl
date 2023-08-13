@@ -170,10 +170,8 @@ struct Vertex {
 	vec4 texCoord;
 };
 
-Vertex EE_GET_VERTEX(uint vertexIndex);
-
 struct VertexDataChunk {
-	Vertex vertices[VERTEX_DATA_CHUNK_VERTICES_SIZE];
+	Vertex vertices[MESHLET_MAX_VERTICES_SIZE];
 };
 
 
@@ -182,16 +180,12 @@ layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_VERTICES_BLOCK
 	VertexDataChunk EE_VERTEX_DATA_CHUNKS[];
 };
 
-
-Vertex EE_GET_VERTEX(uint vertexIndex) {
-	return EE_VERTEX_DATA_CHUNKS[vertexIndex / VERTEX_DATA_CHUNK_VERTICES_SIZE].vertices[vertexIndex % VERTEX_DATA_CHUNK_VERTICES_SIZE];
-}
-
 struct Meshlet {
-	uint vertexIndices[MESHLET_MAX_VERTICES_SIZE];
+	uint vertexChunkIndex;
 	uint primitiveIndices[MESHLET_MAX_INDICES_SIZE];
 	uint verticesSize;
 	uint triangleSize;
+	
 };
 
 layout(set = EE_PER_FRAME_SET, binding = 10) readonly buffer EE_MESHLETS_BLOCK
