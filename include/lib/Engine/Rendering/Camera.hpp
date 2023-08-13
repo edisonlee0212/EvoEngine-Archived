@@ -70,7 +70,7 @@ namespace EvoEngine
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;
-        [[nodiscard]] glm::vec2 GetSize() const;
+        [[nodiscard]] glm::uvec2 GetSize() const;
         void Resize(const glm::uvec2& size);
         void OnCreate() override;
         [[nodiscard]] bool Rendered() const;

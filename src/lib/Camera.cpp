@@ -299,7 +299,7 @@ const std::shared_ptr<RenderTexture>& Camera::GetRenderTexture() const
 	return m_renderTexture;
 }
 
-glm::vec2 Camera::GetSize() const
+glm::uvec2 Camera::GetSize() const
 {
 	return m_size;
 }
@@ -317,11 +317,11 @@ void Camera::Resize(const glm::uvec2& size)
 void Camera::OnCreate()
 {
 	m_size = glm::uvec2(1, 1);
-	VkExtent3D extent;
-	extent.width = m_size.x;
-	extent.height = m_size.y;
-	extent.depth = 1;
-	m_renderTexture = std::make_unique<RenderTexture>(extent);
+	RenderTextureCreateInfo renderTextureCreateInfo{};
+	renderTextureCreateInfo.m_extent.width = m_size.x;
+	renderTextureCreateInfo.m_extent.height = m_size.y;
+	renderTextureCreateInfo.m_extent.depth = 1;
+	m_renderTexture = std::make_unique<RenderTexture>(renderTextureCreateInfo);
 
 	m_gBufferDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
 	UpdateGBuffer();
@@ -567,9 +567,9 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::TreePop();
 	}
 
-	
+
 	ImGui::Checkbox("Use clear color", &m_useClearColor);
-	auto scene = GetScene();
+	const auto scene = GetScene();
 	const bool savedState = (this == scene->m_mainCamera.Get<Camera>().get());
 	bool isMainCamera = savedState;
 	ImGui::Checkbox("Main Camera", &isMainCamera);
@@ -609,7 +609,7 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::DragFloat("FOV", &m_fov, 1.0f, 1, 359);
 		ImGui::TreePop();
 	}
-	FileUtils::SaveFile("Screenshot", "Image", { ".png", ".jpg", ".hdr"}, [this](const std::filesystem::path& filePath) {
+	FileUtils::SaveFile("Screenshot", "Image", { ".png", ".jpg", ".hdr" }, [this](const std::filesystem::path& filePath) {
 		m_renderTexture->Save(filePath);
 		}, false
 	);

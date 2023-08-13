@@ -1,6 +1,6 @@
 #pragma once
 #include "IAsset.hpp"
-
+#include "RenderTexture.hpp"
 namespace EvoEngine
 {
 	class Camera;
@@ -22,8 +22,13 @@ namespace EvoEngine
 
 	class PostProcessingStack : public IAsset
 	{
+		std::shared_ptr<RenderTexture> m_renderTexture;
+		void Resize(const glm::uvec2& size) const;
 
 	public:
+
+		void OnCreate() override;
+		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void Process(const std::shared_ptr<Camera>& targetCamera);
 		SSAOSettings m_SSAOSettings {};
 		BloomSettings m_bloomSettings{};

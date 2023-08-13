@@ -221,8 +221,8 @@ namespace EvoEngine
 		std::vector<VkDrawIndexedIndirectCommand> m_meshDrawIndexedIndirectCommands{};
 		uint32_t m_totalMeshTriangles = 0;
 
-		std::vector<std::unique_ptr<Buffer>> m_drawMeshTasksIndirectCommandsBuffers = {};
-		std::vector<VkDrawMeshTasksIndirectCommandEXT> m_drawMeshTasksIndirectCommands{};
+		std::vector<std::unique_ptr<Buffer>> m_meshDrawMeshTasksIndirectCommandsBuffers = {};
+		std::vector<VkDrawMeshTasksIndirectCommandEXT> m_meshDrawMeshTasksIndirectCommands{};
 
 		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
 		std::vector<PointLightInfo> m_pointLightInfoBlocks;

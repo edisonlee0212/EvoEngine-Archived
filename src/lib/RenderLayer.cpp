@@ -114,7 +114,7 @@ void RenderLayer::PreUpdate()
 	m_spotLightInfoBlocks.clear();
 
 	m_meshDrawIndexedIndirectCommands.clear();
-	m_drawMeshTasksIndirectCommands.clear();
+	m_meshDrawMeshTasksIndirectCommands.clear();
 
 	m_cameras.clear();
 
@@ -198,7 +198,7 @@ void RenderLayer::LateUpdate()
 	m_instanceInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_instanceInfoBlocks);
 
 	m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->UploadVector(m_meshDrawIndexedIndirectCommands);
-	m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->UploadVector(m_drawMeshTasksIndirectCommands);
+	m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->UploadVector(m_meshDrawMeshTasksIndirectCommands);
 
 
 	VkDescriptorBufferInfo bufferInfo;
@@ -873,7 +873,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							if (Graphics::Constants::ENABLE_MESH_SHADER) {
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
+								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
@@ -1101,7 +1101,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						if (Graphics::Constants::ENABLE_MESH_SHADER) {
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
+							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 						}
 						else
 						{
@@ -1339,7 +1339,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 				m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 			}
 
-			auto& newMeshTask = m_drawMeshTasksIndirectCommands.emplace_back();
+			auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
 			newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
 			newMeshTask.groupCountY = 1;
 			newMeshTask.groupCountZ = 1;
@@ -1563,7 +1563,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 	m_spotLightInfoDescriptorBuffers.clear();
 
 
-	m_drawMeshTasksIndirectCommandsBuffers.clear();
+	m_meshDrawMeshTasksIndirectCommandsBuffers.clear();
 	m_meshDrawIndexedIndirectCommandsBuffers.clear();
 
 	VkBufferCreateInfo bufferCreateInfo{};
@@ -1601,7 +1601,7 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 		bufferCreateInfo.size = sizeof(VkDrawMeshTasksIndirectCommandEXT) * Graphics::Constants::INITIAL_RENDER_TASK_SIZE;
-		m_drawMeshTasksIndirectCommandsBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
+		m_meshDrawMeshTasksIndirectCommandsBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.size = sizeof(VkDrawIndexedIndirectCommand) * Graphics::Constants::INITIAL_RENDER_TASK_SIZE;
 		m_meshDrawIndexedIndirectCommandsBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 	}
@@ -1820,7 +1820,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							if (Graphics::Constants::ENABLE_MESH_SHADER) {
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
+								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
@@ -2080,7 +2080,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				if (Graphics::Constants::ENABLE_MESH_SHADER) {
 					graphics.m_drawCall[currentFrameIndex]++;
 					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
+					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 				}
 				else
 				{
@@ -2319,7 +2319,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 		m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
 	}
 
-	auto& newMeshTask = m_drawMeshTasksIndirectCommands.emplace_back();
+	auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
 	newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
 	newMeshTask.groupCountY = 1;
 	newMeshTask.groupCountZ = 1;

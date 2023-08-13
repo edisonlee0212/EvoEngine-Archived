@@ -6,19 +6,20 @@
 
 using namespace EvoEngine;
 
-void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
+void RenderTexture::Initialize(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {
 	m_colorImageView.reset();
 	m_colorImage.reset();
-
+	m_colorSampler.reset();
 	m_depthImageView.reset();
 	m_depthImage.reset();
-
-	int layerCount = imageViewType == VK_IMAGE_VIEW_TYPE_CUBE ? 6 : 1;
-
+	m_depthSampler.reset();
+	int layerCount = renderTextureCreateInfo.m_imageViewType == VK_IMAGE_VIEW_TYPE_CUBE ? 6 : 1;
+	m_depth = renderTextureCreateInfo.m_depth;
+	m_color = renderTextureCreateInfo.m_color;
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	switch (imageViewType)
+	switch (renderTextureCreateInfo.m_imageViewType)
 	{
 	case VK_IMAGE_VIEW_TYPE_1D:
 		imageInfo.imageType = VK_IMAGE_TYPE_1D;
@@ -45,161 +46,172 @@ void RenderTexture::Initialize(VkExtent3D extent, VkImageViewType imageViewType)
 		EVOENGINE_ERROR("Wrong imageViewType!");
 		break;
 	}
+	if (m_color) {
+		imageInfo.extent = renderTextureCreateInfo.m_extent;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = layerCount;
+		imageInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	imageInfo.extent = extent;
-	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = layerCount;
-	imageInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		m_colorImage = std::make_shared<Image>(imageInfo);
+		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+			{
+				m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			});
 
-	m_colorImage = std::make_shared<Image>(imageInfo);
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		});
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_colorImage->GetVkImage();
+		viewInfo.viewType = renderTextureCreateInfo.m_imageViewType;
+		viewInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = layerCount;
+
+		m_colorImageView = std::make_shared<ImageView>(viewInfo);
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		m_colorSampler = std::make_shared<Sampler>(samplerInfo);
+
+		EditorLayer::UpdateTextureId(m_colorImTextureId, m_colorSampler->GetVkSampler(), m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
+
+	}
+
+	if (m_depth) {
+		VkImageCreateInfo depthInfo{};
+		depthInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		depthInfo.imageType = imageInfo.imageType;
+		depthInfo.extent = renderTextureCreateInfo.m_extent;
+		depthInfo.mipLevels = 1;
+		depthInfo.arrayLayers = layerCount;
+		depthInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
+		depthInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		depthInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		m_depthImage = std::make_shared<Image>(depthInfo);
+		Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+			{
+				m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			});
 
 
+		VkImageViewCreateInfo depthViewInfo{};
+		depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		depthViewInfo.image = m_depthImage->GetVkImage();
+		depthViewInfo.viewType = renderTextureCreateInfo.m_imageViewType;
+		depthViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
+		depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		depthViewInfo.subresourceRange.baseMipLevel = 0;
+		depthViewInfo.subresourceRange.levelCount = 1;
+		depthViewInfo.subresourceRange.baseArrayLayer = 0;
+		depthViewInfo.subresourceRange.layerCount = layerCount;
 
-	VkImageViewCreateInfo viewInfo{};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = m_colorImage->GetVkImage();
-	viewInfo.viewType = imageViewType;
-	viewInfo.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = layerCount;
+		m_depthImageView = std::make_shared<ImageView>(depthViewInfo);
 
-	m_colorImageView = std::make_shared<ImageView>(viewInfo);
+		VkSamplerCreateInfo depthSamplerInfo{};
+		depthSamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		depthSamplerInfo.magFilter = VK_FILTER_LINEAR;
+		depthSamplerInfo.minFilter = VK_FILTER_LINEAR;
+		depthSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		depthSamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		depthSamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		depthSamplerInfo.anisotropyEnable = VK_TRUE;
+		depthSamplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+		depthSamplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		depthSamplerInfo.unnormalizedCoordinates = VK_FALSE;
+		depthSamplerInfo.compareEnable = VK_FALSE;
+		depthSamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		depthSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-	VkImageCreateInfo depthInfo{};
-	depthInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	depthInfo.imageType = imageInfo.imageType;
-	depthInfo.extent = extent;
-	depthInfo.mipLevels = 1;
-	depthInfo.arrayLayers = layerCount;
-	depthInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
-	depthInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	depthInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		m_depthSampler = std::make_shared<Sampler>(depthSamplerInfo);
+	}
+	m_extent = renderTextureCreateInfo.m_extent;
+	m_imageViewType = renderTextureCreateInfo.m_imageViewType;
 
-	m_depthImage = std::make_shared<Image>(depthInfo);
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-		});
-
-
-	VkImageViewCreateInfo depthViewInfo{};
-	depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	depthViewInfo.image = m_depthImage->GetVkImage();
-	depthViewInfo.viewType = imageViewType;
-	depthViewInfo.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
-	depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	depthViewInfo.subresourceRange.baseMipLevel = 0;
-	depthViewInfo.subresourceRange.levelCount = 1;
-	depthViewInfo.subresourceRange.baseArrayLayer = 0;
-	depthViewInfo.subresourceRange.layerCount = layerCount;
-
-	m_depthImageView = std::make_shared<ImageView>(depthViewInfo);
-
-	VkSamplerCreateInfo depthSamplerInfo{};
-	depthSamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	depthSamplerInfo.magFilter = VK_FILTER_LINEAR;
-	depthSamplerInfo.minFilter = VK_FILTER_LINEAR;
-	depthSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	depthSamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	depthSamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	depthSamplerInfo.anisotropyEnable = VK_TRUE;
-	depthSamplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	depthSamplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	depthSamplerInfo.unnormalizedCoordinates = VK_FALSE;
-	depthSamplerInfo.compareEnable = VK_FALSE;
-	depthSamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	depthSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	m_depthSampler = std::make_shared<Sampler>(depthSamplerInfo);
-
-	m_extent = extent;
-	m_imageViewType = imageViewType;
-	m_colorFormat = Graphics::Constants::RENDER_TEXTURE_COLOR;
-	m_depthFormat = Graphics::Constants::RENDER_TEXTURE_DEPTH;
-
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	m_colorSampler = std::make_shared<Sampler>(samplerInfo);
-
-	EditorLayer::UpdateTextureId(m_colorImTextureId, m_colorSampler->GetVkSampler(), m_colorImageView->GetVkImageView(), m_colorImage->GetLayout());
-
-	m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
-	VkDescriptorImageInfo descriptorImageInfo;
-	descriptorImageInfo.imageLayout = m_colorImage->GetLayout();
-	descriptorImageInfo.imageView = m_colorImageView->GetVkImageView();
-	descriptorImageInfo.sampler = m_colorSampler->GetVkSampler();
-	m_descriptorSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
+	if (m_color) {
+		m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+		VkDescriptorImageInfo descriptorImageInfo;
+		descriptorImageInfo.imageLayout = m_colorImage->GetLayout();
+		descriptorImageInfo.imageView = m_colorImageView->GetVkImageView();
+		descriptorImageInfo.sampler = m_colorSampler->GetVkSampler();
+		m_descriptorSet->UpdateImageDescriptorBinding(0, descriptorImageInfo);
+	}
 }
 
-void RenderTexture::Clear(const VkCommandBuffer commandBuffer)
+void RenderTexture::Clear(const VkCommandBuffer commandBuffer) const
 {
-	const auto prevDepthLayout = m_depthImage->GetLayout();
-	const auto prevColorLayout = m_colorImage->GetLayout();
-	m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	VkImageSubresourceRange depthSubresourceRange{};
-	depthSubresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	depthSubresourceRange.baseMipLevel = 0;
-	depthSubresourceRange.levelCount = 1;
-	depthSubresourceRange.baseArrayLayer = 0;
-	depthSubresourceRange.layerCount = 1;
-	VkClearDepthStencilValue depthStencilValue{};
-	depthStencilValue = { 1, 0 };
-	vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), &
-		depthStencilValue, 1, &depthSubresourceRange);
-	VkImageSubresourceRange colorSubresourceRange{};
-	colorSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	colorSubresourceRange.baseMipLevel = 0;
-	colorSubresourceRange.levelCount = 1;
-	colorSubresourceRange.baseArrayLayer = 0;
-	colorSubresourceRange.layerCount = 1;
-	VkClearColorValue colorValue{};
-	colorValue = { 0, 0, 0, 1 };
-	vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), &colorValue, 1, &colorSubresourceRange);
-
-	m_depthImage->TransitImageLayout(commandBuffer, prevDepthLayout);
-	m_colorImage->TransitImageLayout(commandBuffer, prevColorLayout);
+	if (m_depth)
+	{
+		const auto prevDepthLayout = m_depthImage->GetLayout();
+		m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		VkImageSubresourceRange depthSubresourceRange{};
+		depthSubresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		depthSubresourceRange.baseMipLevel = 0;
+		depthSubresourceRange.levelCount = 1;
+		depthSubresourceRange.baseArrayLayer = 0;
+		depthSubresourceRange.layerCount = 1;
+		VkClearDepthStencilValue depthStencilValue{};
+		depthStencilValue = { 1, 0 };
+		vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), &
+			depthStencilValue, 1, &depthSubresourceRange);
+		m_depthImage->TransitImageLayout(commandBuffer, prevDepthLayout);
+	}
+	if (m_color) {
+		const auto prevColorLayout = m_colorImage->GetLayout();
+		m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		VkImageSubresourceRange colorSubresourceRange{};
+		colorSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		colorSubresourceRange.baseMipLevel = 0;
+		colorSubresourceRange.levelCount = 1;
+		colorSubresourceRange.baseArrayLayer = 0;
+		colorSubresourceRange.layerCount = 1;
+		VkClearColorValue colorValue{};
+		colorValue = { 0, 0, 0, 1 };
+		vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), &colorValue, 1, &colorSubresourceRange);
+		m_colorImage->TransitImageLayout(commandBuffer, prevColorLayout);
+	}
 }
 
-RenderTexture::RenderTexture(const VkExtent3D extent, const VkImageViewType imageViewType)
+RenderTexture::RenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {
-	Initialize(extent, imageViewType);
+	Initialize(renderTextureCreateInfo);
 }
 void RenderTexture::Resize(const VkExtent3D extent)
 {
-	Initialize(extent, m_imageViewType);
+	RenderTextureCreateInfo renderTextureCreateInfo;
+	renderTextureCreateInfo.m_extent = extent;
+	renderTextureCreateInfo.m_color = m_color;
+	renderTextureCreateInfo.m_depth = m_depth;
+	renderTextureCreateInfo.m_imageViewType = m_imageViewType;
+	Initialize(renderTextureCreateInfo);
 }
 
 void RenderTexture::AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
+	assert(m_color);
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
@@ -214,6 +226,7 @@ void RenderTexture::AppendColorAttachmentInfos(std::vector<VkRenderingAttachment
 
 VkRenderingAttachmentInfo RenderTexture::GetDepthAttachmentInfo(const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
+	assert(m_depth);
 	VkRenderingAttachmentInfo attachment{};
 	attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
@@ -236,61 +249,72 @@ VkImageViewType RenderTexture::GetImageViewType() const
 	return m_imageViewType;
 }
 
-VkFormat RenderTexture::GetColorFormat() const
-{
-	return m_colorFormat;
-}
-
-VkFormat RenderTexture::GetDepthFormat() const
-{
-	return m_depthFormat;
-}
-
 const std::shared_ptr<Sampler>& RenderTexture::GetColorSampler() const
 {
+	assert(m_color);
 	return m_colorSampler;
 }
 
 const std::shared_ptr<Sampler>& RenderTexture::GetDepthSampler() const
 {
+	assert(m_depth);
 	return m_depthSampler;
 }
 
 const std::shared_ptr<Image>& RenderTexture::GetColorImage()
 {
+	assert(m_color);
 	return m_colorImage;
 }
 
 const std::shared_ptr<Image>& RenderTexture::GetDepthImage()
 {
+	assert(m_depth);
 	return m_depthImage;
 }
 
 const std::shared_ptr<ImageView>& RenderTexture::GetColorImageView()
 {
+	assert(m_color);
 	return m_colorImageView;
 }
 
 const std::shared_ptr<ImageView>& RenderTexture::GetDepthImageView()
 {
+	assert(m_depth);
 	return m_depthImageView;
 }
 
 void RenderTexture::BeginRendering(const VkCommandBuffer commandBuffer, const VkAttachmentLoadOp loadOp, const VkAttachmentStoreOp storeOp) const
 {
-	m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	if (m_depth) m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	if (m_color) m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 	VkRect2D renderArea;
 	renderArea.offset = { 0, 0 };
 	renderArea.extent.width = m_extent.width;
 	renderArea.extent.height = m_extent.height;
 	VkRenderingInfo renderInfo{};
-	const auto depthAttachment = GetDepthAttachmentInfo(loadOp, storeOp);
+	VkRenderingAttachmentInfo depthAttachment;
+	if (m_depth)
+	{
+		depthAttachment = GetDepthAttachmentInfo(loadOp, storeOp);
+		renderInfo.pDepthAttachment = &depthAttachment;
+	}
+	else
+	{
+		renderInfo.pDepthAttachment = nullptr;
+	}
 	std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
-	AppendColorAttachmentInfos(colorAttachmentInfos, loadOp, storeOp);
-	renderInfo.pDepthAttachment = &depthAttachment;
-	renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
-	renderInfo.pColorAttachments = colorAttachmentInfos.data();
+	if (m_color) {
+		AppendColorAttachmentInfos(colorAttachmentInfos, loadOp, storeOp);
+		renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+		renderInfo.pColorAttachments = colorAttachmentInfos.data();
+	}
+	else
+	{
+		renderInfo.colorAttachmentCount = 0;
+		renderInfo.pColorAttachments = nullptr;
+	}
 	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 	renderInfo.renderArea = renderArea;
 	renderInfo.layerCount = 1;
@@ -300,9 +324,6 @@ void RenderTexture::BeginRendering(const VkCommandBuffer commandBuffer, const Vk
 void RenderTexture::EndRendering(const VkCommandBuffer commandBuffer) const
 {
 	vkCmdEndRendering(commandBuffer);
-	//m_depthImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	//m_colorImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	//m_stencilImage->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 ImTextureID RenderTexture::GetColorImTextureId() const
@@ -327,35 +348,7 @@ void RenderTexture::ApplyGraphicsPipelineStates(GraphicsPipelineStates& globalPi
 	globalPipelineState.m_viewPort = viewport;
 	globalPipelineState.m_scissor = scissor;
 	globalPipelineState.m_colorBlendAttachmentStates.clear();
-	globalPipelineState.m_colorBlendAttachmentStates.resize(1);
-}
-
-const std::vector<VkAttachmentDescription>& RenderTexture::GetAttachmentDescriptions()
-{
-	static std::vector<VkAttachmentDescription> attachments{};
-	if (attachments.empty()) {
-		static VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = Graphics::Constants::RENDER_TEXTURE_COLOR;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-
-		static VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = Graphics::Constants::RENDER_TEXTURE_DEPTH;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-		attachments = { depthAttachment, colorAttachment };
-	}
-	return attachments;
+	if (m_color) globalPipelineState.m_colorBlendAttachmentStates.resize(1);
 }
 
 bool RenderTexture::Save(const std::filesystem::path& path) const
@@ -378,6 +371,7 @@ bool RenderTexture::Save(const std::filesystem::path& path) const
 
 void RenderTexture::StoreToPng(const std::string& path, int resizeX, int resizeY, unsigned compressionLevel) const
 {
+	assert(m_color);
 	stbi_write_png_compression_level = static_cast<int>(compressionLevel);
 	const auto resolutionX = m_colorImage->GetExtent().width;
 	const auto resolutionY = m_colorImage->GetExtent().height;
@@ -425,6 +419,7 @@ void RenderTexture::StoreToPng(const std::string& path, int resizeX, int resizeY
 
 void RenderTexture::StoreToJpg(const std::string& path, int resizeX, int resizeY, unsigned quality) const
 {
+	assert(m_color);
 	const auto resolutionX = m_colorImage->GetExtent().width;
 	const auto resolutionY = m_colorImage->GetExtent().height;
 	std::vector<float> dst;
@@ -473,6 +468,7 @@ void RenderTexture::StoreToJpg(const std::string& path, int resizeX, int resizeY
 void RenderTexture::StoreToHdr(const std::string& path, int resizeX, int resizeY,
 	unsigned quality) const
 {
+	assert(m_color);
 	const auto resolutionX = m_colorImage->GetExtent().width;
 	const auto resolutionY = m_colorImage->GetExtent().height;
 	const size_t channels = 4;

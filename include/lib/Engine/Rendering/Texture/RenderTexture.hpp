@@ -2,6 +2,14 @@
 #include "GraphicsPipelineStates.hpp"
 #include "GraphicsResources.hpp"
 namespace EvoEngine{
+	struct RenderTextureCreateInfo
+	{
+		VkExtent3D m_extent = {1, 1, 1};
+		VkImageViewType m_imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+		bool m_color = true;
+		bool m_depth = true;
+	};
+	
 	class RenderTexture
 	{
 		friend class Graphics;
@@ -15,25 +23,23 @@ namespace EvoEngine{
 
 		VkExtent3D m_extent;
 		VkImageViewType m_imageViewType;
-		VkFormat m_colorFormat;
-		VkFormat m_depthFormat;
 		std::shared_ptr<Sampler> m_colorSampler = {};
 		std::shared_ptr<Sampler> m_depthSampler = {};
 		ImTextureID m_colorImTextureId = nullptr;
 
-		void Initialize(VkExtent3D extent, VkImageViewType imageViewType);
+		bool m_color = true;
+		bool m_depth = true;
+		void Initialize(const RenderTextureCreateInfo& renderTextureCreateInfo);
 		std::shared_ptr<DescriptorSet> m_descriptorSet;
 	public:
-		void Clear(VkCommandBuffer commandBuffer);
-		explicit RenderTexture(VkExtent3D extent, VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
+		void Clear(VkCommandBuffer commandBuffer) const;
+		explicit RenderTexture(const RenderTextureCreateInfo& renderTextureCreateInfo);
 		void Resize(VkExtent3D extent);
 		void AppendColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
 		[[nodiscard]] VkRenderingAttachmentInfo GetDepthAttachmentInfo(VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
 		[[nodiscard]] VkExtent3D GetExtent() const;
 		[[nodiscard]] VkImageViewType GetImageViewType() const;
-		[[nodiscard]] VkFormat GetColorFormat() const;
-		[[nodiscard]] VkFormat GetDepthFormat() const;
-
+		
 		[[nodiscard]] const std::shared_ptr<Sampler>& GetColorSampler() const;
 		[[nodiscard]] const std::shared_ptr<Sampler>& GetDepthSampler() const;
 		[[nodiscard]] const std::shared_ptr<Image>& GetColorImage();
@@ -44,7 +50,6 @@ namespace EvoEngine{
 		void EndRendering(VkCommandBuffer commandBuffer) const;
 		[[nodiscard]] ImTextureID GetColorImTextureId() const;
 		void ApplyGraphicsPipelineStates(GraphicsPipelineStates& globalPipelineState) const;
-		[[nodiscard]] static const std::vector<VkAttachmentDescription>& GetAttachmentDescriptions();
 		[[maybe_unused]] bool Save(const std::filesystem::path& path) const;
 		void StoreToPng(
 			const std::string& path,
