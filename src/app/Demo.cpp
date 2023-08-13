@@ -71,7 +71,7 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Rendering;
+	DemoSetup demoSetup = DemoSetup::Planets;
 	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();
@@ -169,7 +169,7 @@ int main() {
 	case DemoSetup::Galaxy:
 	{
 		applicationInfo.m_applicationName = "Galaxy Demo";
-		ClassRegistry::RegisterSystem<Galaxy::StarClusterSystem>("StarClusterSystem");
+		ClassRegistry::RegisterSystem<StarClusterSystem>("StarClusterSystem");
 		applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Galaxy/Galaxy.eveproj";
 		ProjectManager::SetScenePostLoadActions([&](const std::shared_ptr<Scene>& scene)
 			{
@@ -178,7 +178,7 @@ int main() {
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma region Star System
 				auto starClusterSystem =
-					scene->GetOrCreateSystem<Galaxy::StarClusterSystem>(SystemGroup::SimulationSystemGroup);
+					scene->GetOrCreateSystem<StarClusterSystem>(SystemGroup::SimulationSystemGroup);
 #pragma endregion
 				mainCamera->m_useClearColor = true;
 			});
@@ -187,6 +187,8 @@ int main() {
 	{
 		applicationInfo.m_applicationName = "Planets Demo";
 		ClassRegistry::RegisterSystem<PlanetTerrainSystem>("PlanetTerrainSystem");
+		ClassRegistry::RegisterPrivateComponent<PlanetTerrain>("PlanetTerrain");
+
 		applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Planet/Planet.eveproj";
 		ProjectManager::SetScenePostLoadActions([&](const std::shared_ptr<Scene>& scene)
 			{

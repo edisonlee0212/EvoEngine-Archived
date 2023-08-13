@@ -3,10 +3,6 @@
 #include "Scene.hpp"
 #include "RenderLayer.hpp"
 using namespace Planet;
-void PlanetTerrainSystem::OnCreate()
-{
-    ClassRegistry::RegisterPrivateComponent<PlanetTerrain>("PlanetTerrain");
-}
 
 void PlanetTerrainSystem::Update()
 {
@@ -98,11 +94,11 @@ void PlanetTerrainSystem::RenderChunk(
     glm::mat4 &matrix,
     bool receiveShadow) const
 {
-    if (chunk->Active) {
+    if (chunk->m_active) {
         const auto renderLayer = Application::GetLayer<RenderLayer>();
         renderLayer->DrawMesh(chunk->m_mesh, material, matrix, true);
     }
-    if (chunk->ChildrenActive)
+    if (chunk->m_childrenActive)
     {
         RenderChunk(chunk->m_c0, material, matrix, receiveShadow);
         RenderChunk(chunk->m_c1, material, matrix, receiveShadow);

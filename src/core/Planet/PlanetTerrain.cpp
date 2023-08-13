@@ -59,26 +59,27 @@ void Planet::PlanetTerrain::Init()
             }
         }
     }
-
+    const auto scene = Application::GetActiveScene();
+    auto self = scene->GetOrSetPrivateComponent<PlanetTerrain>(GetOwner()).lock();
     m_chunks.clear();
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(1, 0, 0)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(1, 0, 0)));
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 1, 0)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 1, 0)));
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 0, 1)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 0, 1)));
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(-1, 0, 0)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(-1, 0, 0)));
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, -1, 0)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, -1, 0)));
     m_chunks.push_back(
-        std::make_shared<TerrainChunk>(this, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 0, -1)));
+        std::make_shared<TerrainChunk>(self, nullptr, 0, glm::ivec2(0), ChunkDirection::Root, glm::dvec3(0, 0, -1)));
 
     std::mutex m;
     for (auto &chunk : m_chunks)
     {
         chunk->GenerateTerrain(m, chunk);
-        chunk->Active = true;
+        chunk->m_active = true;
     }
     m_initialized = true;
 }

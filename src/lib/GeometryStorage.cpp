@@ -567,7 +567,11 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 			break;
 		}
 	}
-	if (meshletRangeDescriptorIndex == UINT_MAX) return;
+	if (meshletRangeDescriptorIndex == UINT_MAX)
+	{
+		EVOENGINE_ERROR("Can't find the target meshlet range!");
+		return;
+	};
 	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
 	std::unordered_set<uint32_t> vertexIndices;
 	for(uint32_t i = meshletRangeDescriptor->m_offset; i < meshletRangeDescriptor->m_size; i++)
@@ -584,32 +588,37 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 		storage.m_vertexDataVertexPool.push(i);
 	}
 	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + meshletRangeDescriptor->m_size);
-	for (uint32_t i = meshletRangeDescriptorIndex; i < storage.m_meshletRangeDescriptor.size(); i++)
+	for (uint32_t i = meshletRangeDescriptorIndex + 1; i < storage.m_meshletRangeDescriptor.size(); i++)
 	{
+		assert(storage.m_meshletRangeDescriptor[i]->m_offset >= meshletRangeDescriptor->m_size);
 		storage.m_meshletRangeDescriptor[i]->m_offset -= meshletRangeDescriptor->m_size;
 	}
 	storage.m_meshletRangeDescriptor.erase(storage.m_meshletRangeDescriptor.begin() + meshletRangeDescriptorIndex);
 
-	
-
-
 	uint32_t triangleRangeDescriptorIndex = UINT_MAX;
-	for(int i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
+	for(uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
 	{
-		if(storage.m_triangleRangeDescriptor[i]-> m_handle == handle)
+		if(storage.m_triangleRangeDescriptor[i]->m_handle == handle)
 		{
 			triangleRangeDescriptorIndex = i;
 			break;
 		}
 	}
-	if (triangleRangeDescriptorIndex == UINT_MAX) return;
-	const auto& descriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
-	storage.m_triangles.erase(storage.m_triangles.begin() + descriptor->m_offset, storage.m_triangles.begin() + descriptor->m_offset + descriptor->m_size);
-	for (uint32_t i = triangleRangeDescriptorIndex; i < storage.m_triangleRangeDescriptor.size(); i++)
+	if (triangleRangeDescriptorIndex == UINT_MAX)
 	{
-		storage.m_triangleRangeDescriptor[i]->m_offset -= descriptor->m_size;
+		EVOENGINE_ERROR("Can't find the target triangle range!");
+		return;
+	}
+	const auto& triangleRangeDescriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
+	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset, storage.m_triangles.begin() + triangleRangeDescriptor->m_offset + triangleRangeDescriptor->m_size);
+	for (uint32_t i = triangleRangeDescriptorIndex + 1; i < storage.m_triangleRangeDescriptor.size(); i++)
+	{
+		assert(storage.m_triangleRangeDescriptor[i]->m_offset >= triangleRangeDescriptor->m_size);
+		storage.m_triangleRangeDescriptor[i]->m_offset -= triangleRangeDescriptor->m_size;
 	}
 	storage.m_triangleRangeDescriptor.erase(storage.m_triangleRangeDescriptor.begin() + triangleRangeDescriptorIndex);
+
+	for (auto& i : storage.m_requireMeshDataDeviceUpdate) i = true;
 }
 
 void GeometryStorage::FreeSkinnedMesh(const std::vector<uint32_t>& skinnedMeshletIndices)
@@ -630,6 +639,8 @@ void GeometryStorage::FreeSkinnedMesh(const std::vector<uint32_t>& skinnedMeshle
 	{
 		storage.m_skinnedVertexDataPool.push(i);
 	}
+
+	for (auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
 }
 
 void GeometryStorage::FreeStrands(const std::vector<uint32_t>& strandMeshletIndices)
@@ -650,6 +661,7 @@ void GeometryStorage::FreeStrands(const std::vector<uint32_t>& strandMeshletIndi
 	{
 		storage.m_strandPointDataPool.push(i);
 	}
+	for (auto& i : storage.m_requireStrandMeshDataDeviceUpdate) i = true;
 }
 
 const Meshlet& GeometryStorage::PeekMeshlet(const uint32_t meshletIndex)

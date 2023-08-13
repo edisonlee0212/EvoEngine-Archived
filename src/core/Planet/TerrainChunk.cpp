@@ -34,8 +34,8 @@ glm::dvec3 Planet::TerrainChunk::ChunkCenterPosition(glm::dvec3 planetPosition, 
 }
 
 Planet::TerrainChunk::TerrainChunk(
-    PlanetTerrain *planetTerrain,
-    TerrainChunk *parent,
+    const std::shared_ptr<PlanetTerrain> &planetTerrain,
+    const std::shared_ptr<TerrainChunk>& parent,
     unsigned detailLevel,
     glm::ivec2 chunkCoordinate,
     ChunkDirection direction,
@@ -53,62 +53,66 @@ Planet::TerrainChunk::TerrainChunk(
 
 void Planet::TerrainChunk::Expand(std::mutex &mutex)
 {
-    if (!Active)
+    if (!m_active)
         return;
     if (!m_c0)
     {
         auto chunk0 = std::make_shared<TerrainChunk>(
-            m_planetTerrain,
-            this,
+            m_planetTerrain.lock(),
+            m_self.lock(),
             m_detailLevel + 1,
             glm::ivec2(m_chunkCoordinate.x * 2, m_chunkCoordinate.y * 2 + 1),
             ChunkDirection::UpperLeft,
             m_localUp);
+        chunk0->m_self = chunk0;
         GenerateTerrain(mutex, chunk0);
         m_c0 = std::move(chunk0);
     }
     if (!m_c1)
     {
         auto chunk1 = std::make_shared<TerrainChunk>(
-            m_planetTerrain,
-            this,
+            m_planetTerrain.lock(),
+            m_self.lock(),
             m_detailLevel + 1,
             glm::ivec2(m_chunkCoordinate.x * 2 + 1, m_chunkCoordinate.y * 2 + 1),
             ChunkDirection::UpperRight,
             m_localUp);
+        chunk1->m_self = chunk1;
         GenerateTerrain(mutex, chunk1);
         m_c1 = std::move(chunk1);
     }
     if (!m_c2)
     {
         auto chunk2 = std::make_shared<TerrainChunk>(
-            m_planetTerrain,
-            this,
+            m_planetTerrain.lock(),
+            m_self.lock(),
             m_detailLevel + 1,
             glm::ivec2(m_chunkCoordinate.x * 2, m_chunkCoordinate.y * 2),
             ChunkDirection::LowerLeft,
             m_localUp);
+        chunk2->m_self = chunk2;
         GenerateTerrain(mutex, chunk2);
         m_c2 = std::move(chunk2);
     }
     if (!m_c3)
     {
         auto chunk3 = std::make_shared<TerrainChunk>(
-            m_planetTerrain,
-            this,
+            m_planetTerrain.lock(),
+            m_self.lock(),
             m_detailLevel + 1,
             glm::ivec2(m_chunkCoordinate.x * 2 + 1, m_chunkCoordinate.y * 2),
             ChunkDirection::LowerRight,
             m_localUp);
+        chunk3->m_self = chunk3;
         GenerateTerrain(mutex, chunk3);
         m_c3 = std::move(chunk3);
     }
-    m_c0->Active = true;
-    m_c1->Active = true;
-    m_c2->Active = true;
-    m_c3->Active = true;
-    Active = false;
-    ChildrenActive = true;
+    m_c0->m_active = true;
+    m_c1->m_active = true;
+    m_c2->m_active = true;
+    m_c3->m_active = true;
+    m_active = false;
+    m_childrenActive = true;
 }
 
 void Planet::TerrainChunk::GenerateTerrain(std::mutex &mutex, std::shared_ptr<TerrainChunk> &targetChunk) const
@@ -117,9 +121,10 @@ void Planet::TerrainChunk::GenerateTerrain(std::mutex &mutex, std::shared_ptr<Te
     {
         Console::Error("Mesh Exist!");
     }
-    std::vector<Vertex> &vertices = m_planetTerrain->m_sharedVertices;
+    auto planetTerrain = m_planetTerrain.lock();
+    std::vector<Vertex> &vertices = planetTerrain->m_sharedVertices;
     auto size = vertices.size();
-    auto resolution = m_planetTerrain->m_info.m_resolution;
+    auto resolution = planetTerrain->m_info.m_resolution;
     for (auto index = 0; index < size; index++)
     {
         int actualDetailLevel = (int)glm::pow(2, targetChunk->m_detailLevel);
@@ -138,12 +143,12 @@ void Planet::TerrainChunk::GenerateTerrain(std::mutex &mutex, std::shared_ptr<Te
         double elevation = 1.0;
 
         double previousResult = 1.0;
-        for (auto &stage : m_planetTerrain->m_terrainConstructionStages)
+        for (const auto &stage : planetTerrain->m_terrainConstructionStages)
         {
             stage->Process(pointOnUnitCube, previousResult, elevation);
             previousResult = elevation;
         }
-        vertices.at(index).m_position = glm::vec3(pointOnUnitCube * m_planetTerrain->m_info.m_radius * elevation);
+        vertices.at(index).m_position = glm::vec3(pointOnUnitCube * planetTerrain->m_info.m_radius * elevation);
     }
     std::lock_guard<std::mutex> lock(mutex);
     auto mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
@@ -151,8 +156,8 @@ void Planet::TerrainChunk::GenerateTerrain(std::mutex &mutex, std::shared_ptr<Te
     attributes.m_texCoord = true;
 
     mesh->SetVertices(attributes,
-        m_planetTerrain->m_sharedVertices,
-        m_planetTerrain->m_sharedTriangles);
+        planetTerrain->m_sharedVertices,
+        planetTerrain->m_sharedTriangles);
     targetChunk->m_mesh = std::move(mesh);
 }
 
@@ -160,12 +165,18 @@ void Planet::TerrainChunk::Collapse()
 {
     if (!m_c0 || !m_c1 || !m_c2 || !m_c3)
         return;
-    if (!m_c0->Active || !m_c1->Active || !m_c2->Active || !m_c3->Active)
+    if (!m_c0->m_active || !m_c1->m_active || !m_c2->m_active || !m_c3->m_active)
         return;
-    m_c0->Active = false;
-    m_c1->Active = false;
-    m_c2->Active = false;
-    m_c3->Active = false;
-    Active = true;
-    ChildrenActive = false;
+
+    m_c0->m_active = false;
+    m_c1->m_active = false;
+    m_c2->m_active = false;
+    m_c3->m_active = false;
+    m_active = true;
+    m_childrenActive = false;
+
+    m_c0.reset();
+    m_c1.reset();
+    m_c2.reset();
+    m_c3.reset();
 }

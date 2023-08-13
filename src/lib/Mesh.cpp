@@ -84,7 +84,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes.m_tangent = true;
 
 	
-	GeometryStorage::FreeMesh(GetHandle());
+	if(m_triangleRange || m_meshletRange) GeometryStorage::FreeMesh(GetHandle());
 	m_triangleRange.reset();
 	m_meshletRange.reset();
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);

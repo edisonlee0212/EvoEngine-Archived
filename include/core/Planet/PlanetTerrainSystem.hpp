@@ -11,7 +11,6 @@ class PlanetTerrainSystem : public ISystem
 {
     friend class PlanetTerrain;
   public:
-    void OnCreate() override;
     void Update() override;
     void FixedUpdate() override;
     void CheckLod(
