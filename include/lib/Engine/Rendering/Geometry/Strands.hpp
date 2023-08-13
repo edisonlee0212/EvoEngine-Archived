@@ -31,7 +31,7 @@ namespace EvoEngine
         void SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& strands,
             const std::vector<StrandPoint>& points);
         void RecalculateNormal();
-        void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount, bool enableMetrics) const override;
+        void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
         void UploadData();
         void Bind(VkCommandBuffer vkCommandBuffer) override;
         void OnCreate() override;

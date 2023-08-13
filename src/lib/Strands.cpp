@@ -424,14 +424,9 @@ void Strands::RecalculateNormal()
 }
 
 void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState,
-	int instancesCount, bool enableMetrics) const
+	int instancesCount) const
 {
 	if (instancesCount == 0) return;
-	auto& graphics = Graphics::GetInstance();
-	if (enableMetrics) {
-		graphics.m_drawCall++;
-		graphics.m_strandsSegments += m_segments.size() * instancesCount;
-	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instancesCount, 0, 0, 0);
 }

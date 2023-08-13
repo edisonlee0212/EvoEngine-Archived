@@ -246,7 +246,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 				EquirectangularToCubemapConstant constant{};
 				constant.m_projectionView = captureProjection * captureViews[i];
 				equirectangularToCubemap->PushConstant(commandBuffer, 0, constant);
-				mesh->DrawIndexed(commandBuffer, equirectangularToCubemap->m_states, 1, false);
+				mesh->DrawIndexed(commandBuffer, equirectangularToCubemap->m_states, 1);
 				vkCmdEndRendering(commandBuffer);
 #pragma endregion
 			

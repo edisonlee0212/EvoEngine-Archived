@@ -146,10 +146,12 @@ void RenderLayer::LateUpdate()
 			}
 		}
 	);
+
+	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	auto& graphics = Graphics::GetInstance();
-	graphics.m_triangles = 0;
-	graphics.m_strandsSegments = 0;
-	graphics.m_drawCall = 0;
+	graphics.m_triangles[currentFrameIndex] = 0;
+	graphics.m_strandsSegments[currentFrameIndex] = 0;
+	graphics.m_drawCall[currentFrameIndex] = 0;
 	
 	GeometryStorage::DeviceSync();
 	TextureStorage::DeviceSync();
@@ -185,7 +187,6 @@ void RenderLayer::LateUpdate()
 		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environment.m_backgroundIntensity;
 	}
 
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	m_renderInfoDescriptorBuffers[currentFrameIndex]->Upload(m_renderInfoBlock);
 	m_environmentInfoDescriptorBuffers[currentFrameIndex]->Upload(m_environmentInfoBlock);
 	m_directionalLightInfoDescriptorBuffers[currentFrameIndex]->UploadVector(m_directionalLightInfoBlocks);
@@ -385,7 +386,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 	if (auto editorLayer = Application::GetLayer<EditorLayer>())
 	{
 		for (const auto& [cameraHandle, editorCamera] : editorLayer->m_editorCameras) {
-			if (editorCamera.m_camera || editorCamera.m_camera->IsEnabled() || editorCamera.m_camera->m_requireRendering)
+			if (editorCamera.m_camera || editorCamera.m_camera->IsEnabled())
 			{
 				cameraPairs.emplace_back(editorCamera.m_camera, editorCamera.m_position);
 				CameraInfoBlock cameraInfoBlock;
@@ -405,7 +406,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 			if (!scene->IsEntityEnabled(i)) continue;
 			assert(scene->HasPrivateComponent<Camera>(i));
 			auto camera = scene->GetOrSetPrivateComponent<Camera>(i).lock();
-			if (!camera || !camera->IsEnabled() || !camera->m_requireRendering) continue;
+			if (!camera || !camera->IsEnabled()) continue;
 			auto cameraGlobalTransform = scene->GetDataComponent<GlobalTransform>(i);
 			cameraPairs.emplace_back(camera, cameraGlobalTransform.GetPosition());
 			CameraInfoBlock cameraInfoBlock;
@@ -846,6 +847,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowPipeline->Bind(commandBuffer);
 					pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -857,6 +859,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						scissor.extent.width = viewport.width;
 						scissor.extent.height = viewport.height;
 						pointLightShadowPipeline->m_states.m_scissor = scissor;
+						
 						if (m_enableIndirectRendering) {
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = i;
@@ -864,16 +867,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = 0;
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							pointLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (ENABLE_MESH_SHADER) {
-								graphics.m_drawCall++;
-								graphics.m_triangles += m_totalMeshTriangles;
+							if (Graphics::Constants::ENABLE_MESH_SHADER) {
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
-								GeometryStorage::BindVertices(commandBuffer);
-								graphics.m_drawCall++;
-								graphics.m_triangles += m_totalMeshTriangles;
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 							}
 						}
@@ -886,63 +888,21 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									pushConstant.m_lightSplitIndex = face;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (ENABLE_MESH_SHADER)
+									if (Graphics::Constants::ENABLE_MESH_SHADER)
 									{
-										graphics.m_drawCall++;
-										graphics.m_triangles += renderCommand.m_mesh->m_triangles.size();
+										graphics.m_drawCall[currentFrameIndex]++;
+										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
-										GeometryStorage::BindVertices(commandBuffer);
-										mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states, 1, true);
+										graphics.m_drawCall[currentFrameIndex]++;
+										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states, 1);
 									}
 								}
 							);
 						}
-					}
-					vkCmdEndRendering(commandBuffer);
-				}
-				{
-					VkRenderingInfo renderInfo{};
-					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-					renderInfo.renderArea = renderArea;
-					renderInfo.layerCount = 1;
-					renderInfo.colorAttachmentCount = 0;
-					renderInfo.pColorAttachments = nullptr;
-					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
-					pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
-					pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
-					vkCmdBeginRendering(commandBuffer, &renderInfo);
-					pointLightShadowSkinnedPipeline->Bind(commandBuffer);
-					pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
-					{
-						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
-						viewport.x = pointLightInfoBlock.m_viewPort.x;
-						viewport.y = pointLightInfoBlock.m_viewPort.y;
-						viewport.width = pointLightInfoBlock.m_viewPort.z;
-						viewport.height = pointLightInfoBlock.m_viewPort.w;
-						scissor.extent.width = viewport.width;
-						scissor.extent.height = viewport.height;
-						pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
-						pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
-						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
-							{
-								if (!renderCommand.m_castShadow) return;
-								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
-								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = i;
-								pushConstant.m_lightSplitIndex = face;
-								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
-								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								skinnedMesh->Bind(commandBuffer);
-								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1, true);
-							}
-						);
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
@@ -983,14 +943,60 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								GeometryStorage::BindVertices(commandBuffer);
-								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 							}
 						);
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
-
+				{
+					VkRenderingInfo renderInfo{};
+					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+					renderInfo.renderArea = renderArea;
+					renderInfo.layerCount = 1;
+					renderInfo.colorAttachmentCount = 0;
+					renderInfo.pColorAttachments = nullptr;
+					renderInfo.pDepthAttachment = &depthAttachment;
+					pointLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
+					pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
+					vkCmdBeginRendering(commandBuffer, &renderInfo);
+					pointLightShadowSkinnedPipeline->Bind(commandBuffer);
+					pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					//GeometryStorage::BindVertices(commandBuffer);
+					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
+					{
+						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
+						viewport.x = pointLightInfoBlock.m_viewPort.x;
+						viewport.y = pointLightInfoBlock.m_viewPort.y;
+						viewport.width = pointLightInfoBlock.m_viewPort.z;
+						viewport.height = pointLightInfoBlock.m_viewPort.w;
+						scissor.extent.width = viewport.width;
+						scissor.extent.height = viewport.height;
+						pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
+						pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
+						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
+							{
+								if (!renderCommand.m_castShadow) return;
+								pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = i;
+								pushConstant.m_lightSplitIndex = face;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
+								const auto skinnedMesh = renderCommand.m_skinnedMesh;
+								skinnedMesh->Bind(commandBuffer);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1);
+							}
+						);
+					}
+					vkCmdEndRendering(commandBuffer);
+				}
 				{
 					VkRenderingInfo renderInfo{};
 					auto depthAttachment = m_lighting->GetLayeredPointLightDepthAttachmentInfo(face, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1027,7 +1033,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pointLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
 								strands->Bind(commandBuffer);
-								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1, true);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1);
 							}
 						);
 					}
@@ -1067,6 +1075,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				spotLightShadowPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
+				GeometryStorage::BindVertices(commandBuffer);
 				spotLightShadowPipeline->Bind(commandBuffer);
 				spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
@@ -1087,16 +1096,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						pushConstant.m_instanceIndex = 0;
 						spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						spotLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if (ENABLE_MESH_SHADER) {
-							graphics.m_drawCall++;
-							graphics.m_triangles += m_totalMeshTriangles;
+						if (Graphics::Constants::ENABLE_MESH_SHADER) {
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 						}
 						else
 						{
 							GeometryStorage::BindVertices(commandBuffer);
-							graphics.m_drawCall++;
-							graphics.m_triangles += m_totalMeshTriangles;
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 					}
@@ -1109,61 +1118,21 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_lightSplitIndex = 0;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-								if (ENABLE_MESH_SHADER)
+								if (Graphics::Constants::ENABLE_MESH_SHADER)
 								{
-									graphics.m_drawCall++;
-									graphics.m_triangles += renderCommand.m_mesh->m_triangles.size();
+									graphics.m_drawCall[currentFrameIndex]++;
+									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 									vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
-									GeometryStorage::BindVertices(commandBuffer);
-									mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states, 1, true);
+									graphics.m_drawCall[currentFrameIndex]++;
+									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+									mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states, 1);
 								}
 							}
 						);
 					}
-				}
-				vkCmdEndRendering(commandBuffer);
-			}
-			{
-				VkRenderingInfo renderInfo{};
-				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-				renderInfo.renderArea = renderArea;
-				renderInfo.layerCount = 1;
-				renderInfo.colorAttachmentCount = 0;
-				renderInfo.pColorAttachments = nullptr;
-				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
-				spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
-				spotLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
-				vkCmdBeginRendering(commandBuffer, &renderInfo);
-				spotLightShadowSkinnedPipeline->Bind(commandBuffer);
-				spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
-				{
-					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
-					viewport.x = spotLightInfoBlock.m_viewPort.x;
-					viewport.y = spotLightInfoBlock.m_viewPort.y;
-					viewport.width = spotLightInfoBlock.m_viewPort.z;
-					viewport.height = spotLightInfoBlock.m_viewPort.w;
-					spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
-
-					m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
-						{
-							if (!renderCommand.m_castShadow) return;
-							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
-							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = i;
-							pushConstant.m_lightSplitIndex = 0;
-							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
-							const auto skinnedMesh = renderCommand.m_skinnedMesh;
-							skinnedMesh->Bind(commandBuffer);
-							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1, true);
-						}
-					);
 				}
 				vkCmdEndRendering(commandBuffer);
 			}
@@ -1202,13 +1171,58 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
-							GeometryStorage::BindVertices(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 						}
 					);
 				}
 				vkCmdEndRendering(commandBuffer);
 			}
+			{
+				VkRenderingInfo renderInfo{};
+				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+				renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				renderInfo.renderArea = renderArea;
+				renderInfo.layerCount = 1;
+				renderInfo.colorAttachmentCount = 0;
+				renderInfo.pColorAttachments = nullptr;
+				renderInfo.pDepthAttachment = &depthAttachment;
+				spotLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
+				spotLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
+				vkCmdBeginRendering(commandBuffer, &renderInfo);
+				spotLightShadowSkinnedPipeline->Bind(commandBuffer);
+				spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
+				{
+					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
+					viewport.x = spotLightInfoBlock.m_viewPort.x;
+					viewport.y = spotLightInfoBlock.m_viewPort.y;
+					viewport.width = spotLightInfoBlock.m_viewPort.z;
+					viewport.height = spotLightInfoBlock.m_viewPort.w;
+					spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
+
+					m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
+						{
+							if (!renderCommand.m_castShadow) return;
+							spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
+							RenderInstancePushConstant pushConstant;
+							pushConstant.m_cameraIndex = i;
+							pushConstant.m_lightSplitIndex = 0;
+							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
+							const auto skinnedMesh = renderCommand.m_skinnedMesh;
+							skinnedMesh->Bind(commandBuffer);
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1);
+						}
+					);
+				}
+				vkCmdEndRendering(commandBuffer);
+			}
+			
 			{
 				VkRenderingInfo renderInfo{};
 				auto depthAttachment = m_lighting->GetSpotLightDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
@@ -1243,7 +1257,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							spotLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto strands = renderCommand.m_strands;
 							strands->Bind(commandBuffer);
-							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1, true);
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1);
 						}
 					);
 				}
@@ -1713,7 +1729,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			environmentalBrdfPipeline->Bind(commandBuffer);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			GeometryStorage::BindVertices(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states, 1, false);
+			mesh->DrawIndexed(commandBuffer, environmentalBrdfPipeline->m_states, 1);
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
@@ -1779,7 +1795,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					directionalLightShadowPipeline->Bind(commandBuffer);
 					directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
+					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
 						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
@@ -1799,17 +1815,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							pushConstant.m_instanceIndex = 0;
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (ENABLE_MESH_SHADER) {
-								graphics.m_drawCall++;
-								graphics.m_triangles += m_totalMeshTriangles;
+							if (Graphics::Constants::ENABLE_MESH_SHADER) {
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
-
-								GeometryStorage::BindVertices(commandBuffer);
-								graphics.m_drawCall++;
-								graphics.m_triangles += m_totalMeshTriangles;
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 							}
 						}
@@ -1822,16 +1836,18 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									pushConstant.m_lightSplitIndex = split;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (ENABLE_MESH_SHADER)
+									if (Graphics::Constants::ENABLE_MESH_SHADER)
 									{
-										graphics.m_drawCall++;
-										graphics.m_triangles += renderCommand.m_mesh->m_triangles.size();
+										graphics.m_drawCall[currentFrameIndex]++;
+										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
 										GeometryStorage::BindVertices(commandBuffer);
-										mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states, 1, true);
+										graphics.m_drawCall[currentFrameIndex]++;
+										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states, 1);
 									}
 								}
 							);
@@ -1840,56 +1856,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
-
-				{
-					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-					VkRenderingInfo renderInfo{};
-					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-					renderInfo.renderArea = renderArea;
-					renderInfo.layerCount = 1;
-					renderInfo.colorAttachmentCount = 0;
-					renderInfo.pColorAttachments = nullptr;
-					renderInfo.pDepthAttachment = &depthAttachment;
-					directionalLightShadowPipelineSkinned->m_states.m_scissor = scissor;
-					directionalLightShadowPipelineSkinned->m_states.m_viewPort = viewport;
-					directionalLightShadowPipelineSkinned->m_states.m_colorBlendAttachmentStates.clear();
-
-					vkCmdBeginRendering(commandBuffer, &renderInfo);
-					directionalLightShadowPipelineSkinned->Bind(commandBuffer);
-					directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
-					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
-					{
-						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
-						viewport.x = directionalLightInfoBlock.m_viewPort.x;
-						viewport.y = directionalLightInfoBlock.m_viewPort.y;
-						viewport.width = directionalLightInfoBlock.m_viewPort.z;
-						viewport.height = directionalLightInfoBlock.m_viewPort.w;
-						scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
-						scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
-						directionalLightShadowPipelineSkinned->m_states.m_scissor = scissor;
-						directionalLightShadowPipelineSkinned->m_states.m_viewPort = viewport;
-						directionalLightShadowPipelineSkinned->m_states.ApplyAllStates(commandBuffer);
-
-						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
-							{
-								if (!renderCommand.m_castShadow) return;
-								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
-								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
-								pushConstant.m_lightSplitIndex = split;
-								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
-								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								skinnedMesh->Bind(commandBuffer);
-								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states, 1, true);
-							}
-						);
-
-					}
-					vkCmdEndRendering(commandBuffer);
-				}
-
 				{
 					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 					VkRenderingInfo renderInfo{};
@@ -1931,13 +1897,67 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineInstanced->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 							}
 						);
 
 					}
 					vkCmdEndRendering(commandBuffer);
 				}
+				{
+					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+					VkRenderingInfo renderInfo{};
+					renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+					renderInfo.renderArea = renderArea;
+					renderInfo.layerCount = 1;
+					renderInfo.colorAttachmentCount = 0;
+					renderInfo.pColorAttachments = nullptr;
+					renderInfo.pDepthAttachment = &depthAttachment;
+					directionalLightShadowPipelineSkinned->m_states.m_scissor = scissor;
+					directionalLightShadowPipelineSkinned->m_states.m_viewPort = viewport;
+					directionalLightShadowPipelineSkinned->m_states.m_colorBlendAttachmentStates.clear();
+
+					vkCmdBeginRendering(commandBuffer, &renderInfo);
+					directionalLightShadowPipelineSkinned->Bind(commandBuffer);
+					directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+
+					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
+					{
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						viewport.x = directionalLightInfoBlock.m_viewPort.x;
+						viewport.y = directionalLightInfoBlock.m_viewPort.y;
+						viewport.width = directionalLightInfoBlock.m_viewPort.z;
+						viewport.height = directionalLightInfoBlock.m_viewPort.w;
+						scissor.extent.width = directionalLightInfoBlock.m_viewPort.z;
+						scissor.extent.height = directionalLightInfoBlock.m_viewPort.w;
+						directionalLightShadowPipelineSkinned->m_states.m_scissor = scissor;
+						directionalLightShadowPipelineSkinned->m_states.m_viewPort = viewport;
+						directionalLightShadowPipelineSkinned->m_states.ApplyAllStates(commandBuffer);
+
+						m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
+							{
+								if (!renderCommand.m_castShadow) return;
+								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
+								RenderInstancePushConstant pushConstant;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_lightSplitIndex = split;
+								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
+								const auto skinnedMesh = renderCommand.m_skinnedMesh;
+								skinnedMesh->Bind(commandBuffer);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states, 1);
+							}
+						);
+
+					}
+					vkCmdEndRendering(commandBuffer);
+				}
+
+				
 				{
 					const auto depthAttachment = m_lighting->GetLayeredDirectionalLightDepthAttachmentInfo(split, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 					VkRenderingInfo renderInfo{};
@@ -1978,7 +1998,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
 								strands->Bind(commandBuffer);
-								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1, true);
+								graphics.m_drawCall[currentFrameIndex]++;
+								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1);
 							}
 						);
 
@@ -2054,16 +2076,16 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				pushConstant.m_cameraIndex = cameraIndex;
 				pushConstant.m_instanceIndex = 0;
 				deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-				if (ENABLE_MESH_SHADER) {
-					graphics.m_drawCall++;
-					graphics.m_triangles += m_totalMeshTriangles;
+				if (Graphics::Constants::ENABLE_MESH_SHADER) {
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_drawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_drawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 				}
 				else
 				{
 					GeometryStorage::BindVertices(commandBuffer);
-					graphics.m_drawCall++;
-					graphics.m_triangles += m_totalMeshTriangles;
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 					vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 				}
 			}
@@ -2074,15 +2096,17 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						if (ENABLE_MESH_SHADER)
+						if (Graphics::Constants::ENABLE_MESH_SHADER)
 						{
-							graphics.m_drawCall++;
-							graphics.m_triangles += renderCommand.m_mesh->m_triangles.size();
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 							vkCmdDrawMeshTasksEXT(commandBuffer, m_instanceInfoBlocks[renderCommand.m_instanceIndex].m_meshletSize, 1, 1);
 						}
 						else {
 							const auto mesh = renderCommand.m_mesh;
-							mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states, 1, true);
+							graphics.m_drawCall[currentFrameIndex]++;
+							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+							mesh->DrawIndexed(commandBuffer, deferredPrepassPipeline->m_states, 1);
 						}
 					}
 				);
@@ -2090,7 +2114,44 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 			vkCmdEndRendering(commandBuffer);
 		}
+		{
+			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.pDepthAttachment = &depthAttachment;
+			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
+			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
+			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
+			const auto& deferredInstancedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS");
+			deferredInstancedPrepassPipeline->m_states.m_viewPort = viewport;
+			deferredInstancedPrepassPipeline->m_states.m_scissor = scissor;
+			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
+			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
+			for (auto& i : deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates)
+			{
+				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				i.blendEnable = VK_FALSE;
+			}
+			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredInstancedPrepassPipeline->Bind(commandBuffer);
+			deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
+				{
+					renderCommand.m_particleInfos->UploadData();
+					deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
+					RenderInstancePushConstant pushConstant;
+					pushConstant.m_cameraIndex = cameraIndex;
+					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredInstancedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+					const auto mesh = renderCommand.m_mesh;
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+					mesh->DrawIndexed(commandBuffer, deferredInstancedPrepassPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
+				}
+			);
+
+			vkCmdEndRendering(commandBuffer);
+		}
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2121,49 +2182,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredSkinnedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto skinnedMesh = renderCommand.m_skinnedMesh;
 					skinnedMesh->Bind(commandBuffer);
-					skinnedMesh->DrawIndexed(commandBuffer, deferredSkinnedPrepassPipeline->m_states, 1, true);
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_triangles.size();
+					skinnedMesh->DrawIndexed(commandBuffer, deferredSkinnedPrepassPipeline->m_states, 1);
 				}
 			);
 
 			vkCmdEndRendering(commandBuffer);
 		}
-		{
-			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-			renderInfo.pDepthAttachment = &depthAttachment;
-			std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
-			camera->AppendGBufferColorAttachmentInfos(colorAttachmentInfos, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
-			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
-			renderInfo.pColorAttachments = colorAttachmentInfos.data();
-
-			const auto& deferredInstancedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS");
-			deferredInstancedPrepassPipeline->m_states.m_viewPort = viewport;
-			deferredInstancedPrepassPipeline->m_states.m_scissor = scissor;
-			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
-			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			deferredInstancedPrepassPipeline->Bind(commandBuffer);
-			deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			GeometryStorage::BindVertices(commandBuffer);
-			m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
-				{
-					renderCommand.m_particleInfos->UploadData();
-					deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
-					RenderInstancePushConstant pushConstant;
-					pushConstant.m_cameraIndex = cameraIndex;
-					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					deferredInstancedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-					const auto mesh = renderCommand.m_mesh;
-					mesh->DrawIndexed(commandBuffer, deferredInstancedPrepassPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size(), true);
-				}
-			);
-
-			vkCmdEndRendering(commandBuffer);
-		}
+		
 		{
 			const auto depthAttachment = camera->m_renderTexture->GetDepthAttachmentInfo(VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 			renderInfo.pDepthAttachment = &depthAttachment;
@@ -2193,7 +2220,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredStrandsPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto strands = renderCommand.m_strands;
 					strands->Bind(commandBuffer);
-					strands->DrawIndexed(commandBuffer, deferredStrandsPrepassPipeline->m_states, 1, true);
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+					strands->DrawIndexed(commandBuffer, deferredStrandsPrepassPipeline->m_states, 1);
 				}
 			);
 
@@ -2238,7 +2267,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 			GeometryStorage::BindVertices(commandBuffer);
-			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, 1, false);
+			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, 1);
 			vkCmdEndRendering(commandBuffer);
 		}
 #pragma endregion

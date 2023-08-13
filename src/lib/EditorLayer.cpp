@@ -670,7 +670,7 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						GeometryStorage::BindVertices(commandBuffer);
-						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1, false);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1);
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}
@@ -703,7 +703,7 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						GeometryStorage::BindVertices(commandBuffer);
-						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size(), false);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size());
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}
@@ -748,7 +748,7 @@ void EditorLayer::LateUpdate()
 						pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						i.m_strands->Bind(commandBuffer);
-						i.m_strands->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1, true);
+						i.m_strands->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1);
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}
@@ -935,15 +935,16 @@ void EditorLayer::SceneCameraWindow()
 					ImGui::Text("Info & Settings");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					std::string drawCallInfo = {};
-					if (graphics.m_triangles < 999)
-						drawCallInfo += std::to_string(graphics.m_triangles);
-					else if (graphics.m_triangles < 999999)
-						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000)) + "K";
+					const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+					if (graphics.m_triangles[currentFrameIndex] < 999)
+						drawCallInfo += std::to_string(graphics.m_triangles[currentFrameIndex]);
+					else if (graphics.m_triangles[currentFrameIndex] < 999999)
+						drawCallInfo += std::to_string((int)(graphics.m_triangles[currentFrameIndex] / 1000)) + "K";
 					else
-						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000000)) + "M";
+						drawCallInfo += std::to_string((int)(graphics.m_triangles[currentFrameIndex] / 1000000)) + "M";
 					drawCallInfo += " tris";
 					ImGui::Text(drawCallInfo.c_str());
-					ImGui::Text("%d drawcall", graphics.m_drawCall);
+					ImGui::Text("%d drawcall", graphics.m_drawCall[currentFrameIndex]);
 					ImGui::Separator();
 					if (ImGui::IsMousePosValid()) {
 						const auto pos = Input::GetMousePosition();
@@ -1183,15 +1184,16 @@ void EditorLayer::MainCameraWindow()
 					}
 					ImGui::PopItemWidth();
 					std::string drawCallInfo = {};
-					if (graphics.m_triangles < 999)
-						drawCallInfo += std::to_string(graphics.m_triangles);
-					else if (graphics.m_triangles < 999999)
-						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000)) + "K";
+					const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+					if (graphics.m_triangles[currentFrameIndex] < 999)
+						drawCallInfo += std::to_string(graphics.m_triangles[currentFrameIndex]);
+					else if (graphics.m_triangles[currentFrameIndex] < 999999)
+						drawCallInfo += std::to_string((int)(graphics.m_triangles[currentFrameIndex] / 1000)) + "K";
 					else
-						drawCallInfo += std::to_string((int)(graphics.m_triangles / 1000000)) + "M";
+						drawCallInfo += std::to_string((int)(graphics.m_triangles[currentFrameIndex] / 1000000)) + "M";
 					drawCallInfo += " tris";
 					ImGui::Text(drawCallInfo.c_str());
-					ImGui::Text("%d drawcall", graphics.m_drawCall);
+					ImGui::Text("%d drawcall", graphics.m_drawCall[currentFrameIndex]);
 					ImGui::Separator();
 					if (ImGui::IsMousePosValid()) {
 						const auto pos = Input::GetMousePosition();

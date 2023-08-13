@@ -54,8 +54,7 @@ namespace EvoEngine
 		~SkinnedMesh() override;
 		[[nodiscard]] const std::vector<uint32_t>& PeekSkinnedMeshletIndices() const;
 		void Bind(VkCommandBuffer vkCommandBuffer) override;
-		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount,
-			bool enableMetrics) const override;
+		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
 		void OnCreate() override;
 		void FetchIndices();
 		//Need serialize

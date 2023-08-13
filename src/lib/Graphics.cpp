@@ -1239,7 +1239,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-		if (ENABLE_MESH_SHADER) {
+		if (Constants::ENABLE_MESH_SHADER) {
 			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESH");
 		}else
 		{
@@ -1366,7 +1366,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (ENABLE_MESH_SHADER) {
+		if (Constants::ENABLE_MESH_SHADER) {
 			directionalLightShadowMap->m_meshShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{
@@ -1445,7 +1445,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (ENABLE_MESH_SHADER) {
+		if (Constants::ENABLE_MESH_SHADER) {
 			pointLightShadowMap->m_meshShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{
@@ -1524,7 +1524,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (ENABLE_MESH_SHADER) {
+		if (Constants::ENABLE_MESH_SHADER) {
 			spotLightShadowMap->m_meshShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{
@@ -1932,6 +1932,10 @@ void Graphics::Initialize()
 
 	GeometryStorage::Initialize();
 	TextureStorage::Initialize();
+
+	graphics.m_drawCall.resize(graphics.m_maxFrameInFlight);
+	graphics.m_triangles.resize(graphics.m_maxFrameInFlight);
+	graphics.m_strandsSegments.resize(graphics.m_maxFrameInFlight);
 }
 
 void Graphics::PostResourceLoadingInitialization()
@@ -2054,7 +2058,7 @@ void Graphics::LateUpdate()
 
 							const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 							GeometryStorage::BindVertices(commandBuffer);
-							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, 1, false);
+							mesh->DrawIndexed(commandBuffer, renderTexturePresent->m_states, 1);
 							vkCmdEndRendering(commandBuffer);
 							TransitImageLayout(commandBuffer,
 								graphics.m_swapchain->GetVkImage(), graphics.m_swapchain->GetImageFormat(), 1,

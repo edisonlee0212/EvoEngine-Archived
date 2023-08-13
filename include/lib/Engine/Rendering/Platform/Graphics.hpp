@@ -2,8 +2,7 @@
 #include "GraphicsPipeline.hpp"
 #include "ISingleton.hpp"
 #include "GraphicsResources.hpp"
-#include "GraphicsPipelineStates.hpp"
-#define ENABLE_MESH_SHADER false
+
 namespace EvoEngine
 {
 	struct QueueFamilyIndices {
@@ -131,9 +130,9 @@ namespace EvoEngine
 		static void RegisterDescriptorSetLayout(const std::string& name, const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout);
 		[[nodiscard]] static const std::shared_ptr<DescriptorSetLayout>& GetDescriptorSetLayout(const std::string& name);
 
-		size_t m_triangles = 0;
-		size_t m_strandsSegments = 0;
-		size_t m_drawCall = 0;
+		std::vector<size_t> m_triangles;
+		std::vector<size_t> m_strandsSegments;
+		std::vector<size_t> m_drawCall;
 
 
 		class Constants
@@ -144,6 +143,7 @@ namespace EvoEngine
 			friend class Lighting;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
+			inline constexpr static bool ENABLE_MESH_SHADER = false;
 			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 8;
 			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1024;
 			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 8192;

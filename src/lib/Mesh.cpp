@@ -19,16 +19,10 @@ Mesh::~Mesh()
 	m_meshletRange.reset();
 }
 
-void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount, const bool enableMetrics) const
+void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, const int instancesCount) const
 {
 	if (instancesCount == 0) return;
-	auto& graphics = Graphics::GetInstance();
-	if (enableMetrics) {
-		graphics.m_drawCall++;
-		graphics.m_triangles += m_triangles.size() * instancesCount;
-	}
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	
 	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, m_triangleRange->m_offset * 3, 0, 0);
 }
 

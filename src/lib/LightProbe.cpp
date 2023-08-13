@@ -156,7 +156,7 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 			EquirectangularToCubemapConstant constant{};
 			constant.m_projectionView = captureProjection * captureViews[i];
 			irradianceConstruct->PushConstant(commandBuffer, 0, constant);
-			mesh->DrawIndexed(commandBuffer, irradianceConstruct->m_states, 1, false);
+			mesh->DrawIndexed(commandBuffer, irradianceConstruct->m_states, 1);
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 
