@@ -8,7 +8,6 @@ namespace EvoEngine
 {
     struct StrandPointAttributes
     {
-        bool m_thickness = false;
         bool m_normal = false;
         bool m_texCoord = false;
         bool m_color = false;

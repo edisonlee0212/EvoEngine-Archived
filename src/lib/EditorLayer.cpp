@@ -1614,7 +1614,8 @@ Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCa
 		if (const float instanceIndexWithOneAdded = glm::roundEven(glm::detail::toFloat32(m_mappedEntityIndexData[3])); instanceIndexWithOneAdded > 0) {
 			const auto renderLayer = Application::GetLayer<RenderLayer>();
 			const auto scene = GetScene();
-			retVal = scene->GetEntity(renderLayer->GetInstanceHandle(static_cast<uint32_t>(instanceIndexWithOneAdded - 1)));
+			const auto handle = renderLayer->GetInstanceHandle(static_cast<uint32_t>(instanceIndexWithOneAdded - 1));
+			if(handle != 0) retVal = scene->GetEntity(handle);
 		}
 	}
 	return retVal;

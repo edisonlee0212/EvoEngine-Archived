@@ -15,7 +15,7 @@ layout (location = 0) out VS_OUT {
 
 void main()
 {
-	vs_out.Color = inColor;
+	vs_out.Color = EE_INSTANCED_DATA[gl_InstanceIndex].color;
 
 	mat4 scaleMatrix = EE_GET_SCALE_MATRIX();
 	mat4 matrix = EE_MODEL_MATRIX * EE_INSTANCED_DATA[gl_InstanceIndex].instanceMatrix * scaleMatrix;

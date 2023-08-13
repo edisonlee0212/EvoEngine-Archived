@@ -1311,6 +1311,8 @@ void Graphics::CreateGraphicsPipelines() const
 		standardStrandsDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 		standardStrandsDeferredPrepass->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
 
+		standardStrandsDeferredPrepass->m_tessellationPatchControlPoints = 4;
+
 		standardStrandsDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
 		standardStrandsDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 		standardStrandsDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
@@ -1435,6 +1437,8 @@ void Graphics::CreateGraphicsPipelines() const
 		directionalLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		directionalLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
+		directionalLightShadowMapStrand->m_tessellationPatchControlPoints = 4;
+
 		auto& pushConstantRange = directionalLightShadowMapStrand->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
 		pushConstantRange.offset = 0;
@@ -1514,6 +1518,8 @@ void Graphics::CreateGraphicsPipelines() const
 		pointLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		pointLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
+		pointLightShadowMapStrand->m_tessellationPatchControlPoints = 4;
+
 		auto& pushConstantRange = pointLightShadowMapStrand->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
 		pushConstantRange.offset = 0;
@@ -1592,6 +1598,8 @@ void Graphics::CreateGraphicsPipelines() const
 		spotLightShadowMapStrand->m_descriptorSetLayouts.emplace_back(instancedDataLayout);
 		spotLightShadowMapStrand->m_depthAttachmentFormat = Constants::SHADOW_MAP;
 		spotLightShadowMapStrand->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		spotLightShadowMapStrand->m_tessellationPatchControlPoints = 4;
 
 		auto& pushConstantRange = spotLightShadowMapStrand->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(RenderInstancePushConstant);
@@ -1706,6 +1714,8 @@ void Graphics::CreateGraphicsPipelines() const
 		gizmosStrands->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
 		gizmosStrands->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
+		gizmosStrands->m_tessellationPatchControlPoints = 4;
+
 		gizmosStrands->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 		gizmosStrands->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 
@@ -1729,6 +1739,8 @@ void Graphics::CreateGraphicsPipelines() const
 		gizmosNormalColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 		gizmosNormalColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
 
+		gizmosNormalColored->m_tessellationPatchControlPoints = 4;
+
 		auto& pushConstantRange = gizmosNormalColored->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(GizmosPushConstant);
 		pushConstantRange.offset = 0;
@@ -1751,6 +1763,8 @@ void Graphics::CreateGraphicsPipelines() const
 
 		gizmosStrandsNormalColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 		gizmosStrandsNormalColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		gizmosStrandsNormalColored->m_tessellationPatchControlPoints = 4;
 
 		auto& pushConstantRange = gizmosStrandsNormalColored->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(GizmosPushConstant);
@@ -1789,11 +1803,15 @@ void Graphics::CreateGraphicsPipelines() const
 		gizmosStrandsVertexColored->m_fragmentShader = Resources::GetResource<Shader>("GIZMOS_COLORED_FRAG");
 		gizmosStrandsVertexColored->m_geometryType = GeometryType::Strands;
 
+		gizmosStrandsVertexColored->m_tessellationPatchControlPoints = 4;
+
 		gizmosStrandsVertexColored->m_depthAttachmentFormat = Constants::RENDER_TEXTURE_DEPTH;
 		gizmosStrandsVertexColored->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
 		gizmosStrandsVertexColored->m_colorAttachmentFormats = { 1, Constants::RENDER_TEXTURE_COLOR };
 		gizmosStrandsVertexColored->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		gizmosStrandsVertexColored->m_tessellationPatchControlPoints = 4;
 
 		auto& pushConstantRange = gizmosStrandsVertexColored->m_pushConstantRanges.emplace_back();
 		pushConstantRange.size = sizeof(GizmosPushConstant);

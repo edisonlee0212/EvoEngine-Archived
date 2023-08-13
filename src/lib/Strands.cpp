@@ -12,7 +12,6 @@ using namespace EvoEngine;
 
 void StrandPointAttributes::Serialize(YAML::Emitter& out) const
 {
-	out << YAML::Key << "m_thickness" << YAML::Value << m_thickness;
 	out << YAML::Key << "m_normal" << YAML::Value << m_normal;
 	out << YAML::Key << "m_texCoord" << YAML::Value << m_texCoord;
 	out << YAML::Key << "m_color" << YAML::Value << m_color;
@@ -20,7 +19,6 @@ void StrandPointAttributes::Serialize(YAML::Emitter& out) const
 
 void StrandPointAttributes::Deserialize(const YAML::Node& in)
 {
-	if (in["m_thickness"]) m_normal = in["m_thickness"].as<bool>();
 	if (in["m_normal"]) m_normal = in["m_normal"].as<bool>();
 	if (in["m_texCoord"]) m_texCoord = in["m_texCoord"].as<bool>();
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
@@ -62,11 +60,9 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	m_bound.m_max = maxBound;
 	m_bound.m_min = minBound;
 #pragma endregion
-
+	m_strandPointAttributes = strandPointAttributes;
 	if (!m_strandPointAttributes.m_normal)
 		RecalculateNormal();
-
-	m_strandPointAttributes = strandPointAttributes;
 	m_strandPointAttributes.m_normal = true;
 
 	if(m_segmentRange || m_strandMeshletRange) GeometryStorage::FreeStrands(GetHandle());
@@ -215,7 +211,6 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
 				strandPoints[i].m_texCoord = 0.0f;
 			}
 			StrandPointAttributes strandPointAttributes{};
-			strandPointAttributes.m_thickness = true;
 			strandPointAttributes.m_texCoord = true;
 			strandPointAttributes.m_color = true;
 			SetStrands(strandPointAttributes, strands, strandPoints);
@@ -257,7 +252,6 @@ void Strands::Deserialize(const YAML::Node& in) {
 		std::memcpy(m_strandPoints.data(), pointData.data(), pointData.size());
 
 		StrandPointAttributes strandPointAttributes{};
-		strandPointAttributes.m_thickness = true;
 		strandPointAttributes.m_texCoord = true;
 		strandPointAttributes.m_color = true;
 		strandPointAttributes.m_normal = true;
@@ -361,7 +355,7 @@ void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineState
 {
 	if (instancesCount == 0) return;
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instancesCount, 0, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instancesCount, m_segmentRange->m_offset * 4, 0, 0);
 }
 
 

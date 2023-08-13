@@ -109,8 +109,6 @@ void GraphicsPipeline::PreparePipeline()
 	vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-	
-
 	VkPipelineViewportStateCreateInfo viewportState{};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	viewportState.viewportCount = 1;

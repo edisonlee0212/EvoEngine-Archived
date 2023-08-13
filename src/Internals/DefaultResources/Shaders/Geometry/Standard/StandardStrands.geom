@@ -28,7 +28,6 @@ void main(){
 	mat4 inverseModel = inverse(model);
 	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
-		currentInstanceIndexOut = currentInstanceIndexIn[i];
 		//Reading Data
 		vec3 worldPosS = tes_in[i].FragPos;
 		vec3 worldPosT = tes_in[i + 1].FragPos;
@@ -57,6 +56,7 @@ void main(){
 		int maxRingAmount = max(ringAmountS, ringAmountT);
 		for(int k = 0; k <= maxRingAmount; k += 1)
 		{
+			currentInstanceIndexOut = currentInstanceIndexIn[i];
 			int tempIS = int(k * ringAmountS / maxRingAmount);
 			float angleS = PI2 / ringAmountS * tempIS;
 

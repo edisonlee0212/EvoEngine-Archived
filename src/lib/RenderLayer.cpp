@@ -330,7 +330,7 @@ Handle RenderLayer::GetInstanceHandle(uint32_t index)
 	const auto search = m_instanceHandles.find(index);
 	if (search == m_instanceHandles.end())
 	{
-		throw std::runtime_error("Unable to find instance!");
+		return 0;
 	}
 	return search->second;
 }
@@ -1290,7 +1290,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
 			auto material = meshRenderer->m_material.Get<Material>();
 			auto mesh = meshRenderer->m_mesh.Get<Mesh>();
-			if (!meshRenderer->IsEnabled() || material == nullptr || mesh == nullptr)
+			if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
 				continue;
 			if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) continue;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
@@ -1363,7 +1363,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owner).lock();
 			auto material = skinnedMeshRenderer->m_material.Get<Material>();
 			auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
-			if (!skinnedMeshRenderer->IsEnabled() || material == nullptr || skinnedMesh == nullptr)
+			if (!skinnedMeshRenderer->IsEnabled() || !material || !skinnedMesh || !skinnedMesh->m_skinnedMeshletRange || !skinnedMesh->m_skinnedTriangleRange)
 				continue;
 			if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) continue;
 			GlobalTransform gt;
@@ -1432,7 +1432,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto material = particles->m_material.Get<Material>();
 			auto mesh = particles->m_mesh.Get<Mesh>();
 			auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
-			if (!particles->IsEnabled() || material == nullptr || mesh == nullptr || particleInfoList == nullptr)
+			if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
 				continue;
 			if (particleInfoList->m_particleInfos.empty()) continue;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
@@ -1494,7 +1494,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
 			auto material = strandsRenderer->m_material.Get<Material>();
 			auto strands = strandsRenderer->m_strands.Get<Strands>();
-			if (!strandsRenderer->IsEnabled() || material == nullptr || strands == nullptr)
+			if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
 				continue;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
