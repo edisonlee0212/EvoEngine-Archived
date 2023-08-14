@@ -160,7 +160,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	auto depthImageView = std::make_shared<ImageView>(depthViewInfo);
 #pragma endregion
 
-	std::unique_ptr<DescriptorSet> tempSet = std::make_unique<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+	std::unique_ptr<DescriptorSet> tempSet = std::make_unique<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT_LAYOUT"));
 	VkDescriptorImageInfo descriptorImageInfo{};
 	descriptorImageInfo.imageView = targetTexture->GetVkImageView();
 	descriptorImageInfo.imageLayout = targetTexture->GetLayout();

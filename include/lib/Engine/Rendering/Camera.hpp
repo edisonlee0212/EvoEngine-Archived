@@ -67,6 +67,7 @@ namespace EvoEngine
 
         void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform);
         void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+
         [[nodiscard]] float GetSizeRatio() const;
 
         [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;
@@ -75,7 +76,6 @@ namespace EvoEngine
         void OnCreate() override;
         [[nodiscard]] bool Rendered() const;
         void SetRequireRendering(bool value);
-        Camera& operator=(const Camera& source);
         float m_nearDistance = 0.1f;
         float m_farDistance = 500.0f;
         float m_fov = 120;

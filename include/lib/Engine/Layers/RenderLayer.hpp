@@ -132,7 +132,7 @@ namespace EvoEngine
 		friend class EditorLayer;
 		friend class Material;
 		friend class Lighting;
-		
+		friend class PostProcessingStack;
 		void OnCreate() override;
 		void OnDestroy() override;
 		void PreUpdate() override;

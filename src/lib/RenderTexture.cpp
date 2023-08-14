@@ -152,7 +152,7 @@ void RenderTexture::Initialize(const RenderTextureCreateInfo& renderTextureCreat
 	m_imageViewType = renderTextureCreateInfo.m_imageViewType;
 
 	if (m_color) {
-		m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT"));
+		m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("RENDER_TEXTURE_PRESENT_LAYOUT"));
 		VkDescriptorImageInfo descriptorImageInfo;
 		descriptorImageInfo.imageLayout = m_colorImage->GetLayout();
 		descriptorImageInfo.imageView = m_colorImageView->GetVkImageView();
@@ -175,8 +175,8 @@ void RenderTexture::Clear(const VkCommandBuffer commandBuffer) const
 		depthSubresourceRange.layerCount = 1;
 		VkClearDepthStencilValue depthStencilValue{};
 		depthStencilValue = { 1, 0 };
-		vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), &
-			depthStencilValue, 1, &depthSubresourceRange);
+		vkCmdClearDepthStencilImage(commandBuffer, m_depthImage->GetVkImage(), m_depthImage->GetLayout(), 
+			&depthStencilValue, 1, &depthSubresourceRange);
 		m_depthImage->TransitImageLayout(commandBuffer, prevDepthLayout);
 	}
 	if (m_color) {
@@ -190,7 +190,8 @@ void RenderTexture::Clear(const VkCommandBuffer commandBuffer) const
 		colorSubresourceRange.layerCount = 1;
 		VkClearColorValue colorValue{};
 		colorValue = { 0, 0, 0, 1 };
-		vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), &colorValue, 1, &colorSubresourceRange);
+		vkCmdClearColorImage(commandBuffer, m_colorImage->GetVkImage(), m_colorImage->GetLayout(), 
+			&colorValue, 1, &colorSubresourceRange);
 		m_colorImage->TransitImageLayout(commandBuffer, prevColorLayout);
 	}
 }

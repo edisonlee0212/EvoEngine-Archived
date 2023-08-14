@@ -11,6 +11,8 @@
 #include "PhysicsLayer.hpp"
 #include "Planet/PlanetTerrainSystem.hpp"
 #include "StarCluster/StarClusterSystem.hpp"
+
+#include "PostProcessingStack.hpp"
 using namespace Planet;
 using namespace Galaxy;
 using namespace EvoEngine;
@@ -107,6 +109,7 @@ int main() {
 				scene->m_environment.m_ambientLightIntensity = 0.1f;
 #pragma region Set main camera to correct position and rotation
 				const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+				mainCamera->m_postProcessingStack = ProjectManager::CreateTemporaryAsset<PostProcessingStack>();
 				const auto mainCameraEntity = mainCamera->GetOwner();
 				auto mainCameraTransform = scene->GetDataComponent<Transform>(mainCameraEntity);
 				mainCameraTransform.SetPosition(glm::vec3(0, 0, 4));

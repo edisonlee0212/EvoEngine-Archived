@@ -336,17 +336,6 @@ void Camera::SetRequireRendering(const bool value)
 	m_requireRendering = m_requireRendering || value;
 }
 
-Camera& Camera::operator=(const Camera& source)
-{
-	if (this == &source) return *this;
-	m_nearDistance = source.m_nearDistance;
-	m_farDistance = source.m_farDistance;
-	m_fov = source.m_fov;
-	m_useClearColor = source.m_useClearColor;
-	m_clearColor = source.m_clearColor;
-	m_skybox = source.m_skybox;
-	return *this;
-}
 void Camera::CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view)
 {
 	glm::mat4 comboMatrix = projection * glm::transpose(view);

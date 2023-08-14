@@ -28,6 +28,7 @@ void Resources::LoadShaders()
 	Graphics::GetInstance().m_shaderBasicConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/BasicConstants.glsl");
 	Graphics::GetInstance().m_shaderGizmosConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/GizmosConstants.glsl");
 	Graphics::GetInstance().m_shaderLighting = FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Lighting.glsl");
+	Graphics::GetInstance().m_shaderSSRConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/SSRConstants.glsl");
 
 #pragma endregion
 
@@ -144,105 +145,31 @@ void Resources::LoadShaders()
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
-
-	/*
 	
-	
-#pragma region Post - Processing
-
+#pragma region PostProcessing
 	{
-		auto bloomSeparatorProgram = CreateResource<GraphicsPipeline>("BLOOM_SEPARATOR_PROGRAM");
-		auto fragShaderCode = std::string("#version 460\n") +
+		auto fragShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderSSRConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomSeparator.frag");
-		auto bloomSeparatorFrag = CreateResource<Shader>("BLOOM_SEPARATOR_FRAG");
-		bloomSeparatorFrag->Set(ShaderType::Fragment, fragShaderCode);
-		bloomSeparatorProgram->m_vertexShader = texPassVert;
-		bloomSeparatorProgram->m_fragmentShader = bloomSeparatorFrag;
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/PostProcessing/SSRReflect.frag");
+		auto fragShader = CreateResource<Shader>("SSR_REFLECT_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
-		auto bloomFilterProgram = CreateResource<GraphicsPipeline>("BLOOM_FILTER_PROGRAM");
-		fragShaderCode = std::string("#version 460\n") +
+		fragShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderSSRConstants + "\n" +
 			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
-		auto bloomFilterFrag = CreateResource<Shader>("BLOOM_FILTER_FRAG");
-		bloomFilterFrag->Set(ShaderType::Fragment, fragShaderCode);
-		bloomFilterProgram->m_vertexShader = texPassVert;
-		bloomFilterProgram->m_fragmentShader = bloomFilterFrag;
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/PostProcessing/SSRBlur.frag");
+		fragShader = CreateResource<Shader>("SSR_BLUR_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
-		auto bloomCombineProgram = CreateResource<GraphicsPipeline>("BLOOM_COMBINE_PROGRAM");
-		fragShaderCode = std::string("#version 460\n") +
+		fragShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderSSRConstants + "\n" +
 			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BloomCombine.frag");
-		auto bloomCombineFrag = CreateResource<Shader>("BLOOM_COMBINE_FRAG");
-		bloomCombineFrag->Set(ShaderType::Fragment, fragShaderCode);
-		bloomCombineProgram->m_vertexShader = texPassVert;
-		bloomCombineProgram->m_fragmentShader = bloomCombineFrag;
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOGeometry.frag");
-
-		auto ssaoGeomProgram = CreateResource<GraphicsPipeline>("SSAO_GEOMETRY_PROGRAM");
-		auto ssaoGeomFrag = CreateResource<Shader>("SSAO_GEOMETRY_FRAG");
-		ssaoGeomFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssaoGeomProgram->m_vertexShader = texPassVert;
-		ssaoGeomProgram->m_fragmentShader = ssaoGeomFrag;
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
-
-		auto ssaoBlurProgram = CreateResource<GraphicsPipeline>("SSAO_BLUR_PROGRAM");
-		auto ssaoBlurFrag = CreateResource<Shader>("SSAO_BLUR_FRAG");
-		ssaoBlurFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssaoBlurProgram->m_vertexShader = texPassVert;
-		ssaoBlurProgram->m_fragmentShader = ssaoBlurFrag;
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSAOCombine.frag");
-
-		auto ssaoCombineProgram = CreateResource<GraphicsPipeline>("SSAO_COMBINE_PROGRAM");
-		auto ssaoCombineFrag = CreateResource<Shader>("SSAO_COMBINE_FRAG");
-		ssaoCombineFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssaoCombineProgram->m_vertexShader = texPassVert;
-		ssaoCombineProgram->m_fragmentShader = ssaoCombineFrag;
-
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRReflect.frag");
-
-		auto ssrReflectProgram = CreateResource<GraphicsPipeline>("SSR_REFLECT_PROGRAM");
-		auto ssrReflectFrag = CreateResource<Shader>("SSR_REFLECT_FRAG");
-		ssrReflectFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssrReflectProgram->m_vertexShader = texPassVert;
-		ssrReflectProgram->m_fragmentShader = ssrReflectFrag;
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/BlurFilter.frag");
-
-		auto ssrBlurProgram = CreateResource<GraphicsPipeline>("SSR_BLUR_PROGRAM");
-		auto ssrBlurFrag = CreateResource<Shader>("SSR_BLUR_FRAG");
-		ssrBlurFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssrBlurProgram->m_vertexShader = texPassVert;
-		ssrBlurProgram->m_fragmentShader = ssrBlurFrag;
-
-		fragShaderCode = std::string("#version 460 core\n") + Graphics::GetStandardShaderIncludes() + "\n" +
-			FileUtils::LoadFileAsString(
-				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/SSRCombine.frag");
-		auto ssrCombineProgram = CreateResource<GraphicsPipeline>("SSR_COMBINE_PROGRAM");
-		auto ssrCombineFrag = CreateResource<Shader>("SSR_COMBINE_FRAG");
-		ssrCombineFrag->Set(ShaderType::Fragment, fragShaderCode);
-		ssrCombineProgram->m_vertexShader = texPassVert;
-		ssrCombineProgram->m_fragmentShader = texPassVert; ssrCombineFrag;
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/PostProcessing/SSRCombine.frag");
+		fragShader = CreateResource<Shader>("SSR_COMBINE_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
-
 #pragma endregion
-#pragma endregion
-*/
-
 #pragma region Shadow Maps
 	{
 		auto vertShaderCode =

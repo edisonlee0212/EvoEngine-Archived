@@ -425,7 +425,7 @@ Image::~Image()
 
 void Image::TransitImageLayout(const VkCommandBuffer commandBuffer, const VkImageLayout newLayout)
 {
-	if (newLayout == m_layout) return;
+	//if (newLayout == m_layout) return;
 	Graphics::TransitImageLayout(commandBuffer, m_vkImage, m_format, m_arrayLayers, m_layout, newLayout, m_mipLevels);
 	m_layout = newLayout;
 }

@@ -8,21 +8,10 @@ layout (location = 0) in VS_OUT {
 } fs_in;
 
 
-layout(set = EE_PER_PASS_SET, binding = 18) uniform sampler2D inDepth;
-layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D inNormal;
-layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inAlbedo;
-layout(set = EE_PER_PASS_SET, binding = 21) uniform sampler2D inMaterial;
-
-layout(push_constant) uniform EE_SSR_REFLECT_CONSTANTS{
-	float step;
-    float minRayStep;
-    int maxSteps;
-
-    int numBinarySearchSteps;
-    float reflectionSpecularFalloffExponent;
-};
-
-
+layout(set = 1, binding = 18) uniform sampler2D inDepth;
+layout(set = 1, binding = 19) uniform sampler2D inNormal;
+layout(set = 1, binding = 20) uniform sampler2D inColor;
+layout(set = 1, binding = 21) uniform sampler2D inMaterial;
 
 #define Scale vec3(.8, .8, .8)
 #define K 19.19
@@ -31,6 +20,11 @@ layout(push_constant) uniform EE_SSR_REFLECT_CONSTANTS{
 vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth);
 vec4 RayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth);
 vec3 hash(vec3 a);
+
+vec3 EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+}
 
 void main()
 {
@@ -41,30 +35,29 @@ void main()
 
     float metallic = texture(inMaterial, texCoord).r;
     float roughness = texture(inMaterial, texCoord).g;
-    vec3 albedo = texture(inColor, texCoord).rgb;
+    vec3 color = texture(inColor, texCoord).rgb;
     vec3 normal = texture(inNormal, texCoord).rgb;
-    vec3 viewNormal = (EE_CAMERA_VIEW * vec4(normal, 0.0)).xyz;
+    vec3 viewNormal = (EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW * vec4(normal, 0.0)).xyz;
 
     vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, texture(inDepth, texCoord).x);
     vec3 worldPos = EE_DEPTH_TO_WORLD_POS(texCoord, texture(inDepth, texCoord).x);
     vec3 cameraPosition = EE_CAMERA_POSITION();
     vec3 viewDir = normalize(cameraPosition - worldPos);
     vec3 F0 = vec3(0.04);
-    F0      = mix(F0, albedo, metallic);
+    F0      = mix(F0, color, metallic);
     // ambient lighting (we now use IBL as the ambient term)
     vec3 F = EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(max(dot(normal, viewDir), 0.0), F0, roughness);
     // Reflection vector
-    vec3 reflected = normalize(reflect(normalize(viewPos), normalize(viewNormal)));
-    vec3 hitPos = viewPos;
+    vec3 reflected = normalize(reflect(viewDir, normalize(normal)));
     float dDepth;
     vec3 jittering = mix(vec3(0.0), vec3(hash(worldPos)), roughness);
-    vec4 coords = RayMarch((vec3(jittering) + reflected * max(minRayStep, -viewPos.z)), hitPos, dDepth);
+    vec4 coords = RayMarch((vec3(jittering) + reflected * max(minRayStep, -viewPos.z)), worldPos, dDepth);
     vec2 dCoord = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - coords.xy));
     float screenEdgefactor = clamp(1.0 - (dCoord.x + dCoord.y), 0.0, 1.0);
     float reflectionMultiplier = pow(metallic, reflectionSpecularFalloffExponent) * screenEdgefactor * -reflected.z;
     // Get color
     outOriginalColorVisibility = clamp(vec4(texture(inColor, coords.xy).rgb, reflectionMultiplier), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
-    outOriginalColor = albedo;
+    outOriginalColor = color;
 }
 
 vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
@@ -73,7 +66,7 @@ vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
     vec4 projectedCoord;
     for(int i = 0; i < numBinarySearchSteps; i++)
     {
-        projectedCoord = EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
+        projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
 
@@ -89,7 +82,7 @@ vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
         hitCoord -= dir;
     }
 
-    projectedCoord = EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
+    projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
     projectedCoord.xy /= projectedCoord.w;
     projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
 
@@ -105,10 +98,10 @@ vec4 RayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth)
     for(int i = 0; i < maxSteps; i++)
     {
         hitCoord += dir;
-        projectedCoord = EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
+        projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-        depth = depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;
+        depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;
         if(depth > 1000.0)
         continue;
         dDepth = hitCoord.z - depth;
