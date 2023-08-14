@@ -520,6 +520,7 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 			globalSegment.x = currentStrandMeshletSegment.x + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalSegment.y = currentStrandMeshletSegment.y + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalSegment.z = currentStrandMeshletSegment.z + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalSegment.w = currentStrandMeshletSegment.w + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			segmentRange->m_size++;
 		}
 	}
