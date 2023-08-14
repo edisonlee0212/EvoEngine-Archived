@@ -2019,6 +2019,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			}
 		}
 	);
+
 #pragma endregion
 	const auto editorLayer = Application::GetLayer<EditorLayer>();
 	bool isSceneCamera = false;

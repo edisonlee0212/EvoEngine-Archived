@@ -23,7 +23,7 @@ layout(location = 5) out flat uint currentInstanceIndex[];
 void main()
 {
 	uint instanceIndex = ts_in.instanceIndex;
-	uint meshletIndex = ts_in.meshletOffset + gl_WorkGroupID.x;
+	uint meshletIndex = ts_in.meshletOffset + gl_GlobalInvocationID.x;
 
 	mat4 model = EE_INSTANCES[instanceIndex].model;
 
