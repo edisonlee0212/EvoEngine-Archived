@@ -16,7 +16,6 @@
 #include "TextureStorage.hpp"
 using namespace EvoEngine;
 
-
 void RenderInstanceCollection::Dispatch(const std::function<void(const RenderInstance&)>& commandAction) const
 {
 	for (const auto& renderCommand : m_renderCommands)
@@ -1319,7 +1318,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-			instanceInfoBlock.m_renderBufferIndex = 0;
+			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1341,7 +1340,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			}
 
 			auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
-			newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
+			newMeshTask.groupCountX = 1;
 			newMeshTask.groupCountY = 1;
 			newMeshTask.groupCountZ = 1;
 
@@ -1398,7 +1397,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_renderBufferIndex = 0;
+			instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1460,7 +1459,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_renderBufferIndex = 0;
+			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1520,7 +1519,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_renderBufferIndex = 0;
+			instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -2299,7 +2298,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	instanceInfoBlock.m_materialIndex = materialIndex;
 	instanceInfoBlock.m_entitySelected = 0;
 	instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-	instanceInfoBlock.m_renderBufferIndex = 0;
+	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
 
 	auto entityHandle = Handle();
 	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -2321,7 +2320,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	}
 
 	auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
-	newMeshTask.groupCountX = mesh->m_meshletRange->m_size;
+	newMeshTask.groupCountX = 1;
 	newMeshTask.groupCountY = 1;
 	newMeshTask.groupCountZ = 1;
 

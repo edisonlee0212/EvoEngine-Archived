@@ -120,7 +120,7 @@ namespace EvoEngine
 		uint32_t m_materialIndex = 0;
 		uint32_t m_entitySelected = 0;
 		uint32_t m_meshletIndexOffset = 0;
-		uint32_t m_renderBufferIndex = 0;
+		uint32_t m_meshletSize = 0;
 	};
 
 #pragma endregion
@@ -179,6 +179,7 @@ namespace EvoEngine
 		SkinnedRenderInstanceCollection m_transparentSkinnedRenderInstances;
 		InstancedRenderInstanceCollection m_transparentInstancedRenderInstances;
 		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
+
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);

@@ -130,6 +130,12 @@ void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkAccessFlags& 
 }
 
 
+uint32_t Graphics::GetMaxWorkGroupInvocations()
+{
+	const auto& graphics = GetInstance();
+	return graphics.m_maxWorkGroupInvocations;
+}
+
 void Graphics::RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline)
 {
 	auto& graphics = GetInstance();

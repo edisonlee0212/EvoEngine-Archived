@@ -124,7 +124,11 @@ namespace EvoEngine
 		void CreateGraphicsPipelines() const;
 		void PrepareDescriptorSetLayouts() const;
 
+		uint32_t m_maxWorkGroupInvocations = 128;
+
 	public:
+		[[nodiscard]] static uint32_t GetMaxWorkGroupInvocations();
+
 		static void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);
 		[[nodiscard]] static const std::shared_ptr<GraphicsPipeline>& GetGraphicsPipeline(const std::string& name);
 		static void RegisterDescriptorSetLayout(const std::string& name, const std::shared_ptr<DescriptorSetLayout>& descriptorSetLayout);
@@ -134,6 +138,7 @@ namespace EvoEngine
 		std::vector<size_t> m_strandsSegments;
 		std::vector<size_t> m_drawCall;
 
+		
 
 		class Constants
 		{
