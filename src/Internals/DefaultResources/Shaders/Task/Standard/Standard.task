@@ -1,0 +1,25 @@
+#extension GL_EXT_mesh_shader : enable
+#extension GL_ARB_shader_draw_parameters : enable
+
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct Task{
+	uint instanceIndex;
+	uint meshletIndex;
+};
+
+taskPayloadSharedEXT Task ts_out;
+
+void main()
+{
+	uint localMeshletIndex = gl_WorkGroupID.x;
+	uint instanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
+	uint meshletIndex = EE_INSTANCES[instanceIndex].meshletIndexOffset + localMeshletIndex;
+	ts_out.instanceIndex = instanceIndex;
+	ts_out.meshletIndex = meshletIndex;
+	EmitMeshTasksEXT(1, 1, 1);
+}

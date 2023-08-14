@@ -1242,6 +1242,7 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		if (Constants::ENABLE_MESH_SHADER) {
+			standardDeferredPrepass->m_taskShader = Resources::GetResource<Shader>("STANDARD_TASK");
 			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESH");
 		}else
 		{
@@ -1263,7 +1264,32 @@ void Graphics::CreateGraphicsPipelines() const
 		standardDeferredPrepass->PreparePipeline();
 		RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS", standardDeferredPrepass);
 	}
-	
+	{
+		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
+		if (Constants::ENABLE_MESH_SHADER) {
+			standardDeferredPrepass->m_taskShader = Resources::GetResource<Shader>("STANDARD_TASK");
+			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESHLET_COLORED_MESH");
+		}
+		else
+		{
+			standardDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_VERT");
+		}
+		standardDeferredPrepass->m_fragmentShader = Resources::GetResource<Shader>("STANDARD_DEFERRED_MESHLET_COLORED_FRAG");
+		standardDeferredPrepass->m_geometryType = GeometryType::Mesh;
+		standardDeferredPrepass->m_descriptorSetLayouts.emplace_back(perFrameLayout);
+
+		standardDeferredPrepass->m_depthAttachmentFormat = Constants::G_BUFFER_DEPTH;
+		standardDeferredPrepass->m_stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+		standardDeferredPrepass->m_colorAttachmentFormats = { 3, Constants::G_BUFFER_COLOR };
+
+		auto& pushConstantRange = standardDeferredPrepass->m_pushConstantRanges.emplace_back();
+		pushConstantRange.size = sizeof(RenderInstancePushConstant);
+		pushConstantRange.offset = 0;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+
+		standardDeferredPrepass->PreparePipeline();
+		RegisterGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS", standardDeferredPrepass);
+	}
 	{
 		const auto standardSkinnedDeferredPrepass = std::make_shared<GraphicsPipeline>();
 		standardSkinnedDeferredPrepass->m_vertexShader = Resources::GetResource<Shader>("STANDARD_SKINNED_VERT");
@@ -1371,6 +1397,7 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
 		if (Constants::ENABLE_MESH_SHADER) {
+			directionalLightShadowMap->m_taskShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_TASK");
 			directionalLightShadowMap->m_meshShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{
@@ -1452,6 +1479,7 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
 		if (Constants::ENABLE_MESH_SHADER) {
+			pointLightShadowMap->m_taskShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_TASK");
 			pointLightShadowMap->m_meshShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{
@@ -1533,6 +1561,7 @@ void Graphics::CreateGraphicsPipelines() const
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
 		if (Constants::ENABLE_MESH_SHADER) {
+			spotLightShadowMap->m_taskShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_TASK");
 			spotLightShadowMap->m_meshShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
 		}else
 		{

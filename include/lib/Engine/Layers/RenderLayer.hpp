@@ -146,6 +146,7 @@ namespace EvoEngine
 
 	public:
 		bool m_enableIndirectRendering = true;
+		bool m_enableMeshletDebug = false;
 		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 100;

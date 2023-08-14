@@ -1,9 +1,13 @@
-#version 330 core
-out vec4 FragColor;
+precision highp float;
 
-in vec2 TexCoord;
+layout (location = 0) out vec4 FragColor;
 
-uniform sampler2D image;
+layout (location = 0) in VS_OUT {
+    vec2 TexCoord;
+} fs_in;
+
+layout(set = 0, binding = 0) uniform sampler2D image;
+
 
 uniform bool horizontal;
 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);

@@ -4,12 +4,18 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles) out;
 layout(max_vertices = MESHLET_MAX_VERTICES_SIZE, max_primitives = MESHLET_MAX_TRIANGLES_SIZE) out;
 
+
+struct Task{
+	uint instanceIndex;
+	uint meshletIndex;
+};
+
+taskPayloadSharedEXT Task ts_in;
+
 void main()
 {
-	uint localMeshletIndex = gl_WorkGroupID.x;
-	uint instanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
-	uint meshletIndex = EE_INSTANCES[instanceIndex].meshletIndexOffset + localMeshletIndex;
-
+	uint instanceIndex = ts_in.instanceIndex;
+	uint meshletIndex = ts_in.meshletIndex;
 	mat4 model = EE_INSTANCES[instanceIndex].model;
 
 	Meshlet meshlet = EE_MESHLETS[meshletIndex];

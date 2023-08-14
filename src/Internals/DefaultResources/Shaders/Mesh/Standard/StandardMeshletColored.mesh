@@ -41,12 +41,12 @@ void main()
 		vec3 T = normalize(vec3(model * vec4(v.tangent.xyz, 0.0)));
 		// re-orthogonalize T with respect to N
 		T = normalize(T - dot(T, N) * N);
-		ms_v_out[i].FragPos =	vec3(model * vec4(v.position.xyz, 1.0));
+		ms_v_out[i].FragPos = vec3(model * vec4(v.position.xyz, 1.0));
 		ms_v_out[i].Normal = N;
 		ms_v_out[i].Tangent = T;
 		ms_v_out[i].TexCoord = v.texCoord.xy;
+		currentInstanceIndex[i] = chunkIndex;
 		gl_MeshVerticesEXT[i].gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(ms_v_out[i].FragPos, 1.0);
-		currentInstanceIndex[i] = instanceIndex;
 	}
 
 	for (uint i = 0; i < triangleSize; ++i)

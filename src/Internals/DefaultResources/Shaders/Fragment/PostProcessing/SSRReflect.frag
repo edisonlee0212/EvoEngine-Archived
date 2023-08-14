@@ -1,23 +1,27 @@
-layout (location = 0) out vec3 originalColor;
-layout (location = 1) out vec4 colorVisibility;
 
-in VS_OUT {
+precision highp float;
+layout (location = 0) out vec3 outOriginalColor;
+layout (location = 1) out vec4 outOriginalColorVisibility;
+
+layout (location = 0) in VS_OUT {
     vec2 TexCoord;
 } fs_in;
 
-uniform sampler2D gBufferMetallicRoughnessEmissionAmbient;
-uniform sampler2D colorTexture;
-uniform sampler2D gBufferDepth;
-uniform sampler2D gBufferNormal;
 
+layout(set = EE_PER_PASS_SET, binding = 18) uniform sampler2D inDepth;
+layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D inNormal;
+layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inAlbedo;
+layout(set = EE_PER_PASS_SET, binding = 21) uniform sampler2D inMaterial;
 
-uniform float step;
-uniform float minRayStep;
-uniform int maxSteps;
+layout(push_constant) uniform EE_SSR_REFLECT_CONSTANTS{
+	float step;
+    float minRayStep;
+    int maxSteps;
 
+    int numBinarySearchSteps;
+    float reflectionSpecularFalloffExponent;
+};
 
-uniform int numBinarySearchSteps;
-uniform float reflectionSpecularFalloffExponent;
 
 
 #define Scale vec3(.8, .8, .8)
@@ -30,19 +34,19 @@ vec3 hash(vec3 a);
 
 void main()
 {
-    vec2 texSize  = textureSize(colorTexture, 0).xy;
+    vec2 texSize  = textureSize(inColor, 0).xy;
     vec2 texCoord = fs_in.TexCoord;
 
     vec2 uv = vec2(0.0);
 
-    float metallic = texture(gBufferMetallicRoughnessEmissionAmbient, texCoord).r;
-    float roughness = texture(gBufferMetallicRoughnessEmissionAmbient, texCoord).g;
-    vec3 albedo = texture(colorTexture, texCoord).rgb;
-    vec3 normal = texture(gBufferNormal, texCoord).rgb;
+    float metallic = texture(inMaterial, texCoord).r;
+    float roughness = texture(inMaterial, texCoord).g;
+    vec3 albedo = texture(inColor, texCoord).rgb;
+    vec3 normal = texture(inNormal, texCoord).rgb;
     vec3 viewNormal = (EE_CAMERA_VIEW * vec4(normal, 0.0)).xyz;
 
-    vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, texture(gBufferDepth, texCoord).x);
-    vec3 worldPos = EE_DEPTH_TO_WORLD_POS(texCoord, texture(gBufferDepth, texCoord).x);
+    vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, texture(inDepth, texCoord).x);
+    vec3 worldPos = EE_DEPTH_TO_WORLD_POS(texCoord, texture(inDepth, texCoord).x);
     vec3 cameraPosition = EE_CAMERA_POSITION();
     vec3 viewDir = normalize(cameraPosition - worldPos);
     vec3 F0 = vec3(0.04);
@@ -59,8 +63,8 @@ void main()
     float screenEdgefactor = clamp(1.0 - (dCoord.x + dCoord.y), 0.0, 1.0);
     float reflectionMultiplier = pow(metallic, reflectionSpecularFalloffExponent) * screenEdgefactor * -reflected.z;
     // Get color
-    colorVisibility = clamp(vec4(texture(colorTexture, coords.xy).rgb, reflectionMultiplier), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
-    originalColor = albedo;
+    outOriginalColorVisibility = clamp(vec4(texture(inColor, coords.xy).rgb, reflectionMultiplier), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
+    outOriginalColor = albedo;
 }
 
 vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
@@ -73,7 +77,7 @@ vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
 
-        depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(gBufferDepth, projectedCoord.xy).x).z;//textureLod(gPosition, projectedCoord.xy, 2).z;
+        depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;//textureLod(gPosition, projectedCoord.xy, 2).z;
 
 
         dDepth = hitCoord.z - depth;
@@ -104,7 +108,7 @@ vec4 RayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth)
         projectedCoord = EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-        depth = depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(gBufferDepth, projectedCoord.xy).x).z;
+        depth = depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;
         if(depth > 1000.0)
         continue;
         dDepth = hitCoord.z - depth;

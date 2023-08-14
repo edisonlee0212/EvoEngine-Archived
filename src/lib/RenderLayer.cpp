@@ -257,6 +257,7 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		ImGui::Begin("Render Settings");
 		ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
+		ImGui::Checkbox("Meshlet Debug", &m_enableMeshletDebug);
 		ImGui::DragFloat("Gamma", &m_renderInfoBlock.m_gamma, 0.01f, 1.0f, 3.0f);
 		if (ImGui::CollapsingHeader("Shadow", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -2058,7 +2059,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
-			const auto& deferredPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
+			const auto& deferredPrepassPipeline = m_enableMeshletDebug ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
 			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();

@@ -1,5 +1,5 @@
 layout (location = 0) out vec4 FragColor;
-in VS_OUT {
+layout (location = 0) in VS_OUT {
     vec2 TexCoord;
 } fs_in;
 

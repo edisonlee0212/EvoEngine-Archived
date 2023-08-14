@@ -81,10 +81,22 @@ void Resources::LoadShaders()
 		auto standardGeom = CreateResource<Shader>("STANDARD_STRANDS_GEOM");
 		standardGeom->Set(ShaderType::Geometry, geomShaderCode);
 
+		auto taskShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Task/Standard/Standard.task");
+		auto standardTask = CreateResource<Shader>("STANDARD_TASK");
+		standardTask->Set(ShaderType::Task, taskShaderCode);
+
 		auto meshShaderCode =
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/Standard.mesh");
 		auto standardMesh = CreateResource<Shader>("STANDARD_MESH");
+		standardMesh->Set(ShaderType::Mesh, meshShaderCode);
+
+		meshShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Mesh/Standard/StandardMeshletColored.mesh");
+		standardMesh = CreateResource<Shader>("STANDARD_MESHLET_COLORED_MESH");
 		standardMesh->Set(ShaderType::Mesh, meshShaderCode);
 	}
 
@@ -107,24 +119,28 @@ void Resources::LoadShaders()
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + Graphics::GetInstance().m_shaderBasic + "\n" + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLighting.frag");
-		auto standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
-		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
+		auto fragShader = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
 
 		fragShaderCode =
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + Graphics::GetInstance().m_shaderBasic + "\n" + "\n" + Graphics::GetInstance().m_shaderLighting + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLightingSceneCamera.frag");
-		standardDeferredLightingFrag = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
-		standardDeferredLightingFrag->Set(ShaderType::Fragment, fragShaderCode);
+		fragShader = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 		
 		fragShaderCode = std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferred.frag");
+		fragShader = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 
-		auto standardDeferredPrepassFrag = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
-
-		standardDeferredPrepassFrag->Set(ShaderType::Fragment, fragShaderCode);
+		fragShaderCode = std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(
+				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredMeshletColored.frag");
+		fragShader = CreateResource<Shader>("STANDARD_DEFERRED_MESHLET_COLORED_FRAG");
+		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
 
@@ -346,6 +362,27 @@ void Resources::LoadShaders()
 
 		geomShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_STRANDS_GEOM");
 		geomShader->Set(ShaderType::Geometry, geomShaderCode);
+
+		auto taskShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Task/Lighting/DirectionalLightShadowMap.task");
+
+		auto taskShader = CreateResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_TASK");
+		taskShader->Set(ShaderType::Task, taskShaderCode);
+
+		taskShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Task/Lighting/PointLightShadowMap.task");
+
+		taskShader = CreateResource<Shader>("POINT_LIGHT_SHADOW_MAP_TASK");
+		taskShader->Set(ShaderType::Task, taskShaderCode);
+
+		taskShaderCode =
+			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
+			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Task/Lighting/SpotLightShadowMap.task");
+
+		taskShader = CreateResource<Shader>("SPOT_LIGHT_SHADOW_MAP_TASK");
+		taskShader->Set(ShaderType::Task, taskShaderCode);
 
 		auto meshShaderCode =
 			std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
