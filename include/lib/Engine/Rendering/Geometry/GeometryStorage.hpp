@@ -53,7 +53,6 @@ namespace EvoEngine
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
-		std::queue<uint32_t> m_vertexDataChunkPool = {};
 		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_meshletRangeDescriptor;

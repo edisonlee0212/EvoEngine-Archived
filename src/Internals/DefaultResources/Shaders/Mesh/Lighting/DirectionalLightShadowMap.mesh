@@ -22,7 +22,7 @@ void main()
 
 	for (uint i = 0; i < verticesSize; ++i)
 	{
-		Vertex v = EE_GET_VERTEX(chunkIndex, i);
+		Vertex v = EE_VERTEX_DATA_CHUNKS[chunkIndex].vertices[i];
 		gl_MeshVerticesEXT[i].gl_Position = 
 			EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * model * vec4(v.position.xyz, 1.0);
 	}

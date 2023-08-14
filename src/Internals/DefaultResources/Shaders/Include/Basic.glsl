@@ -170,8 +170,6 @@ struct Vertex {
 	vec4 texCoord;
 };
 
-Vertex EE_GET_VERTEX(uint chunkIndex, uint vertexIndex);
-
 struct VertexDataChunk {
 	Vertex vertices[MESHLET_MAX_VERTICES_SIZE];
 };
@@ -181,11 +179,6 @@ layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_VERTICES_BLOCK
 {
 	VertexDataChunk EE_VERTEX_DATA_CHUNKS[];
 };
-
-
-Vertex EE_GET_VERTEX(uint chunkIndex, uint vertexIndex) {
-	return EE_VERTEX_DATA_CHUNKS[chunkIndex].vertices[vertexIndex];
-}
 
 struct Meshlet {
 	uint primitiveIndices[MESHLET_MAX_INDICES_SIZE];

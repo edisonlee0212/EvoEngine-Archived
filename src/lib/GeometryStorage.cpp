@@ -180,7 +180,7 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	const auto triangleRange = std::make_shared<RangeDescriptor>();
 	triangleRange->m_handle = handle;
 	triangleRange->m_offset = storage.m_triangles.size();
-	triangleRange->m_size = triangles.size();
+	triangleRange->m_size = 0;
 	
 	while (currentTriangleIndex < triangles.size())
 	{
@@ -189,18 +189,11 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		storage.m_meshlets.emplace_back();
 		auto& currentMeshlet = storage.m_meshlets[currentMeshletIndex];
 
-		if(storage.m_vertexDataChunkPool.empty())
-		{
-			currentMeshlet.m_vertexChunkIndex = storage.m_vertexDataChunks.size();
-			storage.m_vertexDataChunks.emplace_back();
-		}else
-		{
-			currentMeshlet.m_vertexChunkIndex = storage.m_vertexDataChunkPool.front();
-			storage.m_vertexDataChunkPool.pop();
-		}
+		currentMeshlet.m_vertexChunkIndex = storage.m_vertexDataChunks.size();
+		storage.m_vertexDataChunks.emplace_back();
 		auto& currentChunk = storage.m_vertexDataChunks[currentMeshlet.m_vertexChunkIndex];
-		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
 
+		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
 		std::unordered_map<uint32_t, uint32_t> assignedVertices{};
 		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
 		{
@@ -271,9 +264,10 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 			currentTriangleIndex++;
 
 			auto& globalTriangle = storage.m_triangles.emplace_back();
-			globalTriangle.x = currentTriangle.x + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.y = currentTriangle.y + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.z = currentTriangle.z + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalTriangle.x = currentMeshletTriangle.x + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalTriangle.y = currentMeshletTriangle.y + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalTriangle.z = currentMeshletTriangle.z + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			triangleRange->m_size++;
 		}
 	}
 	storage.m_meshletRangeDescriptor.push_back(meshletRange);
@@ -599,20 +593,16 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 		return;
 	};
 	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
-	std::unordered_set<uint32_t> vertexIndices;
-	for(uint32_t i = meshletRangeDescriptor->m_offset; i < meshletRangeDescriptor->m_size; i++)
-	{
-		auto& meshlet = storage.m_meshlets[i];
-		storage.m_vertexDataChunkPool.push(meshlet.m_vertexChunkIndex);
-		meshlet.m_verticesSize = meshlet.m_triangleSize = 0;		
-	}
 	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + meshletRangeDescriptor->m_size);
+	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset, storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset + meshletRangeDescriptor->m_size);
+
 	for (uint32_t i = meshletRangeDescriptorIndex + 1; i < storage.m_meshletRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_meshletRangeDescriptor[i]->m_offset >= meshletRangeDescriptor->m_size);
 		storage.m_meshletRangeDescriptor[i]->m_offset -= meshletRangeDescriptor->m_size;
 	}
 	storage.m_meshletRangeDescriptor.erase(storage.m_meshletRangeDescriptor.begin() + meshletRangeDescriptorIndex);
+	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptorIndex);
 
 	uint32_t triangleRangeDescriptorIndex = UINT_MAX;
 	for(uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
