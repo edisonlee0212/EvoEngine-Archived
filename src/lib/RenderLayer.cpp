@@ -850,7 +850,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowPipeline->Bind(commandBuffer);
 					pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					
+					pointLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -895,7 +895,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
+										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -924,6 +924,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowInstancedPipeline->Bind(commandBuffer);
 					pointLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					pointLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -970,6 +971,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowSkinnedPipeline->Bind(commandBuffer);
 					pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					pointLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -1015,6 +1017,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowStrandsPipeline->Bind(commandBuffer);
 					pointLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					pointLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -1080,6 +1083,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowPipeline->Bind(commandBuffer);
 				spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				spotLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1123,7 +1127,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								{
 									graphics.m_drawCall[currentFrameIndex]++;
 									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-									vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
+									vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
@@ -1152,6 +1156,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowInstancedPipeline->Bind(commandBuffer);
 				spotLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				spotLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1196,6 +1201,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowSkinnedPipeline->Bind(commandBuffer);
 				spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				spotLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1239,6 +1245,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowStrandsPipeline->Bind(commandBuffer);
 				spotLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+				spotLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1797,6 +1804,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					directionalLightShadowPipeline->Bind(commandBuffer);
 					directionalLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					directionalLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
@@ -1842,7 +1850,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
+										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -1874,6 +1882,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					directionalLightShadowPipelineInstanced->Bind(commandBuffer);
 					directionalLightShadowPipelineInstanced->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+					directionalLightShadowPipelineInstanced->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
@@ -1925,7 +1934,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					directionalLightShadowPipelineSkinned->Bind(commandBuffer);
 					directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
+					directionalLightShadowPipelineSkinned->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
 						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
@@ -1975,7 +1984,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					directionalLightShadowPipelineStrands->Bind(commandBuffer);
 					directionalLightShadowPipelineStrands->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
+					directionalLightShadowPipelineStrands->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
 						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
@@ -2101,7 +2110,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						{
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-							vkCmdDrawMeshTasksEXT(commandBuffer, renderCommand.m_meshletSize, 1, 1);
+							vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 						}
 						else {
 							const auto mesh = renderCommand.m_mesh;

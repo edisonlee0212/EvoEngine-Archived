@@ -148,7 +148,7 @@ namespace EvoEngine
 			friend class Lighting;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
-			inline constexpr static bool ENABLE_MESH_SHADER = true;
+			inline constexpr static bool ENABLE_MESH_SHADER = false;
 			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 1;
 			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1;
 			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 1;
