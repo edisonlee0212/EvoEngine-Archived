@@ -144,10 +144,10 @@ namespace EvoEngine
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
 			inline constexpr static bool ENABLE_MESH_SHADER = true;
-			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 8;
-			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1024;
-			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 8192;
-			inline constexpr static uint32_t INITIAL_RENDER_TASK_SIZE = 8192;
+			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 1;
+			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1;
+			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 1;
+			inline constexpr static uint32_t INITIAL_RENDER_TASK_SIZE = 1;
 			inline constexpr static uint32_t MAX_KERNEL_AMOUNT = 64;
 			inline constexpr static uint32_t MAX_DIRECTIONAL_LIGHT_SIZE = 16;
 			inline constexpr static uint32_t MAX_POINT_LIGHT_SIZE = 16;

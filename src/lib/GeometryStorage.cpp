@@ -286,44 +286,29 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 		throw std::runtime_error("Empty skinned vertices or triangles!");
 	}
 	auto& storage = GetInstance();
-	/* From mesh skinnedVertices to skinnedVertex data indices
-	 */
-	std::vector<uint32_t> skinnedVertexIndices;
-	skinnedVertexIndices.resize(skinnedVertices.size());
-	for (uint32_t i = 0; i < skinnedVertexIndices.size(); i++)
-	{
-		size_t currentSkinnedVertexIndex;
-		if (!storage.m_skinnedVertexDataPool.empty())
-		{
-			currentSkinnedVertexIndex = storage.m_skinnedVertexDataPool.front();
-			storage.m_skinnedVertexDataPool.pop();
-		}
-		else
-		{
-			currentSkinnedVertexIndex = storage.m_skinnedVerticesCount;
-			storage.m_skinnedVerticesCount++;
-		}
-
-		skinnedVertexIndices[i] = currentSkinnedVertexIndex;
-		if (currentSkinnedVertexIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE >= storage.m_skinnedVertexDataChunks.size())
-		{
-			storage.m_skinnedVertexDataChunks.emplace_back();
-		}
-		storage.m_skinnedVertexDataChunks[currentSkinnedVertexIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_skinnedVertexData[currentSkinnedVertexIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = skinnedVertices[i];
-	}
 	
 	uint32_t currentSkinnedTriangleIndex = 0;
 	const auto skinnedMeshletRange = std::make_shared<RangeDescriptor>();
 	skinnedMeshletRange->m_handle = handle;
 	skinnedMeshletRange->m_offset = storage.m_skinnedMeshlets.size();
 	skinnedMeshletRange->m_size = 0;
+
+	const auto skinnedTriangleRange = std::make_shared<RangeDescriptor>();
+	skinnedTriangleRange->m_handle = handle;
+	skinnedTriangleRange->m_offset = storage.m_skinnedTriangles.size();
+	skinnedTriangleRange->m_size = 0;
+
 	while (currentSkinnedTriangleIndex < triangles.size())
 	{
 		skinnedMeshletRange->m_size++;
 		const uint32_t currentSkinnedMeshletIndex = storage.m_skinnedMeshlets.size();
 		storage.m_skinnedMeshlets.emplace_back();
-
 		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets[currentSkinnedMeshletIndex];
+
+		currentSkinnedMeshlet.m_skinnedVertexChunkIndex = storage.m_skinnedVertexDataChunks.size();
+		storage.m_skinnedVertexDataChunks.emplace_back();
+		auto& currentChunk = storage.m_skinnedVertexDataChunks[currentSkinnedMeshlet.m_skinnedVertexChunkIndex];
+
 		currentSkinnedMeshlet.m_skinnedVerticesSize = currentSkinnedMeshlet.m_skinnedTriangleSize = 0;
 
 		std::unordered_map<uint32_t, uint32_t> assignedSkinnedVertices{};
@@ -344,7 +329,7 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 			{
 				break;
 			}
-			auto& currentSkinnedMeshletTriangle = currentSkinnedMeshlet.m_triangles[currentSkinnedMeshlet.m_skinnedTriangleSize];
+			auto& currentSkinnedMeshletTriangle = currentSkinnedMeshlet.m_skinnedTriangles[currentSkinnedMeshlet.m_skinnedTriangleSize];
 
 			if (searchX != assignedSkinnedVertices.end())
 			{
@@ -356,7 +341,7 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 				assignedSkinnedVertices[currentTriangle.x] = currentSkinnedMeshlet.m_skinnedVerticesSize;
 
 				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentSkinnedMeshlet.m_skinnedVertexIndices[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertexIndices[currentTriangle.x];
+				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.x];
 				currentSkinnedMeshletTriangle.x = currentSkinnedMeshlet.m_skinnedVerticesSize;
 				currentSkinnedMeshlet.m_skinnedVerticesSize++;
 			}
@@ -372,7 +357,7 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 				assignedSkinnedVertices[currentTriangle.y] = currentSkinnedMeshlet.m_skinnedVerticesSize;
 
 				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentSkinnedMeshlet.m_skinnedVertexIndices[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertexIndices[currentTriangle.y];
+				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.y];
 				currentSkinnedMeshletTriangle.y = currentSkinnedMeshlet.m_skinnedVerticesSize;
 				currentSkinnedMeshlet.m_skinnedVerticesSize++;
 			}
@@ -388,28 +373,23 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 				assignedSkinnedVertices[currentTriangle.z] = currentSkinnedMeshlet.m_skinnedVerticesSize;
 
 				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentSkinnedMeshlet.m_skinnedVertexIndices[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertexIndices[currentTriangle.z];
+				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.z];
 				currentSkinnedMeshletTriangle.z = currentSkinnedMeshlet.m_skinnedVerticesSize;
 				currentSkinnedMeshlet.m_skinnedVerticesSize++;
 			}
 			currentSkinnedMeshlet.m_skinnedTriangleSize++;
 			currentSkinnedTriangleIndex++;
+
+			auto& globalSkinnedTriangle = storage.m_skinnedTriangles.emplace_back();
+			globalSkinnedTriangle.x = currentSkinnedMeshletTriangle.x + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalSkinnedTriangle.y = currentSkinnedMeshletTriangle.y + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalSkinnedTriangle.z = currentSkinnedMeshletTriangle.z + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			skinnedTriangleRange->m_size++;
 		}
 	}
 	storage.m_skinnedMeshletRangeDescriptor.push_back(skinnedMeshletRange);
 	targetSkinnedMeshletRange = skinnedMeshletRange;
 
-	const auto skinnedTriangleRange = std::make_shared<RangeDescriptor>();
-	skinnedTriangleRange->m_handle = handle;
-	skinnedTriangleRange->m_offset = storage.m_skinnedTriangles.size();
-	skinnedTriangleRange->m_size = triangles.size();
-	for (const auto& triangle : triangles)
-	{
-		auto& newSkinnedTriangle = storage.m_skinnedTriangles.emplace_back();
-		newSkinnedTriangle.x = skinnedVertexIndices[triangle.x];
-		newSkinnedTriangle.y = skinnedVertexIndices[triangle.y];
-		newSkinnedTriangle.z = skinnedVertexIndices[triangle.z];
-	}
 	storage.m_skinnedTriangleRangeDescriptor.push_back(skinnedTriangleRange);
 	targetSkinnedTriangleRange = skinnedTriangleRange;
 
@@ -423,44 +403,29 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 		throw std::runtime_error("Empty strand points or strand segments!");
 	}
 	auto& storage = GetInstance();
-	/* From mesh strandPoints to strandPoint data indices
-	 */
-	std::vector<uint32_t> strandPointIndices;
-	strandPointIndices.resize(strandPoints.size());
-	for (uint32_t i = 0; i < strandPointIndices.size(); i++)
-	{
-		size_t currentStrandPointIndex;
-		if (!storage.m_strandPointDataPool.empty())
-		{
-			currentStrandPointIndex = storage.m_strandPointDataPool.front();
-			storage.m_strandPointDataPool.pop();
-		}
-		else
-		{
-			currentStrandPointIndex = storage.m_strandPointsCount;
-			storage.m_strandPointsCount++;
-		}
-
-		strandPointIndices[i] = currentStrandPointIndex;
-		if (currentStrandPointIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE >= storage.m_strandPointDataChunks.size())
-		{
-			storage.m_strandPointDataChunks.emplace_back();
-		}
-		storage.m_strandPointDataChunks[currentStrandPointIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_strandPointData[currentStrandPointIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = strandPoints[i];
-	}
-
+	
 	uint32_t currentSegmentIndex = 0;
 	const auto strandMeshletRange = std::make_shared<RangeDescriptor>();
 	strandMeshletRange->m_handle = handle;
 	strandMeshletRange->m_offset = storage.m_strandMeshlets.size();
 	strandMeshletRange->m_size = 0;
+
+	const auto segmentRange = std::make_shared<RangeDescriptor>();
+	segmentRange->m_handle = handle;
+	segmentRange->m_offset = storage.m_segments.size();
+	segmentRange->m_size = 0;
+
 	while (currentSegmentIndex < segments.size())
 	{
 		strandMeshletRange->m_size++;
 		const uint32_t currentStrandMeshletIndex = storage.m_strandMeshlets.size();
 		storage.m_strandMeshlets.emplace_back();
-
 		auto& currentStrandMeshlet = storage.m_strandMeshlets[currentStrandMeshletIndex];
+
+		currentStrandMeshlet.m_strandPointChunkIndex = storage.m_strandPointDataChunks.size();
+		storage.m_strandPointDataChunks.emplace_back();
+		auto& currentChunk = storage.m_strandPointDataChunks[currentStrandMeshlet.m_strandPointChunkIndex];
+
 		currentStrandMeshlet.m_strandPointsSize = currentStrandMeshlet.m_segmentSize = 0;
 
 		std::unordered_map<uint32_t, uint32_t> assignedStrandPoints{};
@@ -496,7 +461,7 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 				assignedStrandPoints[currentSegment.x] = currentStrandMeshlet.m_strandPointsSize;
 
 				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentStrandMeshlet.m_strandPointIndices[currentStrandMeshlet.m_strandPointsSize] = strandPointIndices[currentSegment.x];
+				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.x];
 				currentStrandMeshletSegment.x = currentStrandMeshlet.m_strandPointsSize;
 				currentStrandMeshlet.m_strandPointsSize++;
 			}
@@ -512,7 +477,7 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 				assignedStrandPoints[currentSegment.y] = currentStrandMeshlet.m_strandPointsSize;
 
 				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentStrandMeshlet.m_strandPointIndices[currentStrandMeshlet.m_strandPointsSize] = strandPointIndices[currentSegment.y];
+				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.y];
 				currentStrandMeshletSegment.y = currentStrandMeshlet.m_strandPointsSize;
 				currentStrandMeshlet.m_strandPointsSize++;
 			}
@@ -528,7 +493,7 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 				assignedStrandPoints[currentSegment.z] = currentStrandMeshlet.m_strandPointsSize;
 
 				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentStrandMeshlet.m_strandPointIndices[currentStrandMeshlet.m_strandPointsSize] = strandPointIndices[currentSegment.z];
+				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.z];
 				currentStrandMeshletSegment.z = currentStrandMeshlet.m_strandPointsSize;
 				currentStrandMeshlet.m_strandPointsSize++;
 			}
@@ -544,30 +509,24 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 				assignedStrandPoints[currentSegment.w] = currentStrandMeshlet.m_strandPointsSize;
 
 				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentStrandMeshlet.m_strandPointIndices[currentStrandMeshlet.m_strandPointsSize] = strandPointIndices[currentSegment.w];
+				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.w];
 				currentStrandMeshletSegment.w = currentStrandMeshlet.m_strandPointsSize;
 				currentStrandMeshlet.m_strandPointsSize++;
 			}
 			currentStrandMeshlet.m_segmentSize++;
 			currentSegmentIndex++;
+
+			auto& globalSegment = storage.m_segments.emplace_back();
+			globalSegment.x = currentStrandMeshletSegment.x + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalSegment.y = currentStrandMeshletSegment.y + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalSegment.z = currentStrandMeshletSegment.z + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			segmentRange->m_size++;
 		}
 	}
 
 	storage.m_strandMeshletRangeDescriptor.push_back(strandMeshletRange);
 	targetStrandMeshletRange = strandMeshletRange;
 
-	const auto segmentRange = std::make_shared<RangeDescriptor>();
-	segmentRange->m_handle = handle;
-	segmentRange->m_offset = storage.m_segments.size();
-	segmentRange->m_size = segments.size();
-	for (const auto& segment : segments)
-	{
-		auto& newSegment = storage.m_segments.emplace_back();
-		newSegment.x = strandPointIndices[segment.x];
-		newSegment.y = strandPointIndices[segment.y];
-		newSegment.z = strandPointIndices[segment.z];
-		newSegment.w = strandPointIndices[segment.w];
-	}
 	storage.m_segmentRangeDescriptor.push_back(segmentRange);
 	targetSegmentRange = segmentRange;
 
@@ -591,18 +550,22 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	{
 		EVOENGINE_ERROR("Can't find the target meshlet range!");
 		return;
-	};
+	}
 	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
-	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + meshletRangeDescriptor->m_size);
-	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset, storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset + meshletRangeDescriptor->m_size);
-
+	const uint32_t removeChunkSize = meshletRangeDescriptor->m_size;
+	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
+	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset, 
+		storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
+	for (uint32_t i = meshletRangeDescriptorIndex; i < storage.m_meshlets.size(); i++)
+	{
+		storage.m_meshlets[i].m_vertexChunkIndex = i;
+	}
 	for (uint32_t i = meshletRangeDescriptorIndex + 1; i < storage.m_meshletRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_meshletRangeDescriptor[i]->m_offset >= meshletRangeDescriptor->m_size);
 		storage.m_meshletRangeDescriptor[i]->m_offset -= meshletRangeDescriptor->m_size;
 	}
 	storage.m_meshletRangeDescriptor.erase(storage.m_meshletRangeDescriptor.begin() + meshletRangeDescriptorIndex);
-	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptorIndex);
 
 	uint32_t triangleRangeDescriptorIndex = UINT_MAX;
 	for(uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
@@ -619,11 +582,19 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 		return;
 	}
 	const auto& triangleRangeDescriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
-	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset, storage.m_triangles.begin() + triangleRangeDescriptor->m_offset + triangleRangeDescriptor->m_size);
+	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset, 
+		storage.m_triangles.begin() + triangleRangeDescriptor->m_offset + triangleRangeDescriptor->m_size);
 	for (uint32_t i = triangleRangeDescriptorIndex + 1; i < storage.m_triangleRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_triangleRangeDescriptor[i]->m_offset >= triangleRangeDescriptor->m_size);
 		storage.m_triangleRangeDescriptor[i]->m_offset -= triangleRangeDescriptor->m_size;
+	}
+
+	for(uint32_t i = triangleRangeDescriptor->m_offset; i < storage.m_triangles.size(); i++)
+	{
+		storage.m_triangles[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_triangles[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_triangles[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 	}
 	storage.m_triangleRangeDescriptor.erase(storage.m_triangleRangeDescriptor.begin() + triangleRangeDescriptorIndex);
 
@@ -648,21 +619,14 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 		return;
 	};
 	const auto& skinnedMeshletRangeDescriptor = storage.m_skinnedMeshletRangeDescriptor[skinnedMeshletRangeDescriptorIndex];
-	std::unordered_set<uint32_t> skinnedVertexIndices;
-	for (uint32_t i = skinnedMeshletRangeDescriptor->m_offset; i < skinnedMeshletRangeDescriptor->m_size; i++)
+	const uint32_t removeChunkSize = skinnedMeshletRangeDescriptor->m_size;
+	storage.m_skinnedMeshlets.erase(storage.m_skinnedMeshlets.begin() + skinnedMeshletRangeDescriptor->m_offset, storage.m_skinnedMeshlets.begin() + removeChunkSize);
+	storage.m_skinnedVertexDataChunks.erase(storage.m_skinnedVertexDataChunks.begin() + skinnedMeshletRangeDescriptor->m_offset,
+		storage.m_skinnedVertexDataChunks.begin() + skinnedMeshletRangeDescriptor->m_offset + removeChunkSize);
+	for (uint32_t i = skinnedMeshletRangeDescriptorIndex; i < storage.m_skinnedMeshlets.size(); i++)
 	{
-		auto& skinnedMeshlet = storage.m_skinnedMeshlets[i];
-		for (int j = 0; j < skinnedMeshlet.m_skinnedVerticesSize; j++)
-		{
-			skinnedVertexIndices.emplace(skinnedMeshlet.m_skinnedVertexIndices[j]);
-		}
-		skinnedMeshlet.m_skinnedVerticesSize = skinnedMeshlet.m_skinnedTriangleSize = 0;
+		storage.m_skinnedMeshlets[i].m_skinnedVertexChunkIndex= i;
 	}
-	for (const auto& i : skinnedVertexIndices)
-	{
-		storage.m_skinnedVertexDataPool.push(i);
-	}
-	storage.m_skinnedMeshlets.erase(storage.m_skinnedMeshlets.begin() + skinnedMeshletRangeDescriptor->m_offset, storage.m_skinnedMeshlets.begin() + skinnedMeshletRangeDescriptor->m_offset + skinnedMeshletRangeDescriptor->m_size);
 	for (uint32_t i = skinnedMeshletRangeDescriptorIndex + 1; i < storage.m_skinnedMeshletRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_skinnedMeshletRangeDescriptor[i]->m_offset >= skinnedMeshletRangeDescriptor->m_size);
@@ -685,12 +649,21 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 		return;
 	}
 	const auto& skinnedTriangleRangeDescriptor = storage.m_skinnedTriangleRangeDescriptor[skinnedTriangleRangeDescriptorIndex];
-	storage.m_skinnedTriangles.erase(storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset, storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset + skinnedTriangleRangeDescriptor->m_size);
+	storage.m_skinnedTriangles.erase(storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset, 
+		storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset + skinnedTriangleRangeDescriptor->m_size);
 	for (uint32_t i = skinnedTriangleRangeDescriptorIndex + 1; i < storage.m_skinnedTriangleRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_skinnedTriangleRangeDescriptor[i]->m_offset >= skinnedTriangleRangeDescriptor->m_size);
 		storage.m_skinnedTriangleRangeDescriptor[i]->m_offset -= skinnedTriangleRangeDescriptor->m_size;
 	}
+
+	for (uint32_t i = skinnedTriangleRangeDescriptor->m_offset; i < storage.m_skinnedTriangles.size(); i++)
+	{
+		storage.m_skinnedTriangles[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_skinnedTriangles[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_skinnedTriangles[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+	}
+
 	storage.m_skinnedTriangleRangeDescriptor.erase(storage.m_skinnedTriangleRangeDescriptor.begin() + skinnedTriangleRangeDescriptorIndex);
 
 	for (auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
@@ -712,23 +685,16 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 	{
 		EVOENGINE_ERROR("Can't find the target strand meshlet range!");
 		return;
-	};
+	}
 	const auto& strandMeshletRangeDescriptor = storage.m_strandMeshletRangeDescriptor[strandMeshletRangeDescriptorIndex];
-	std::unordered_set<uint32_t> strandPointIndices;
-	for (uint32_t i = strandMeshletRangeDescriptor->m_offset; i < strandMeshletRangeDescriptor->m_size; i++)
+	const uint32_t removeChunkSize = strandMeshletRangeDescriptor->m_size;
+	storage.m_strandMeshlets.erase(storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset, storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset + removeChunkSize);
+	storage.m_strandPointDataChunks.erase(storage.m_strandPointDataChunks.begin() + strandMeshletRangeDescriptor->m_offset,
+		storage.m_strandPointDataChunks.begin() + strandMeshletRangeDescriptor->m_offset + removeChunkSize);
+	for (uint32_t i = strandMeshletRangeDescriptorIndex; i < storage.m_strandMeshlets.size(); i++)
 	{
-		auto& strandMeshlet = storage.m_strandMeshlets[i];
-		for (int j = 0; j < strandMeshlet.m_strandPointsSize; j++)
-		{
-			strandPointIndices.emplace(strandMeshlet.m_strandPointIndices[j]);
-		}
-		strandMeshlet.m_strandPointsSize = strandMeshlet.m_segmentSize = 0;
+		storage.m_strandMeshlets[i].m_strandPointChunkIndex = i;
 	}
-	for (const auto& i : strandPointIndices)
-	{
-		storage.m_strandPointDataPool.push(i);
-	}
-	storage.m_strandMeshlets.erase(storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset, storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset + strandMeshletRangeDescriptor->m_size);
 	for (uint32_t i = strandMeshletRangeDescriptorIndex + 1; i < storage.m_strandMeshletRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_strandMeshletRangeDescriptor[i]->m_offset >= strandMeshletRangeDescriptor->m_size);
@@ -751,11 +717,20 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 		return;
 	}
 	const auto& segmentRangeDescriptor = storage.m_segmentRangeDescriptor[segmentRangeDescriptorIndex];
-	storage.m_segments.erase(storage.m_segments.begin() + segmentRangeDescriptor->m_offset, storage.m_segments.begin() + segmentRangeDescriptor->m_offset + segmentRangeDescriptor->m_size);
+	storage.m_segments.erase(storage.m_segments.begin() + segmentRangeDescriptor->m_offset, 
+		storage.m_segments.begin() + segmentRangeDescriptor->m_offset + segmentRangeDescriptor->m_size);
 	for (uint32_t i = segmentRangeDescriptorIndex + 1; i < storage.m_segmentRangeDescriptor.size(); i++)
 	{
 		assert(storage.m_segmentRangeDescriptor[i]->m_offset >= segmentRangeDescriptor->m_size);
 		storage.m_segmentRangeDescriptor[i]->m_offset -= segmentRangeDescriptor->m_size;
+	}
+
+	for (uint32_t i = segmentRangeDescriptor->m_offset; i < storage.m_segments.size(); i++)
+	{
+		storage.m_segments[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_segments[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_segments[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		storage.m_segments[i].w -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 	}
 	storage.m_segmentRangeDescriptor.erase(storage.m_segmentRangeDescriptor.begin() + segmentRangeDescriptorIndex);
 

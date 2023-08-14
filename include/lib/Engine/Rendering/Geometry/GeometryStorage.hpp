@@ -25,10 +25,10 @@ namespace EvoEngine
 	};
 	struct SkinnedMeshlet
 	{
-		uint32_t m_skinnedVertexIndices[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
-		glm::uvec3 m_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
+		glm::uvec3 m_skinnedTriangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_skinnedVerticesSize = 0;
 		uint32_t m_skinnedTriangleSize = 0;
+		uint32_t m_skinnedVertexChunkIndex = 0;
 	};
 
 	struct StrandPointDataChunk
@@ -37,10 +37,10 @@ namespace EvoEngine
 	};
 	struct StrandMeshlet
 	{
-		uint32_t m_strandPointIndices[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
 		glm::uvec4 m_segments[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_strandPointsSize = 0;
 		uint32_t m_segmentSize = 0;
+		uint32_t m_strandPointChunkIndex = 0;
 	};
 	class RangeDescriptor
 	{
@@ -65,7 +65,6 @@ namespace EvoEngine
 		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
-		std::queue<uint32_t> m_skinnedVertexDataPool = {};
 		uint32_t m_skinnedVerticesCount = 0;
 		std::vector<SkinnedMeshlet> m_skinnedMeshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_skinnedMeshletRangeDescriptor;
@@ -78,7 +77,6 @@ namespace EvoEngine
 		std::vector<bool> m_requireSkinnedMeshDataDeviceUpdate = {};
 
 		std::vector<StrandPointDataChunk> m_strandPointDataChunks = {};
-		std::queue<uint32_t> m_strandPointDataPool = {};
 		uint32_t m_strandPointsCount = 0;
 		std::vector<StrandMeshlet> m_strandMeshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_strandMeshletRangeDescriptor;
