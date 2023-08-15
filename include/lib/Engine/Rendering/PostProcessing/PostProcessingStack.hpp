@@ -17,8 +17,10 @@ namespace EvoEngine
 
 	struct SSRSettings
 	{
-
-
+		int m_numBinarySearchSteps = 8;
+		float m_step = 0.5f;
+		float m_minRayStep = 0.1f;
+		int m_maxSteps = 16;
 	};
 
 	struct SSAOPushConstant

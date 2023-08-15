@@ -4,7 +4,7 @@ layout (location = 0) out vec3 outOriginalColor;
 layout (location = 1) out vec4 outOriginalColorVisibility;
 
 layout (location = 0) in VS_OUT {
-    vec2 TexCoord;
+	vec2 TexCoord;
 } fs_in;
 
 
@@ -26,102 +26,123 @@ vec3 EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(float cosTheta, vec3 F0, float roughness)
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
-void main()
-{
-    vec2 texSize  = textureSize(inColor, 0).xy;
-    vec2 texCoord = fs_in.TexCoord;
 
-    vec2 uv = vec2(0.0);
-
-    float metallic = texture(inMaterial, texCoord).r;
-    float roughness = texture(inMaterial, texCoord).g;
-    vec3 color = texture(inColor, texCoord).rgb;
-    vec3 normal = texture(inNormal, texCoord).rgb;
-    vec3 viewNormal = (EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW * vec4(normal, 0.0)).xyz;
-
-    vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, texture(inDepth, texCoord).x);
-    vec3 worldPos = EE_DEPTH_TO_WORLD_POS(texCoord, texture(inDepth, texCoord).x);
-    vec3 cameraPosition = EE_CAMERA_POSITION();
-    vec3 viewDir = normalize(cameraPosition - worldPos);
-    vec3 F0 = vec3(0.04);
-    F0      = mix(F0, color, metallic);
-    // ambient lighting (we now use IBL as the ambient term)
-    vec3 F = EE_FUNC_FRESNEL_SCHLICK_ROUGHNESS(max(dot(normal, viewDir), 0.0), F0, roughness);
-    // Reflection vector
-    vec3 reflected = normalize(reflect(viewDir, normalize(normal)));
-    float dDepth;
-    vec3 jittering = mix(vec3(0.0), vec3(hash(worldPos)), roughness);
-    vec4 coords = RayMarch((vec3(jittering) + reflected * max(minRayStep, -viewPos.z)), worldPos, dDepth);
-    vec2 dCoord = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - coords.xy));
-    float screenEdgefactor = clamp(1.0 - (dCoord.x + dCoord.y), 0.0, 1.0);
-    float reflectionMultiplier = pow(metallic, reflectionSpecularFalloffExponent) * screenEdgefactor * -reflected.z;
-    // Get color
-    outOriginalColorVisibility = clamp(vec4(texture(inColor, coords.xy).rgb, reflectionMultiplier), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
-    outOriginalColor = color;
+bool rayIsOutofScreen(vec2 ray){
+	return (ray.x > 1 || ray.y > 1 || ray.x < 0 || ray.y < 0) ? true : false;
 }
+
 
 vec3 BinarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
 {
-    float depth;
-    vec4 projectedCoord;
-    for(int i = 0; i < numBinarySearchSteps; i++)
-    {
-        projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
-        projectedCoord.xy /= projectedCoord.w;
-        projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-
-        depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;//textureLod(gPosition, projectedCoord.xy, 2).z;
-
-
-        dDepth = hitCoord.z - depth;
-
-        dir *= 0.5;
-        if(dDepth > 0.0)
-        hitCoord += dir;
-        else
-        hitCoord -= dir;
-    }
-
-    projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
-    projectedCoord.xy /= projectedCoord.w;
-    projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-
-    return vec3(projectedCoord.xy, depth);
+	float depth;
+	vec4 projectedCoord;
+	for(int i = 0; i < numBinarySearchSteps; i++)
+	{
+		float actualDepth = texture(inDepth, hitCoord.xy).x;
+		dir *= 0.5;
+		if(hitCoord.z > actualDepth) hitCoord += dir;
+		else hitCoord -= dir;
+	}
+	return vec3(hitCoord.xy, depth);
 }
-
+void TraceRay(inout vec3 rayPos, vec3 dir){
+	vec3 retVal = vec3(0, 0, 0);
+	for(int i = 0; i < maxSteps; i++){
+		rayPos += dir;
+		if(rayIsOutofScreen(rayPos.xy)) return;
+		float sampleDepth = texture(inDepth, rayPos.xy).r;
+		float depthDif = rayPos.z - sampleDepth;
+		if(depthDif >= 0){ //we have a hit
+			retVal.z = 1;
+			dir *= 0.5;
+			rayPos -= dir;
+			for(int j = 0; j < numBinarySearchSteps; j++){
+				float sampleDepth = texture(inDepth, rayPos.xy).r;
+				float depthDif = rayPos.z - sampleDepth;
+				if(depthDif >= 0){
+					rayPos -= dir;
+				}else{
+					rayPos += dir;
+				}
+				dir *= 0.5;
+			}
+			return;				
+		}
+	}
+}
 vec4 RayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth)
 {
-    dir *= step;
-    float depth;
-    int steps;
-    vec4 projectedCoord;
-    for(int i = 0; i < maxSteps; i++)
-    {
-        hitCoord += dir;
-        projectedCoord = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(hitCoord, 1.0);
-        projectedCoord.xy /= projectedCoord.w;
-        projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-        depth = EE_DEPTH_TO_VIEW_POS(projectedCoord.xy, texture(inDepth, projectedCoord.xy).x).z;
-        if(depth > 1000.0)
-        continue;
-        dDepth = hitCoord.z - depth;
-        if((dir.z - dDepth) < 1.2)
-        {
-            if(dDepth <= 0.0)
-            {
-                vec4 Result;
-                Result = vec4(BinarySearch(dir, hitCoord, dDepth), 1.0);
-                return Result;
-            }
-        }
-        steps++;
-    }
-    return vec4(projectedCoord.xy, depth, 0.0);
+	dir *= step;
+	float depth;
+	int steps;
+	for(int i = 0; i < maxSteps; i++)
+	{
+		hitCoord += dir;
+		float actualDepth = texture(inDepth, hitCoord.xy).x;
+		if(hitCoord.z < actualDepth)
+		{
+			vec4 result;
+			result = vec4(BinarySearch(dir, hitCoord, dDepth), 1.0);
+			return result;
+		}
+	}
+	return vec4(hitCoord.xy, depth, 0.0);
 }
+void main()
+{
+	vec2 texSize  = textureSize(inColor, 0).xy;
+	vec2 texCoord = fs_in.TexCoord;
+
+	float metallic = texture(inMaterial, texCoord).r;
+	float roughness = texture(inMaterial, texCoord).g;
+
+	vec3 viewNormal = normalize((EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW * vec4(texture(inNormal, texCoord).rgb, 0.0)).xyz);
+
+	float ndcDepth = texture(inDepth, texCoord).x;
+	vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, ndcDepth);
+
+	vec3 texturePixelPosition;
+	texturePixelPosition.xy = texCoord;
+	texturePixelPosition.z = ndcDepth;
+
+	vec3 viewReflection = normalize(reflect(viewPos, normalize(viewNormal)));
+	
+	vec3 viewRayEndPosition = viewPos + viewReflection * 100.0;
+	vec4 textureRayEndPosition = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(viewRayEndPosition, 1.0);
+
+	textureRayEndPosition /= textureRayEndPosition.w;
+	textureRayEndPosition.xyz = (textureRayEndPosition.xyz + vec3(1.0)) * 0.5;
+	vec3 textureRayDir = textureRayEndPosition.xyz - texturePixelPosition;
+	
+	ivec2 screenSpaceStartPosition = ivec2(texturePixelPosition.x * texSize.x, texturePixelPosition.y * texSize.y); 
+	ivec2 screenSpaceEndPosition = ivec2(textureRayEndPosition.x * texSize.x, textureRayEndPosition.y * texSize.y); 
+	ivec2 screenSpaceDistance = screenSpaceEndPosition - screenSpaceStartPosition;
+	int screenSpaceMaxDistance = max(abs(screenSpaceDistance.x), abs(screenSpaceDistance.y)) / 2;
+	textureRayDir /= max(screenSpaceMaxDistance, 0.001f);
+
+	float dDepth;
+	vec3 jittering = vec3(0, 0, 0);//mix(vec3(0.0), vec3(hash(worldPos)), roughness);
+
+	
+	
+	vec2 dCoord = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - texCoord.xy));
+	float screenEdgefactor = clamp(1.0 - (dCoord.x + dCoord.y), 0.0, 1.0);
+	float reflectionMultiplier = pow(metallic, reflectionSpecularFalloffExponent) * screenEdgefactor * -textureRayDir.z;
+	// Get color
+
+	TraceRay(texturePixelPosition, textureRayDir);
+	//vec4 coords = RayMarch(textureRayDir * step, texturePixelPosition, dDepth);
+
+	outOriginalColorVisibility = clamp(vec4(texture(inColor, texturePixelPosition.xy).rgb, 1.0), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
+	//outOriginalColorVisibility = clamp(vec4(outColor, 1.0), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
+	outOriginalColor = texture(inColor, texCoord).rgb;
+}
+
+
 
 vec3 hash(vec3 a)
 {
-    a = fract(a * Scale);
-    a += dot(a, a.yxz + K);
-    return fract((a.xxy + a.yxx)*a.zyx);
+	a = fract(a * Scale);
+	a += dot(a, a.yxz + K);
+	return fract((a.xxy + a.yxx)*a.zyx);
 }

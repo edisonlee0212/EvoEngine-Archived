@@ -34,7 +34,13 @@ void PostProcessingStack::OnCreate()
 
 void PostProcessingStack::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	
+	if(ImGui::TreeNode("SSR Settings"))
+	{
+		ImGui::DragFloat("Step size", &m_SSRSettings.m_step, 0.1, 0.1, 10.0f);
+		ImGui::DragInt("Max steps", &m_SSRSettings.m_maxSteps, 1, 1, 32);
+		ImGui::DragInt("Binary search steps", &m_SSRSettings.m_numBinarySearchSteps, 1, 1, 16);
+		ImGui::TreePop();
+	}
 }
 
 void PostProcessingStack::Process(const std::shared_ptr<Camera>& targetCamera)
@@ -118,6 +124,9 @@ void PostProcessingStack::Process(const std::shared_ptr<Camera>& targetCamera)
 			GeometryStorage::BindVertices(commandBuffer);
 			{
 				SSRPushConstant pushConstant{};
+				pushConstant.m_numBinarySearchSteps = m_SSRSettings.m_numBinarySearchSteps;
+				pushConstant.m_step = m_SSRSettings.m_step;
+				pushConstant.m_maxSteps = m_SSRSettings.m_maxSteps;
 				pushConstant.m_cameraIndex = renderLayer->GetCameraIndex(targetCamera->GetHandle());
 				const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
 				std::vector<VkRenderingAttachmentInfo> colorAttachmentInfos;
