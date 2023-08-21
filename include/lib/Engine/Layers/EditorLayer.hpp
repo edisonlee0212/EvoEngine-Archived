@@ -134,6 +134,19 @@ namespace EvoEngine
 		int m_mainCameraResolutionX = 1;
 		int m_mainCameraResolutionY = 1;
 		bool m_mainCameraAllowAutoResize = true;
+
+		glm::vec3& UnsafeGetPreviouslyStoredPosition();
+
+		glm::vec3& UnsafeGetPreviouslyStoredRotation();
+
+		glm::vec3& UnsafeGetPreviouslyStoredScale();
+
+		[[nodiscard]] bool LocalPositionSelected() const;
+
+		[[nodiscard]] bool LocalRotationSelected() const;
+
+		[[nodiscard]] bool LocalScaleSelected() const;
+
 #pragma region ImGui Helpers
 		void CameraWindowDragAndDrop();
 		[[nodiscard]] bool DrawEntityMenu(const bool& enabled, const Entity& entity) const;

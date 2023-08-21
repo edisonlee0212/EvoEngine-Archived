@@ -35,7 +35,7 @@ namespace EvoEngine
 		VkDebugUtilsMessengerEXT m_vkDebugMessenger = {};
 		VkPhysicalDeviceFeatures m_vkPhysicalDeviceFeatures = {};
 		VkPhysicalDeviceProperties m_vkPhysicalDeviceProperties = {};
-
+		VkPhysicalDeviceMemoryProperties m_vkPhysicalDeviceMemoryProperties = {};
 		VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
 		VkPhysicalDevice m_vkPhysicalDevice = VK_NULL_HANDLE;
 		VkDevice m_vkDevice = VK_NULL_HANDLE;

@@ -516,6 +516,13 @@ void Graphics::CreateInstance()
 		}
 #pragma endregion
 		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+#ifdef _WIN64
+		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#else
+		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+#endif
 	}
 
 	m_requiredLayers = { "VK_LAYER_KHRONOS_validation" };
@@ -662,6 +669,7 @@ void Graphics::CreatePhysicalDevice()
 		m_vkPhysicalDevice = candidates.rbegin()->second;
 		vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &m_vkPhysicalDeviceFeatures);
 		vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
+		vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceMemoryProperties);
 		EVOENGINE_LOG("Chose \"" + std::string(m_vkPhysicalDeviceProperties.deviceName) + "\" as physical device.");
 	}
 	else {
@@ -818,6 +826,15 @@ void Graphics::SetupVmaAllocator()
 	vmaAllocatorCreateInfo.instance = m_vkInstance;
 	vmaAllocatorCreateInfo.vulkanApiVersion = volkGetInstanceVersion();
 	vmaAllocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+	auto& graphics = GetInstance();
+	std::vector<VkExternalMemoryHandleTypeFlagsKHR> handleTypes;
+	handleTypes.resize(graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypeCount);
+	for (int i = 0; i < graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++) {
+		if (graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+			handleTypes[i] = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+		}
+	}
+	vmaAllocatorCreateInfo.pTypeExternalMemoryHandleTypes = handleTypes.data();
 	vmaCreateAllocator(&vmaAllocatorCreateInfo, &m_vmaAllocator);
 #pragma endregion
 }
@@ -1318,8 +1335,8 @@ void Graphics::PreUpdate()
 	}
 
 	graphics.ResetCommandBuffers();
-	
-	
+
+
 	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 		if (const auto scene = Application::GetActiveScene()) {
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())

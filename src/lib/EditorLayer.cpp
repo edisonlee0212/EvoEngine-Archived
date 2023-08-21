@@ -1832,3 +1832,28 @@ void EditorLayer::MoveCamera(
 	m_targetPosition = targetPosition;
 	m_lockCamera = true;
 }
+
+
+bool EditorLayer::LocalPositionSelected() const {
+	return m_localPositionSelected;
+}
+
+bool EditorLayer::LocalRotationSelected() const {
+	return m_localRotationSelected;
+}
+
+bool EditorLayer::LocalScaleSelected() const {
+	return m_localScaleSelected;
+}
+
+glm::vec3& EditorLayer::UnsafeGetPreviouslyStoredPosition() {
+	return m_previouslyStoredPosition;
+}
+
+glm::vec3& EditorLayer::UnsafeGetPreviouslyStoredRotation() {
+	return m_previouslyStoredRotation;
+}
+
+glm::vec3& EditorLayer::UnsafeGetPreviouslyStoredScale() {
+	return m_previouslyStoredScale;
+}

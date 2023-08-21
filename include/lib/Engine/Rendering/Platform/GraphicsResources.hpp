@@ -43,6 +43,12 @@ namespace EvoEngine
 		explicit Semaphore(const VkSemaphoreCreateInfo& semaphoreCreateInfo);
 		~Semaphore() override;
 		[[nodiscard]] const VkSemaphore& GetVkSemaphore() const;
+#ifdef _WIN64
+		void* GetVkSemaphoreHandle(VkExternalSemaphoreHandleTypeFlagBitsKHR externalSemaphoreHandleType) const;
+#else
+		int GetVkSemaphoreHandle(
+			VkExternalSemaphoreHandleTypeFlagBitsKHR externalSemaphoreHandleType) const;
+#endif
 	};
 
 	class Image final : public IGraphicsResource
@@ -68,8 +74,8 @@ namespace EvoEngine
 
 	public:
 		[[nodiscard]] uint32_t GetMipLevels() const ;
-		explicit Image(const VkImageCreateInfo& imageCreateInfo);
-		Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+		explicit Image(VkImageCreateInfo imageCreateInfo);
+		Image(VkImageCreateInfo imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 		bool HasStencilComponent() const;
 		~Image() override;
 		void TransitImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
@@ -84,6 +90,11 @@ namespace EvoEngine
 		[[nodiscard]] VkImageLayout GetLayout() const;
 		[[nodiscard]] const VmaAllocationInfo& GetVmaAllocationInfo() const;
 
+#ifdef _WIN64
+		void* GetVkImageMemHandle(VkExternalMemoryHandleTypeFlagsKHR externalMemoryHandleType) const;
+#else
+		int GetVkImageMemHandle(VkExternalMemoryHandleTypeFlagsKHR externalMemoryHandleType) const;
+#endif
 	};
 
 	class ImageView final : public IGraphicsResource
@@ -201,7 +212,7 @@ namespace EvoEngine
 
 		void UploadData(size_t size, const void* src);
 		void DownloadData(size_t size, void* dst);
-		void Allocate(const VkBufferCreateInfo& bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
+		void Allocate(VkBufferCreateInfo bufferCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo);
 	public:
 		explicit Buffer(size_t stagingBufferSize, bool randomAccess = false);
 		explicit Buffer(const VkBufferCreateInfo& bufferCreateInfo);

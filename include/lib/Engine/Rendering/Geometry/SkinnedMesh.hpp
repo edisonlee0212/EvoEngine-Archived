@@ -67,7 +67,6 @@ namespace EvoEngine
 		[[nodiscard]] size_t GetTriangleAmount() const;
 		void RecalculateNormal();
 		void RecalculateTangent();
-		[[nodiscard]] size_t& GetVersion();
 		[[nodiscard]] std::vector<SkinnedVertex>& UnsafeGetSkinnedVertices();
 		[[nodiscard]] std::vector<glm::uvec3>& UnsafeGetTriangles();
 

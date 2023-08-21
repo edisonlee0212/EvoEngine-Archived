@@ -48,7 +48,47 @@ const VkSemaphore& Semaphore::GetVkSemaphore() const
 {
 	return m_vkSemaphore;
 }
+#ifdef _WIN64
+void* Semaphore::GetVkSemaphoreHandle(VkExternalSemaphoreHandleTypeFlagBitsKHR externalSemaphoreHandleType) const
+{
+	void* handle;
 
+	VkSemaphoreGetWin32HandleInfoKHR vulkanSemaphoreGetWin32HandleInfoKHR = {};
+	vulkanSemaphoreGetWin32HandleInfoKHR.sType =
+		VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
+	vulkanSemaphoreGetWin32HandleInfoKHR.pNext = NULL;
+	vulkanSemaphoreGetWin32HandleInfoKHR.semaphore = m_vkSemaphore;
+	vulkanSemaphoreGetWin32HandleInfoKHR.handleType =
+		externalSemaphoreHandleType;
+	auto func = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetDeviceProcAddr(
+		Graphics::GetVkDevice(), "vkGetSemaphoreWin32HandleKHR");
+	func(Graphics::GetVkDevice(), &vulkanSemaphoreGetWin32HandleInfoKHR,
+		&handle);
+
+	return handle;
+}
+#else
+int Semaphore::GetVkSemaphoreHandle(VkExternalSemaphoreHandleTypeFlagBitsKHR externalSemaphoreHandleType) const
+{
+	if (externalSemaphoreHandleType ==
+		VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT) {
+		int fd;
+
+		VkSemaphoreGetFdInfoKHR vulkanSemaphoreGetFdInfoKHR = {};
+		vulkanSemaphoreGetFdInfoKHR.sType =
+			VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR;
+		vulkanSemaphoreGetFdInfoKHR.pNext = NULL;
+		vulkanSemaphoreGetFdInfoKHR.semaphore = m_vkSemaphore;
+		vulkanSemaphoreGetFdInfoKHR.handleType =
+			VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+
+		vkGetSemaphoreFdKHR(Graphics::GetVkDevice(), &vulkanSemaphoreGetFdInfoKHR, &fd);
+
+		return fd;
+	}
+	return -1;
+}
+#endif
 Swapchain::Swapchain(const VkSwapchainCreateInfoKHR& swapChainCreateInfo)
 {
 	const auto& device = Graphics::GetVkDevice();
@@ -244,8 +284,22 @@ uint32_t Image::GetMipLevels() const
 	return m_mipLevels;
 }
 
-Image::Image(const VkImageCreateInfo& imageCreateInfo)
+Image::Image(VkImageCreateInfo imageCreateInfo)
 {
+	VkExternalMemoryImageCreateInfo vkExternalMemImageCreateInfo = {};
+	vkExternalMemImageCreateInfo.sType =
+		VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+	vkExternalMemImageCreateInfo.pNext = NULL;
+#ifdef _WIN64
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+
+	imageCreateInfo.pNext = &vkExternalMemImageCreateInfo;
+
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &allocInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo)) {
@@ -268,8 +322,22 @@ Image::Image(const VkImageCreateInfo& imageCreateInfo)
 
 
 
-Image::Image(const VkImageCreateInfo& imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
+Image::Image(VkImageCreateInfo imageCreateInfo, const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
+	VkExternalMemoryImageCreateInfo vkExternalMemImageCreateInfo = {};
+	vkExternalMemImageCreateInfo.sType =
+		VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+	vkExternalMemImageCreateInfo.pNext = NULL;
+#ifdef _WIN64
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+
+	imageCreateInfo.pNext = &vkExternalMemImageCreateInfo;
+
 	if (vmaCreateImage(Graphics::GetVmaAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_vkImage, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create image!");
 	}
@@ -434,6 +502,44 @@ const VmaAllocationInfo& Image::GetVmaAllocationInfo() const
 {
 	return m_vmaAllocationInfo;
 }
+#ifdef _WIN64
+void* Image::GetVkImageMemHandle(VkExternalMemoryHandleTypeFlagsKHR externalMemoryHandleType) const
+{
+	void* handle;
+
+	VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR = {};
+	vkMemoryGetWin32HandleInfoKHR.sType =
+		VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+	vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
+	vkMemoryGetWin32HandleInfoKHR.memory = m_vmaAllocationInfo.deviceMemory;
+	vkMemoryGetWin32HandleInfoKHR.handleType =
+		(VkExternalMemoryHandleTypeFlagBitsKHR)externalMemoryHandleType;
+	auto func = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(
+		Graphics::GetVkInstance(), "vkGetMemoryWin32HandleKHR");
+	vkGetMemoryWin32HandleKHR(Graphics::GetVkDevice(), &vkMemoryGetWin32HandleInfoKHR, &handle);
+	return handle;
+}
+#else
+int Image::GetVkImageMemHandle(VkExternalMemoryHandleTypeFlagsKHR externalMemoryHandleType) const
+{
+	if (externalMemoryHandleType ==
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR) {
+		int fd;
+
+		VkMemoryGetFdInfoKHR vkMemoryGetFdInfoKHR = {};
+		vkMemoryGetFdInfoKHR.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
+		vkMemoryGetFdInfoKHR.pNext = NULL;
+		vkMemoryGetFdInfoKHR.memory = m_vmaAllocationInfo.deviceMemory;
+		vkMemoryGetFdInfoKHR.handleType =
+			VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+
+		vkGetMemoryFdKHR(Graphics::GetVkDevice(), &vkMemoryGetFdInfoKHR, &fd);
+
+		return fd;
+	}
+	return -1;
+}
+#endif
 
 Sampler::Sampler(const VkSamplerCreateInfo& samplerCreateInfo)
 {
@@ -491,9 +597,23 @@ void Buffer::DownloadData(const size_t size, void* dst)
 	}
 }
 
-void Buffer::Allocate(const VkBufferCreateInfo& bufferCreateInfo,
+void Buffer::Allocate(VkBufferCreateInfo bufferCreateInfo,
                       const VmaAllocationCreateInfo& vmaAllocationCreateInfo)
 {
+	VkExternalMemoryBufferCreateInfo vkExternalMemBufferCreateInfo = {};
+	vkExternalMemBufferCreateInfo.sType =
+		VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+	vkExternalMemBufferCreateInfo.pNext = NULL;
+#ifdef _WIN64
+	vkExternalMemBufferCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+
+	bufferCreateInfo.pNext = &vkExternalMemBufferCreateInfo;
+
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
@@ -549,6 +669,20 @@ void Buffer::Resize(VkDeviceSize newSize)
 	bufferCreateInfo.sharingMode = m_sharingMode;
 	bufferCreateInfo.queueFamilyIndexCount = m_queueFamilyIndices.size();
 	bufferCreateInfo.pQueueFamilyIndices = m_queueFamilyIndices.data();
+
+	VkExternalMemoryBufferCreateInfo vkExternalMemBufferCreateInfo = {};
+	vkExternalMemBufferCreateInfo.sType =
+		VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+	vkExternalMemBufferCreateInfo.pNext = NULL;
+#ifdef _WIN64
+	vkExternalMemBufferCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vkExternalMemImageCreateInfo.handleTypes =
+		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+
+	bufferCreateInfo.pNext = &vkExternalMemBufferCreateInfo;
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &m_vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
