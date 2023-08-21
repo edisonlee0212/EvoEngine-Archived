@@ -28,7 +28,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	m_image = std::make_unique<Image>(imageInfo);
+	m_image = std::make_shared<Image>(imageInfo);
 	const auto imageSize = resolution.x * resolution.y * sizeof(glm::vec4);
 	VkBufferCreateInfo stagingBufferCreateInfo{};
 	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -63,7 +63,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	m_imageView = std::make_unique<ImageView>(viewInfo);
+	m_imageView = std::make_shared<ImageView>(viewInfo);
 
 
 	VkSamplerCreateInfo samplerInfo{};
@@ -84,7 +84,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	samplerInfo.maxLod = static_cast<float>(mipLevels);
 	samplerInfo.mipLodBias = 0.0f;
 
-	m_sampler = std::make_unique<Sampler>(samplerInfo);
+	m_sampler = std::make_shared<Sampler>(samplerInfo);
 	EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
 	TextureStorage::RegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
 }
@@ -325,6 +325,11 @@ VkSampler Texture2D::GetVkSampler() const
 		return m_sampler->GetVkSampler();
 	}
 	return VK_NULL_HANDLE;
+}
+
+std::shared_ptr<Image> Texture2D::GetImage() const
+{
+	return m_image;
 }
 
 void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX, int resizeY) const

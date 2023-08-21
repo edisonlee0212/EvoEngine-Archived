@@ -17,9 +17,9 @@ namespace EvoEngine
 		friend class Cubemap;
 		friend class TextureStorage;
 		friend class RenderLayer;
-		std::unique_ptr<Image> m_image = {};
-		std::unique_ptr<ImageView> m_imageView = {};
-		std::unique_ptr<Sampler> m_sampler = {};
+		std::shared_ptr<Image> m_image = {};
+		std::shared_ptr<ImageView> m_imageView = {};
+		std::shared_ptr<Sampler> m_sampler = {};
 		ImTextureID m_imTextureId = VK_NULL_HANDLE;
 
 		uint32_t m_textureStorageIndex = UINT32_MAX;
@@ -48,7 +48,7 @@ namespace EvoEngine
 		[[nodiscard]] VkImage GetVkImage() const;
 		[[nodiscard]] VkImageView GetVkImageView() const;
 		[[nodiscard]] VkSampler GetVkSampler() const;
-
+		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
 		void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;

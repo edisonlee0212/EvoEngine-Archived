@@ -514,8 +514,6 @@ void* Image::GetVkImageMemHandle(VkExternalMemoryHandleTypeFlagsKHR externalMemo
 	vkMemoryGetWin32HandleInfoKHR.memory = m_vmaAllocationInfo.deviceMemory;
 	vkMemoryGetWin32HandleInfoKHR.handleType =
 		(VkExternalMemoryHandleTypeFlagBitsKHR)externalMemoryHandleType;
-	auto func = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(
-		Graphics::GetVkInstance(), "vkGetMemoryWin32HandleKHR");
 	vkGetMemoryWin32HandleKHR(Graphics::GetVkDevice(), &vkMemoryGetWin32HandleInfoKHR, &handle);
 	return handle;
 }
