@@ -28,6 +28,7 @@
 #include "PhysicsLayer.hpp"
 #include "Joint.hpp"
 #include "Particles.hpp"
+#include "PointCloud.hpp"
 #include "PostProcessingStack.hpp"
 #include "StrandsRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
@@ -428,6 +429,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
 	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".eveskinnedmesh" });
 	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysicsmaterial" });
+	ClassRegistry::RegisterAsset<PointCloud>("PointCloud", { ".evepointcloud" });
 }
 
 ApplicationExecutionStatus Application::GetApplicationExecutionStatus()
