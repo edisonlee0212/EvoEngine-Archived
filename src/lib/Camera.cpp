@@ -591,7 +591,14 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	}
 
 	editorLayer->DragAndDropButton<PostProcessingStack>(m_postProcessingStack, "PostProcessingStack");
-
+	if(const auto pps = m_postProcessingStack.Get<PostProcessingStack>(); ImGui::TreeNode("Post Processing"))
+	{
+		ImGui::Checkbox("SSAO", &pps->m_SSAO);
+		ImGui::Checkbox("SSR", &pps->m_SSR);
+		
+		ImGui::Checkbox("Bloom", &pps->m_bloom);
+		ImGui::TreePop();
+	}
 	if (ImGui::TreeNode("Intrinsic Settings")) {
 		ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);
 		ImGui::DragFloat("Far", &m_farDistance, m_farDistance / 10.0f, m_nearDistance);

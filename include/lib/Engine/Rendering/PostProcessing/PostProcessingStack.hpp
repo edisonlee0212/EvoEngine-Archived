@@ -47,6 +47,7 @@ namespace EvoEngine
 
 	class PostProcessingStack : public IAsset
 	{
+		friend class Camera;
 		std::shared_ptr<RenderTexture> m_renderTexture0;
 		std::shared_ptr<RenderTexture> m_renderTexture1;
 		std::shared_ptr<RenderTexture> m_renderTexture2;
@@ -66,7 +67,7 @@ namespace EvoEngine
 		SSRSettings m_SSRSettings{};
 
 		bool m_SSAO = false;
-		bool m_bloom = true;
-		bool m_SSR = true;
+		bool m_bloom = false;
+		bool m_SSR = false;
 	};
 }

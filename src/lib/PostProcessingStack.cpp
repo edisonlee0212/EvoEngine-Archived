@@ -34,7 +34,7 @@ void PostProcessingStack::OnCreate()
 
 void PostProcessingStack::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	if(ImGui::TreeNode("SSR Settings"))
+	if(m_SSR && ImGui::TreeNode("SSR Settings"))
 	{
 		ImGui::DragFloat("Step size", &m_SSRSettings.m_step, 0.1, 0.1, 10.0f);
 		ImGui::DragInt("Max steps", &m_SSRSettings.m_maxSteps, 1, 1, 32);
