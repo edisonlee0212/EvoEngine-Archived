@@ -195,7 +195,6 @@ int main() {
 		applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Planet/Planet.eveproj";
 		ProjectManager::SetScenePostLoadActions([&](const std::shared_ptr<Scene>& scene)
 			{
-				return;
 #pragma region Preparations
 				const auto mainCamera = scene->m_mainCamera.Get<Camera>();
 				auto mainCameraEntity = mainCamera->GetOwner();
@@ -292,7 +291,7 @@ int main() {
 				plmmc2->m_material.Set<Material>(sharedMat);
 
 #pragma endregion
-			Application::RegisterLateUpdateFunction([=]() {
+				Application::RegisterLateUpdateFunction([=]() {
 					auto scene = Application::GetActiveScene();
 					Transform ltw;
 					ltw.SetScale(glm::vec3(0.5f));
