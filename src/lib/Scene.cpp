@@ -1265,39 +1265,55 @@ void Scene::SetEntityStatic(const Entity& entity, bool value)
     entityInfo.m_static = value;
     m_saved = false;
 }
-void Scene::SetParent(const Entity& entity, const Entity& parent, const bool& recalculateTransform)
+void Scene::SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform)
 {
-    assert(IsEntityValid(entity) && IsEntityValid(parent));
-    const size_t childIndex = entity.m_index;
+    assert(IsEntityValid(child) && IsEntityValid(parent));
+    const size_t childIndex = child.m_index;
     const size_t parentIndex = parent.m_index;
     auto& parentEntityInfo = m_sceneDataStorage.m_entityMetadataList.at(parentIndex);
     for (const auto& i : parentEntityInfo.m_children)
     {
-        if (i == entity)
+        if (i == child)
             return;
     }
     m_saved = false;
     auto& childEntityInfo = m_sceneDataStorage.m_entityMetadataList.at(childIndex);
     if (childEntityInfo.m_parent.GetIndex() != 0)
     {
-        RemoveChild(entity, childEntityInfo.m_parent);
+        RemoveChild(child, childEntityInfo.m_parent);
     }
 
     if (recalculateTransform)
     {
-        const auto childGlobalTransform = GetDataComponent<GlobalTransform>(entity);
+        const auto childGlobalTransform = GetDataComponent<GlobalTransform>(child);
         const auto parentGlobalTransform = GetDataComponent<GlobalTransform>(parent);
         Transform childTransform;
         childTransform.m_value = glm::inverse(parentGlobalTransform.m_value) * childGlobalTransform.m_value;
-        SetDataComponent(entity, childTransform);
+        SetDataComponent(child, childTransform);
     }
     childEntityInfo.m_parent = parent;
-    childEntityInfo.m_root = parentEntityInfo.m_root;
+    if(parentEntityInfo.m_parent.GetIndex() == childIndex)
+    {
+        parentEntityInfo.m_parent = Entity();
+        parentEntityInfo.m_root = parent;
+        const size_t childrenCount = childEntityInfo.m_children.size();
+
+        for (size_t i = 0; i < childrenCount; i++)
+        {
+            if (childEntityInfo.m_children[i].m_index == parent.GetIndex())
+            {
+                childEntityInfo.m_children[i] = childEntityInfo.m_children.back();
+                childEntityInfo.m_children.pop_back();
+                break;
+            }
+        }
+    }
+	childEntityInfo.m_root = parentEntityInfo.m_root;
     childEntityInfo.m_static = false;
-    parentEntityInfo.m_children.push_back(entity);
+    parentEntityInfo.m_children.push_back(child);
     if (parentEntityInfo.m_ancestorSelected)
     {
-        const auto descendents = GetDescendants(entity);
+        const auto descendents = GetDescendants(child);
         for (const auto& i : descendents)
         {
             GetEntityMetadata(i).m_ancestorSelected = true;
@@ -1348,10 +1364,10 @@ inline void Scene::ForEachChild(const Entity& entity, const std::function<void(E
     }
 }
 
-void Scene::RemoveChild(const Entity& entity, const Entity& parent)
+void Scene::RemoveChild(const Entity& child, const Entity& parent)
 {
-    assert(IsEntityValid(entity) && IsEntityValid(parent));
-    const size_t childIndex = entity.m_index;
+    assert(IsEntityValid(child) && IsEntityValid(parent));
+    const size_t childIndex = child.m_index;
     const size_t parentIndex = parent.m_index;
     auto& childEntityMetadata = m_sceneDataStorage.m_entityMetadataList.at(childIndex);
     auto& parentEntityMetadata = m_sceneDataStorage.m_entityMetadataList.at(parentIndex);
@@ -1361,10 +1377,10 @@ void Scene::RemoveChild(const Entity& entity, const Entity& parent)
     }
     m_saved = false;
     childEntityMetadata.m_parent = Entity();
-    childEntityMetadata.m_root = entity;
+    childEntityMetadata.m_root = child;
     if(parentEntityMetadata.m_ancestorSelected)
     {
-        const auto descendents = GetDescendants(entity);
+        const auto descendents = GetDescendants(child);
         for (const auto& i : descendents)
         {
             GetEntityMetadata(i).m_ancestorSelected = false;
@@ -1373,7 +1389,7 @@ void Scene::RemoveChild(const Entity& entity, const Entity& parent)
     }
     const size_t childrenCount = parentEntityMetadata.m_children.size();
 
-    for (int i = 0; i < childrenCount; i++)
+    for (size_t i = 0; i < childrenCount; i++)
     {
         if (parentEntityMetadata.m_children[i].m_index == childIndex)
         {
@@ -1382,10 +1398,10 @@ void Scene::RemoveChild(const Entity& entity, const Entity& parent)
             break;
         }
     }
-    const auto childGlobalTransform = GetDataComponent<GlobalTransform>(entity);
+    const auto childGlobalTransform = GetDataComponent<GlobalTransform>(child);
     Transform childTransform;
     childTransform.m_value = childGlobalTransform.m_value;
-    SetDataComponent(entity, childTransform);
+    SetDataComponent(child, childTransform);
 }
 
 void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)

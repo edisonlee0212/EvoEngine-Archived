@@ -273,13 +273,13 @@ namespace EvoEngine
         void SetEntityName(const Entity& entity, const std::string& name);
         void SetEntityStatic(const Entity& entity, bool value);
 
-        void SetParent(const Entity& entity, const Entity& parent, const bool& recalculateTransform = false);
+        void SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform = false);
         Entity GetParent(const Entity& entity);
         std::vector<Entity> GetChildren(const Entity& entity);
         Entity GetChild(const Entity& entity, int index);
         size_t GetChildrenAmount(const Entity& entity);
         void ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func);
-        void RemoveChild(const Entity& entity, const Entity& parent);
+        void RemoveChild(const Entity& child, const Entity& parent);
         std::vector<Entity> GetDescendants(const Entity& entity);
         void ForEachDescendant(
             const Entity& target, const std::function<void(const Entity& entity)>& func, const bool& fromRoot = true);
