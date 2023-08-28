@@ -74,14 +74,15 @@ enum class DemoSetup
 };
 int main() {
 	DemoSetup demoSetup = DemoSetup::Rendering;
-	//Application::PushLayer<WindowLayer>();
+	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
-	//Application::PushLayer<EditorLayer>();
+	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
 
 #pragma region Demo scene setup
 	const std::filesystem::path resourceFolderPath("../../../Resources");
+	
 	for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
 	{
 		if (i.is_directory()) continue;
@@ -98,6 +99,7 @@ int main() {
 			std::filesystem::remove(i.path());
 		}
 	}
+	
 	switch (demoSetup)
 	{
 	case DemoSetup::Rendering:
@@ -332,12 +334,7 @@ int main() {
 #pragma endregion
 
 	Application::Initialize(applicationInfo);
-	Application::Start(false);
-	Application::Loop();
-	Graphics::WaitForDeviceIdle();
-	auto scene = Application::GetActiveScene();
-	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
-	mainCamera->GetRenderTexture()->StoreToPng((resourceFolderPath / "out.png").string());
+	Application::Start();
 	Application::Terminate();
 	return 0;
 }

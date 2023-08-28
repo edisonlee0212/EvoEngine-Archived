@@ -44,7 +44,7 @@ bool Serialization::RegisterSerializableType(
     auto& serializationManger = GetInstance();
     if (serializationManger.m_serializableNames.find(typeId) != serializationManger.m_serializableNames.end())
     {
-        EVOENGINE_ERROR("Serializable already registered!");
+        EVOENGINE_ERROR(typeName + " already registered!");
         return false;
     }
     serializationManger.m_serializableNames[typeId] = typeName;

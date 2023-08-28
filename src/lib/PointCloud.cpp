@@ -14,8 +14,6 @@
 using namespace EvoEngine;
 using namespace tinyply;
 
-AssetRegistration<PointCloud> PointCloudRegistry("PointCloud", {".uepc"});
-
 void PointCloud::Load(const std::filesystem::path &path)
 {
     std::unique_ptr<std::istream> file_stream;
