@@ -16,7 +16,8 @@ struct EquirectangularToCubemapConstant
 
 Cubemap::~Cubemap()
 {
-	TextureStorage::UnRegisterCubemap(std::dynamic_pointer_cast<Cubemap>(GetSelf()));
+	const auto self = GetSelf();
+	if(self) TextureStorage::UnRegisterCubemap(std::dynamic_pointer_cast<Cubemap>(self));
 }
 
 void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)

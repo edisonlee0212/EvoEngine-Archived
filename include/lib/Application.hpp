@@ -75,7 +75,8 @@ namespace EvoEngine {
 		static void PopLayer();
 		static void Reset();
 		static void Initialize(const ApplicationInfo& applicationCreateInfo);
-		static void Start();
+		static void Start(bool autoLoop = true);
+		[[maybe_unused]] static bool Loop();
 		static void End();
 		static void Terminate();
 		static const std::vector<std::shared_ptr<ILayer>>& GetLayers();

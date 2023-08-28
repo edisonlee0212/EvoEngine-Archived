@@ -129,6 +129,12 @@ void SelectStageFlagsAccessMask(const VkImageLayout imageLayout, VkAccessFlags& 
 }
 
 
+void Graphics::WaitForDeviceIdle()
+{
+	const auto& graphics = GetInstance();
+	vkDeviceWaitIdle(graphics.m_vkDevice);
+}
+
 uint32_t Graphics::GetMaxWorkGroupInvocations()
 {
 	const auto& graphics = GetInstance();
@@ -1087,11 +1093,7 @@ void Graphics::OnDestroy()
 void Graphics::SwapChainSwapImage()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0))
-	{
-		ResetCommandBuffers();
-		return;
-	}
+	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
 	vkDeviceWaitIdle(m_vkDevice);
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
@@ -1118,10 +1120,7 @@ void Graphics::SwapChainSwapImage()
 void Graphics::SubmitPresent()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer && (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0)) {
-		ResetCommandBuffers();
-		return;
-	}
+	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1169,6 +1168,38 @@ void Graphics::SubmitPresent()
 
 void Graphics::WaitForCommandsComplete()
 {
+	vkDeviceWaitIdle(m_vkDevice);
+	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
+	vkWaitForFences(m_vkDevice, 1, inFlightFences,
+		VK_TRUE, UINT64_MAX);
+	vkResetFences(m_vkDevice, 1, inFlightFences);
+}
+
+void Graphics::Submit()
+{
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 0;
+	submitInfo.pWaitSemaphores = nullptr;
+	submitInfo.pWaitDstStageMask = nullptr;
+
+	std::vector<VkCommandBuffer> commandBuffers;
+
+	commandBuffers.reserve(m_usedCommandBufferSize);
+	for (int i = 0; i < m_usedCommandBufferSize; i++)
+	{
+		commandBuffers.emplace_back(m_commandBufferPool[m_currentFrameIndex][i].GetVkCommandBuffer());
+	}
+
+	submitInfo.commandBufferCount = commandBuffers.size();
+	submitInfo.pCommandBuffers = commandBuffers.data();
+
+	submitInfo.signalSemaphoreCount = 0;
+	submitInfo.pSignalSemaphores = nullptr;
+	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+	m_currentFrameIndex = (m_currentFrameIndex + 1) % m_maxFrameInFlight;
 }
 
 void Graphics::ResetCommandBuffers()
@@ -1315,20 +1346,21 @@ void Graphics::PreUpdate()
 {
 	auto& graphics = GetInstance();
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
+	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (windowLayer)
 	{
 		if (glfwWindowShouldClose(windowLayer->m_window))
 		{
 			Application::End();
 		}
-		if (Application::GetLayer<RenderLayer>() || Application::GetLayer<EditorLayer>())
+		if (renderLayer || Application::GetLayer<EditorLayer>())
 		{
 			graphics.SwapChainSwapImage();
 		}
 	}
 	else
 	{
-		if (Application::GetLayer<RenderLayer>())
+		if (renderLayer)
 		{
 			graphics.WaitForCommandsComplete();
 		}
@@ -1336,8 +1368,8 @@ void Graphics::PreUpdate()
 
 	graphics.ResetCommandBuffers();
 
-
-	if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
+	if(renderLayer && !Application::GetLayer<EditorLayer>())
+	{
 		if (const auto scene = Application::GetActiveScene()) {
 			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
 			{
@@ -1427,6 +1459,9 @@ void Graphics::LateUpdate()
 			}
 		}
 		graphics.SubmitPresent();
+	}else
+	{
+		graphics.Submit();
 	}
 }
 

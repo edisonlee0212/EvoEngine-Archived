@@ -148,7 +148,7 @@ uint32_t Texture2D::GetTextureStorageIndex() const
 
 Texture2D::~Texture2D()
 {
-	TextureStorage::UnRegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
+	if(const auto self = GetSelf()) TextureStorage::UnRegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(self));
 }
 
 void Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)

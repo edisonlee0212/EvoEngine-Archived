@@ -290,20 +290,26 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 }
 
-void Application::Start()
+void Application::Start(bool autoLoop)
 {
-	const auto& application = GetInstance();
-
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
-	const auto editorLayer = GetLayer<EditorLayer>();
-	if(!editorLayer) Play();
-	while (application.m_applicationStatus != ApplicationStatus::OnDestroy)
-	{
+	if(const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
+	if (autoLoop) {
+		while (Loop());
+	}
+}
+
+bool Application::Loop()
+{
+	const auto& application = GetInstance();
+	if (application.m_applicationStatus != ApplicationStatus::OnDestroy) {
 		PreUpdateInternal();
 		UpdateInternal();
 		LateUpdateInternal();
+		return true;
 	}
+	return false;
 }
 
 void Application::End()

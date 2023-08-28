@@ -106,7 +106,7 @@ namespace EvoEngine
 		void SwapChainSwapImage();
 		void SubmitPresent();
 		void WaitForCommandsComplete();
-		//void Submit();
+		void Submit();
 
 		void ResetCommandBuffers();
 		static void Initialize();
@@ -128,6 +128,8 @@ namespace EvoEngine
 		uint32_t m_maxWorkGroupInvocations = 128;
 
 	public:
+		static void WaitForDeviceIdle();
+
 		[[nodiscard]] static uint32_t GetMaxWorkGroupInvocations();
 
 		static void RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline);

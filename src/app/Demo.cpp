@@ -73,10 +73,10 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Planets;
-	Application::PushLayer<WindowLayer>();
+	DemoSetup demoSetup = DemoSetup::Rendering;
+	//Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
-	Application::PushLayer<EditorLayer>();
+	//Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
 
@@ -109,6 +109,7 @@ int main() {
 				scene->m_environment.m_ambientLightIntensity = 0.1f;
 #pragma region Set main camera to correct position and rotation
 				const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+				mainCamera->Resize({ 640, 480 });
 				mainCamera->m_postProcessingStack = ProjectManager::CreateTemporaryAsset<PostProcessingStack>();
 				const auto mainCameraEntity = mainCamera->GetOwner();
 				auto mainCameraTransform = scene->GetDataComponent<Transform>(mainCameraEntity);
@@ -177,6 +178,7 @@ int main() {
 		ProjectManager::SetScenePostLoadActions([&](const std::shared_ptr<Scene>& scene)
 			{
 				const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+				mainCamera->Resize({ 640, 480 });
 				auto mainCameraEntity = mainCamera->GetOwner();
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma region Star System
@@ -197,6 +199,7 @@ int main() {
 			{
 #pragma region Preparations
 				const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+				mainCamera->Resize({ 640, 480 });
 				auto mainCameraEntity = mainCamera->GetOwner();
 				auto mainCameraTransform = scene->GetDataComponent<Transform>(mainCameraEntity);
 				mainCameraTransform.SetPosition(glm::vec3(0, -4, 25));
@@ -329,8 +332,12 @@ int main() {
 #pragma endregion
 
 	Application::Initialize(applicationInfo);
-	Application::Start();
-
+	Application::Start(false);
+	Application::Loop();
+	Graphics::WaitForDeviceIdle();
+	auto scene = Application::GetActiveScene();
+	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	mainCamera->GetRenderTexture()->StoreToPng((resourceFolderPath / "out.png").string());
 	Application::Terminate();
 	return 0;
 }
