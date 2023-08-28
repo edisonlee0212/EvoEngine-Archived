@@ -184,16 +184,16 @@ endif ()
 # ------------------------------------------------------------------
 # EvoEngine - python binding
 # ------------------------------------------------------------------
-pybind11_add_module(PyEvoEngine src/app/PythonBinding.cpp)
-target_include_directories(PyEvoEngine
+pybind11_add_module(pyevoengine src/app/PythonBinding.cpp)
+target_include_directories(pyevoengine
             PRIVATE
             ${LOCAL_EVOENGINE_INCLUDES}
             )
-target_precompile_headers(PyEvoEngine
+target_precompile_headers(pyevoengine
             PRIVATE
             ${LOCAL_EVOENGINE_PCH}
             )
-target_link_libraries(PyEvoEngine
+target_link_libraries(pyevoengine
             PRIVATE
             evoengine
             )
