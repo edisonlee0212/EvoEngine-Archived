@@ -14,9 +14,23 @@
 using namespace EvoEngine;
 namespace py = pybind11;
 
-void StartEngine() {
+void StartEditor(const std::string& projectPath) {
     Application::PushLayer<WindowLayer>();
 	Application::PushLayer<PhysicsLayer>();
+    Application::PushLayer<EditorLayer>();
+    Application::PushLayer<RenderLayer>();
+
+    ApplicationInfo applicationInfo;
+    applicationInfo.m_projectPath = projectPath;
+    Application::Initialize(applicationInfo);
+    Application::Start();
+
+    Application::Terminate();
+}
+
+void StartEmptyEditor() {
+    Application::PushLayer<WindowLayer>();
+    Application::PushLayer<PhysicsLayer>();
     Application::PushLayer<EditorLayer>();
     Application::PushLayer<RenderLayer>();
 
@@ -27,7 +41,7 @@ void StartEngine() {
     Application::Terminate();
 }
 
-void RenderDefaultScene(const std::string &projectPath, const int resolutionX, const int resolutionY, const std::string& outputPath)
+void RenderScene(const std::string &projectPath, const int resolutionX, const int resolutionY, const std::string& outputPath)
 {
     if (!std::filesystem::is_regular_file(projectPath))
     {
@@ -61,9 +75,24 @@ void RenderDefaultScene(const std::string &projectPath, const int resolutionX, c
 	Application::Terminate();
 }
 
-PYBIND11_MODULE(PyEvoEngine, m) {
-    m.doc() = "EvoEngine"; // optional module docstring
-    m.def("Start", &StartEngine, "Start EvoEngine");
+void RenderMesh(const std::string& meshPath, const int resolutionX, const int resolutionY, const std::string& outputPath)
+{
+    if (!std::filesystem::is_regular_file(meshPath))
+    {
+        EVOENGINE_ERROR("Project doesn't exist!");
+        return;
+    }
+    if (resolutionX <= 0 || resolutionY <= 0)
+    {
+        EVOENGINE_ERROR("Resolution error!");
+        return;
+    }
 
-	m.def("Render", &RenderDefaultScene, "Render Target Project Default Scene");
+}
+
+PYBIND11_MODULE(pyevoengine, m) {
+    m.doc() = "EvoEngine"; // optional module docstring
+    m.def("start_editor", &StartEditor, "Start editor with target project");
+    m.def("start_empty_editor", &StartEmptyEditor, "Start editor without project");
+	m.def("render_scene", &RenderScene, "Render the default scene for given project");
 }
