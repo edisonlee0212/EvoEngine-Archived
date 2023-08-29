@@ -6,7 +6,6 @@ project(
 	DESCRIPTION "An interactive application framework"
 )
 
-include(GenerateExportHeader)
 set(CMAKE_CXX_STANDARD 17)
 
 # ------------------------------------------------------------------
@@ -184,10 +183,12 @@ endif ()
 # ------------------------------------------------------------------
 # EvoEngine - python binding
 # ------------------------------------------------------------------
-pybind11_add_module(pyevoengine src/app/PythonBinding.cpp)
+file(GLOB LOCAL_PYEVOENGINE_SOURCES "src/python/*.cpp")
+pybind11_add_module(pyevoengine ${LOCAL_PYEVOENGINE_SOURCES})
 target_include_directories(pyevoengine
             PRIVATE
             ${LOCAL_EVOENGINE_INCLUDES}
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/python
             )
 target_precompile_headers(pyevoengine
             PRIVATE
