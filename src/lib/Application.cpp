@@ -253,14 +253,16 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 			return;
 	}
 	application.m_applicationInfo = applicationCreateInfo;
+	
 	InitializeRegistry();
 	Jobs::Initialize();
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();
 	Resources::Initialize();
-	Graphics::PostResourceLoadingInitialization();
+	Graphics::PostResourceLoadingInitialization(); 
 	Resources::InitializeEnvironmentalMap();
+
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
@@ -399,8 +401,6 @@ void Application::InitializeRegistry()
 {
 	ClassRegistry::RegisterDataComponent<Ray>("Ray");
 
-	ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
-	ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
 	ClassRegistry::RegisterPrivateComponent<Camera>("Camera");
 	ClassRegistry::RegisterPrivateComponent<AnimationPlayer>("AnimationPlayer");
 	ClassRegistry::RegisterPrivateComponent<PlayerController>("PlayerController");
@@ -414,12 +414,10 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
 	ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
-	ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
-
 	ClassRegistry::RegisterAsset<PostProcessingStack>("PostProcessingStack", { ".evepostprocessingstack" });
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
-	ClassRegistry::RegisterAsset<Collider>("Collider", { ".uecollider" });
+	
 	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".evecubemap" });
 	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".evelightprobe" });
 	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".evereflectionprobe" });
@@ -433,7 +431,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<ParticleInfoList>("ParticleInfoList", { ".eveparticleinfolist" });
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
 	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".eveskinnedmesh" });
-	ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysicsmaterial" });
+	
 	ClassRegistry::RegisterAsset<PointCloud>("PointCloud", { ".evepointcloud" });
 }
 

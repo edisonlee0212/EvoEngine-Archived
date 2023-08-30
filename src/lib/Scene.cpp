@@ -484,21 +484,23 @@ void Scene::Deserialize(const YAML::Node& in)
 #pragma endregion
     m_mainCamera.Load("m_mainCamera", in, self);
 #pragma region Assets
-    std::vector<std::shared_ptr<IAsset>> localAssets;
+    std::vector<std::pair<int, std::shared_ptr<IAsset>>> localAssets;
     auto inLocalAssets = in["LocalAssets"];
     if (inLocalAssets)
     {
+        int index = 0;
         for (const auto& i : inLocalAssets)
         {
             // First, find the asset in assetregistry
             auto asset =
                 ProjectManager::CreateTemporaryAsset(i["m_typeName"].as<std::string>(), i["m_handle"].as<uint64_t>());
-            localAssets.push_back(asset);
+            if(asset) localAssets.emplace_back(index, asset);
+            index++;
         }
-        int index = 0;
-        for (const auto& i : inLocalAssets)
+        
+        for (const auto& i : localAssets)
         {
-            localAssets[index++]->Deserialize(i);
+           i.second->Deserialize(inLocalAssets[i.first]);
         }
     }
 
@@ -543,51 +545,53 @@ void Scene::Deserialize(const YAML::Node& in)
 
 #pragma region Systems
     auto inSystems = in["m_systems"];
-    std::vector<std::shared_ptr<ISystem>> systems;
-
-    for (const auto& inSystem : inSystems)
-    {
-        auto name = inSystem["m_typeName"].as<std::string>();
-        size_t hashCode;
-        auto ptr = std::static_pointer_cast<ISystem>(Serialization::ProduceSerializable(name, hashCode));
-        ptr->m_handle = Handle(inSystem["m_handle"].as<uint64_t>());
-        ptr->m_enabled = inSystem["m_enabled"].as<bool>();
-        ptr->m_rank = inSystem["m_rank"].as<float>();
-        ptr->m_started = false;
-        m_systems.insert({ ptr->m_rank, ptr });
-        m_indexedSystems.insert({ hashCode, ptr });
-        m_mappedSystems[ptr->m_handle] = ptr;
-        systems.push_back(ptr);
-        ptr->m_scene = self;
-        ptr->OnCreate();
-    }
+    std::vector<std::pair<int, std::shared_ptr<ISystem>>> systems;
+    if (inSystems) {
+        int index = 0;
+        for (const auto& inSystem : inSystems)
+        {
+            auto name = inSystem["m_typeName"].as<std::string>();
+            size_t hashCode;
+            auto ptr = std::static_pointer_cast<ISystem>(Serialization::ProduceSerializable(name, hashCode));
+            if (ptr) {
+                ptr->m_handle = Handle(inSystem["m_handle"].as<uint64_t>());
+                ptr->m_enabled = inSystem["m_enabled"].as<bool>();
+                ptr->m_rank = inSystem["m_rank"].as<float>();
+                ptr->m_started = false;
+                m_systems.insert({ ptr->m_rank, ptr });
+                m_indexedSystems.insert({ hashCode, ptr });
+                m_mappedSystems[ptr->m_handle] = ptr;
+                systems.emplace_back(index, ptr);
+                ptr->m_scene = self;
+                ptr->OnCreate();
+            }
+            index++;
+        }
 #pragma endregion
 
-    entityIndex = 1;
-    for (const auto& inEntityInfo : inEntityMetadataList)
-    {
-        auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(entityIndex);
-        auto inPrivateComponents = inEntityInfo["m_privateComponentElements"];
-        int componentIndex = 0;
-        if (inPrivateComponents)
+        entityIndex = 1;
+        for (const auto& inEntityInfo : inEntityMetadataList)
         {
-            for (const auto& inPrivateComponent : inPrivateComponents)
+            auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(entityIndex);
+            auto inPrivateComponents = inEntityInfo["m_privateComponentElements"];
+            int componentIndex = 0;
+            if (inPrivateComponents)
             {
-                auto name = inPrivateComponent["m_typeName"].as<std::string>();
-                auto ptr = entityInfo.m_privateComponentElements[componentIndex].m_privateComponentData;
-                ptr->Deserialize(inPrivateComponent);
-                componentIndex++;
+                for (const auto& inPrivateComponent : inPrivateComponents)
+                {
+                    auto name = inPrivateComponent["m_typeName"].as<std::string>();
+                    auto ptr = entityInfo.m_privateComponentElements[componentIndex].m_privateComponentData;
+                    ptr->Deserialize(inPrivateComponent);
+                    componentIndex++;
+                }
             }
+            entityIndex++;
         }
-        entityIndex++;
-    }
 
-    int systemIndex = 0;
-    for (const auto& inSystem : inSystems)
-    {
-        auto name = inSystem["m_typeName"].as<std::string>();
-        systems[systemIndex]->Deserialize(inSystem);
-        systemIndex++;
+        for (const auto& i : systems)
+        {
+            i.second->Deserialize(inSystems[i.first]);
+        }
     }
 }
 void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out)

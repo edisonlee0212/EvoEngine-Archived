@@ -109,13 +109,13 @@ YAML::Emitter &operator<<(YAML::Emitter &out, const PxMat44 &v);
 class PhysicsScene;
 class PhysicsLayer : public ILayer
 {
-    PxPvdTransport *m_pvdTransport;
+    PxPvdTransport *m_pvdTransport = nullptr;
     PxDefaultAllocator m_allocator;
     PxDefaultErrorCallback m_errorCallback;
-    PxFoundation *m_physicsFoundation;
-    PxPhysics *m_physics;
-    PxDefaultCpuDispatcher *m_dispatcher;
-    PxPvd *m_physVisDebugger;
+    PxFoundation *m_physicsFoundation = nullptr;
+    PxPhysics *m_physics = nullptr;
+    PxDefaultCpuDispatcher *m_dispatcher = nullptr;
+    PxPvd *m_physVisDebugger = nullptr;
     friend class RigidBody;
     friend class Joint;
     friend class Articulation;

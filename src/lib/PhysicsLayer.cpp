@@ -7,7 +7,7 @@
 #include "RigidBody.hpp"
 #include "Time.hpp"
 #include "TransformGraph.hpp"
-
+#include "ClassRegistry.hpp"
 using namespace EvoEngine;
 
 YAML::Emitter &EvoEngine::operator<<(YAML::Emitter &out, const PxVec2 &v)
@@ -66,9 +66,21 @@ void PhysicsLayer::PreUpdate()
 }
 void PhysicsLayer::OnCreate()
 {
+    ClassRegistry::RegisterPrivateComponent<Joint>("Joint");
+    ClassRegistry::RegisterPrivateComponent<RigidBody>("RigidBody");
+    ClassRegistry::RegisterAsset<Collider>("Collider", { ".uecollider" });
+    ClassRegistry::RegisterAsset<PhysicsMaterial>("PhysicsMaterial", { ".evephysicsmaterial" });
+    ClassRegistry::RegisterSystem<PhysicsSystem>("PhysicsSystem");
     m_physicsFoundation =
         PxCreateFoundation(PX_PHYSICS_VERSION, m_allocator, m_errorCallback);
-
+    if (!m_physicsFoundation)
+        EVOENGINE_ERROR("PxCreateFoundation failed!");
+#ifdef NDEBUG
+    m_physics = PxCreatePhysics(
+        PX_PHYSICS_VERSION,
+        *m_physicsFoundation,
+        PxTolerancesScale());
+#else
     m_pvdTransport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
     if (m_pvdTransport != NULL)
     {
@@ -79,9 +91,9 @@ void PhysicsLayer::OnCreate()
         PX_PHYSICS_VERSION,
         *m_physicsFoundation,
         PxTolerancesScale(),
-        true,
-        m_physVisDebugger);
+        true, m_physVisDebugger);
     PxInitExtensions(*m_physics, m_physVisDebugger);
+#endif // NDEBUG
     m_dispatcher = PxDefaultCpuDispatcherCreate(Jobs::Workers().Size());
 
     #pragma region Physics

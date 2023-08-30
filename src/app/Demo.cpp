@@ -73,33 +73,35 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Rendering;
+	bool enablePhysics = false;
+	DemoSetup demoSetup = DemoSetup::Empty;
 	Application::PushLayer<WindowLayer>();
-	Application::PushLayer<PhysicsLayer>();
+	if(enablePhysics) Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
-
-#pragma region Demo scene setup
 	const std::filesystem::path resourceFolderPath("../../../Resources");
-	
-	for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
-	{
-		if (i.is_directory()) continue;
-		if (i.path().extension().string() == ".evescene" || i.path().extension().string() == ".evefilemeta" || i.path().extension().string() == ".eveproj" || i.path().extension().string() == ".evefoldermeta")
+#pragma region Demo scene setup
+	if (demoSetup != DemoSetup::Empty) {
+		
+
+		for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
 		{
-			std::filesystem::remove(i.path());
+			if (i.is_directory()) continue;
+			if (i.path().extension().string() == ".evescene" || i.path().extension().string() == ".evefilemeta" || i.path().extension().string() == ".eveproj" || i.path().extension().string() == ".evefoldermeta")
+			{
+				std::filesystem::remove(i.path());
+			}
+		}
+		for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
+		{
+			if (i.is_directory()) continue;
+			if (i.path().extension().string() == ".uescene" || i.path().extension().string() == ".umeta" || i.path().extension().string() == ".ueproj" || i.path().extension().string() == ".ufmeta")
+			{
+				std::filesystem::remove(i.path());
+			}
 		}
 	}
-	for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
-	{
-		if (i.is_directory()) continue;
-		if (i.path().extension().string() == ".uescene" || i.path().extension().string() == ".umeta" || i.path().extension().string() == ".ueproj" || i.path().extension().string() == ".ufmeta")
-		{
-			std::filesystem::remove(i.path());
-		}
-	}
-	
 	switch (demoSetup)
 	{
 	case DemoSetup::Rendering:
@@ -121,10 +123,12 @@ int main() {
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 				LoadScene(scene, "Rendering Demo");
-				const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
-				Transform physicsDemoTransform;
-				physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-				scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+				if (enablePhysics){
+					const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+					Transform physicsDemoTransform;
+					physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
+					scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+				}
 #pragma region Dynamic Lighting
 				const auto dirLightEntity = scene->CreateEntity("Directional Light");
 				const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
