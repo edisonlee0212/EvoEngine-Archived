@@ -146,7 +146,7 @@ void Application::LateUpdateInternal()
 				"Project",
 				{ ".eveproj" },
 				[&](const std::filesystem::path& path) {
-					ProjectManager::GetOrCreateProject(path);
+					ProjectManager::GetOrCreateProject(path.string());
 					if (ProjectManager::GetInstance().m_projectFolder)
 					{
 						windowLayer->ResizeWindow(
@@ -271,7 +271,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	const auto editorLayer = GetLayer<EditorLayer>();
 	if (!application.m_applicationInfo.m_projectPath.empty())
 	{
-		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath);
+		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath.string());
 		if (ProjectManager::GetInstance().m_projectFolder)
 		{
 			if (windowLayer) {
@@ -291,14 +291,17 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 }
 
-void Application::Start(bool autoLoop)
+void Application::Start()
 {
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
 	if(const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
-	if (autoLoop) {
-		while (Loop());
-	}
+	
+}
+
+void Application::Run()
+{
+	while (Loop());
 }
 
 bool Application::Loop()

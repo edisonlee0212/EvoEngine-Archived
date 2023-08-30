@@ -339,6 +339,7 @@ int main() {
 
 	Application::Initialize(applicationInfo);
 	Application::Start();
+	Application::Run();
 	Application::Terminate();
 	return 0;
 }

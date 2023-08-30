@@ -75,7 +75,8 @@ namespace EvoEngine {
 		static void PopLayer();
 		static void Reset();
 		static void Initialize(const ApplicationInfo& applicationCreateInfo);
-		static void Start(bool autoLoop = true);
+		static void Start();
+		static void Run();
 		[[maybe_unused]] static bool Loop();
 		static void End();
 		static void Terminate();
