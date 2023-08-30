@@ -69,7 +69,7 @@ std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::str
         retVal->m_typeName = typeName;
         return std::move(retVal);
     }
-    EVOENGINE_ERROR("PrivateComponent " + typeName + " is not registered!");
+    EVOENGINE_ERROR("Serializable " + typeName + " is not registered!");
     return nullptr;
 }
 std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::string &typeName, size_t &hashCode, const Handle &handle)

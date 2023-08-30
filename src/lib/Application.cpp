@@ -130,10 +130,10 @@ void Application::LateUpdateInternal()
 			return;
 	}
 	if (application.m_applicationStatus == ApplicationStatus::OnDestroy) return;
-	
+
 	if (application.m_applicationStatus == ApplicationStatus::NoProject)
 	{
-		
+
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -146,7 +146,7 @@ void Application::LateUpdateInternal()
 				"Project",
 				{ ".eveproj" },
 				[&](const std::filesystem::path& path) {
-					ProjectManager::GetOrCreateProject(path.string());
+					ProjectManager::GetOrCreateProject(path);
 					if (ProjectManager::GetInstance().m_projectFolder)
 					{
 						windowLayer->ResizeWindow(
@@ -198,7 +198,7 @@ void Application::LateUpdateInternal()
 
 	}
 	else {
-		if(const auto editorLayer = GetLayer<EditorLayer>())
+		if (const auto editorLayer = GetLayer<EditorLayer>())
 		{
 			for (const auto& layer : application.m_layers) layer->OnInspect(editorLayer);
 		}
@@ -253,25 +253,37 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 			return;
 	}
 	application.m_applicationInfo = applicationCreateInfo;
-	
+	const auto windowLayer = GetLayer<WindowLayer>();
+	const auto editorLayer = GetLayer<EditorLayer>();
+	if (!application.m_applicationInfo.m_projectPath.empty()) {
+		if (application.m_applicationInfo.m_projectPath.extension().string() != ".eveproj")
+		{
+			EVOENGINE_ERROR("Project file extension is not eveproj!");
+			return;
+		}
+	}
+	else if (!windowLayer || !editorLayer)
+	{
+		EVOENGINE_ERROR("Project filepath must present when there's no EditorLayer or WindowLayer!");
+		return;
+	}
 	InitializeRegistry();
 	Jobs::Initialize();
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();
 	Resources::Initialize();
-	Graphics::PostResourceLoadingInitialization(); 
+	Graphics::PostResourceLoadingInitialization();
 	Resources::InitializeEnvironmentalMap();
 
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
 	}
-	const auto windowLayer = GetLayer<WindowLayer>();
-	const auto editorLayer = GetLayer<EditorLayer>();
+
 	if (!application.m_applicationInfo.m_projectPath.empty())
 	{
-		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath.string());
+		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath);
 		if (ProjectManager::GetInstance().m_projectFolder)
 		{
 			if (windowLayer) {
@@ -281,9 +293,6 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 			}
 			application.m_applicationStatus = ApplicationStatus::Stop;
 		}
-	}
-	else if (!windowLayer || !editorLayer) {
-		throw std::runtime_error("Project must present when there's no EditorLayer or WindowLayer!");
 	}
 	else
 	{
@@ -295,8 +304,8 @@ void Application::Start()
 {
 	Time::m_startTime = std::chrono::system_clock::now();
 	Time::m_steps = Time::m_frames = 0;
-	if(const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
-	
+	if (const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
+
 }
 
 void Application::Run()
@@ -420,21 +429,21 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<PostProcessingStack>("PostProcessingStack", { ".evepostprocessingstack" });
 	ClassRegistry::RegisterAsset<IAsset>("IAsset", { ".eveasset" });
 	ClassRegistry::RegisterAsset<Material>("Material", { ".evematerial" });
-	
+
 	ClassRegistry::RegisterAsset<Cubemap>("Cubemap", { ".evecubemap" });
 	ClassRegistry::RegisterAsset<LightProbe>("LightProbe", { ".evelightprobe" });
 	ClassRegistry::RegisterAsset<ReflectionProbe>("ReflectionProbe", { ".evereflectionprobe" });
 	ClassRegistry::RegisterAsset<EnvironmentalMap>("EnvironmentalMap", { ".eveenvironmentalmap" });
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
-	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands", ".hair"});
+	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands", ".hair" });
 	ClassRegistry::RegisterAsset<Prefab>("Prefab", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });
 	ClassRegistry::RegisterAsset<ParticleInfoList>("ParticleInfoList", { ".eveparticleinfolist" });
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
 	ClassRegistry::RegisterAsset<SkinnedMesh>("SkinnedMesh", { ".eveskinnedmesh" });
-	
+
 	ClassRegistry::RegisterAsset<PointCloud>("PointCloud", { ".evepointcloud" });
 }
 

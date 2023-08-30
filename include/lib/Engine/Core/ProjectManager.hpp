@@ -140,7 +140,7 @@ namespace EvoEngine
 		[[nodiscard]] static std::shared_ptr<IAsset> GetOrCreateAsset(const std::filesystem::path& projectRelativePath);
 		[[nodiscard]] static std::shared_ptr<IAsset> GetAsset(const Handle& handle);
 		[[nodiscard]] static std::weak_ptr<Folder> GetFolder(const Handle& handle);
-		static void GetOrCreateProject(const std::string& pathString);
+		static void GetOrCreateProject(const std::filesystem::path& path);
 		[[nodiscard]] static bool IsInProjectFolder(const std::filesystem::path& absolutePath);
 		[[nodiscard]] static bool IsValidAssetFileName(const std::filesystem::path& path);
 		template <typename T> [[nodiscard]] static std::shared_ptr<T> CreateTemporaryAsset();

@@ -59,6 +59,8 @@ namespace EvoEngine
 		friend class RenderLayer;
 		std::shared_ptr<RangeDescriptor> m_triangleRange;
 		std::shared_ptr<RangeDescriptor> m_meshletRange;
+	protected:
+		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
 		void OnCreate() override;
 		~Mesh() override;

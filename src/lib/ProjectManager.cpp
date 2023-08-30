@@ -633,10 +633,9 @@ std::shared_ptr<IAsset> ProjectManager::GetOrCreateAsset(const std::filesystem::
 	return folder->GetOrCreateAsset(stem, extension);
 }
 
-void ProjectManager::GetOrCreateProject(const std::string& pathString)
+void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 {
 	auto& projectManager = GetInstance();
-	auto path = std::filesystem::path(pathString);
 	auto projectAbsolutePath = std::filesystem::absolute(path);
 	if (std::filesystem::is_directory(projectAbsolutePath))
 	{
@@ -903,7 +902,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				[](const std::filesystem::path& filePath) {
 					try
 			{
-				GetOrCreateProject(filePath.string());
+				GetOrCreateProject(filePath);
 			}
 			catch (std::exception& e)
 			{

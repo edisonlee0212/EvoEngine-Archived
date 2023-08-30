@@ -676,7 +676,9 @@ void Graphics::CreatePhysicalDevice()
 		vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &m_vkPhysicalDeviceFeatures);
 		vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
 		vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceMemoryProperties);
+#ifndef NDEBUG
 		EVOENGINE_LOG("Chose \"" + std::string(m_vkPhysicalDeviceProperties.deviceName) + "\" as physical device.");
+#endif
 	}
 	else {
 		throw std::runtime_error("failed to find a suitable GPU!");
@@ -1358,13 +1360,6 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
-	else
-	{
-		if (renderLayer)
-		{
-			graphics.WaitForCommandsComplete();
-		}
-	}
 
 	graphics.ResetCommandBuffers();
 
@@ -1462,6 +1457,7 @@ void Graphics::LateUpdate()
 	}else
 	{
 		graphics.Submit();
+		graphics.WaitForCommandsComplete();
 	}
 }
 

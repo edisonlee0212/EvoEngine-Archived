@@ -58,7 +58,7 @@ void RenderScene(const std::string& projectPath, const int resolutionX, const in
 	EVOENGINE_LOG("Loading project at " + projectPath);
 	Application::Initialize(applicationInfo);
 	EVOENGINE_LOG("Loaded project at " + projectPath);
-	Application::Start(false);
+	Application::Start();
 	auto scene = Application::GetActiveScene();
 	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
 	mainCamera->Resize({ resolutionX, resolutionY });
