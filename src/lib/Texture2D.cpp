@@ -81,7 +81,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.minLod = 0;
-	samplerInfo.maxLod = static_cast<float>(mipLevels);
+	samplerInfo.maxLod = static_cast<float>(imageInfo.mipLevels);
 	samplerInfo.mipLodBias = 0.0f;
 
 	m_sampler = std::make_shared<Sampler>(samplerInfo);
