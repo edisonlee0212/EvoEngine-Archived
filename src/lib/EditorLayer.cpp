@@ -911,7 +911,7 @@ void EditorLayer::SceneCameraWindow()
 			if (sceneCamera && sceneCamera->m_rendered) {
 				// Because I use the texture from OpenGL, I need to invert the V from the UV.
 				ImGui::Image(sceneCamera->GetRenderTexture()->GetColorImTextureId(),
-					ImVec2(sceneCamera->GetSize().x, sceneCamera->GetSize().y),
+					ImVec2(viewPortSize.x, viewPortSize.y),
 					ImVec2(0, 1),
 					ImVec2(1, 0));
 				CameraWindowDragAndDrop();
