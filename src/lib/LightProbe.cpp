@@ -23,6 +23,9 @@ void LightProbe::Initialize(uint32_t resolution)
 	);
 }
 
+std::shared_ptr<Cubemap> LightProbe::GetCubemap() const {
+	return m_cubemap;
+}
 void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap)
 {
 	if (!m_cubemap) Initialize();

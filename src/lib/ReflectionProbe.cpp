@@ -47,6 +47,9 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 	}
 }
 
+std::shared_ptr<Cubemap> ReflectionProbe::GetCubemap() const {
+	return m_cubemap;
+}
 void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap)
 {
 	if (!m_cubemap) Initialize();

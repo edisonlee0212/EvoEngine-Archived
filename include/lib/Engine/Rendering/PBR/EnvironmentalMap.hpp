@@ -13,10 +13,9 @@ namespace EvoEngine
         friend class Environment;
         friend class RenderLayer;
         friend class Resources;
-
+    public:
         AssetRef m_lightProbe;
         AssetRef m_reflectionProbe;
-    public:
         [[nodiscard]] bool IsReady() const;
         void ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap);
         void ConstructFromTexture2D(const std::shared_ptr<Texture2D>& targetTexture2D);
