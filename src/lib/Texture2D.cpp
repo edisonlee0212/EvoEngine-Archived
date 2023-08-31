@@ -34,7 +34,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	VkBufferCreateInfo stagingBufferCreateInfo{};
 	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	stagingBufferCreateInfo.size = imageSize;
-	stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	stagingBufferCreateInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
 	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;

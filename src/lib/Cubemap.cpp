@@ -44,7 +44,7 @@ void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-	m_image = std::make_unique<Image>(imageInfo);
+	m_image = std::make_shared<Image>(imageInfo);
 
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -57,7 +57,7 @@ void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 6;
 
-	m_imageView = std::make_unique<ImageView>(viewInfo);
+	m_imageView = std::make_shared<ImageView>(viewInfo);
 
 
 	VkSamplerCreateInfo samplerInfo{};
@@ -78,7 +78,7 @@ void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)
 		samplerInfo.minLod = 0;
 		samplerInfo.maxLod = static_cast<float>(mipLevels);
 	}
-	m_sampler = std::make_unique<Sampler>(samplerInfo);
+	m_sampler = std::make_shared<Sampler>(samplerInfo);
 
 #pragma endregion
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
@@ -273,18 +273,18 @@ void Cubemap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	}
 }
 
-const std::unique_ptr<Image>& Cubemap::GetImage() const
+const std::shared_ptr<Image>& Cubemap::GetImage() const
 {
 	return m_image;
 }
 
-const std::unique_ptr<ImageView>& Cubemap::GetImageView() const
+const std::shared_ptr<ImageView>& Cubemap::GetImageView() const
 {
 	return m_imageView;
 
 }
 
-const std::unique_ptr<Sampler>& Cubemap::GetSampler() const
+const std::shared_ptr<Sampler>& Cubemap::GetSampler() const
 {
 	return m_sampler;
 }

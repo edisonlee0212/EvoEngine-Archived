@@ -8,9 +8,9 @@ namespace EvoEngine
 {
 	class Cubemap : public IAsset
 	{
-		std::unique_ptr<Image> m_image = {};
-		std::unique_ptr<ImageView> m_imageView = {};
-		std::unique_ptr<Sampler> m_sampler = {};
+		std::shared_ptr<Image> m_image = {};
+		std::shared_ptr<ImageView> m_imageView = {};
+		std::shared_ptr<Sampler> m_sampler = {};
 		friend class RenderLayer;
 
 
@@ -26,9 +26,9 @@ namespace EvoEngine
 		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
 		void ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture);
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-		[[nodiscard]] const std::unique_ptr<Image>& GetImage() const;
-		[[nodiscard]] const std::unique_ptr<ImageView>& GetImageView() const;
-		[[nodiscard]] const std::unique_ptr<Sampler>& GetSampler() const;
+		[[nodiscard]] const std::shared_ptr<Image>& GetImage() const;
+		[[nodiscard]] const std::shared_ptr<ImageView>& GetImageView() const;
+		[[nodiscard]] const std::shared_ptr<Sampler>& GetSampler() const;
 		[[nodiscard]] const std::vector<std::shared_ptr<ImageView>>& GetFaceViews() const;
 	};
 }
