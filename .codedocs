@@ -41,7 +41,7 @@ GENERATE_LATEX      = NO
 DISABLE_INDEX       = YES
 GENERATE_TREEVIEW   = YES
 FULL_SIDEBAR        = YES
-EXCLUDE_SYMBOLS     = imgui_addons std tinyply YAML InputTextCallback_UserData ImGui
+EXCLUDE_SYMBOLS     = imgui_addons std tinyply YAML InputTextCallback_UserData ImGui stb Assimp glm gmock pybind11
 
 # ABBREVIATE_BRIEF =
 # ALIASES =
@@ -139,7 +139,7 @@ EXCLUDE_SYMBOLS     = imgui_addons std tinyply YAML InputTextCallback_UserData I
 # INLINE_INHERITED_MEMB =
 # INLINE_SIMPLE_STRUCTS =
 # INLINE_SOURCES =
-INPUT = src/lib include/lib/Engine/Core include/lib/Engine/ECS include/lib/Engine/Editor include/lib/Engine/Managers include/lib/Engine/Math include/lib/Engine/Physics include/lib/Engine/Rendering include/lib/Engine/Resources include/lib/Engine/Utilities
+INPUT = src/lib include/lib/Engine/Core include/lib/Engine/Layers include/lib/Engine/Physics include/lib/Engine/Rendering include/lib/Engine/Utilities 
 # INPUT_ENCODING =
 # INTERACTIVE_SVG =
 # INTERNAL_DOCS =
