@@ -178,7 +178,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
     message(STATUS "Setting Clang flags")
     # Activate all clang warnings except those that don't really affect much
-    target_compile_options(evoengine PRIVATE -Wno-everything -Wfatal-errors -ferror-limit=3)
+    target_compile_options(evoengine PRIVATE -Wno-everything -Wfatal-errors -fmax-errors=3)
 endif ()
 
 # ------------------------------------------------------------------
