@@ -13,6 +13,7 @@
 #include "ReflectionProbe.hpp"
 #include "LightProbe.hpp"
 #include "EnvironmentalMap.hpp"
+#include "Jobs.hpp"
 namespace EvoEngine
 {
 
