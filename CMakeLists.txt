@@ -158,6 +158,7 @@ elseif (UNIX AND NOT APPLE)
             Xi
             assimp
             cuda
+            shaderc
             ${PHYSX_LIBS}
             )
 elseif (APPLE)
