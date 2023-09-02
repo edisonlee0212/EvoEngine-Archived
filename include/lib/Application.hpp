@@ -28,7 +28,7 @@ namespace EvoEngine {
 
 	enum class ApplicationExecutionStatus
 	{
-		None,
+		Stop,
 		PreUpdate,
 		Update,
 		LateUpdate
@@ -56,7 +56,7 @@ namespace EvoEngine {
 
 		static void InitializeRegistry();
 
-		ApplicationExecutionStatus m_applicationExecutionStatus = ApplicationExecutionStatus::None;
+		ApplicationExecutionStatus m_applicationExecutionStatus = ApplicationExecutionStatus::Stop;
 	public:
 		[[nodiscard]] static ApplicationExecutionStatus GetApplicationExecutionStatus();
 		static void RegisterPreUpdateFunction(const std::function<void()>& func);
