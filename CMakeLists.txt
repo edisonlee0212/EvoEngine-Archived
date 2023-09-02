@@ -153,6 +153,7 @@ else()
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
+    m
             ${VULKAN_LIBRARY}
             stdc++
             glfw
@@ -165,7 +166,6 @@ else()
             assimp
             shaderc
             ${PHYSX_LIBS}
-            m
             )
 endif ()
 
