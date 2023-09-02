@@ -51,15 +51,15 @@ endif ()
 # ------------------------------------------------------------------
 if (WIN32)
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_WIN32_KHR)
-    set(VOLK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/volk/)
-    add_subdirectory(${VOLK_DIR} EXCLUDE_FROM_ALL)
 elseif (UNIX AND NOT APPLE)
+    find_package(VULKAN REQUIRED)
+	message(STATUS "VULKAN included at ${VULKAN_INCLUDE_DIR}")
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_XLIB_KHR)
-    find_package(Vulkan REQUIRED)
 elseif (APPLE)
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_MACOS_MVK)
 endif ()
-
+set(VOLK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/volk/)
+add_subdirectory(${VOLK_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
 # shaderc
