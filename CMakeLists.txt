@@ -11,7 +11,7 @@ include(GenerateExportHeader)
 # ------------------------------------------------------------------
 # Options
 # ------------------------------------------------------------------
-option(EVOENGINE_ENABLE_PHYSX "Enable PhysX" OFF)
+option(EVOENGINE_ENABLE_PHYSX "Enable PhysX" ON)
 option(EVOENGINE_BUILD_EXAMPLES "Build EvoEngine Examples" OFF)
 
 # ------------------------------------------------------------------
@@ -44,7 +44,7 @@ set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 add_subdirectory(${3RD_PARTY_DIR})
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
-if (EVOENGINE_ENABLE_PHYSX)
+if (EVOENGINE_ENABLE_PHYSX AND WIN32)
     set(PHYSX_COMPILE_OPTION EVOENGINE_PHYSICSLAYER)
 endif()
 # ------------------------------------------------------------------

@@ -23,7 +23,6 @@ set(GLFW_DIR ${3RD_PARTY_DIR}/glfw/ PARENT_SCOPE)
 # ------------------------------------------------------------------
 # yaml
 # ------------------------------------------------------------------
-set(BUILD_SHARED_LIB OFF)
 set(YAML_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/)
 include_directories(${YAML_CPP_DIR}/include)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
