@@ -94,7 +94,7 @@ target_include_directories(evoengine
         ${Vulkan_INCLUDE_DIRS}
         ${LOCAL_EVOENGINE_INCLUDES}
         )
-
+message(STATUS "Include vulkan at "${Vulkan_INCLUDE_DIRS})
 
 # ------------------------------------------------------------------
 # EvoEngine - linkings
