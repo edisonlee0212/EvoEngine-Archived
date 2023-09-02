@@ -226,7 +226,7 @@ namespace EvoEngine
 		template<typename T>
 		void DownloadVector(std::vector<T>& data, size_t elementSize);
 		template<typename T>
-		void Download(const T& data);
+		void Download(T& data);
 		void CopyFromBuffer(const Buffer& srcBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0);
 		void CopyFromImage(Image& srcImage, const VkBufferImageCopy& imageCopyInfo) const;
 		void CopyFromImage(Image& srcImage);
@@ -260,9 +260,9 @@ namespace EvoEngine
 	}
 
 	template <typename T>
-	void Buffer::Download(const T& data)
+	void Buffer::Download(T& data)
 	{
-		DownloadData(sizeof(T), static_cast<const void*>(&data));
+		DownloadData(sizeof(T), static_cast<void*>(&data));
 	}
 
 	class Sampler final : public IGraphicsResource
