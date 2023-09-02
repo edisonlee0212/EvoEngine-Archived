@@ -1,6 +1,6 @@
 #pragma once
 namespace EvoEngine {
-	class Time
+	class Times
 	{
 		friend class Scene;
 		friend class Application;

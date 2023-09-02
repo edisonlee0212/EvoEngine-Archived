@@ -3,7 +3,7 @@
 #include "Camera.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 using namespace EvoEngine;
 
 void PlayerController::OnCreate()
@@ -23,32 +23,32 @@ void PlayerController::LateUpdate()
 	auto moved = false;
 	if (scene->GetKey(GLFW_KEY_W) == KeyActionType::Hold)
 	{
-		position += front * static_cast<float>(Time::DeltaTime()) * m_velocity;
+		position += front * static_cast<float>(Times::DeltaTime()) * m_velocity;
 		moved = true;
 	}
 	if (scene->GetKey(GLFW_KEY_S) == KeyActionType::Hold)
 	{
-		position -= front * static_cast<float>(Time::DeltaTime()) * m_velocity;
+		position -= front * static_cast<float>(Times::DeltaTime()) * m_velocity;
 		moved = true;
 	}
 	if (scene->GetKey(GLFW_KEY_A) == KeyActionType::Hold)
 	{
-		position -= right * static_cast<float>(Time::DeltaTime()) * m_velocity;
+		position -= right * static_cast<float>(Times::DeltaTime()) * m_velocity;
 		moved = true;
 	}
 	if (scene->GetKey(GLFW_KEY_D) == KeyActionType::Hold)
 	{
-		position += right * static_cast<float>(Time::DeltaTime()) * m_velocity;
+		position += right * static_cast<float>(Times::DeltaTime()) * m_velocity;
 		moved = true;
 	}
 	if (scene->GetKey(GLFW_KEY_LEFT_SHIFT) == KeyActionType::Hold)
 	{
-		position.y += m_velocity * static_cast<float>(Time::DeltaTime());
+		position.y += m_velocity * static_cast<float>(Times::DeltaTime());
 		moved = true;
 	}
 	if (scene->GetKey(GLFW_KEY_LEFT_CONTROL) == KeyActionType::Hold)
 	{
-		position.y -= m_velocity * static_cast<float>(Time::DeltaTime());
+		position.y -= m_velocity * static_cast<float>(Times::DeltaTime());
 		moved = true;
 	}
 	if (moved)

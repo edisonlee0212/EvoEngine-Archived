@@ -12,7 +12,7 @@ namespace EvoEngine
 {
 #pragma region Enums Structs
 	enum class RenderCommandType {
-		None,
+		Unknown,
 		FromRenderer,
 		FromAPI,
 	};
@@ -26,7 +26,7 @@ namespace EvoEngine
 
 	struct RenderInstance {
 		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::None;
+		RenderCommandType m_commandType = RenderCommandType::Unknown;
 		Entity m_owner = Entity();
 		std::shared_ptr<Mesh> m_mesh;
 		bool m_castShadow = true;
@@ -36,7 +36,7 @@ namespace EvoEngine
 
 	struct SkinnedRenderInstance {
 		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::None;
+		RenderCommandType m_commandType = RenderCommandType::Unknown;
 		Entity m_owner = Entity();
 		std::shared_ptr<SkinnedMesh> m_skinnedMesh;
 		bool m_castShadow = true;
@@ -48,7 +48,7 @@ namespace EvoEngine
 	struct InstancedRenderInstance
 	{
 		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::None;
+		RenderCommandType m_commandType = RenderCommandType::Unknown;
 		Entity m_owner = Entity();
 		std::shared_ptr<Mesh> m_mesh;
 		bool m_castShadow = true;
@@ -60,7 +60,7 @@ namespace EvoEngine
 	struct StrandsRenderInstance
 	{
 		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::None;
+		RenderCommandType m_commandType = RenderCommandType::Unknown;
 		Entity m_owner = Entity();
 		std::shared_ptr<Strands> m_strands;
 		bool m_castShadow = true;

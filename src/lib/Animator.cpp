@@ -2,7 +2,7 @@
 #include "Animator.hpp"
 #include "EditorLayer.hpp"
 #include "ClassRegistry.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 using namespace EvoEngine;
 
 void Animator::Setup()
@@ -112,7 +112,7 @@ void Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 
                 ImGui::DragFloat("AutoPlay Speed", &autoPlaySpeed, 1.0f);
                 if (animation->HasAnimation(m_currentActivatedAnimation)) {
-                    m_currentAnimationTime += Time::DeltaTime() * autoPlaySpeed;
+                    m_currentAnimationTime += Times::DeltaTime() * autoPlaySpeed;
                     const float animationLength = animation->GetAnimationLength(m_currentActivatedAnimation);
                     if (m_currentAnimationTime > animationLength)
                         m_currentAnimationTime =

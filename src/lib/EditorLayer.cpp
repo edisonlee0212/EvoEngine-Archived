@@ -9,7 +9,7 @@
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "Scene.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 #include "RenderLayer.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
@@ -364,7 +364,7 @@ void EditorLayer::PreUpdate()
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if(renderLayer && renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
 	{
-		m_selectionAlpha += Time::DeltaTime() * 5120;
+		m_selectionAlpha += Times::DeltaTime() * 5120;
 	}
 
 	m_selectionAlpha = glm::clamp(m_selectionAlpha, 0, 256);
@@ -614,7 +614,7 @@ void EditorLayer::LateUpdate()
 {
 	if (m_lockCamera) {
 		auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
-		const float elapsedTime = Time::CurrentTime() - m_transitionTimer;
+		const float elapsedTime = Times::CurrentTime() - m_transitionTimer;
 		float a = 1.0f - glm::pow(1.0 - elapsedTime / m_transitionTime, 4.0f);
 		if (elapsedTime >= m_transitionTime)
 			a = 1.0f;
@@ -1002,25 +1002,25 @@ void EditorLayer::SceneCameraWindow()
 					const glm::vec3 right = sceneCameraRotation * glm::vec3(1, 0, 0);
 					if (Input::GetKey(GLFW_KEY_W) == KeyActionType::Hold) {
 						sceneCameraPosition +=
-							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
+							front * static_cast<float>(Times::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_S) == KeyActionType::Hold) {
 						sceneCameraPosition -=
-							front * static_cast<float>(Time::DeltaTime()) * m_velocity;
+							front * static_cast<float>(Times::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_A) == KeyActionType::Hold) {
 						sceneCameraPosition -=
-							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
+							right * static_cast<float>(Times::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_D) == KeyActionType::Hold) {
 						sceneCameraPosition +=
-							right * static_cast<float>(Time::DeltaTime()) * m_velocity;
+							right * static_cast<float>(Times::DeltaTime()) * m_velocity;
 					}
 					if (Input::GetKey(GLFW_KEY_LEFT_SHIFT) == KeyActionType::Hold) {
-						sceneCameraPosition.y += m_velocity * static_cast<float>(Time::DeltaTime());
+						sceneCameraPosition.y += m_velocity * static_cast<float>(Times::DeltaTime());
 					}
 					if (Input::GetKey(GLFW_KEY_LEFT_CONTROL) == KeyActionType::Hold) {
-						sceneCameraPosition.y -= m_velocity * static_cast<float>(Time::DeltaTime());
+						sceneCameraPosition.y -= m_velocity * static_cast<float>(Times::DeltaTime());
 					}
 					if (xOffset != 0.0f || yOffset != 0.0f) {
 						m_sceneCameraYawAngle += xOffset * m_sensitivity;
@@ -1827,7 +1827,7 @@ void EditorLayer::MoveCamera(
 	m_previousRotation = sceneCameraRotation;
 	m_previousPosition = sceneCameraPosition;
 	m_transitionTime = transitionTime;
-	m_transitionTimer = Time::CurrentTime();
+	m_transitionTimer = Times::CurrentTime();
 	m_targetRotation = targetRotation;
 	m_targetPosition = targetPosition;
 	m_lockCamera = true;

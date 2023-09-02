@@ -5,7 +5,7 @@
 #include "Scene.hpp"
 #include "Jobs.hpp"
 #include "RigidBody.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 #include "TransformGraph.hpp"
 #include "ClassRegistry.hpp"
 using namespace EvoEngine;
@@ -180,7 +180,7 @@ void PhysicsSystem::OnDestroy()
 
 void PhysicsSystem::FixedUpdate()
 {
-    Simulate(Time::TimeStep());
+    Simulate(Times::TimeStep());
 }
 
 void PhysicsScene::Simulate(float time) const

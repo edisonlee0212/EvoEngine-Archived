@@ -6,7 +6,7 @@
 #include "Graphics.hpp"
 #include "Utilities.hpp"
 #include "Scene.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "EditorLayer.hpp"
@@ -39,9 +39,9 @@ void Application::PreUpdateInternal()
 {
 	auto& application = GetInstance();
 	const auto now = std::chrono::system_clock::now();
-	const std::chrono::duration<double> deltaTime = now - Time::m_lastUpdateTime;
-	Time::m_deltaTime = deltaTime.count();
-	Time::m_lastUpdateTime = std::chrono::system_clock::now();
+	const std::chrono::duration<double> deltaTime = now - Times::m_lastUpdateTime;
+	Times::m_deltaTime = deltaTime.count();
+	Times::m_lastUpdateTime = std::chrono::system_clock::now();
 	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
 	{
 		EVOENGINE_ERROR("Application uninitialized!")
@@ -65,14 +65,14 @@ void Application::PreUpdateInternal()
 	{
 		i->PreUpdate();
 	}
-	if (Time::m_steps == 0) {
-		Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
-		Time::m_steps = 1;
+	if (Times::m_steps == 0) {
+		Times::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+		Times::m_steps = 1;
 	}
-	const auto lastFixedUpdateTime = Time::m_lastFixedUpdateTime;
+	const auto lastFixedUpdateTime = Times::m_lastFixedUpdateTime;
 	std::chrono::duration<double> duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 	size_t step = 1;
-	while (duration.count() >= step * Time::m_timeStep)
+	while (duration.count() >= step * Times::m_timeStep)
 	{
 		for (const auto& i : application.m_externalFixedUpdateFunctions)
 			i();
@@ -87,9 +87,9 @@ void Application::PreUpdateInternal()
 		duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 		step++;
 		const auto now = std::chrono::system_clock::now();
-		const std::chrono::duration<double> fixedDeltaTime = now - Time::m_lastFixedUpdateTime;
-		Time::m_fixedDeltaTime = fixedDeltaTime.count();
-		Time::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+		const std::chrono::duration<double> fixedDeltaTime = now - Times::m_lastFixedUpdateTime;
+		Times::m_fixedDeltaTime = fixedDeltaTime.count();
+		Times::m_lastFixedUpdateTime = std::chrono::system_clock::now();
 		if (step > 10)
 		{
 			EVOENGINE_WARNING("Fixed update timeout!");
@@ -242,7 +242,7 @@ void Application::Reset()
 {
 	auto& application = GetInstance();
 	application.m_applicationStatus = ApplicationStatus::Stop;
-	Time::m_steps = Time::m_frames = 0;
+	Times::m_steps = Times::m_frames = 0;
 }
 
 void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
@@ -302,8 +302,8 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 
 void Application::Start()
 {
-	Time::m_startTime = std::chrono::system_clock::now();
-	Time::m_steps = Time::m_frames = 0;
+	Times::m_startTime = std::chrono::system_clock::now();
+	Times::m_steps = Times::m_frames = 0;
 	if (const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
 
 }

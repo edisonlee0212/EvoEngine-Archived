@@ -1,5 +1,5 @@
 #include "AnimationPlayer.hpp"
-#include "Time.hpp"
+#include "Times.hpp"
 #include "Animator.hpp"
 #include "Scene.hpp"
 
@@ -16,7 +16,7 @@ void AnimationPlayer::Update()
             if (!animation)
                 return;
 			float currentAnimationTime = animator->GetCurrentAnimationTimePoint();
-			currentAnimationTime += Time::DeltaTime() * m_autoPlaySpeed;
+			currentAnimationTime += Times::DeltaTime() * m_autoPlaySpeed;
 			if (currentAnimationTime > animation->GetAnimationLength(animator->GetCurrentAnimationName()))
 				currentAnimationTime =
 				glm::mod(currentAnimationTime, animation->GetAnimationLength(animator->GetCurrentAnimationName()));
