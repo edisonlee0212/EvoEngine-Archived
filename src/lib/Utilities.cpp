@@ -157,6 +157,7 @@ void FileUtils::OpenFile(
 		}
 	}
 #else
+	/*
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 		ImGui::OpenPopup(dialogTitle.c_str());
 	static imgui_addons::ImGuiFileBrowser file_dialog;
@@ -171,6 +172,10 @@ void FileUtils::OpenFile(
 		dialogTitle, imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), filters))
 	{
 		func(file_dialog.selected_path);
+	}*/
+	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
+	{
+
 	}
 #endif
 }
@@ -251,6 +256,7 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 		}
 	}
 #else
+	/*
 	if (ImGui::Button(dialogTitle.c_str()))
 		ImGui::OpenPopup(dialogTitle.c_str());
 	static imgui_addons::ImGuiFileBrowser file_dialog;
@@ -266,6 +272,11 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 	{
 		std::filesystem::path path = file_dialog.selected_path;
 		func(path);
+	}
+	*/
+	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
+	{
+
 	}
 #endif
 }
