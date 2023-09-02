@@ -155,6 +155,7 @@ else()
     target_link_libraries(evoengine
             ${VULKAN_LIBRARY}
             stdc++
+            m
             glfw
             dl
             Xau
@@ -164,7 +165,6 @@ else()
             Xi
             assimp
             shaderc
-            m
             ${PHYSX_LIBS}
             )
 endif ()
