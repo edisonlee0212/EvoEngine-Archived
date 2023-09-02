@@ -157,6 +157,7 @@ else()
             stdc++
             glfw
             dl
+            Xau
             X11
             pthread
             Xrandr
