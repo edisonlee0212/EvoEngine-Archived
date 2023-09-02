@@ -157,6 +157,7 @@ elseif (UNIX AND NOT APPLE)
             Xi
             assimp
             shaderc
+            m
             ${PHYSX_LIBS}
             )
 elseif (APPLE)
