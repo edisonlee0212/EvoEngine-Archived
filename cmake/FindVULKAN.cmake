@@ -23,7 +23,7 @@ set( _vulkan_HEADER_SEARCH_DIRS
 set( _vulkan_LIB_SEARCH_DIRS
 	"${CONDA_PREFIX}/lib"
 	"/usr/lib"
-	"/usr/lib/x86-64-linux-gnu"
+	"/usr/lib/x86_64-linux-gnu"
 	"/usr/local/lib"
 	"${CMAKE_SOURCE_DIR}/lib"
 	"C:/Program Files (x86)/glfw/lib-msvc110" )
