@@ -23,6 +23,7 @@ set(GLFW_DIR ${3RD_PARTY_DIR}/glfw/ PARENT_SCOPE)
 # ------------------------------------------------------------------
 # yaml
 # ------------------------------------------------------------------
+set(BUILD_SHARED_LIB OFF)
 set(YAML_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/)
 include_directories(${YAML_CPP_DIR}/include)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
@@ -81,7 +82,7 @@ set(STB_DIR ${3RD_PARTY_DIR}/stb/ PARENT_SCOPE)
 
 # ------------------------------------------------------------------
 # ImGui & ImGuizmo
-# ------------------------------------------------------------------
+# --------------------------------e----------------------------------
 set(LOCAL_IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ImGui)
 set(LOCAL_IMGUIZMO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo)
 
