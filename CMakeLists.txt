@@ -100,7 +100,9 @@ message(STATUS "Include vulkan at "${Vulkan_INCLUDE_DIRS})
 # EvoEngine - linkings
 # ------------------------------------------------------------------
 target_link_libraries(evoengine
-        
+        volk
+        yaml-cpp
+        GPUOpen::VulkanMemoryAllocator
         )
 
 
@@ -127,9 +129,6 @@ if (WIN32)
                 )
     endif ()
     target_link_libraries(evoengine
-            volk
-            yaml-cpp
-            GPUOpen::VulkanMemoryAllocator
             ${GLFW_DIR}glfw3.lib
             ${PHYSX_LIBS}
             ${SHADERC_LIB}
@@ -153,9 +152,6 @@ elseif (UNIX AND NOT APPLE)
     endif ()
     target_link_libraries(evoengine
             vulkan
-            volk
-            yaml-cpp
-            GPUOpen::VulkanMemoryAllocator
             glfw
             dl
             X11
