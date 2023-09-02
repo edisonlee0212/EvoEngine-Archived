@@ -119,7 +119,6 @@ set(PHYSX_DIR
 # Includes
 # ------------------------------------------------------------------
 set(3RD_PARTY_INCLUDES
-	${VULKAN_INCLUDE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/glfw/include
         ${CMAKE_CURRENT_SOURCE_DIR}/assimp/include
