@@ -167,15 +167,15 @@ endif ()
 # ------------------------------------------------------------------
 # EvoEngine - compiler
 # ------------------------------------------------------------------
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     message(STATUS "Setting G++ flags")
     # G++
     target_compile_options(evoengine PRIVATE -Wall -Wextra)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL MSVC)
     message(STATUS "Setting MSVC flags")
     # MSVC
     target_compile_options(evoengine PRIVATE /EHsc /W2 /c)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     message(STATUS "Setting Clang flags")
     # Activate all clang warnings except those that don't really affect much
     target_compile_options(evoengine PRIVATE -Wno-everything -Wfatal-errors -fmax-errors=3 -ferror-limit=3)
