@@ -91,6 +91,7 @@ set(LOCAL_EVOENGINE_INCLUDES
 
 target_include_directories(evoengine
         PRIVATE
+        ${Vulkan_INCLUDE_DIRS}
         ${LOCAL_EVOENGINE_INCLUDES}
         )
 
