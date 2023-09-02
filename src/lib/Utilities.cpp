@@ -34,8 +34,9 @@ std::string FileUtils::LoadFileAsString(const std::filesystem::path& path)
 void FileUtils::OpenFolder(const std::string& dialogTitle,
 	const std::function<void(const std::filesystem::path& path)>& func, bool projectDirCheck)
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	auto windowLayer = Application::GetLayer<WindowLayer>();
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+	
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		TCHAR path[MAX_PATH];
@@ -88,10 +89,9 @@ void FileUtils::OpenFile(
 	bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-	
 		OPENFILENAMEA ofn;
 		CHAR szFile[260] = { 0 };
 		ZeroMemory(&ofn, sizeof(OPENFILENAME));
