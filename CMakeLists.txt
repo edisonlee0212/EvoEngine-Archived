@@ -153,7 +153,7 @@ else()
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
-            vulkan
+            ${VULKAN_LIBRARY}
             stdc++
             glfw
             dl
