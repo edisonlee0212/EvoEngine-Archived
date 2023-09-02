@@ -91,10 +91,8 @@ set(LOCAL_EVOENGINE_INCLUDES
 
 target_include_directories(evoengine
         PRIVATE
-        ${Vulkan_INCLUDE_DIRS}
         ${LOCAL_EVOENGINE_INCLUDES}
         )
-message(STATUS "Include vulkan at "${Vulkan_INCLUDE_DIRS})
 
 # ------------------------------------------------------------------
 # EvoEngine - linkings
@@ -151,7 +149,7 @@ elseif (UNIX AND NOT APPLE)
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
-            vulkan
+            Vulkan
             glfw
             dl
             X11
