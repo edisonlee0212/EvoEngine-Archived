@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_SPHERE_GEOMETRY_H
-#define PX_SPHERE_GEOMETRY_H
+
+#ifndef PX_PHYSICS_NX_SPHERE_GEOMETRY
+#define PX_PHYSICS_NX_SPHERE_GEOMETRY
 /** \addtogroup geomutils
 @{
 */
@@ -47,26 +49,8 @@ Spheres are defined by their radius.
 class PxSphereGeometry : public PxGeometry 
 {
 public:
-	/**
-	\brief Constructor.
-	*/
-	PX_INLINE PxSphereGeometry(PxReal ir=0.0f) : PxGeometry(PxGeometryType::eSPHERE), radius(ir)		{}
-
-	/**
-	\brief Copy constructor.
-
-	\param[in] that		Other object
-	*/
-	PX_INLINE PxSphereGeometry(const PxSphereGeometry& that) : PxGeometry(that), radius(that.radius)	{}
-
-	/**
-	\brief Assignment operator
-	*/
-	PX_INLINE void operator=(const PxSphereGeometry& that)
-	{
-		mType = that.mType;
-		radius = that.radius;
-	}
+	PX_INLINE PxSphereGeometry() :							PxGeometry(PxGeometryType::eSPHERE), radius(0) {}
+	PX_INLINE PxSphereGeometry(PxReal ir) :					PxGeometry(PxGeometryType::eSPHERE), radius(ir) {}
 
 	/**
 	\brief Returns true if the geometry is valid.
@@ -88,13 +72,14 @@ public:
 	PxReal radius;	
 };
 
+
 PX_INLINE bool PxSphereGeometry::isValid() const
 {
-	if(mType != PxGeometryType::eSPHERE)
+	if (mType != PxGeometryType::eSPHERE)
 		return false;
-	if(!PxIsFinite(radius))
+	if (!PxIsFinite(radius))
 		return false;
-	if(radius <= 0.0f)
+	if (radius <= 0.0f)
 		return false;
 
 	return true;

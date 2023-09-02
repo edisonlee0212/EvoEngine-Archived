@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_TRIANGLE_MESH_H
-#define PX_TRIANGLE_MESH_H
+
+#ifndef PX_PHYSICS_GEOMUTILS_NX_TRIANGLEMESH
+#define PX_PHYSICS_GEOMUTILS_NX_TRIANGLEMESH
 /** \addtogroup geomutils 
 @{ */
 
@@ -35,7 +37,6 @@
 #include "foundation/PxBounds3.h"
 #include "common/PxPhysXCommonConfig.h"
 #include "common/PxBase.h"
-#include "foundation/PxUserAllocated.h"
 
 #if !PX_DOXYGEN
 namespace physx
@@ -43,20 +44,28 @@ namespace physx
 #endif
 
 /**
+\brief Enables the dynamic rtree mesh feature. It is recommended to use this feature for scene queries only.
+@see PxTriangleMesh::getVerticesForModification
+@see PxTriangleMesh::refitBVH
+*/
+#define PX_ENABLE_DYNAMIC_MESH_RTREE 1
+
+/**
 \brief Mesh midphase structure. This enum is used to select the desired acceleration structure for midphase queries
  (i.e. raycasts, overlaps, sweeps vs triangle meshes).
 
  The PxMeshMidPhase::eBVH33 structure is the one used in recent PhysX versions (up to PhysX 3.3). It has great performance and is
- supported on all platforms. It is deprecated since PhysX 5.x.
+ supported on all platforms.
 
  The PxMeshMidPhase::eBVH34 structure is a revisited implementation introduced in PhysX 3.4. It can be significantly faster both
- in terms of cooking performance and runtime performance.
+ in terms of cooking performance and runtime performance, but it is currently only available on platforms supporting the
+ SSE2 instuction set.
 */
 struct PxMeshMidPhase
 {
 	enum Enum
 	{
-		eBVH33 = 0,		//!< Default midphase mesh structure, as used up to PhysX 3.3 (deprecated)
+		eBVH33 = 0,		//!< Default midphase mesh structure, as used up to PhysX 3.3
 		eBVH34 = 1,		//!< New midphase mesh structure, introduced in PhysX 3.4
 
 		eLAST
@@ -73,8 +82,7 @@ struct PxTriangleMeshFlag
 	enum Enum
 	{
 		e16_BIT_INDICES	= (1<<1),	//!< The triangle mesh has 16bits vertex indices.
-		eADJACENCY_INFO	= (1<<2),	//!< The triangle mesh has adjacency information build.
-		ePREFER_NO_SDF_PROJ = (1<<3)//!< Indicates that this mesh would preferably not be the mesh projected for mesh-mesh collision. This can indicate that the mesh is not well tessellated.
+		eADJACENCY_INFO	= (1<<2)	//!< The triangle mesh has adjacency information build.
 	};
 };
 
@@ -114,7 +122,8 @@ once you have released all of its PxShape instances.
 
 @see PxTriangleMeshDesc PxTriangleMeshGeometry PxShape PxPhysics.createTriangleMesh()
 */
-class PxTriangleMesh : public PxRefCounted
+
+class PxTriangleMesh : public PxBase
 {
 	public:
 	/**
@@ -122,15 +131,16 @@ class PxTriangleMesh : public PxRefCounted
 	\return	number of vertices
 	@see getVertices()
 	*/
-	virtual	PxU32	getNbVertices()	const	= 0;
+	 virtual	PxU32				getNbVertices()									const	= 0;
 
 	/**
 	\brief Returns the vertices.
 	\return	array of vertices
 	@see getNbVertices()
 	*/
-	virtual	const PxVec3*	getVertices()	const	= 0;
+	virtual	const PxVec3*			getVertices()									const	= 0;
 
+#if PX_ENABLE_DYNAMIC_MESH_RTREE
 	/**
 	\brief Returns all mesh vertices for modification.
 
@@ -140,7 +150,7 @@ class PxTriangleMesh : public PxRefCounted
 
 	\return  inplace vertex coordinates for each existing mesh vertex.
 
-	\note It is recommended to use this feature for scene queries only.
+	\note works only for PxMeshMidPhase::eBVH33
 	\note Size of array returned is equal to the number returned by getNbVertices().
 	\note This function operates on cooked vertex indices.
 	\note This means the index mapping and vertex count can be different from what was provided as an input to the cooking routine.
@@ -150,7 +160,7 @@ class PxTriangleMesh : public PxRefCounted
 	@see getNbVertices()
 	@see refitBVH()	
 	*/
-	virtual PxVec3*	getVerticesForModification() = 0;
+	virtual PxVec3*					getVerticesForModification() = 0;
 
 	/**
 	\brief Refits BVH for mesh vertices.
@@ -160,24 +170,24 @@ class PxTriangleMesh : public PxRefCounted
 
 	\return New bounds for the entire mesh.
 
-	\note For PxMeshMidPhase::eBVH34 trees the refit operation is only available on non-quantized trees (see PxBVH34MidphaseDesc::quantized)
+	\note works only for PxMeshMidPhase::eBVH33
 	\note PhysX does not keep a mapping from the mesh to mesh shapes that reference it.
 	\note Call PxShape::setGeometry on each shape which references the mesh, to ensure that internal data structures are updated to reflect the new geometry.
 	\note PxShape::setGeometry does not guarantee correct/continuous behavior when objects are resting on top of old or new geometry.
 	\note It is also recommended to make sure that a call to validateTriangleMesh returns true if mesh cleaning is disabled.
 	\note Active edges information will be lost during refit, the rigid body mesh contact generation might not perform as expected.
 	@see getNbVertices()
-	@see getVerticesForModification()
-	@see PxBVH34MidphaseDesc::quantized
+	@see getVerticesForModification()	
 	*/
-	virtual PxBounds3	refitBVH() = 0;
+	virtual PxBounds3				refitBVH() = 0;
+#endif // PX_ENABLE_DYNAMIC_MESH_RTREE
 
 	/**
 	\brief Returns the number of triangles.
 	\return	number of triangles
 	@see getTriangles() getTrianglesRemap()
 	*/
-	virtual	PxU32	getNbTriangles()	const	= 0;
+	virtual	PxU32					getNbTriangles()								const	= 0;
 
 	/**
 	\brief Returns the triangle indices.
@@ -190,7 +200,7 @@ class PxTriangleMesh : public PxRefCounted
 	\return	array of triangles
 	@see getNbTriangles() getTriangleMeshFlags() getTrianglesRemap()
 	*/
-	virtual	const void*	getTriangles()	const	= 0;
+	virtual	const void*				getTriangles()									const	= 0;
 
 	/**
 	\brief Reads the PxTriangleMesh flags.
@@ -201,7 +211,7 @@ class PxTriangleMesh : public PxRefCounted
 
 	@see PxTriangleMesh
 	*/
-	virtual	PxTriangleMeshFlags		getTriangleMeshFlags()	const = 0;
+	virtual	PxTriangleMeshFlags		getTriangleMeshFlags()							const = 0;
 
 	/**
 	\brief Returns the triangle remapping table.
@@ -215,14 +225,15 @@ class PxTriangleMesh : public PxRefCounted
 	\return	the remapping table (or NULL if 'PxCookingParams::suppressTriangleMeshRemapTable' has been used)
 	@see getNbTriangles() getTriangles() PxCookingParams::suppressTriangleMeshRemapTable
 	*/
-	virtual	const PxU32*	getTrianglesRemap()	const	= 0;
+	virtual	const PxU32*			getTrianglesRemap()							const	= 0;
+
 
 	/**	
 	\brief Decrements the reference count of a triangle mesh and releases it if the new reference count is zero.	
 	
 	@see PxPhysics.createTriangleMesh()
 	*/
-	virtual void	release()	= 0;
+	virtual void					release()											= 0;
 
 	/**
 	\brief Returns material table index of given triangle
@@ -239,62 +250,31 @@ class PxTriangleMesh : public PxRefCounted
 
 	\return	local-space bounds
 	*/
-	virtual	PxBounds3	getLocalBounds()	const	= 0;
+	virtual	PxBounds3				getLocalBounds()							const	= 0;
 
 	/**
-	\brief Returns the local-space Signed Distance Field for this mesh if it has one.
-	\return local-space SDF.
+	\brief Returns the reference count for shared meshes.
+
+	At creation, the reference count of the mesh is 1. Every shape referencing this mesh increments the
+	count by 1.	When the reference count reaches 0, and only then, the mesh gets destroyed automatically.
+
+	\return the current reference count.
 	*/
-	virtual const PxReal*	getSDF() const = 0;
+	virtual PxU32					getReferenceCount()							const	= 0;
 
 	/**
-	\brief Returns the resolution of the local-space dense SDF.
+	\brief Acquires a counted reference to a triangle mesh.
+
+	This method increases the reference count of the triangle mesh by 1. Decrement the reference count by calling release()
 	*/
-	virtual void getSDFDimensions(PxU32& numX, PxU32& numY, PxU32& numZ) const = 0;
-
-	/**
-	\brief Sets whether this mesh should be preferred for SDF projection.
-
-	By default, meshes are flagged as preferring projection and the decisions on which mesh to project is based on the triangle and vertex 
-	count. The model with the fewer triangles is projected onto the SDF of the more detailed mesh.
-	If one of the meshes is set to prefer SDF projection (default) and the other is set to not prefer SDF projection, model flagged as 
-	preferring SDF projection will be projected onto the model flagged as not preferring, regardless of the detail of the respective meshes.
-	Where both models are flagged as preferring no projection, the less detailed model will be projected as before.
-
-	\param[in] preferProjection Indicates if projection is preferred
-	*/
-	virtual void setPreferSDFProjection(bool preferProjection) = 0;
-
-	/**
-	\brief Returns whether this mesh prefers SDF projection.
-	\return whether this mesh prefers SDF projection.
-	*/
-	virtual bool getPreferSDFProjection() const = 0;
-
-	/**
-	\brief Returns the mass properties of the mesh assuming unit density.
-
-	The following relationship holds between mass and volume:
-
-		mass = volume * density
-
-	The mass of a unit density mesh is equal to its volume, so this function returns the volume of the mesh.
-
-	Similarly, to obtain the localInertia of an identically shaped object with a uniform density of d, simply multiply the
-	localInertia of the unit density mesh by d.
-
-	\param[out] mass The mass of the mesh assuming unit density.
-	\param[out] localInertia The inertia tensor in mesh local space assuming unit density.
-	\param[out] localCenterOfMass Position of center of mass (or centroid) in mesh local space.
-	*/
-	virtual	void getMassInformation(PxReal& mass, PxMat33& localInertia, PxVec3& localCenterOfMass)	const = 0;
+	virtual void					acquireReference()									= 0;
 
 protected:
-	PX_INLINE			PxTriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxRefCounted(concreteType, baseFlags)	{}
-	PX_INLINE			PxTriangleMesh(PxBaseFlags baseFlags) : PxRefCounted(baseFlags)										{}
-	virtual				~PxTriangleMesh() {}
+	PX_INLINE						PxTriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxBase(concreteType, baseFlags)	{}
+	PX_INLINE						PxTriangleMesh(PxBaseFlags baseFlags) : PxBase(baseFlags)										{}
+	virtual							~PxTriangleMesh() {}
 
-	virtual	bool		isKindOf(const char* name) const { return !::strcmp("PxTriangleMesh", name) || PxRefCounted::isKindOf(name); }
+	virtual	bool					isKindOf(const char* name) const { return !::strcmp("PxTriangleMesh", name) || PxBase::isKindOf(name); }
 };
 
 /**
@@ -302,16 +282,15 @@ protected:
 \brief A triangle mesh containing the PxMeshMidPhase::eBVH33 structure.
 
 @see PxMeshMidPhase
-@deprecated
 */
-class PX_DEPRECATED PxBVH33TriangleMesh : public PxTriangleMesh
+class PxBVH33TriangleMesh : public PxTriangleMesh
 {
 	public:
 protected:
-	PX_INLINE			PxBVH33TriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxTriangleMesh(concreteType, baseFlags) {}
-	PX_INLINE			PxBVH33TriangleMesh(PxBaseFlags baseFlags) : PxTriangleMesh(baseFlags) {}
-	virtual				~PxBVH33TriangleMesh() {}
-	virtual	bool		isKindOf(const char* name) const { return !::strcmp("PxBVH33TriangleMesh", name) || PxTriangleMesh::isKindOf(name); }
+	PX_INLINE						PxBVH33TriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxTriangleMesh(concreteType, baseFlags) {}
+	PX_INLINE						PxBVH33TriangleMesh(PxBaseFlags baseFlags) : PxTriangleMesh(baseFlags) {}
+	virtual							~PxBVH33TriangleMesh() {}
+	virtual	bool					isKindOf(const char* name) const { return !::strcmp("PxBVH33TriangleMesh", name) || PxTriangleMesh::isKindOf(name); }
 };
 
 /**
@@ -324,10 +303,10 @@ class PxBVH34TriangleMesh : public PxTriangleMesh
 {
 	public:
 protected:
-	PX_INLINE			PxBVH34TriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxTriangleMesh(concreteType, baseFlags) {}
-	PX_INLINE			PxBVH34TriangleMesh(PxBaseFlags baseFlags) : PxTriangleMesh(baseFlags) {}
-	virtual				~PxBVH34TriangleMesh() {}
-	virtual	bool		isKindOf(const char* name) const { return !::strcmp("PxBVH34TriangleMesh", name) || PxTriangleMesh::isKindOf(name); }
+	PX_INLINE						PxBVH34TriangleMesh(PxType concreteType, PxBaseFlags baseFlags) : PxTriangleMesh(concreteType, baseFlags) {}
+	PX_INLINE						PxBVH34TriangleMesh(PxBaseFlags baseFlags) : PxTriangleMesh(baseFlags) {}
+	virtual							~PxBVH34TriangleMesh() {}
+	virtual	bool					isKindOf(const char* name) const { return !::strcmp("PxBVH34TriangleMesh", name) || PxTriangleMesh::isKindOf(name); }
 };
 
 #if !PX_DOXYGEN

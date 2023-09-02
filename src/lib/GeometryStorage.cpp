@@ -276,7 +276,11 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	storage.m_triangleRangeDescriptor.push_back(triangleRange);
 	targetTriangleRange = triangleRange;
 
-	for (auto& i : storage.m_requireMeshDataDeviceUpdate) i = true;
+	for (int i = 0; i < storage.m_requireMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireMeshDataDeviceUpdate[i] = true;
+	}
+
 }
 
 void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices,
@@ -393,7 +397,10 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 	storage.m_skinnedTriangleRangeDescriptor.push_back(skinnedTriangleRange);
 	targetSkinnedTriangleRange = skinnedTriangleRange;
 
-	for (auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
+	for (int i = 0; i < storage.m_requireSkinnedMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireSkinnedMeshDataDeviceUpdate[i] = true;
+	}
 }
 
 void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints,
@@ -531,8 +538,10 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 	storage.m_segmentRangeDescriptor.push_back(segmentRange);
 	targetSegmentRange = segmentRange;
 
-
-	for (auto& i : storage.m_requireStrandMeshDataDeviceUpdate) i = true;
+	for (int i = 0; i < storage.m_requireStrandMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireStrandMeshDataDeviceUpdate[i] = true;
+	}
 }
 
 void GeometryStorage::FreeMesh(const Handle& handle)
@@ -599,7 +608,11 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	}
 	storage.m_triangleRangeDescriptor.erase(storage.m_triangleRangeDescriptor.begin() + triangleRangeDescriptorIndex);
 
-	for (auto& i : storage.m_requireMeshDataDeviceUpdate) i = true;
+
+	for (int i = 0; i < storage.m_requireMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireMeshDataDeviceUpdate[i] = true;
+	}
 }
 
 void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
@@ -667,7 +680,10 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 
 	storage.m_skinnedTriangleRangeDescriptor.erase(storage.m_skinnedTriangleRangeDescriptor.begin() + skinnedTriangleRangeDescriptorIndex);
 
-	for (auto& i : storage.m_requireSkinnedMeshDataDeviceUpdate) i = true;
+	for (int i = 0; i < storage.m_requireSkinnedMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireSkinnedMeshDataDeviceUpdate[i] = true;
+	}
 }
 
 void GeometryStorage::FreeStrands(const Handle& handle)
@@ -735,7 +751,10 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 	}
 	storage.m_segmentRangeDescriptor.erase(storage.m_segmentRangeDescriptor.begin() + segmentRangeDescriptorIndex);
 
-	for (auto& i : storage.m_requireStrandMeshDataDeviceUpdate) i = true;
+	for(int i = 0; i < storage.m_requireStrandMeshDataDeviceUpdate.size(); i++)
+	{
+		storage.m_requireStrandMeshDataDeviceUpdate[i] = true;
+	}
 }
 
 const Meshlet& GeometryStorage::PeekMeshlet(const uint32_t meshletIndex)

@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,18 +23,19 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
-#ifndef PX_PLANE_H
-#define PX_PLANE_H
+#ifndef PXFOUNDATION_PXPLANE_H
+#define PXFOUNDATION_PXPLANE_H
 
 /** \addtogroup foundation
 @{
 */
 
-#include "foundation/PxTransform.h"
+#include "foundation/PxMath.h"
+#include "foundation/PxVec3.h"
 
 #if !PX_DOXYGEN
 namespace physx
@@ -131,24 +133,6 @@ class PxPlane
 		d *= denom;
 	}
 
-	/**
-	\brief transform plane
-	*/
-	PX_CUDA_CALLABLE PX_FORCE_INLINE PxPlane transform(const PxTransform& pose) const
-	{
-		const PxVec3 transformedNormal = pose.rotate(n);
-		return PxPlane(transformedNormal, d - pose.p.dot(transformedNormal));
-	}
-
-	/**
-	\brief inverse-transform plane
-	*/
-	PX_CUDA_CALLABLE PX_FORCE_INLINE PxPlane inverseTransform(const PxTransform& pose) const
-	{
-		const PxVec3 transformedNormal = pose.rotateInv(n);
-		return PxPlane(transformedNormal, d + pose.p.dot(n));
-	}
-
 	PxVec3 n; //!< The normal to the plane
 	float d;  //!< The distance from the origin
 };
@@ -158,5 +142,4 @@ class PxPlane
 #endif
 
 /** @} */
-#endif
-
+#endif // #ifndef PXFOUNDATION_PXPLANE_H

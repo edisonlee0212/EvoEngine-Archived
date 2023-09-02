@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,15 +23,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
-#ifndef PX_STRIDE_ITERATOR_H
-#define PX_STRIDE_ITERATOR_H
+#ifndef PXFOUNDATION_PXSTRIDEITERATOR_H
+#define PXFOUNDATION_PXSTRIDEITERATOR_H
 
 #include "foundation/Px.h"
-#include "foundation/PxAssert.h"
+#include "foundation/PxSharedAssert.h"
 
 /** \addtogroup foundation
   @{
@@ -105,7 +106,7 @@ class PxStrideIterator
 	*/
 	explicit PX_INLINE PxStrideIterator(T* ptr = NULL, PxU32 stride = sizeof(T)) : mPtr(ptr), mStride(stride)
 	{
-		PX_ASSERT(mStride == 0 || sizeof(T) <= mStride);
+		PX_SHARED_ASSERT(mStride == 0 || sizeof(T) <= mStride);
 	}
 
 	/**
@@ -116,7 +117,7 @@ class PxStrideIterator
 	PX_INLINE PxStrideIterator(const PxStrideIterator<typename StripConst<T>::Type>& strideIterator)
 	: mPtr(strideIterator.ptr()), mStride(strideIterator.stride())
 	{
-		PX_ASSERT(mStride == 0 || sizeof(T) <= mStride);
+		PX_SHARED_ASSERT(mStride == 0 || sizeof(T) <= mStride);
 	}
 
 	/**
@@ -236,7 +237,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE int operator-(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		int byteDiff = static_cast<int>(reinterpret_cast<const PxU8*>(mPtr) - reinterpret_cast<const PxU8*>(other.mPtr));
 		return byteDiff / static_cast<int>(stride());
 	}
@@ -246,7 +247,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator==(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr == other.mPtr;
 	}
 
@@ -255,7 +256,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator!=(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr != other.mPtr;
 	}
 
@@ -264,7 +265,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator<(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr < other.mPtr;
 	}
 
@@ -273,7 +274,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator>(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr > other.mPtr;
 	}
 
@@ -282,7 +283,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator<=(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr <= other.mPtr;
 	}
 
@@ -291,7 +292,7 @@ class PxStrideIterator
 	*/
 	PX_INLINE bool operator>=(const PxStrideIterator& other) const
 	{
-		PX_ASSERT(isCompatible(other));
+		PX_SHARED_ASSERT(isCompatible(other));
 		return mPtr >= other.mPtr;
 	}
 
@@ -349,5 +350,4 @@ PX_INLINE PxStrideIterator<const T> PxMakeIterator(const T* ptr, PxU32 stride = 
 #endif
 
 /** @} */
-#endif
-
+#endif // PXFOUNDATION_PXSTRIDEITERATOR_H

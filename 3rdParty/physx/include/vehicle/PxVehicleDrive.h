@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 #ifndef PX_VEHICLE_DRIVE_H
 #define PX_VEHICLE_DRIVE_H
+/** \addtogroup vehicle
+  @{
+*/
 
 #include "vehicle/PxVehicleWheels.h"
 #include "vehicle/PxVehicleComponents.h"
@@ -49,7 +53,7 @@ class PxRigidDynamic;
 \brief Data structure describing non-wheel configuration data of a vehicle that has engine, gears, clutch, and auto-box.
 @see PxVehicleWheelsSimData for wheels configuration data.
 */
-class PX_DEPRECATED PxVehicleDriveSimData
+class PxVehicleDriveSimData
 {
 //= ATTENTION! =====================================================================================
 // Changing the data layout of this class breaks the binary serialization format.  See comments for 
@@ -164,7 +168,7 @@ PX_COMPILE_TIME_ASSERT(0==(sizeof(PxVehicleDriveSimData) & 15));
 \brief Data structure with instanced dynamics data for vehicle with engine, clutch, gears, autobox
 @see PxVehicleWheelsDynData for wheels dynamics data.
 */
-class PX_DEPRECATED PxVehicleDriveDynData
+class PxVehicleDriveDynData
 {
 public:
 	
@@ -489,7 +493,7 @@ PX_COMPILE_TIME_ASSERT(0==(sizeof(PxVehicleDriveDynData) & 15));
 \brief A complete vehicle with instance dynamics data and configuration data for wheels and engine,clutch,gears,autobox.
 @see PxVehicleDrive4W, PxVehicleDriveTank
 */
-class PX_DEPRECATED PxVehicleDrive : public PxVehicleWheels
+class PxVehicleDrive : public PxVehicleWheels
 {
 //= ATTENTION! =====================================================================================
 // Changing the data layout of this class breaks the binary serialization format.  See comments for 
@@ -557,4 +561,5 @@ PX_COMPILE_TIME_ASSERT(0==(sizeof(PxVehicleDrive) & 15));
 } // namespace physx
 #endif
 
-#endif
+/** @} */
+#endif //PX_VEHICLE_DRIVE_H

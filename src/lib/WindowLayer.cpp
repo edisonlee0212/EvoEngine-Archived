@@ -7,7 +7,7 @@ using namespace EvoEngine;
 
 void WindowLayer::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
-	const auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer->m_window == window)
 	{
 		windowLayer->m_windowSize = { width, height };
@@ -21,7 +21,7 @@ void WindowLayer::FramebufferSizeCallback(GLFWwindow* window, int width, int hei
 
 void WindowLayer::SetMonitorCallback(GLFWmonitor* monitor, int event)
 {
-	auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
 	if (event == GLFW_CONNECTED)
 	{
 		// The monitor was connected
@@ -47,7 +47,7 @@ void WindowLayer::SetMonitorCallback(GLFWmonitor* monitor, int event)
 
 void WindowLayer::WindowFocusCallback(GLFWwindow* window, int focused)
 {
-	auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto windowLayer = Application::GetLayer<WindowLayer>();
 	
 	if (focused)
 	{

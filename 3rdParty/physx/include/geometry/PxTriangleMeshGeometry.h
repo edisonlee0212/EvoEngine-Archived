@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_TRIANGLE_MESH_GEOMETRY_H
-#define PX_TRIANGLE_MESH_GEOMETRY_H
+
+#ifndef PX_PHYSICS_NX_TRIANGLEMESH_GEOMETRY
+#define PX_PHYSICS_NX_TRIANGLEMESH_GEOMETRY
 /** \addtogroup geomutils
 @{
 */
@@ -42,6 +44,7 @@ namespace physx
 
 class PxTriangleMesh;
 
+
 /**
 \brief Flags controlling the simulated behavior of the triangle mesh geometry.
 
@@ -51,7 +54,6 @@ struct PxMeshGeometryFlag
 {
 	enum Enum
 	{
-		eTIGHT_BOUNDS = (1<<0),	//!< Use tighter (but more expensive to compute) bounds around the triangle mesh geometry.
 		eDOUBLE_SIDED = (1<<1)	//!< Meshes with this flag set are treated as double-sided.
 								//!< This flag is currently only used for raycasts and sweeps (it is ignored for overlap queries).
 								//!< For detailed specifications of this flag for meshes and heightfields please refer to the Geometry Query section of the user guide.
@@ -75,49 +77,36 @@ lets the combined object be used anywhere a PxGeometry is needed.
 The scaling is a transform along arbitrary axes contained in the scale object.
 The vertices of the mesh in geometry (or shape) space is the 
 PxMeshScale::toMat33() transform, multiplied by the vertex space vertices 
-in the PxTriangleMeshGeometry object.
+in the PxConvexMesh object.
 */
 class PxTriangleMeshGeometry : public PxGeometry 
 {
 public:
 	/**
-	\brief Constructor. By default creates an empty object with a NULL mesh and identity scale.
+	\brief Default constructor.
 
+	Creates an empty object with a NULL mesh and identity scale.
+	*/
+	PX_INLINE PxTriangleMeshGeometry() : 
+		PxGeometry	(PxGeometryType::eTRIANGLEMESH), 
+		triangleMesh(NULL)
+	{}
+
+	/**
+	\brief Constructor.
 	\param[in] mesh		Mesh pointer. May be NULL, though this will not make the object valid for shape construction.
 	\param[in] scaling	Scale factor.
 	\param[in] flags	Mesh flags.
+	\
 	*/
-	PX_INLINE PxTriangleMeshGeometry(	PxTriangleMesh* mesh = NULL,
-										const PxMeshScale& scaling = PxMeshScale(),
+	PX_INLINE PxTriangleMeshGeometry(	PxTriangleMesh* mesh, 
+										const PxMeshScale& scaling = PxMeshScale(), 
 										PxMeshGeometryFlags flags = PxMeshGeometryFlags()) :
-		PxGeometry	(PxGeometryType::eTRIANGLEMESH),
-		scale		(scaling),
-		meshFlags	(flags),
-		triangleMesh(mesh)
+		PxGeometry	(PxGeometryType::eTRIANGLEMESH), 
+		scale		(scaling), 
+		meshFlags	(flags), 
+		triangleMesh(mesh) 
 	{}
-
-	/**
-	\brief Copy constructor.
-
-	\param[in] that		Other object
-	*/
-	PX_INLINE PxTriangleMeshGeometry(const PxTriangleMeshGeometry& that) :
-		PxGeometry	(that),
-		scale		(that.scale),
-		meshFlags	(that.meshFlags),
-		triangleMesh(that.triangleMesh)
-	{}
-
-	/**
-	\brief Assignment operator
-	*/
-	PX_INLINE void operator=(const PxTriangleMeshGeometry& that)
-	{
-		mType = that.mType;
-		scale = that.scale;
-		meshFlags = that.meshFlags;
-		triangleMesh = that.triangleMesh;
-	}
 
 	/**
 	\brief Returns true if the geometry is valid.
@@ -137,6 +126,7 @@ public:
 	PxPadding<3>		paddingFromFlags;	//!< padding for mesh flags
 	PxTriangleMesh*		triangleMesh;		//!< A reference to the mesh object.
 };
+
 
 PX_INLINE bool PxTriangleMeshGeometry::isValid() const
 {

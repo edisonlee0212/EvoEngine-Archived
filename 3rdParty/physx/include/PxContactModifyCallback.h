@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_CONTACT_MODIFY_CALLBACK_H
-#define PX_CONTACT_MODIFY_CALLBACK_H
+
+#ifndef PX_CONTACT_MODIFY_CALLBACK
+#define PX_CONTACT_MODIFY_CALLBACK
 /** \addtogroup physics
 @{
 */
@@ -61,8 +63,6 @@ class PxContactSet
 public:
 	/**
 	\brief Get the position of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return Position to the requested point in world space
 
 	@see PxModifiableContact.point
 	*/
@@ -70,8 +70,6 @@ public:
 
 	/**
 	\brief Alter the position of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] p The new position in world space
 
 	@see PxModifiableContact.point
 	*/
@@ -79,8 +77,6 @@ public:
 
 	/**
 	\brief Get the contact normal of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The requested normal in world space
 
 	@see PxModifiableContact.normal
 	*/
@@ -88,8 +84,6 @@ public:
 
 	/**
 	\brief Alter the contact normal of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] n The new normal in world space
 
 	\note Changing the normal can cause contact points to be ignored.
 
@@ -103,9 +97,7 @@ public:
 	}
 
 	/**
-	\brief Get the separation distance of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The separation. Negative implies penetration.
+	\brief Get the separation of a specific contact point in the set.
 
 	@see PxModifiableContact.separation
 	*/
@@ -113,8 +105,6 @@ public:
 
 	/**
 	\brief Alter the separation of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] s The new separation
 
 	@see PxModifiableContact.separation
 	*/
@@ -122,8 +112,6 @@ public:
 
 	/**
 	\brief Get the target velocity of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The target velocity in world frame
 
 	@see PxModifiableContact.targetVelocity
 
@@ -132,8 +120,6 @@ public:
 
 	/**
 	\brief Alter the target velocity of a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] v The new velocity in world frame
 
 	@see PxModifiableContact.targetVelocity
 	*/
@@ -146,9 +132,6 @@ public:
 
 	/**
 	\brief Get the face index with respect to the first shape of the pair for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The face index of the first shape
-	\note At the moment, the first shape is never a tri-mesh, therefore this function always returns PXC_CONTACT_NO_FACE_INDEX
 
 	@see PxModifiableContact.internalFaceIndex0
 	*/
@@ -156,8 +139,6 @@ public:
 
 	/**
 	\brief Get the face index with respect to the second shape of the pair for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The face index of the second shape
 
 	@see PxModifiableContact.internalFaceIndex1
 	*/
@@ -173,8 +154,6 @@ public:
 
 	/**
 	\brief Get the maximum impulse for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The maximum impulse
 
 	@see PxModifiableContact.maxImpulse
 	*/
@@ -182,14 +161,12 @@ public:
 
 	/**
 	\brief Alter the maximum impulse for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] s The new maximum impulse
 
 	\note Must be nonnegative. If set to zero, the contact point will be ignored
 
-	@see PxModifiableContact.maxImpulse, ignore()
+	@see PxModifiableContact.maxImpulse
 	*/
-	PX_FORCE_INLINE		void setMaxImpulse(PxU32 i, PxReal s)
+	PX_FORCE_INLINE		void setMaxImpulse(PxU32 i, PxReal s)			
 	{
 		PxContactPatch* patch = getPatch();
 		patch->internalFlags |= PxContactPatch::eHAS_MAX_IMPULSE;
@@ -198,8 +175,6 @@ public:
 
 	/**
 	\brief Get the restitution coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The restitution coefficient
 
 	@see PxModifiableContact.restitution
 	*/
@@ -207,14 +182,12 @@ public:
 
 	/**
 	\brief Alter the restitution coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] r The new restitution coefficient
 
 	\note Valid ranges [0,1]
 
 	@see PxModifiableContact.restitution
 	*/
-	PX_FORCE_INLINE		void setRestitution(PxU32 i, PxReal r)
+	PX_FORCE_INLINE		void setRestitution(PxU32 i, PxReal r)		
 	{
 		PxContactPatch* patch = getPatch();
 		patch->internalFlags |= PxContactPatch::eREGENERATE_PATCHES;
@@ -223,8 +196,6 @@ public:
 
 	/**
 	\brief Get the static friction coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The friction coefficient (dimensionless)
 
 	@see PxModifiableContact.staticFriction
 	*/
@@ -232,8 +203,6 @@ public:
 
 	/**
 	\brief Alter the static friction coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] f The new friction coefficient (dimensionless), range [0, inf]
 
 	@see PxModifiableContact.staticFriction
 	*/
@@ -246,8 +215,6 @@ public:
 
 	/**
 	\brief Get the static friction coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\return The friction coefficient
 
 	@see PxModifiableContact.dynamicFriction
 	*/
@@ -255,10 +222,8 @@ public:
 
 	/**
 	\brief Alter the static dynamic coefficient for a specific contact point in the set.
-	\param[in] i Index of the point in the set
-	\param[in] f The new friction coefficient
 
-	@see PxModifiableContact.dynamicFriction
+	@see PxModifiableContact.dynamic
 	*/
 	PX_FORCE_INLINE		void setDynamicFriction(PxU32 i, PxReal f) 
 	{
@@ -269,7 +234,6 @@ public:
 
 	/**
 	\brief Ignore the contact point.
-	\param[in] i Index of the point in the set
 
 	If a contact point is ignored then no force will get applied at this point. This can be used to disable collision in certain areas of a shape, for example.
 	*/
@@ -330,7 +294,6 @@ public:
 
 	/**
 	\brief Sets the invMassScale of body 0
-	\param[in] scale The new scale
 
 	This can be set to any value in the range [0, PX_MAX_F32). A value < 1.0 makes this contact treat the body as if it had larger mass. A value of 0.f makes this contact
 	treat the body as if it had infinite mass. Any value > 1.f makes this contact treat the body as if it had smaller mass.
@@ -344,7 +307,6 @@ public:
 
 	/**
 	\brief Sets the invMassScale of body 1
-	\param[in] scale The new scale
 
 	This can be set to any value in the range [0, PX_MAX_F32). A value < 1.0 makes this contact treat the body as if it had larger mass. A value of 0.f makes this contact
 	treat the body as if it had infinite mass. Any value > 1.f makes this contact treat the body as if it had smaller mass.
@@ -358,7 +320,6 @@ public:
 
 	/**
 	\brief Sets the invInertiaScale of body 0
-	\param[in] scale The new scale
 
 	This can be set to any value in the range [0, PX_MAX_F32). A value < 1.0 makes this contact treat the body as if it had larger inertia. A value of 0.f makes this contact
 	treat the body as if it had infinite inertia. Any value > 1.f makes this contact treat the body as if it had smaller inertia.
@@ -372,7 +333,6 @@ public:
 
 	/**
 	\brief Sets the invInertiaScale of body 1
-	\param[in] scale The new scale
 
 	This can be set to any value in the range [0, PX_MAX_F32). A value < 1.0 makes this contact treat the body as if it had larger inertia. A value of 0.f makes this contact
 	treat the body as if it had infinite inertia. Any value > 1.f makes this contact treat the body as if it had smaller inertia.
@@ -413,13 +373,14 @@ public:
 	
 	Note that these are the actors as seen by the simulation, and may have been deleted since the simulation step started.
 	*/
-	const PxRigidActor*		actor[2];
 
+	const PxRigidActor*		actor[2];
 	/**
 	\brief The shapes which make up the pair in contact. 
 	
 	Note that these are the shapes as seen by the simulation, and may have been deleted since the simulation step started.
 	*/
+	
 	const PxShape*			shape[2];
 
 	/**
@@ -427,12 +388,15 @@ public:
 	
 	These are the transforms as the simulation engine sees them, and may have been modified by the application
 	since the simulation step started.
+	
 	*/
+
 	PxTransform 			transform[2];
 
 	/**
 	\brief An array of contact points between these two shapes.
 	*/
+
 	PxContactSet			contacts;
 };
 
@@ -462,13 +426,10 @@ public:
 	/**
 	\brief Passes modifiable arrays of contacts to the application.
 
-	The initial contacts are regenerated from scratch each frame by collision detection.
+	The initial contacts are as determined fresh each frame by collision detection.
 	
 	The number of contacts can not be changed, so you cannot add your own contacts.  You may however
 	disable contacts using PxContactSet::ignore().
-
-	\param[in,out] pairs The contact pairs that may be modified
-	\param[in] count Number of contact pairs
 
 	@see PxContactModifyPair
 	*/
@@ -503,13 +464,12 @@ public:
 	/**
 	\brief Passes modifiable arrays of contacts to the application.
 
-	The initial contacts are regenerated from scratch each frame by collision detection.
-
+	The initial contacts are as determined fresh each frame by collision detection.
+	
 	The number of contacts can not be changed, so you cannot add your own contacts.  You may however
 	disable contacts using PxContactSet::ignore().
 
-	\param[in,out] pairs The contact pairs that may be modified
-	\param[in] count Number of contact pairs
+	@see PxContactModifyPair
 	*/
 	virtual void onCCDContactModify(PxContactModifyPair* const pairs, PxU32 count) = 0;
 

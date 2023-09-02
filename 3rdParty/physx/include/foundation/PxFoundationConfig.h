@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,12 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
-#ifndef PX_FOUNDATION_CONFIG_H
-#define PX_FOUNDATION_CONFIG_H
+#ifndef PX_FOUNDATION_PX_FOUNDATION_CONFIG_H
+#define PX_FOUNDATION_PX_FOUNDATION_CONFIG_H
 
 #include "foundation/PxPreprocessor.h"
 
@@ -38,7 +39,7 @@
 #if defined PX_PHYSX_STATIC_LIB
 	#define PX_FOUNDATION_API
 #else
-	#if PX_WINDOWS_FAMILY && !defined(__CUDACC__)
+	#if (PX_WINDOWS_FAMILY || PX_XBOXONE || PX_PS4 || PX_XBOX_SERIES_X) && !defined(__CUDACC__)
 		#if defined PX_PHYSX_FOUNDATION_EXPORTS
 			#define PX_FOUNDATION_API __declspec(dllexport)
 		#else
@@ -53,4 +54,4 @@
 
 
 /** @} */
-#endif 
+#endif // PX_FOUNDATION_PX_ASSERT_H

@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_FILTERING_H
-#define PX_FILTERING_H
+
+#ifndef PX_PHYSICS_NX_FILTERING
+#define PX_PHYSICS_NX_FILTERING
 /** \addtogroup physics
 @{
 */
@@ -457,40 +459,14 @@ struct PxFilterObjectType
 
 		/**
 		\brief An articulation
-		@see PxArticulationReducedCoordinate
+		@see PxArticulation
 		*/
 		eARTICULATION,
 
-		/**
-		\brief A particle system
-		@see PxParticleSystem
-		*/
-		ePARTICLESYSTEM,
-
-		/**
-		\brief A FEM-based soft body
-		@see PxSoftBody
-		*/
-		eSOFTBODY,
-
-		/**
-		\brief A FEM-based cloth
-		\note In development
-		@see PxFEMCloth
-		*/
-		eFEMCLOTH,
-
-		/**
-		\brief A hair system
-		\note In development
-		@see PxHairSystem
-		*/
-		eHAIRSYSTEM,
-
-		//! \brief internal use only!
+		//brief internal use only!
 		eMAX_TYPE_COUNT = 16,
 
-		//! \brief internal use only!
+		//brief internal use only!
 		eUNDEFINED = eMAX_TYPE_COUNT-1
 	};
 };
@@ -556,17 +532,25 @@ PX_INLINE bool PxFilterObjectIsTrigger(PxFilterObjectAttributes attr)
 	return (attr & PxFilterObjectFlag::eTRIGGER) != 0;
 }
 
+
 /**
-\brief Filter method to specify how a pair of potentially colliding objects should be processed.
+\brief Filter shader to specify handling of collision pairs.
 
 Collision filtering is a mechanism to specify how a pair of potentially colliding objects should be processed by the
 simulation. A pair of objects is potentially colliding if the bounding volumes of the two objects overlap.
 In short, a collision filter decides whether a collision pair should get processed, temporarily ignored or discarded.
 If a collision pair should get processed, the filter can additionally specify how it should get processed, for instance,
 whether contacts should get resolved, which callbacks should get invoked or which reports should be sent etc.
-The function returns the PxFilterFlag flags and sets the PxPairFlag flags to define what the simulation should do with the given collision pair.
 
 \note A default implementation of a filter shader is provided in the PhysX extensions library, see #PxDefaultSimulationFilterShader.
+
+@see PxSceneDesc.filterShader PxSimulationFilterCallback
+*/
+
+/**
+\brief Filter method to specify how a pair of potentially colliding objects should be processed.
+
+Return the PxFilterFlag flags and set the PxPairFlag flags to define what the simulation should do with the given collision pair.
 
 This methods gets called when:
 \li The bounding volumes of two objects start to overlap.
@@ -598,8 +582,9 @@ logic to filter a collision pair then use the filter callback mechanism for this
 \return Filter flags defining whether the pair should be discarded, temporarily ignored, processed and whether the
 filter callback should get invoked for this pair.
 
-@see PxSimulationFilterCallback PxFilterData PxFilterObjectAttributes PxFilterFlag PxFilterFlags PxPairFlag PxPairFlags PxSceneDesc.filterShader
+@see PxSimulationFilterCallback PxFilterData PxFilterObjectAttributes PxFilterFlag PxFilterFlags PxPairFlag PxPairFlags
 */
+
 typedef PxFilterFlags (*PxSimulationFilterShader)
 	(PxFilterObjectAttributes attributes0, PxFilterData filterData0, 
 	 PxFilterObjectAttributes attributes1, PxFilterData filterData1,
@@ -716,7 +701,7 @@ struct PxPairFilteringMode
 	enum Enum
 	{
 		/**
-		\brief Output pair from BP, potentially send to user callbacks, create regular interaction object.
+		Output pair from BP, potentially send to user callbacks, create regular interaction object.
 
 		Enable contact pair filtering between kinematic/static or kinematic/kinematic rigid bodies.
 		
@@ -728,52 +713,20 @@ struct PxPairFilteringMode
 		eKEEP,
 
 		/**
-		\brief Output pair from BP, create interaction marker. Can be later switched to regular interaction.
+		Output pair from BP, create interaction marker. Can be later switched to regular interaction.
 		*/
 		eSUPPRESS,
 
 		/**
-		\brief Don't output pair from BP. Cannot be later switched to regular interaction, needs "resetFiltering" call.
+		Don't output pair from BP. Cannot be later switched to regular interaction, needs "resetFiltering" call.
 		*/
 		eKILL,
 
 		/**
-		\brief Default is eSUPPRESS for compatibility with previous PhysX versions.
+		Default is eSUPPRESS for compatibility with previous PhysX versions.
 		*/
 		eDEFAULT = eSUPPRESS
 	};
-};
-
-/**
-\brief Struct for storing a particle/vertex - rigid filter pair with comparison operators
-*/
-struct PxParticleRigidFilterPair
-{
-	PxU64 mID0; //!< Rigid node index
-	PxU64 mID1; //!< Particle/vertex id
-
-	PX_CUDA_CALLABLE bool operator<(const PxParticleRigidFilterPair& other) const
-	{
-		if(mID0 < other.mID0)
-			return true;
-		if(mID0 == other.mID0 && mID1 < other.mID1)
-			return true;
-		return false;
-	}
-
-	PX_CUDA_CALLABLE bool operator>(const PxParticleRigidFilterPair& other) const
-	{
-		if(mID0 > other.mID0)
-			return true;
-		if(mID0 == other.mID0 && mID1 > other.mID1)
-			return true;
-		return false;
-	}
-
-	PX_CUDA_CALLABLE bool operator==(const PxParticleRigidFilterPair& other) const
-	{
-		return (mID0 == other.mID0 && mID1 == other.mID1);
-	}
 };
 
 

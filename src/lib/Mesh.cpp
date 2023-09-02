@@ -356,7 +356,10 @@ void ParticleInfoList::UploadData(const bool force)
 
 void ParticleInfoList::SetPendingUpdate()
 {
-	for (auto& i : m_pendingUpdate) i = true;
+	for (int i = 0; i < m_pendingUpdate.size(); i++)
+	{
+		m_pendingUpdate[i] = true;
+	}
 }
 
 ParticleInfoList::ParticleInfoList()

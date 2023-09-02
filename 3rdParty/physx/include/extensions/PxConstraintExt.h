@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_CONSTRAINT_EXT_H
-#define PX_CONSTRAINT_EXT_H
+
+#ifndef PX_PHYSICS_EXTENSIONS_CONSTRAINT_H
+#define PX_PHYSICS_EXTENSIONS_CONSTRAINT_H
 
 #include "foundation/PxPreprocessor.h"
 
@@ -53,9 +55,8 @@ struct PxConstraintExtIDs
 	enum Enum
 	{
 		eJOINT,
-		eVEHICLE_SUSP_LIMIT_DEPRECATED,
-		eVEHICLE_STICKY_TYRE_DEPRECATED,
-		eVEHICLE_JOINT,
+		eVEHICLE_SUSP_LIMIT,
+		eVEHICLE_STICKY_TYRE,
 		eNEXT_FREE_ID,
 		eINVALID_ID = 0x7fffffff
 	};

@@ -27,7 +27,6 @@
 #include <utility>
 #include <vector>
 #include <unordered_set>
-
 #include "Math.hpp"
 
 // OpenGL and Vulkan
@@ -71,7 +70,7 @@
 #include <stb_image_write.h>
 
 #include <yaml-cpp/yaml.h>
-
+#include "xmmintrin.h"
 #ifdef _DEBUG
 #undef _DEBUG
 #define DEBUG_WAS_DEFINED

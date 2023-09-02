@@ -1,3 +1,4 @@
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
 // are met:
@@ -22,12 +23,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Copyright (c) 2008-2023 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2021 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
-#ifndef PX_VEHICLE_UTIL_H
-#define PX_VEHICLE_UTIL_H
+#ifndef PX_VEHICLE_UTILHELPER_H
+#define PX_VEHICLE_UTILHELPER_H
+/** \addtogroup vehicle
+  @{
+*/
 
 #include "foundation/Px.h"
 
@@ -50,10 +54,11 @@ that wheels disabled more recently than the last call to PxVehicleUpdates report
 
 \return True if the vehicle is in the air, false if any wheel is touching the ground.
 */
-PX_DEPRECATED bool PxVehicleIsInAir(const PxVehicleWheelQueryResult& vehWheelQueryResults);
+bool PxVehicleIsInAir(const PxVehicleWheelQueryResult& vehWheelQueryResults);
 
 #if !PX_DOXYGEN
 } // namespace physx
 #endif
 
-#endif
+/** @} */
+#endif //PX_VEHICLE_UTILHELPER_H

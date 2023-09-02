@@ -12,30 +12,30 @@ void TextureStorage::DeviceSync()
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	uint32_t currentArrayIndex = 0;
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	for (auto& i : storage.m_texture2DPendingUpdates[currentFrameIndex])
+	for (int i = 0; i < storage.m_texture2DPendingUpdates[currentFrameIndex].size(); i++)
 	{
-		if (i)
+		if (storage.m_texture2DPendingUpdates[currentFrameIndex][i])
 		{
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.imageLayout = storage.m_texture2Ds[currentArrayIndex]->GetLayout();
 			imageInfo.imageView = storage.m_texture2Ds[currentArrayIndex]->GetVkImageView();
 			imageInfo.sampler = storage.m_texture2Ds[currentArrayIndex]->GetVkSampler();
 			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, currentArrayIndex);
-			i = false;
+			storage.m_texture2DPendingUpdates[currentFrameIndex][i] = false;
 		}
 		currentArrayIndex++;
 	}
 	currentArrayIndex = 0;
-	for (auto& i : storage.m_cubemapPendingUpdates[currentFrameIndex])
+	for (int i = 0; i < storage.m_cubemapPendingUpdates[currentFrameIndex].size(); i++)
 	{
-		if (i)
+		if (storage.m_cubemapPendingUpdates[currentFrameIndex][i])
 		{
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.imageLayout = storage.m_cubemaps[currentArrayIndex]->m_image->GetLayout();
 			imageInfo.imageView = storage.m_cubemaps[currentArrayIndex]->m_imageView->GetVkImageView();
 			imageInfo.sampler = storage.m_cubemaps[currentArrayIndex]->m_sampler->GetVkSampler();
 			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, currentArrayIndex);
-			i = false;
+			storage.m_cubemapPendingUpdates[currentFrameIndex][i] = false;
 		}
 		currentArrayIndex++;
 	}
