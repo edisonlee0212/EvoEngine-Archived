@@ -139,7 +139,7 @@ if (WIN32)
             NOMINMAX
             USE_ASSIMP
             )
-elseif (UNIX AND NOT APPLE)
+else()
     # Linker and compiler settings for Linux platform
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
         file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
@@ -161,7 +161,6 @@ elseif (UNIX AND NOT APPLE)
             m
             ${PHYSX_LIBS}
             )
-elseif (APPLE)
 endif ()
 
 # ------------------------------------------------------------------
