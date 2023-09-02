@@ -583,7 +583,6 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 					glm::mat4 shadowMatrix = lightProjection * lightView;
 					glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 					shadowOrigin = shadowMatrix * shadowOrigin;
-					GLfloat storedW = shadowOrigin.w;
 					shadowOrigin = shadowOrigin * static_cast<float>(m_directionalLightInfoBlocks[blockIndex].m_viewPort.z) / 2.0f;
 					glm::vec4 roundedOrigin = glm::round(shadowOrigin);
 					glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
