@@ -212,6 +212,7 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_EXAMPL
     file(GLOB PLANET_SOURCES_LOCAL "src/core/Planet/*.cpp")
     file(GLOB STAR_CLUSTER_SOURCES_LOCAL "src/core/StarCluster/*.cpp")
     add_library(examples-core
+            STATIC
             ${PLANET_SOURCES_LOCAL}
             ${STAR_CLUSTER_SOURCES_LOCAL}
             )
