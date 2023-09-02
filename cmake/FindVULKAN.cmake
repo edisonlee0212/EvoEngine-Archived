@@ -41,7 +41,7 @@ if( VULKAN_ROOT )
 endif()
 
 # Search for the header
-FIND_PATH(Vulkan_INCLUDE_DIR "vulkan/vulkan.h"
+FIND_PATH(Vulkan_INCLUDE_DIRS "vulkan/vulkan.h"
 PATHS ${_vulkan_HEADER_SEARCH_DIRS} )
 
 # Search for the library
