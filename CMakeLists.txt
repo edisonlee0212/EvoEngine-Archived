@@ -154,7 +154,6 @@ else()
     endif ()
     target_link_libraries(evoengine
             ${VULKAN_LIBRARY}
-            m
             stdc++
             glfw
             dl
@@ -166,6 +165,7 @@ else()
             assimp
             shaderc
             ${PHYSX_LIBS}
+            m
             )
 endif ()
 
@@ -183,7 +183,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL MSVC)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     message(STATUS "Setting Clang flags")
     # Activate all clang warnings except those that don't really affect much
-    target_compile_options(evoengine PRIVATE -lm -fPIC -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-newline-eof -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-constant-conversion)
+    target_compile_options(evoengine PRIVATE -fPIC -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-newline-eof -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-constant-conversion)
 endif ()
 
 # ------------------------------------------------------------------
