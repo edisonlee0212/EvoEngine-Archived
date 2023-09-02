@@ -606,7 +606,7 @@ void Buffer::Allocate(VkBufferCreateInfo bufferCreateInfo,
 	vkExternalMemBufferCreateInfo.handleTypes =
 		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 #else
-	vkExternalMemImageCreateInfo.handleTypes =
+	vkExternalMemBufferCreateInfo.handleTypes =
 		VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
 #endif
 
