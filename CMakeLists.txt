@@ -151,7 +151,7 @@ elseif (UNIX AND NOT APPLE)
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
-            Vulkan::vulkan
+            vulkan
             glfw
             dl
             X11
