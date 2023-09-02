@@ -262,7 +262,7 @@ namespace EvoEngine
 	template <typename T>
 	void Buffer::Download(const T& data)
 	{
-		Download(sizeof(T), static_cast<const void*>(&data));
+		DownloadData(sizeof(T), static_cast<const void*>(&data));
 	}
 
 	class Sampler final : public IGraphicsResource
