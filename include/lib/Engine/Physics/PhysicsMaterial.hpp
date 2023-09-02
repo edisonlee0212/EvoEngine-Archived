@@ -1,4 +1,5 @@
 #pragma once
+#ifdef EVOENGINE_PHYSICSLAYER
 #include "Entities.hpp"
 #include "IAsset.hpp"
 
@@ -26,3 +27,4 @@ class PhysicsMaterial : public IAsset
     void Deserialize(const YAML::Node &in) override;
 };
 } // namespace EvoEngine
+#endif

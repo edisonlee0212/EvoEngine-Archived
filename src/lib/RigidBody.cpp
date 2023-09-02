@@ -1,3 +1,4 @@
+#ifdef EVOENGINE_PHYSICSLAYER
 #include "Application.hpp"
 #include "PhysicsLayer.hpp"
 #include "RigidBody.hpp"
@@ -466,3 +467,4 @@ void RigidBody::AddTorque(const glm::vec3 &torque)
     auto pxTorque = PxVec3(torque.x, torque.y, torque.z);
     rigidBody->addTorque(pxTorque, PxForceMode::eFORCE);
 }
+#endif

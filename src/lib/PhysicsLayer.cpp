@@ -1,3 +1,4 @@
+#ifdef EVOENGINE_PHYSICSLAYER
 #include "Joint.hpp"
 #include "Application.hpp"
 #include "ProjectManager.hpp"
@@ -500,3 +501,4 @@ PhysicsScene::~PhysicsScene()
 {
     PX_RELEASE(m_physicsScene);
 }
+#endif

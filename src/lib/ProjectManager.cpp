@@ -709,9 +709,9 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		scene->m_mainCamera = mainCameraComponent;
 		mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
 #pragma endregion
-		
+#ifdef EVOENGINE_PHYSICSLAYER
 		if(Application::GetLayer<PhysicsLayer>()) scene->GetOrCreateSystem<PhysicsSystem>(SystemGroup::SimulationSystemGroup);
-
+#endif
 		if (projectManager.m_newSceneCustomizer.has_value())
 			projectManager.m_newSceneCustomizer.value()(scene);
 	}

@@ -11,6 +11,7 @@ include(GenerateExportHeader)
 # ------------------------------------------------------------------
 # Options
 # ------------------------------------------------------------------
+option(EVOENGINE_ENABLE_PHYSX "Enable PhysX" OFF)
 option(EVOENGINE_BUILD_EXAMPLES "Build EvoEngine Examples" OFF)
 
 # ------------------------------------------------------------------
@@ -43,7 +44,9 @@ set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 add_subdirectory(${3RD_PARTY_DIR})
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
-
+if (EVOENGINE_ENABLE_PHYSX)
+    set(PHYSX_COMPILE_OPTION EVOENGINE_PHYSICSLAYER)
+endif()
 # ------------------------------------------------------------------
 # EvoEngine - sources
 # ------------------------------------------------------------------
@@ -103,12 +106,13 @@ target_link_libraries(evoengine
         GPUOpen::VulkanMemoryAllocator
         )
 
-
+        
 target_compile_definitions(evoengine
         PRIVATE
         ${EVOENGINE_INTERNALS_DEF}
         ${EVOENGINE_DEFAULT_PROJECT_DEF}
         ${EVOENGINE_DEBUG_STATUS}
+        ${PHYSX_COMPILE_OPTION}
         )
 if (WIN32)
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")

@@ -44,7 +44,7 @@ void EditorLayer::OnCreate()
 		bool reload = previousEntity != entity;
 		bool readOnly = false;
 		auto scene = Application::GetActiveScene();
-		
+#ifdef EVOENGINE_PHYSICSLAYER
 		if (Application::IsPlaying() && scene->HasPrivateComponent<RigidBody>(entity)) {
 			const auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(entity).lock();
 			if (!rigidBody->IsKinematic() && rigidBody->Registered()) {
@@ -52,7 +52,7 @@ void EditorLayer::OnCreate()
 				readOnly = true;
 			}
 		}
-		
+#endif
 		if (reload) {
 			previousEntity = entity;
 			ltp->Decompose(m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);

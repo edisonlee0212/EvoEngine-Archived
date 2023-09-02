@@ -1,4 +1,6 @@
 #pragma once
+
+#ifdef EVOENGINE_PHYSICSLAYER
 #include "RigidBody.hpp"
 
 #include "PrivateComponentRef.hpp"
@@ -117,3 +119,5 @@ class Joint : public IPrivateComponent
     void Deserialize(const YAML::Node &in) override;
 };
 } // namespace EvoEngine
+
+#endif

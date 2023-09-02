@@ -1,3 +1,4 @@
+#ifdef EVOENGINE_PHYSICSLAYER
 #include "Joint.hpp"
 #include "EditorLayer.hpp"
 #include "RigidBody.hpp"
@@ -375,3 +376,4 @@ void Joint::Link(const Entity &entity, bool reverse)
         Unlink();
     }
 }
+#endif

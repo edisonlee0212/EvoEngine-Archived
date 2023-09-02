@@ -63,7 +63,9 @@ Entity CreateSphere(
 	const float& scale,
 	const std::string& name);
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
+#ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
+#endif
 #pragma endregion
 enum class DemoSetup
 {
@@ -73,17 +75,18 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	bool enablePhysics = false;
 	DemoSetup demoSetup = DemoSetup::Empty;
 	Application::PushLayer<WindowLayer>();
-	if(enablePhysics) Application::PushLayer<PhysicsLayer>();
+#ifdef EVOENGINE_PHYSICSLAYER
+	Application::PushLayer<PhysicsLayer>();
+#endif
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
 	const std::filesystem::path resourceFolderPath("../../../Resources");
 #pragma region Demo scene setup
 	if (demoSetup != DemoSetup::Empty) {
-		
+
 
 		for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
 		{
@@ -123,12 +126,12 @@ int main() {
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 				LoadScene(scene, "Rendering Demo");
-				if (enablePhysics){
-					const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
-					Transform physicsDemoTransform;
-					physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-					scene->SetDataComponent(physicsDemo, physicsDemoTransform);
-				}
+#ifdef EVOENGINE_PHYSICSLAYER
+				const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
+				Transform physicsDemoTransform;
+				physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
+				scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+#endif
 #pragma region Dynamic Lighting
 				const auto dirLightEntity = scene->CreateEntity("Directional Light");
 				const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -427,7 +430,7 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 
 	return baseEntity;
 }
-
+#ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
 {
 	const auto baseEntity = scene->CreateEntity(baseEntityName);
@@ -677,3 +680,5 @@ Entity CreateSphere(
 }
 
 #pragma endregion
+
+#endif

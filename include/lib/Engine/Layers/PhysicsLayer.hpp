@@ -1,4 +1,6 @@
 #pragma once
+
+#ifdef EVOENGINE_PHYSICSLAYER
 #include <ILayer.hpp>
 #include <Joint.hpp>
 #include <PhysicsMaterial.hpp>
@@ -158,3 +160,4 @@ class PhysicsSystem : public ISystem
     void Simulate(float time) const;
 };
 } // namespace EvoEngine
+#endif
