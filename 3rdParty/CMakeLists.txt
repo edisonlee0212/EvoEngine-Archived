@@ -87,8 +87,8 @@ set(LOCAL_IMGUIZMO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo)
 
 if (WIN32)
     set(IMGUI_BACKENDS ${LOCAL_IMGUI_DIR}/backends/imgui_impl_win32.cpp ${LOCAL_IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${LOCAL_IMGUI_DIR}/backends/imgui_impl_vulkan.cpp)
-elseif (UNIX AND NOT APPLE)
-    set(IMGUI_BACKENDS ${LOCAL_IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${LOCAL_IMGUI_DIR}/backends/imgui_impl_opengl3.cpp)
+else
+    set(IMGUI_BACKENDS ${LOCAL_IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${LOCAL_IMGUI_DIR}/backends/imgui_impl_vulkan.cpp)
 elseif (APPLE)
 endif ()
 file(GLOB LOCAL_IMGUI_SOURCES ${LOCAL_IMGUI_DIR}/*.cpp)
