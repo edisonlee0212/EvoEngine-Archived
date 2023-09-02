@@ -1,4 +1,5 @@
 #include "pybind11/pybind11.h"
+#include "pybind11/stl/filesystem.h"
 #include "AnimationPlayer.hpp"
 #include "Application.hpp"
 #include "ClassRegistry.hpp"
@@ -11,84 +12,128 @@
 #include "Time.hpp"
 #include "PhysicsLayer.hpp"
 #include "PostProcessingStack.hpp"
+#include "ProjectManager.hpp"
+#include "PhysicsLayer.hpp"
+#include "ClassRegistry.hpp"
+#include "Scene.hpp"
+
 using namespace EvoEngine;
+
+
 namespace py = pybind11;
 
-void StartEditor(const std::string& projectPath) {
-	Application::PushLayer<WindowLayer>();
-	Application::PushLayer<EditorLayer>();
-	Application::PushLayer<RenderLayer>();
+void RegisterClasses() {
+}
 
-	ApplicationInfo applicationInfo;
+void PushWindowLayer() {
+	Application::PushLayer<WindowLayer>();
+}
+void PushEditorLayer() {
+	Application::PushLayer<EditorLayer>();
+}
+void PushRenderLayer() {
+	Application::PushLayer<RenderLayer>();
+}
+
+void RegisterLayers(bool enableWindowLayer, bool enableEditorLayer)
+{
+	if (enableWindowLayer) Application::PushLayer<WindowLayer>();
+	if (enableWindowLayer && enableEditorLayer) Application::PushLayer<EditorLayer>();
+	Application::PushLayer<RenderLayer>();
+}
+
+void StartProjectWindowless(const std::filesystem::path& projectPath)
+{
+	if (std::filesystem::path(projectPath).extension().string() != ".eveproj") {
+		EVOENGINE_ERROR("Project path doesn't point to a EvoEngine project!");
+		return;
+	}
+	RegisterClasses();
+	RegisterLayers(false, false);
+	ApplicationInfo applicationInfo{};
 	applicationInfo.m_projectPath = projectPath;
 	Application::Initialize(applicationInfo);
 	Application::Start();
-
-	Application::Terminate();
 }
 
-void StartEmptyEditor() {
-	Application::PushLayer<WindowLayer>();
-	Application::PushLayer<EditorLayer>();
-	Application::PushLayer<RenderLayer>();
-
-	ApplicationInfo applicationInfo;
+void StartProjectWithEditor(const std::filesystem::path& projectPath)
+{
+	if (!projectPath.empty()) {
+		if (std::filesystem::path(projectPath).extension().string() != ".eveproj") {
+			EVOENGINE_ERROR("Project path doesn't point to a EvoEngine project!");
+			return;
+		}
+	}
+	RegisterClasses();
+	RegisterLayers(false, false);
+	ApplicationInfo applicationInfo{};
+	applicationInfo.m_projectPath = projectPath;
 	Application::Initialize(applicationInfo);
 	Application::Start();
-
-	Application::Terminate();
+	Application::Run();
 }
 
-void RenderScene(const std::string& projectPath, const int resolutionX, const int resolutionY, const std::string& outputPath)
+void CaptureActiveScene(const int resolutionX, const int resolutionY, const std::string& outputPath)
 {
-	if (!std::filesystem::is_regular_file(projectPath))
-	{
-		EVOENGINE_ERROR("Project doesn't exist!");
-		return;
-	}
 	if (resolutionX <= 0 || resolutionY <= 0)
 	{
 		EVOENGINE_ERROR("Resolution error!");
 		return;
 	}
-	Application::PushLayer<RenderLayer>();
 
-	ApplicationInfo applicationInfo;
-	applicationInfo.m_projectPath = std::filesystem::path(projectPath);
-	EVOENGINE_LOG("Loading project at " + projectPath);
-	Application::Initialize(applicationInfo);
-	EVOENGINE_LOG("Loaded project at " + projectPath);
-	Application::Start();
-	auto scene = Application::GetActiveScene();
+	const auto scene = Application::GetActiveScene();
+	if (!scene)
+	{
+		EVOENGINE_ERROR("No active scene!");
+		return;
+	}
 	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	if (!mainCamera)
+	{
+		EVOENGINE_ERROR("No main camera in scene!");
+		return;
+	}
 	mainCamera->Resize({ resolutionX, resolutionY });
 	Application::Loop();
-	Graphics::WaitForDeviceIdle();
-	
-	
 	mainCamera->GetRenderTexture()->StoreToPng(outputPath);
 	EVOENGINE_LOG("Exported image to " + outputPath);
-	Application::Terminate();
 }
 
-void RenderMesh(const std::string& meshPath, const int resolutionX, const int resolutionY, const std::string& outputPath)
-{
-	if (!std::filesystem::is_regular_file(meshPath))
-	{
-		EVOENGINE_ERROR("Project doesn't exist!");
-		return;
-	}
-	if (resolutionX <= 0 || resolutionY <= 0)
-	{
-		EVOENGINE_ERROR("Resolution error!");
-		return;
-	}
-
-}
 
 PYBIND11_MODULE(pyevoengine, m) {
+	py::class_<Entity>(m, "Entity")
+		.def("get_index", &Entity::GetIndex)
+		.def("get_version", &Entity::GetVersion);
+
+	
+	py::class_<Scene>(m, "Scene")
+		.def("create_entity", static_cast<Entity(Scene::*)(const std::string&)>(&Scene::CreateEntity))
+		.def("delete_entity", &Scene::DeleteEntity);
+
+	py::class_<ApplicationInfo>(m, "ApplicationInfo")
+		.def(py::init<>())
+		.def_readwrite("m_projectPath", &ApplicationInfo::m_projectPath)
+		.def_readwrite("m_applicationName", &ApplicationInfo::m_applicationName)
+		.def_readwrite("m_enableDocking", &ApplicationInfo::m_enableDocking)
+		.def_readwrite("m_enableViewport", &ApplicationInfo::m_enableViewport)
+		.def_readwrite("m_fullScreen", &ApplicationInfo::m_fullScreen);
+
+	py::class_<Application>(m, "Application")
+		.def_static("initialize", &Application::Initialize)
+		.def_static("start", &Application::Start)
+		.def_static("run", &Application::Run)
+		.def_static("loop", &Application::Loop)
+		.def_static("terminate", &Application::Terminate)
+		.def_static("get_active_scene", &Application::GetActiveScene);
+
+	py::class_<ProjectManager>(m, "ProjectManager")
+		.def("GetOrCreateProject", &ProjectManager::GetOrCreateProject);
+
 	m.doc() = "EvoEngine"; // optional module docstring
-	m.def("start_editor", &StartEditor, "Start editor with target project");
-	m.def("start_empty_editor", &StartEmptyEditor, "Start editor without project");
-	m.def("render_scene", &RenderScene, "Render the default scene for given project");
+	m.def("register_classes", &RegisterClasses, "RegisterClasses");
+	m.def("register_layers", &RegisterLayers, "RegisterLayers");
+	m.def("start_project_windowless", &StartProjectWindowless, "StartProjectWindowless");
+	m.def("start_project_with_editor", &StartProjectWithEditor, "StartProjectWithEditor");
+
+	m.def("capture_active_scene", &CaptureActiveScene, "CaptureActiveScene");
 }
