@@ -44,7 +44,7 @@ FIND_PATH(VULKAN_INCLUDE_DIR "vulkan/vulkan.h"
 PATHS ${_vulkan_HEADER_SEARCH_DIRS} )
 
 # Search for the library
-FIND_LIBRARY(VULKAN_LIBRARY NAMES vulkan Vulkan Vulkan::Vulkan
+FIND_LIBRARY(VULKAN_LIBRARY NAMES vulkan Vulkan Vulkan::Vulkan Vulkan::vulkan
 PATHS ${_vulkan_LIB_SEARCH_DIRS} )
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(VULKAN DEFAULT_MSG
