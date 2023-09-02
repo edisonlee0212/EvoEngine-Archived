@@ -160,7 +160,7 @@ int main() {
 
 					if (!Application::IsPlaying()) return;
 					const auto currentScene = Application::GetActiveScene();
-					const float currentTime = Times::CurrentTime();
+					const float currentTime = Times::Now();
 					const float cosTime = glm::cos(currentTime / 5.0f);
 					Transform dirLightTransform;
 					dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(105.0f, currentTime * 20, 0.0f)));
@@ -308,22 +308,22 @@ int main() {
 					ltw.SetPosition(glm::vec4(
 						glm::vec3(
 							0.0f,
-							20.0f * glm::sin(Times::CurrentTime() / 2.0f),
-							-20.0f * glm::cos(Times::CurrentTime() / 2.0f)),
+							20.0f * glm::sin(Times::Now() / 2.0f),
+							-20.0f * glm::cos(Times::Now() / 2.0f)),
 						0.0f));
 					scene->SetDataComponent(dle, ltw);
 					ltw.SetPosition(glm::vec4(
 						glm::vec3(
-							-20.0f * glm::cos(Times::CurrentTime() / 2.0f),
-							20.0f * glm::sin(Times::CurrentTime() / 2.0f),
+							-20.0f * glm::cos(Times::Now() / 2.0f),
+							20.0f * glm::sin(Times::Now() / 2.0f),
 							0.0f),
 						0.0f));
 					scene->SetDataComponent(ple, ltw);
 					ltw.SetPosition(glm::vec4(
 						glm::vec3(
-							20.0f * glm::cos(Times::CurrentTime() / 2.0f),
+							20.0f * glm::cos(Times::Now() / 2.0f),
 							15.0f,
-							20.0f * glm::sin(Times::CurrentTime() / 2.0f)),
+							20.0f * glm::sin(Times::Now() / 2.0f)),
 						0.0f));
 					scene->SetDataComponent(ple2, ltw);
 #pragma endregion

@@ -16,7 +16,7 @@ namespace EvoEngine {
 		static void OnInspect();
 		static void SetTimeStep(double value);
 		[[nodiscard]] static double TimeStep();
-		[[nodiscard]] static double CurrentTime();
+		[[nodiscard]] static double Now();
 		[[nodiscard]] static double FixedDeltaTime();
 		[[nodiscard]] static double DeltaTime();
 		[[nodiscard]] static double LastUpdateTime();

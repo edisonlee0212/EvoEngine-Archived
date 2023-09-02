@@ -40,7 +40,7 @@ double Times::DeltaTime()
 	return m_deltaTime;
 }
 
-double Times::CurrentTime()
+double Times::Now()
 {
 	const auto now = std::chrono::system_clock::now();
 	const std::chrono::duration<double> duration = now - m_startTime;

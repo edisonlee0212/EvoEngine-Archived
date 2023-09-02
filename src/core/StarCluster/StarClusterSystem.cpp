@@ -252,7 +252,7 @@ void StarClusterSystem::OnInspect(const std::shared_ptr<EditorLayer>& editorLaye
 void StarClusterSystem::CalculateStarPositionSync()
 {
     auto scene = GetScene();
-    m_calcPositionTimer = Times::CurrentTime();
+    m_calcPositionTimer = Times::Now();
     // StarOrbitProportion: The relative position of the star, here it is used to calculate the speed of the star
     // around its orbit. StarPosition: The final output of this operation, records the position of the star in the
     // galaxy. StarOrbit: The orbit which contains the function for calculating the position based on current time
@@ -272,7 +272,7 @@ void StarClusterSystem::CalculateStarPositionSync()
                 starOrbit.GetPoint(starOrbitOffset.m_value, starProportion.m_value * 360.0f + m_galaxyTime, true);
         },
         false);
-    const auto usedTime = Times::CurrentTime() - m_calcPositionTimer;
+    const auto usedTime = Times::Now() - m_calcPositionTimer;
     m_calcPositionResult = m_calcPositionResult * m_counter / (m_counter + 1) + usedTime / (m_counter + 1);
 
     // Copy data for rendering.
@@ -284,7 +284,7 @@ void StarClusterSystem::CalculateStarPositionSync()
 void StarClusterSystem::ApplyPosition()
 {
     auto scene = GetScene();
-    m_applyPositionTimer = Times::CurrentTime();
+    m_applyPositionTimer = Times::Now();
     scene->ForEach<StarPosition, GlobalTransform, Transform, SurfaceColor, DisplayColor>(
         Jobs::Workers(),
         m_starQuery,
@@ -304,7 +304,7 @@ void StarClusterSystem::ApplyPosition()
             displayColor.m_intensity = surfaceColor.m_intensity;
         },
         false);
-    m_applyPositionTimer = Times::CurrentTime() - m_applyPositionTimer;
+    m_applyPositionTimer = Times::Now() - m_applyPositionTimer;
 }
 
 void StarClusterSystem::CopyPosition(const bool &reverse)

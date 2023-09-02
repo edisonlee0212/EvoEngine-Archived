@@ -614,7 +614,7 @@ void EditorLayer::LateUpdate()
 {
 	if (m_lockCamera) {
 		auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
-		const float elapsedTime = Times::CurrentTime() - m_transitionTimer;
+		const float elapsedTime = Times::Now() - m_transitionTimer;
 		float a = 1.0f - glm::pow(1.0 - elapsedTime / m_transitionTime, 4.0f);
 		if (elapsedTime >= m_transitionTime)
 			a = 1.0f;
@@ -1827,7 +1827,7 @@ void EditorLayer::MoveCamera(
 	m_previousRotation = sceneCameraRotation;
 	m_previousPosition = sceneCameraPosition;
 	m_transitionTime = transitionTime;
-	m_transitionTimer = Times::CurrentTime();
+	m_transitionTimer = Times::Now();
 	m_targetRotation = targetRotation;
 	m_targetPosition = targetPosition;
 	m_lockCamera = true;
