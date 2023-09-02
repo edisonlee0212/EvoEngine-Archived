@@ -156,7 +156,6 @@ elseif (UNIX AND NOT APPLE)
             Xrandr
             Xi
             assimp
-            cuda
             shaderc
             ${PHYSX_LIBS}
             )
