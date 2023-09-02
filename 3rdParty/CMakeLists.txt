@@ -52,6 +52,7 @@ endif ()
 if (WIN32)
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_WIN32_KHR)
 elseif (UNIX AND NOT APPLE)
+    find_package(VULKAN REQUIRED)
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_XLIB_KHR)
 elseif (APPLE)
     set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_MACOS_MVK)
@@ -117,7 +118,6 @@ set(PHYSX_DIR
 # Includes
 # ------------------------------------------------------------------
 set(3RD_PARTY_INCLUDES
-	"/usr/include"
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/glfw/include
         ${CMAKE_CURRENT_SOURCE_DIR}/assimp/include
