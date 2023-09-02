@@ -3,6 +3,7 @@
 #include <ISerializable.hpp>
 namespace EvoEngine
 {
+	class EditorLayer;
 	class AssetRef;
 	class AssetRecord;
 	class IAsset : public ISerializable
