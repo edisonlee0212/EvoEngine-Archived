@@ -2,6 +2,7 @@
 #include "Entities.hpp"
 #include "Transform.hpp"
 #include "ILayer.hpp"
+#include "EntityMetadata.hpp"
 namespace EvoEngine
 {
     class TransformGraph : public ISingleton<TransformGraph>
