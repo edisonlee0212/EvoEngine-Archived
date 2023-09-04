@@ -5,7 +5,7 @@ using namespace EvoEngine;
 
 void Particles::OnCreate()
 {
-    m_particleInfoList = std::make_shared<ParticleInfoList>();
+    m_particleInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
     m_boundingBox = Bound();
     SetEnabled(true);
 }
