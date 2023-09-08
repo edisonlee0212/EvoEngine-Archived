@@ -62,6 +62,7 @@ namespace EvoEngine
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) override;
 	public:
+		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void OnCreate() override;
 		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
