@@ -77,6 +77,48 @@ bool Mesh::SaveInternal(const std::filesystem::path& path)
 	return false;
 }
 
+void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+{
+	ImGui::Text(("Vertices size: " + std::to_string(m_vertices.size())).c_str());
+	ImGui::Text(("Triangle amount: " + std::to_string(m_triangles.size())).c_str());
+	if (!m_vertices.empty()) {
+		FileUtils::SaveFile(
+			"Export as OBJ",
+			"Mesh",
+			{ ".obj" },
+			[&](const std::filesystem::path& path) { Export(path); },
+			false);
+	}
+	/*
+	static bool visualize = true;
+	static std::shared_ptr<Camera> visualizationCamera;
+	static ImVec2 visualizationCameraResolution = { 200, 200 };
+	if (visualize) {
+		if (!visualizationCamera) {
+			visualizationCamera = Serialization::ProduceSerializable<Camera>();
+			visualizationCamera->m_clearColor = glm::vec3(0.0f);
+			visualizationCamera->m_useClearColor = true;
+			visualizationCamera->OnCreate();
+		}
+		else
+		{
+			// Show texture first;
+			// Render for next frame;
+			visualizationCamera->ResizeResolution(visualizationCameraResolution.x, visualizationCameraResolution.y);
+			visualizationCamera->Clear();
+			auto renderLayer = Application::GetLayer<RenderLayer>();
+			static GlobalTransform visCameraGT;
+			renderLayer->RenderToCamera(visualizationCamera, visCameraGT);
+			ImGui::Image(
+				reinterpret_cast<ImTextureID>(visualizationCamera->GetTexture()->UnsafeGetGLTexture()->Id()),
+				visualizationCameraResolution,
+				ImVec2(0, 1),
+				ImVec2(1, 0));
+		}
+	}
+	*/
+}
+
 void Mesh::OnCreate()
 {
 	m_bound = Bound();

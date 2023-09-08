@@ -75,7 +75,7 @@ enum class DemoSetup
 	Planets
 };
 int main() {
-	DemoSetup demoSetup = DemoSetup::Empty;
+	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
 #ifdef EVOENGINE_PHYSICSLAYER
 	Application::PushLayer<PhysicsLayer>();

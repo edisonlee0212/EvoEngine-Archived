@@ -151,7 +151,7 @@ namespace EvoEngine
 			friend class Lighting;
 			friend class PointLightShadowMap;
 			friend class SpotLightShadowMap;
-			inline constexpr static bool ENABLE_MESH_SHADER = false;
+			inline constexpr static bool ENABLE_MESH_SHADER = true;
 
 			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SIZE = 2048;
 			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SETS = 2048;
