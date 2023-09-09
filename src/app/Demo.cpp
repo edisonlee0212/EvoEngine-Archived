@@ -17,6 +17,13 @@ using namespace Planet;
 using namespace Galaxy;
 using namespace EvoEngine;
 #pragma region Helpers
+enum class DemoSetup
+{
+	Empty,
+	Rendering,
+	Galaxy,
+	Planets
+};
 Entity CreateDynamicCube(
 	const float& mass,
 	const glm::vec3& color,
@@ -62,27 +69,156 @@ Entity CreateSphere(
 	const glm::vec3& rotation,
 	const float& scale,
 	const std::string& name);
-Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
+Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName, bool addSpheres);
+void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics);
 #ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
 #endif
 #pragma endregion
-enum class DemoSetup
-{
-	Empty,
-	Rendering,
-	Galaxy,
-	Planets
-};
+
 int main() {
 	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
+	bool enablePhysics = false;
 #ifdef EVOENGINE_PHYSICSLAYER
 	Application::PushLayer<PhysicsLayer>();
+	enablePhysics = true;
 #endif
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
+	const std::filesystem::path resourceFolderPath("../../../Resources");
+	SetupDemoScene(demoSetup, applicationInfo, enablePhysics);
+
+	Application::Initialize(applicationInfo);
+	Application::Start();
+	Application::Run();
+	Application::Terminate();
+	return 0;
+}
+#pragma region Helpers
+Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName, bool addSpheres)
+{
+	auto baseEntity = scene->CreateEntity(baseEntityName);
+
+	if(addSpheres)
+	{
+#pragma region Create 9 spheres in different PBR properties
+		const int amount = 5;
+		const float scaleFactor = 0.03f;
+		const auto collection = scene->CreateEntity("Spheres");
+		const auto spheres = scene->CreateEntities(amount * amount * amount, "Instance");
+
+		for (int i = 0; i < amount; i++)
+		{
+			for (int j = 0; j < amount; j++)
+			{
+				for (int k = 0; k < amount; k++)
+				{
+					auto& sphere = spheres[i * amount * amount + j * amount + k];
+					Transform transform;
+					glm::vec3 position = glm::vec3(i + 0.5f - amount / 2.0f, j + 0.5f - amount / 2.0f, k + 0.5f - amount / 2.0f);
+					position += glm::linearRand(glm::vec3(-0.5f), glm::vec3(0.5f)) * scaleFactor;
+					transform.SetPosition(position * 5.f * scaleFactor);
+					transform.SetScale(glm::vec3(4.0f * scaleFactor));
+					scene->SetDataComponent(sphere, transform);
+					const auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(sphere).lock();
+					meshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_SPHERE");
+					const auto material = ProjectManager::CreateTemporaryAsset<Material>();
+					meshRenderer->m_material = material;
+					material->m_materialProperties.m_roughness = static_cast<float>(i) / (amount - 1);
+					material->m_materialProperties.m_metallic = static_cast<float>(j) / (amount - 1);
+					scene->SetParent(sphere, collection);
+				}
+			}
+		}
+		scene->SetParent(collection, baseEntity);
+#pragma endregion
+	}
+
+#pragma region Create ground
+	auto ground = scene->CreateEntity("Ground");
+	auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(ground).lock();
+	auto groundMat = ProjectManager::CreateTemporaryAsset<Material>();
+
+	groundMeshRenderer->m_material = groundMat;
+	groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
+	Transform groundTransform;
+	groundTransform.SetValue(glm::vec3(0, -2.05, -0), glm::vec3(0), glm::vec3(30, 1, 60));
+	scene->SetDataComponent(ground, groundTransform);
+	scene->SetParent(ground, baseEntity);
+#pragma endregion
+#pragma region Load models and display
+	const auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
+	const auto sponzaEntity = sponza->ToEntity(scene);
+	Transform sponzaTransform;
+	sponzaTransform.SetValue(glm::vec3(0, -1.5, -6), glm::radians(glm::vec3(0, -90, 0)), glm::vec3(0.01));
+	scene->SetDataComponent(sponzaEntity, sponzaTransform);
+	scene->SetParent(sponzaEntity, baseEntity);
+
+	auto title = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/UniEngine.obj"));
+	auto titleEntity = title->ToEntity(scene);
+	scene->SetEntityName(titleEntity, "Title");
+	Transform titleTransform;
+	titleTransform.SetValue(glm::vec3(0.35, 7, -16), glm::radians(glm::vec3(0, 0, 0)), glm::vec3(0.005));
+	scene->SetDataComponent(titleEntity, titleTransform);
+	scene->SetParent(titleEntity, baseEntity);
+
+	auto titleMaterial =
+		scene->GetOrSetPrivateComponent<MeshRenderer>(scene->GetChildren(scene->GetChildren(titleEntity)[0])[0])
+		.lock()
+		->m_material.Get<Material>();
+	titleMaterial->m_materialProperties.m_emission = 4;
+	titleMaterial->m_materialProperties.m_albedoColor = glm::vec3(1, 0.2, 0.5);
+
+	auto dancingStormTrooper = std::dynamic_pointer_cast<Prefab>(
+		ProjectManager::GetOrCreateAsset("Models/dancing-stormtrooper/silly_dancing.fbx"));
+	auto dancingStormTrooperEntity = dancingStormTrooper->ToEntity(scene);
+	const auto dancingStormTrooperAnimationPlayer = scene->GetOrSetPrivateComponent<AnimationPlayer>(dancingStormTrooperEntity).lock();
+	dancingStormTrooperAnimationPlayer->m_autoPlay = true;
+	dancingStormTrooperAnimationPlayer->m_autoPlaySpeed = 30;
+	scene->SetEntityName(dancingStormTrooperEntity, "StormTrooper");
+	Transform dancingStormTrooperTransform;
+	dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.5, 0), glm::vec3(0), glm::vec3(0.4));
+	scene->SetDataComponent(dancingStormTrooperEntity, dancingStormTrooperTransform);
+	scene->SetParent(dancingStormTrooperEntity, baseEntity);
+
+
+	const auto capoeira = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Capoeira.fbx"));
+	const auto capoeiraEntity = capoeira->ToEntity(scene);
+	const auto capoeiraAnimationPlayer = scene->GetOrSetPrivateComponent<AnimationPlayer>(capoeiraEntity).lock();
+	capoeiraAnimationPlayer->m_autoPlay = true;
+	capoeiraAnimationPlayer->m_autoPlaySpeed = 60;
+	scene->SetEntityName(capoeiraEntity, "Capoeira");
+	Transform capoeiraTransform;
+	capoeiraTransform.SetValue(glm::vec3(0.5, 2.7, -18), glm::vec3(0), glm::vec3(0.02));
+	scene->SetDataComponent(capoeiraEntity, capoeiraTransform);
+	auto capoeiraBodyMaterial = scene
+		->GetOrSetPrivateComponent<SkinnedMeshRenderer>(
+			scene->GetChildren(scene->GetChildren(capoeiraEntity)[1])[0])
+		.lock()
+		->m_material.Get<Material>();
+	capoeiraBodyMaterial->m_materialProperties.m_albedoColor = glm::vec3(0, 1, 1);
+	capoeiraBodyMaterial->m_materialProperties.m_metallic = 1;
+	capoeiraBodyMaterial->m_materialProperties.m_roughness = 0;
+	auto capoeiraJointsMaterial = scene
+		->GetOrSetPrivateComponent<SkinnedMeshRenderer>(
+			scene->GetChildren(scene->GetChildren(capoeiraEntity)[0])[0])
+		.lock()
+		->m_material.Get<Material>();
+	capoeiraJointsMaterial->m_materialProperties.m_albedoColor = glm::vec3(0.3, 1.0, 0.5);
+	capoeiraJointsMaterial->m_materialProperties.m_metallic = 1;
+	capoeiraJointsMaterial->m_materialProperties.m_roughness = 0;
+	capoeiraJointsMaterial->m_materialProperties.m_emission = 6;
+	scene->SetParent(capoeiraEntity, baseEntity);
+
+#pragma endregion
+
+	return baseEntity;
+}
+
+void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics)
+{
 	const std::filesystem::path resourceFolderPath("../../../Resources");
 #pragma region Demo scene setup
 	if (demoSetup != DemoSetup::Empty) {
@@ -125,7 +261,7 @@ int main() {
 				auto camera = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
-				LoadScene(scene, "Rendering Demo");
+				LoadScene(scene, "Rendering Demo", !enablePhysics);
 #ifdef EVOENGINE_PHYSICSLAYER
 				const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
 				Transform physicsDemoTransform;
@@ -339,97 +475,9 @@ int main() {
 	}break;
 	}
 #pragma endregion
-
-	Application::Initialize(applicationInfo);
-	Application::Start();
-	Application::Run();
-	Application::Terminate();
-	return 0;
 }
-#pragma region Helpers
-Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
-{
-	auto baseEntity = scene->CreateEntity(baseEntityName);
-#pragma region Create ground
-	auto ground = scene->CreateEntity("Ground");
-	auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(ground).lock();
-	auto groundMat = ProjectManager::CreateTemporaryAsset<Material>();
-
-	groundMeshRenderer->m_material = groundMat;
-	groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
-	Transform groundTransform;
-	groundTransform.SetValue(glm::vec3(0, -2.05, -0), glm::vec3(0), glm::vec3(30, 1, 60));
-	scene->SetDataComponent(ground, groundTransform);
-	scene->SetParent(ground, baseEntity);
-#pragma endregion
-#pragma region Load models and display
-	const auto sponza = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Sponza_FBX/Sponza.fbx"));
-	const auto sponzaEntity = sponza->ToEntity(scene);
-	Transform sponzaTransform;
-	sponzaTransform.SetValue(glm::vec3(0, -1.5, -6), glm::radians(glm::vec3(0, -90, 0)), glm::vec3(0.01));
-	scene->SetDataComponent(sponzaEntity, sponzaTransform);
-	scene->SetParent(sponzaEntity, baseEntity);
-
-	auto title = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/UniEngine.obj"));
-	auto titleEntity = title->ToEntity(scene);
-	scene->SetEntityName(titleEntity, "Title");
-	Transform titleTransform;
-	titleTransform.SetValue(glm::vec3(0.35, 7, -16), glm::radians(glm::vec3(0, 0, 0)), glm::vec3(0.005));
-	scene->SetDataComponent(titleEntity, titleTransform);
-	scene->SetParent(titleEntity, baseEntity);
-
-	auto titleMaterial =
-		scene->GetOrSetPrivateComponent<MeshRenderer>(scene->GetChildren(scene->GetChildren(titleEntity)[0])[0])
-		.lock()
-		->m_material.Get<Material>();
-	titleMaterial->m_materialProperties.m_emission = 4;
-	titleMaterial->m_materialProperties.m_albedoColor = glm::vec3(1, 0.2, 0.5);
-
-	auto dancingStormTrooper = std::dynamic_pointer_cast<Prefab>(
-		ProjectManager::GetOrCreateAsset("Models/dancing-stormtrooper/silly_dancing.fbx"));
-	auto dancingStormTrooperEntity = dancingStormTrooper->ToEntity(scene);
-	const auto dancingStormTrooperAnimationPlayer = scene->GetOrSetPrivateComponent<AnimationPlayer>(dancingStormTrooperEntity).lock();
-	dancingStormTrooperAnimationPlayer->m_autoPlay = true;
-	dancingStormTrooperAnimationPlayer->m_autoPlaySpeed = 30;
-	scene->SetEntityName(dancingStormTrooperEntity, "StormTrooper");
-	Transform dancingStormTrooperTransform;
-	dancingStormTrooperTransform.SetValue(glm::vec3(1.2, -1.5, 0), glm::vec3(0), glm::vec3(0.4));
-	scene->SetDataComponent(dancingStormTrooperEntity, dancingStormTrooperTransform);
-	scene->SetParent(dancingStormTrooperEntity, baseEntity);
 
 
-	const auto capoeira = std::dynamic_pointer_cast<Prefab>(ProjectManager::GetOrCreateAsset("Models/Capoeira.fbx"));
-	const auto capoeiraEntity = capoeira->ToEntity(scene);
-	const auto capoeiraAnimationPlayer = scene->GetOrSetPrivateComponent<AnimationPlayer>(capoeiraEntity).lock();
-	capoeiraAnimationPlayer->m_autoPlay = true;
-	capoeiraAnimationPlayer->m_autoPlaySpeed = 60;
-	scene->SetEntityName(capoeiraEntity, "Capoeira");
-	Transform capoeiraTransform;
-	capoeiraTransform.SetValue(glm::vec3(0.5, 2.7, -18), glm::vec3(0), glm::vec3(0.02));
-	scene->SetDataComponent(capoeiraEntity, capoeiraTransform);
-	auto capoeiraBodyMaterial = scene
-		->GetOrSetPrivateComponent<SkinnedMeshRenderer>(
-			scene->GetChildren(scene->GetChildren(capoeiraEntity)[1])[0])
-		.lock()
-		->m_material.Get<Material>();
-	capoeiraBodyMaterial->m_materialProperties.m_albedoColor = glm::vec3(0, 1, 1);
-	capoeiraBodyMaterial->m_materialProperties.m_metallic = 1;
-	capoeiraBodyMaterial->m_materialProperties.m_roughness = 0;
-	auto capoeiraJointsMaterial = scene
-		->GetOrSetPrivateComponent<SkinnedMeshRenderer>(
-			scene->GetChildren(scene->GetChildren(capoeiraEntity)[0])[0])
-		.lock()
-		->m_material.Get<Material>();
-	capoeiraJointsMaterial->m_materialProperties.m_albedoColor = glm::vec3(0.3, 1.0, 0.5);
-	capoeiraJointsMaterial->m_materialProperties.m_metallic = 1;
-	capoeiraJointsMaterial->m_materialProperties.m_roughness = 0;
-	capoeiraJointsMaterial->m_materialProperties.m_emission = 6;
-	scene->SetParent(capoeiraEntity, baseEntity);
-
-#pragma endregion
-
-	return baseEntity;
-}
 #ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
 {
