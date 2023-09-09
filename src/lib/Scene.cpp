@@ -1357,7 +1357,7 @@ size_t Scene::GetChildrenAmount(const Entity& entity)
 	return m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_children.size();
 }
 
-inline void Scene::ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func)
+void Scene::ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func)
 {
 	assert(IsEntityValid(entity));
 	auto children = m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_children;
