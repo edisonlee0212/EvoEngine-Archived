@@ -157,7 +157,7 @@ else()
     endif ()
     target_link_libraries(evoengine
             m
-            ${VULKAN_LIBRARY}
+            ${Vulkan_LIBRARIES}
             stdc++
             glfw
             dl
