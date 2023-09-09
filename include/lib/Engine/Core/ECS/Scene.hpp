@@ -277,9 +277,9 @@ namespace EvoEngine
         void SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform = false);
         Entity GetParent(const Entity& entity);
         std::vector<Entity> GetChildren(const Entity& entity);
-        Entity GetChild(const Entity& entity, int index);
-        size_t GetChildrenAmount(const Entity& entity);
-        void ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func);
+        Entity GetChild(const Entity& entity, int index) const;
+        size_t GetChildrenAmount(const Entity& entity) const;
+        void ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func) const;
         void RemoveChild(const Entity& child, const Entity& parent);
         std::vector<Entity> GetDescendants(const Entity& entity);
         void ForEachDescendant(

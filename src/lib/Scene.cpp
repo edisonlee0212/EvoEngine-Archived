@@ -1340,7 +1340,7 @@ std::vector<Entity> Scene::GetChildren(const Entity& entity)
 	return m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_children;
 }
 
-Entity Scene::GetChild(const Entity& entity, int index)
+Entity Scene::GetChild(const Entity& entity, int index) const
 {
 	assert(IsEntityValid(entity));
 	const size_t entityIndex = entity.m_index;
@@ -1350,17 +1350,17 @@ Entity Scene::GetChild(const Entity& entity, int index)
 	return Entity();
 }
 
-size_t Scene::GetChildrenAmount(const Entity& entity)
+size_t Scene::GetChildrenAmount(const Entity& entity) const
 {
 	assert(IsEntityValid(entity));
 	const size_t entityIndex = entity.m_index;
 	return m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_children.size();
 }
 
-void Scene::ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func)
+void Scene::ForEachChild(const Entity& entity, const std::function<void(Entity child)>& func) const
 {
 	assert(IsEntityValid(entity));
-	auto children = m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_children;
+	const auto children = m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_children;
 	for (auto i : children)
 	{
 		if (IsEntityValid(i))
