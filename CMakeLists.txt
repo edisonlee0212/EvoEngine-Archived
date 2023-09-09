@@ -118,14 +118,14 @@ target_compile_definitions(evoengine
 if (WIN32)
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
         file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
-        set(SHADERC_LIB ${SHADERC_DIR}lib/shaderc_combined.lib)
+        set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
         set(ASSIMP_LIBS
                 ${ASSIMP_DIR}assimp-vc143-mt.lib
                 ${ASSIMP_DIR}zlibstatic.lib
                 )
     else()
         file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/debug/*.lib")
-        set(SHADERC_LIB ${SHADERC_DIR}lib/shaderc_combined_d.lib)
+        set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined_d.lib)
         set(ASSIMP_LIBS
                 ${ASSIMP_DIR}assimp-vc143-mtd.lib
                 ${ASSIMP_DIR}zlibstaticd.lib
@@ -148,11 +148,11 @@ else()
     # Linker and compiler settings for Linux platform
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
         file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
-        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/shaderc_combined.a")
+        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/release/*.a")
         set(CMAKE_CXX_FLAGS_RELEASE "-O3")
     elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
         file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/debug/*.a")
-        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/shaderc_combined_d.a")
+        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/debug/*.a")
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
@@ -286,8 +286,10 @@ if (WIN32)
 elseif (UNIX AND NOT APPLE)
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
         file(GLOB PHYSX_DLLS "3rdParty/physx/linux.clang/release/*.so")
+        file(GLOB SHADERC_DLLS "3rdParty/shaderc/lib/linux/release/*.so")
     elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
         file(GLOB PHYSX_DLLS "3rdParty/physx/linux.clang/debug/*.so")
+        file(GLOB SHADERC_DLLS "3rdParty/shaderc/lib/linux/debug/*.so")
     endif ()
 endif ()
 
@@ -297,6 +299,16 @@ foreach (PHYSX_DLL ${PHYSX_DLLS})
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             ${PHYSX_DLL}
+            ${CMAKE_BINARY_DIR}
+    )
+endforeach ()
+
+foreach (SHADERC_DLL ${SHADERC_DLLS})
+    add_custom_command(
+            TARGET evoengine
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            ${SHADERC_DLL}
             ${CMAKE_BINARY_DIR}
     )
 endforeach ()
