@@ -515,21 +515,8 @@ void Graphics::CreateInstance()
 		glfwSetWindowFocusCallback(windowLayer->m_window, windowLayer->WindowFocusCallback);
 		glfwSetKeyCallback(windowLayer->m_window, Input::KeyCallBack);
 		glfwSetMouseButtonCallback(windowLayer->m_window, Input::MouseButtonCallBack);
-
-		if (windowLayer->m_window == nullptr)
-		{
-			EVOENGINE_ERROR("Failed to create a window");
-		}
-#pragma endregion
-		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-#ifdef _WIN64
-		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
-#else
-		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
-		m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
-#endif
 	}
+	
 
 	m_requiredLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> cRequiredLayers;
@@ -609,8 +596,6 @@ void Graphics::CreateSurface()
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
 #pragma region Surface
 	if (windowLayer) {
-
-
 		if (glfwCreateWindowSurface(m_vkInstance, windowLayer->m_window, nullptr, &m_vkSurface) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create window surface!");
 		}
@@ -653,21 +638,54 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 }
 void Graphics::CreatePhysicalDevice()
 {
-#pragma region Physical Device
+	if (const auto windowLayer = Application::GetLayer<WindowLayer>()) {
+		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+	}
+#ifdef _WIN64
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#else
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+#endif
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
 
+
+#pragma region Physical Device
 	m_vkPhysicalDevice = VK_NULL_HANDLE;
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
 	if (deviceCount == 0) {
 		throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 	}
+#ifndef NDEBUG
+	EVOENGINE_LOG("Found " + std::to_string(deviceCount) + " devices.");
+#endif
 	std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
 	vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, physicalDevices.data());
 	std::multimap<int, VkPhysicalDevice> candidates;
 
 	for (const auto& physicalDevice : physicalDevices) {
-		if (!IsDeviceSuitable(physicalDevice, m_requiredDeviceExtensions)) continue;
+		VkPhysicalDeviceProperties properties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+#ifndef NDEBUG
+		EVOENGINE_LOG("Found device: " + std::string(properties.deviceName) + ".");
+#endif
+		if (!IsDeviceSuitable(physicalDevice, m_requiredDeviceExtensions)) {
+#ifndef NDEBUG
+			EVOENGINE_LOG("Device is not suitable!");
+#endif
+			continue;
+		}
 		int score = RateDeviceSuitability(physicalDevice);
+#ifndef NDEBUG
+		EVOENGINE_LOG("Device listed as candidate with score " + std::to_string(score) + ".");
+#endif
 		candidates.insert(std::make_pair(score, physicalDevice));
 	}
 	// Check if the best candidate is suitable at all
@@ -687,13 +705,7 @@ void Graphics::CreatePhysicalDevice()
 }
 
 void Graphics::CreateLogicalDevice()
-{
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
-	m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+{	
 	std::vector<const char*> cRequiredDeviceExtensions;
 	cRequiredDeviceExtensions.reserve(m_requiredDeviceExtensions.size());
 	for (const auto& i : m_requiredDeviceExtensions) cRequiredDeviceExtensions.emplace_back(i.c_str());

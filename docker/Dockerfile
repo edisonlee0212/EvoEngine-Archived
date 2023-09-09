@@ -1,7 +1,9 @@
 FROM nvidia/cuda:12.2.0-devel-ubuntu22.04 as base
 
-RUN apt update && \
-    apt install ninja-build
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ARG CUDA_ARCHITECTURES=90;89;86;80;75;70;61;52;37
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -10,7 +12,7 @@ RUN apt-get update && \
     git \
     htop \
     wget \ 
-    python3.10 \
+    python3.10-dev \
     python3-pip \
     sudo \
     nano \
