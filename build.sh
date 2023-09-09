@@ -9,10 +9,10 @@ quit() {
 pushd `dirname $0` > /dev/null
 ROOT_PATH="${PWD}"
 
-CLEAN=0
-NO_TEST=0
+CLEAN=1
+NO_TEST=1
 VERBOSE=0
-BUILD_TYPE="Debug"
+BUILD_TYPE="Release"
 
 while [[ "$1" != "" ]] ; do
   case $1 in
