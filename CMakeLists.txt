@@ -148,9 +148,11 @@ else()
     # Linker and compiler settings for Linux platform
     if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
         file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
+        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/shaderc_combined.a")
         set(CMAKE_CXX_FLAGS_RELEASE "-O3")
     elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
         file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/debug/*.a")
+        file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/shaderc_combined_d.a")
         set(CMAKE_CXX_FLAGS_DEBUG "-g")
     endif ()
     target_link_libraries(evoengine
@@ -165,7 +167,7 @@ else()
             Xrandr
             Xi
             assimp
-            shaderc
+            ${SHADERC_LIBS}
             ${PHYSX_LIBS}
             )
 endif ()
