@@ -27,7 +27,7 @@ while [[ "$1" != "" ]] ; do
   shift
 done
 
-BUILD_CONFIG="Linux-Clang-${BUILD_TYPE}"
+BUILD_CONFIG="Linux-${BUILD_TYPE}"
 echo == Build config $BUILD_CONFIG
 
 OUTPUT_PATH="${ROOT_PATH}/out"
