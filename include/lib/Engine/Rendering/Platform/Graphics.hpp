@@ -92,7 +92,7 @@ namespace EvoEngine
 		void CreateInstance();
 		void CreateSurface();
 		void CreateDebugMessenger();
-		void CreatePhysicalDevice();
+		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
 		void SetupVmaAllocator();
 
