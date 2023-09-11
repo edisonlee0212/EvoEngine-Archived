@@ -636,7 +636,7 @@ int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 
 	return score;
 }
-void Graphics::CreatePhysicalDevice()
+void Graphics::SelectPhysicalDevice()
 {
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>()) {
 		m_requiredDeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -689,7 +689,7 @@ void Graphics::CreatePhysicalDevice()
 		candidates.insert(std::make_pair(score, physicalDevice));
 	}
 	// Check if the best candidate is suitable at all
-	if (candidates.rbegin()->first > 0) {
+	if (!candidates.empty() && candidates.rbegin()->first > 0) {
 		m_vkPhysicalDevice = candidates.rbegin()->second;
 		vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &m_vkPhysicalDeviceFeatures);
 		vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
@@ -1243,7 +1243,7 @@ void Graphics::Initialize()
 	graphics.CreateInstance();
 	graphics.CreateSurface();
 	graphics.CreateDebugMessenger();
-	graphics.CreatePhysicalDevice();
+	graphics.SelectPhysicalDevice();
 	graphics.CreateLogicalDevice();
 	graphics.SetupVmaAllocator();
 
