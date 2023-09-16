@@ -7,8 +7,8 @@ project(
 )
 
 set(CMAKE_CXX_STANDARD 17)
-include(GenerateExportHeader)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # ------------------------------------------------------------------
 # Options
 # ------------------------------------------------------------------
@@ -17,7 +17,6 @@ option(EVOENGINE_BUILD_EXAMPLES "Build EvoEngine Examples" OFF)
 # ------------------------------------------------------------------
 # Build types
 # ------------------------------------------------------------------
-
 # Set a default build type if none was specified
 set(default_build_type "Release")
 # Set the possible values of build type for cmake-gui
@@ -30,9 +29,9 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
-    set(EVOENGINE_DEBUG_STATUS NDEBUG)
+    set(DEBUG_STATUS NDEBUG)
 elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
-    set(EVOENGINE_DEBUG_STATUS _DEBUG)
+    set(DEBUG_STATUS _DEBUG)
 endif ()
 
 # ------------------------------------------------------------------
@@ -44,7 +43,7 @@ set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 add_subdirectory(${3RD_PARTY_DIR})
 
 # ------------------------------------------------------------------
-# EvoEngine - sources
+# EvoEngine - code
 # ------------------------------------------------------------------
 
 file(GLOB LOCAL_EVOENGINE_SOURCES "src/lib/*.cpp")
@@ -54,10 +53,7 @@ add_library(evoengine
         ${LOCAL_EVOENGINE_SOURCES}
         )
 
-# ------------------------------------------------------------------
-# EvoEngine - headers
-# ------------------------------------------------------------------
-set(LOCAL_EVOENGINE_PCH ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/EvoEngine-pch.hpp)
+set(LOCAL_EVOENGINE_PCH ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/evoengine-pch.hpp)
 target_precompile_headers(evoengine
         PRIVATE
         ${LOCAL_EVOENGINE_PCH}
@@ -107,7 +103,7 @@ target_compile_definitions(evoengine
         PRIVATE
         ${EVOENGINE_INTERNALS_DEF}
         ${EVOENGINE_DEFAULT_PROJECT_DEF}
-        ${EVOENGINE_DEBUG_STATUS}
+        ${DEBUG_STATUS}
         ${PHYSX_COMPILE_OPTION}
         )
 if (WIN32)
