@@ -53,9 +53,6 @@ VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
 	{
 		msg += "-[Error]: ";
-#ifndef NDEBUG
-		throw std::runtime_error("Graphics Error!");
-#endif
 	}
 	break;
 	}
@@ -855,7 +852,11 @@ void Graphics::SetupVmaAllocator()
 	handleTypes.resize(graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypeCount);
 	for (int i = 0; i < graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++) {
 		if (graphics.m_vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+#ifdef _WIN64
 			handleTypes[i] = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+			handleTypes[i] = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+#endif
 		}
 	}
 	vmaAllocatorCreateInfo.pTypeExternalMemoryHandleTypes = handleTypes.data();
