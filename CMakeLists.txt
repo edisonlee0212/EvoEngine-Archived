@@ -228,25 +228,25 @@ endif ()
 # ------------------------------------------------------------------
 # EvoEngine - python binding
 # ------------------------------------------------------------------
-
-file(GLOB LOCAL_PYEVOENGINE_SOURCES "src/python/*.cpp")
-pybind11_add_module(pyevoengine ${LOCAL_PYEVOENGINE_SOURCES})
-target_include_directories(pyevoengine
-            PRIVATE
-            ${LOCAL_EVOENGINE_INCLUDES}
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/python
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/core
-            )
-target_precompile_headers(pyevoengine
-            PRIVATE
-            ${LOCAL_EVOENGINE_PCH}
-            )
-target_link_libraries(pyevoengine
-            PRIVATE
-            evoengine
-            examples-core
-            )
-
+if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR})
+    file(GLOB LOCAL_PYEVOENGINE_SOURCES "src/python/*.cpp")
+    pybind11_add_module(pyevoengine ${LOCAL_PYEVOENGINE_SOURCES})
+    target_include_directories(pyevoengine
+                PRIVATE
+                ${LOCAL_EVOENGINE_INCLUDES}
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/python
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/core
+                )
+    target_precompile_headers(pyevoengine
+                PRIVATE
+                ${LOCAL_EVOENGINE_PCH}
+                )
+    target_link_libraries(pyevoengine
+                PRIVATE
+                evoengine
+                examples-core
+                )
+endif ()
 # ------------------------------------------------------------------
 # Copy Internal resources
 # ------------------------------------------------------------------
