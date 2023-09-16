@@ -1,4 +1,3 @@
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "PhysicsMaterial.hpp"
 #include "Application.hpp"
 #include "PhysicsLayer.hpp"
@@ -61,4 +60,3 @@ void EvoEngine::PhysicsMaterial::Deserialize(const YAML::Node &in)
     SetRestitution(m_restitution);
     SetDynamicFriction(m_dynamicFriction);
 }
-#endif

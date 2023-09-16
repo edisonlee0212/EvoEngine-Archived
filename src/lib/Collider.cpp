@@ -1,4 +1,3 @@
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "Collider.hpp"
 #include "PhysicsLayer.hpp"
 #include "Application.hpp"
@@ -140,4 +139,3 @@ void Collider::Deserialize(const YAML::Node &in)
     SetMaterial(mat);
     m_attachCount = in["m_attachCount"].as<size_t>();
 }
-#endif

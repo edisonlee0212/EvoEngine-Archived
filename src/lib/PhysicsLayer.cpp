@@ -1,4 +1,3 @@
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "Joint.hpp"
 #include "Application.hpp"
 #include "ProjectManager.hpp"
@@ -392,9 +391,6 @@ void PhysicsLayer::UploadJointLinks(
                             joint->m_localRotation2.y,
                             joint->m_localRotation2.z,
                             joint->m_localRotation2.w)));
-                static_cast<PxD6Joint *>(joint->m_joint)->setProjectionAngularTolerance(1.0f);
-                static_cast<PxD6Joint *>(joint->m_joint)->setConstraintFlag(PxConstraintFlag::ePROJECTION, true);
-
                 for (int i = 0; i < 6; i++)
                 {
                     joint->SetMotion((MotionAxis)i, (MotionType)joint->m_motionTypes[i]);
@@ -501,4 +497,3 @@ PhysicsScene::~PhysicsScene()
 {
     PX_RELEASE(m_physicsScene);
 }
-#endif

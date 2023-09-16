@@ -71,24 +71,18 @@ Entity CreateSphere(
 	const std::string& name);
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName, bool addSpheres);
 void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics);
-#ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
-#endif
 #pragma endregion
 
 int main() {
 	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
-	bool enablePhysics = false;
-#ifdef EVOENGINE_PHYSICSLAYER
 	Application::PushLayer<PhysicsLayer>();
-	enablePhysics = true;
-#endif
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
 	const std::filesystem::path resourceFolderPath("../../../Resources");
-	SetupDemoScene(demoSetup, applicationInfo, enablePhysics);
+	SetupDemoScene(demoSetup, applicationInfo, true);
 
 	Application::Initialize(applicationInfo);
 	Application::Start();
@@ -262,12 +256,10 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool 
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
 				LoadScene(scene, "Rendering Demo", !enablePhysics);
-#ifdef EVOENGINE_PHYSICSLAYER
 				const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
 				Transform physicsDemoTransform;
 				physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
 				scene->SetDataComponent(physicsDemo, physicsDemoTransform);
-#endif
 #pragma region Dynamic Lighting
 				const auto dirLightEntity = scene->CreateEntity("Directional Light");
 				const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -478,7 +470,6 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool 
 }
 
 
-#ifdef EVOENGINE_PHYSICSLAYER
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName)
 {
 	const auto baseEntity = scene->CreateEntity(baseEntityName);
@@ -728,5 +719,3 @@ Entity CreateSphere(
 }
 
 #pragma endregion
-
-#endif

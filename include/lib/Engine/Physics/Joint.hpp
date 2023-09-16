@@ -1,6 +1,4 @@
 #pragma once
-
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "RigidBody.hpp"
 
 #include "PrivateComponentRef.hpp"
@@ -60,10 +58,10 @@ class Joint : public IPrivateComponent
     bool m_minDistanceEnabled = false;
     float m_stiffness = 0;
     float m_damping = 0;
-    void SetMax(const float &value, const bool &enabled);
-    void SetMin(const float &value, const bool &enabled);
-    void SetStiffness(const float &value);
-    void SetDamping(const float &value);
+    void SetMax(float value, const bool &enabled);
+    void SetMin(float value, const bool &enabled);
+    void SetStiffness(float value);
+    void SetDamping(float value);
     void DistanceGui();
 #pragma endregion
 #pragma region Spherical
@@ -100,8 +98,8 @@ class Joint : public IPrivateComponent
  */
 #pragma region D6
     void SetMotion(const MotionAxis& axis, const MotionType& type);
-    void SetDistanceLimit(const float& toleranceLength, const float& toleranceSpeed, const float& extent, const float& contactDist = -1.0f);
-    void SetDrive(const DriveType& type, const float &stiffness, const float &damping, const bool &isAcceleration = true);
+    void SetDistanceLimit(float extent, float stiffness = 0, float damping = 0);
+    void SetDrive(const DriveType& type, float stiffness = 0, float damping = 0, const bool &isAcceleration = true);
 #pragma endregion
     void SetType(const JointType &type);
     void Unlink();
@@ -119,5 +117,3 @@ class Joint : public IPrivateComponent
     void Deserialize(const YAML::Node &in) override;
 };
 } // namespace EvoEngine
-
-#endif

@@ -12,7 +12,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # ------------------------------------------------------------------
 # Options
 # ------------------------------------------------------------------
-option(EVOENGINE_ENABLE_PHYSX "Enable PhysX" ON)
 option(EVOENGINE_BUILD_EXAMPLES "Build EvoEngine Examples" OFF)
 
 # ------------------------------------------------------------------
@@ -43,9 +42,7 @@ endif ()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set(3RD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdParty)
 add_subdirectory(${3RD_PARTY_DIR})
-if (EVOENGINE_ENABLE_PHYSX AND WIN32)
-    set(PHYSX_COMPILE_OPTION EVOENGINE_PHYSICSLAYER)
-endif()
+
 # ------------------------------------------------------------------
 # EvoEngine - sources
 # ------------------------------------------------------------------

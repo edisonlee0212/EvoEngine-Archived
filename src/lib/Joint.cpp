@@ -1,4 +1,3 @@
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "Joint.hpp"
 #include "EditorLayer.hpp"
 #include "RigidBody.hpp"
@@ -41,7 +40,7 @@ void Joint::DistanceGui()
         SetDamping(m_damping);
     }
 }
-void Joint::SetMax(const float &value, const bool &enabled)
+void Joint::SetMax(float value, const bool &enabled)
 {
     if (!m_joint)
         return;
@@ -56,7 +55,7 @@ void Joint::SetMax(const float &value, const bool &enabled)
         static_cast<PxDistanceJoint *>(m_joint)->setMaxDistance(m_maxDistance);
     }
 }
-void Joint::SetMin(const float &value, const bool &enabled)
+void Joint::SetMin(float value, const bool &enabled)
 {
     if (!m_joint)
         return;
@@ -71,7 +70,7 @@ void Joint::SetMin(const float &value, const bool &enabled)
         static_cast<PxDistanceJoint *>(m_joint)->setMinDistance(m_minDistance);
     }
 }
-void Joint::SetStiffness(const float &value)
+void Joint::SetStiffness(float value)
 {
     if (!m_joint)
         return;
@@ -83,7 +82,7 @@ void Joint::SetStiffness(const float &value)
         static_cast<PxDistanceJoint *>(m_joint)->setStiffness(m_stiffness);
     }
 }
-void Joint::SetDamping(const float &value)
+void Joint::SetDamping(float value)
 {
     if (!m_joint)
         return;
@@ -219,7 +218,7 @@ void Joint::SetMotion(const MotionAxis &axis, const MotionType &type)
     static_cast<PxD6Joint *>(m_joint)->setMotion(
         static_cast<PxD6Axis::Enum>(axis), static_cast<PxD6Motion::Enum>(type));
 }
-void Joint::SetDrive(const DriveType &type, const float &stiffness, const float &damping, const bool &isAcceleration)
+void Joint::SetDrive(const DriveType &type, float stiffness, float damping, const bool &isAcceleration)
 {
     if (!m_joint)
         return;
@@ -231,17 +230,14 @@ void Joint::SetDrive(const DriveType &type, const float &stiffness, const float 
         static_cast<PxD6JointDriveFlag::Enum>(isAcceleration ? PxU32(PxD6JointDriveFlag::eACCELERATION) : 0);
     static_cast<PxD6Joint *>(m_joint)->setDrive(static_cast<PxD6Drive::Enum>(type), m_drives[static_cast<int>(type)]);
 }
-void Joint::SetDistanceLimit(
-    const float &toleranceLength, const float &toleranceSpeed, const float &extent, const float &contactDist)
+void Joint::SetDistanceLimit(float extent, float stiffness, float damping)
 {
     if (!m_joint)
         return;
     if (!TypeCheck(JointType::D6))
         return;
-    auto scale = PxTolerancesScale();
-    scale.length = toleranceLength;
-    scale.speed = toleranceSpeed;
-    static_cast<PxD6Joint *>(m_joint)->setDistanceLimit(PxJointLinearLimit(scale, extent, contactDist));
+    const auto spring = PxSpring(stiffness, damping);
+    static_cast<PxD6Joint *>(m_joint)->setDistanceLimit(PxJointLinearLimit(extent, spring));
 }
 void Joint::PostCloneAction(const std::shared_ptr<IPrivateComponent> &target)
 {
@@ -376,4 +372,3 @@ void Joint::Link(const Entity &entity, bool reverse)
         Unlink();
     }
 }
-#endif

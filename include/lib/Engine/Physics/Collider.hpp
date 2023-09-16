@@ -1,5 +1,4 @@
 #pragma once
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "Entities.hpp"
 #include "IAsset.hpp"
 #include <PhysicsMaterial.hpp>
@@ -35,5 +34,3 @@ class Collider : public IAsset
     void Deserialize(const YAML::Node &in) override;
 };
 } // namespace EvoEngine
-
-#endif

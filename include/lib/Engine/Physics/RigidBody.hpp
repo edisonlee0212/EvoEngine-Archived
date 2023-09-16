@@ -1,5 +1,4 @@
 #pragma once
-#ifdef EVOENGINE_PHYSICSLAYER
 #include "Collider.hpp"
 #include "Entities.hpp"
 using namespace physx;
@@ -64,4 +63,3 @@ class RigidBody : public IPrivateComponent
     void PostCloneAction(const std::shared_ptr<IPrivateComponent> &target) override;
 };
 } // namespace EvoEngine
-#endif
