@@ -8,7 +8,6 @@
 #include "PlayerController.hpp"
 #include "Prefab.hpp"
 #include "Times.hpp"
-#include "PhysicsLayer.hpp"
 #include "Planet/PlanetTerrainSystem.hpp"
 #include "StarCluster/StarClusterSystem.hpp"
 
@@ -24,51 +23,6 @@ enum class DemoSetup
 	Galaxy,
 	Planets
 };
-Entity CreateDynamicCube(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name);
-
-Entity CreateSolidCube(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name);
-
-Entity CreateCube(
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name);
-
-Entity CreateDynamicSphere(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name);
-
-Entity CreateSolidSphere(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name);
-
-Entity CreateSphere(
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name);
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName, bool addSpheres);
 void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics);
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
@@ -77,7 +31,6 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
 int main() {
 	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
-	Application::PushLayer<PhysicsLayer>();
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
@@ -498,224 +451,14 @@ Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& 
 				meshRenderer->m_material = material;
 				material->m_materialProperties.m_roughness = static_cast<float>(i) / (amount - 1);
 				material->m_materialProperties.m_metallic = static_cast<float>(j) / (amount - 1);
-
-				const auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(sphere).lock();
-				rigidBody->SetEnabled(true);
-				rigidBody->SetDensityAndMassCenter(0.1f);
-				auto sphereCollider = ProjectManager::CreateTemporaryAsset<Collider>();
-				sphereCollider->SetShapeType(ShapeType::Sphere);
-				sphereCollider->SetShapeParam(glm::vec3(2.0f * scaleFactor));
-				rigidBody->AttachCollider(sphereCollider);
 				scene->SetParent(sphere, collection);
 			}
 		}
 	}
 	scene->SetParent(collection, baseEntity);
 #pragma endregion
-#pragma region Create Boundaries
-	{
-
-		const auto ground =
-			CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -35, 0) * scaleFactor, glm::vec3(0), glm::vec3(30, 1, 60) * scaleFactor, "Ground");
-
-		const auto rightWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(30, -20, 0) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 60) * scaleFactor, "LeftWall");
-		const auto leftWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(-30, -20, 0) * scaleFactor, glm::vec3(0), glm::vec3(1, 15, 60) * scaleFactor, "RightWall");
-		const auto frontWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -30, 60) * scaleFactor, glm::vec3(0), glm::vec3(30, 5, 1) * scaleFactor, "FrontWall");
-		const auto backWall = CreateSolidCube(1.0, glm::vec3(1.0f), glm::vec3(0, -20, -60) * scaleFactor, glm::vec3(0), glm::vec3(30, 15, 1) * scaleFactor, "BackWall");
-		scene->SetParent(rightWall, collection);
-		scene->SetParent(ground, collection);
-		scene->SetParent(backWall, collection);
-		scene->SetParent(leftWall, collection);
-		scene->SetParent(frontWall, collection);
-		/*
-		const auto b1 = CreateDynamicCube(
-			1.0, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(-5, -7.5, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(0.5) * scaleFactor, "Block 1");
-		const auto b2 =
-			CreateDynamicCube(1.0, glm::vec3(1.0f), glm::vec3(0, -10, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(1) * scaleFactor, "Block 2");
-		const auto b3 = CreateDynamicCube(
-			1.0, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(5, -7.5, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(1) * scaleFactor, "Block 3");
-
-		auto b1j = scene->GetOrSetPrivateComponent<Joint>(b1).lock();
-		b1j->SetType(JointType::Fixed);
-		b1j->Link(b2);
-		auto b3j = scene->GetOrSetPrivateComponent<Joint>(b3).lock();
-		b3j->SetType(JointType::Fixed);
-		b3j->Link(b2);
-		auto b2j = scene->GetOrSetPrivateComponent<Joint>(b2).lock();
-		b2j->SetType(JointType::Fixed);
-		b2j->Link(ground);
-
-		const auto anchor = CreateDynamicCube(
-			1.0, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-10, 0, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(2.0f) * scaleFactor, "Anchor");
-		scene->GetOrSetPrivateComponent<RigidBody>(anchor).lock()->SetKinematic(true);
-		auto lastLink = anchor;
-		for (int i = 1; i < 10; i++)
-		{
-			const auto link = CreateDynamicSphere(
-				1.0, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-10 - i, 0, 0) * scaleFactor, glm::vec3(0, 0, 45), 2.0f * scaleFactor, "Link");
-			auto joint = scene->GetOrSetPrivateComponent<Joint>(link).lock();
-			joint->SetType(JointType::D6);
-			joint->Link(lastLink);
-			// joint->SetMotion(MotionAxis::SwingY, MotionType::Limited);
-			scene->SetParent(link, anchor);
-			lastLink = link;
-		}
-
-		const auto freeSphere = CreateDynamicCube(
-			0.01, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-20, 0, 0) * scaleFactor, glm::vec3(0, 0, 45), glm::vec3(5.0f) * scaleFactor, "Free Cube");
-		auto joint = scene->GetOrSetPrivateComponent<Joint>(freeSphere).lock();
-		joint->SetType(JointType::D6);
-		joint->Link(lastLink);
-		// joint->SetMotion(MotionAxis::TwistX, MotionType::Free);
-		joint->SetMotion(MotionAxis::SwingY, MotionType::Free);
-		joint->SetMotion(MotionAxis::SwingZ, MotionType::Free);
-		*/
-	}
-#pragma endregion
 	return baseEntity;
 }
 
-
-Entity CreateSolidCube(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto cube = CreateCube(color, position, rotation, scale, name);
-	auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(cube).lock();
-	rigidBody->SetStatic(true);
-	// The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-	rigidBody->SetEnabled(true);
-
-	auto collider = ProjectManager::CreateTemporaryAsset<Collider>();
-	collider->SetShapeType(ShapeType::Box);
-	collider->SetShapeParam(scale);
-	rigidBody->AttachCollider(collider);
-	return cube;
-}
-
-Entity CreateDynamicCube(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto cube = CreateCube(color, position, rotation, scale, name);
-	auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(cube).lock();
-	rigidBody->SetStatic(false);
-	rigidBody->SetDensityAndMassCenter(1);
-	// The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-	rigidBody->SetEnabled(true);
-	rigidBody->SetDensityAndMassCenter(mass / scale.x / scale.y / scale.z);
-
-	auto collider = ProjectManager::CreateTemporaryAsset<Collider>();
-	collider->SetShapeType(ShapeType::Box);
-	collider->SetShapeParam(scale);
-	rigidBody->AttachCollider(collider);
-	return cube;
-}
-
-Entity CreateCube(
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const glm::vec3& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto cube = scene->CreateEntity(name);
-	auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(cube).lock();
-	auto material = ProjectManager::CreateTemporaryAsset<Material>();
-	groundMeshRenderer->m_material = material;
-	material->m_materialProperties.m_albedoColor = color;
-	groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
-	Transform groundTransform;
-	groundTransform.SetValue(position, glm::radians(rotation), scale * 2.0f);
-	scene->SetDataComponent(cube, groundTransform);
-	/*
-	GlobalTransform groundGlobalTransform;
-	groundGlobalTransform.SetValue(position, glm::radians(rotation), scale);
-	scene->SetDataComponent(cube, groundGlobalTransform);
-	*/
-	return cube;
-}
-
-Entity CreateDynamicSphere(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto sphere = CreateSphere(color, position, rotation, scale, name);
-	auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(sphere).lock();
-	rigidBody->SetStatic(false);
-	rigidBody->SetDensityAndMassCenter(1);
-	// The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-	rigidBody->SetEnabled(true);
-	rigidBody->SetDensityAndMassCenter(mass / scale / scale / scale);
-
-	auto collider = ProjectManager::CreateTemporaryAsset<Collider>();
-	collider->SetShapeType(ShapeType::Sphere);
-	collider->SetShapeParam(glm::vec3(scale));
-	rigidBody->AttachCollider(collider);
-	return sphere;
-}
-
-Entity CreateSolidSphere(
-	const float& mass,
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto sphere = CreateSphere(color, position, rotation, scale, name);
-	auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(sphere).lock();
-	rigidBody->SetStatic(true);
-	// The rigidbody can only apply mesh bound after it's attached to an entity with mesh renderer.
-	rigidBody->SetEnabled(true);
-
-	auto collider = ProjectManager::CreateTemporaryAsset<Collider>();
-	collider->SetShapeType(ShapeType::Sphere);
-	collider->SetShapeParam(glm::vec3(scale));
-	rigidBody->AttachCollider(collider);
-	return sphere;
-}
-
-Entity CreateSphere(
-	const glm::vec3& color,
-	const glm::vec3& position,
-	const glm::vec3& rotation,
-	const float& scale,
-	const std::string& name)
-{
-	auto scene = Application::GetActiveScene();
-	auto sphere = scene->CreateEntity(name);
-	auto groundMeshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(sphere).lock();
-	auto material = ProjectManager::CreateTemporaryAsset<Material>();
-	groundMeshRenderer->m_material = material;
-	material->m_materialProperties.m_albedoColor = color;
-	groundMeshRenderer->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_CUBE");
-	Transform groundTransform;
-	groundTransform.SetValue(position, glm::radians(rotation), glm::vec3(scale));
-	// groundTransform.SetValue(glm::vec3(0, -15, 0), glm::vec3(0), glm::vec3(30, 1, 30));
-	scene->SetDataComponent(sphere, groundTransform);
-
-	GlobalTransform groundGlobalTransform;
-	groundGlobalTransform.SetValue(position, glm::radians(rotation), glm::vec3(scale));
-	scene->SetDataComponent(sphere, groundGlobalTransform);
-	return sphere;
-}
 
 #pragma endregion

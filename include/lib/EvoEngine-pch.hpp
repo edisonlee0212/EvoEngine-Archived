@@ -79,7 +79,7 @@
 #define NDEBUG
 #define NDEBUG_WAS_NOT_DEFINED
 #endif
-#include <PxPhysicsAPI.h>
+
 #ifdef DEBUG_WAS_DEFINED
 #undef DEBUG_WAS_DEFINED
 #define _DEBUG

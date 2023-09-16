@@ -104,15 +104,6 @@ set(IMGUI_DIR
         ${3RD_PARTY_DIR}/ImGuizmo
         PARENT_SCOPE)
 
-# ------------------------------------------------------------------
-# physx
-# ------------------------------------------------------------------
-set(PHYSX_DIR
-        ${3RD_PARTY_DIR}/physx
-        PARENT_SCOPE)
-
-
-
 
 # ------------------------------------------------------------------
 # Includes
@@ -129,7 +120,6 @@ set(3RD_PARTY_INCLUDES
         ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/glad
         ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/KHR
         ${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader
-        ${CMAKE_CURRENT_SOURCE_DIR}/physx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/include
         ${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include
         PARENT_SCOPE

@@ -13,7 +13,6 @@
 #include "RenderLayer.hpp"
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
-#include "RigidBody.hpp"
 #include "StrandsRenderer.hpp"
 using namespace EvoEngine;
 
