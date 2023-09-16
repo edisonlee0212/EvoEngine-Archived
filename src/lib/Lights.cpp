@@ -215,8 +215,8 @@ void Lighting::Initialize()
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = Graphics::Constants::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION;
-        imageInfo.extent.height = Graphics::Constants::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.width = Graphics::Settings::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.height = Graphics::Settings::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION;
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 4;
@@ -275,8 +275,8 @@ void Lighting::Initialize()
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = Graphics::Constants::POINT_LIGHT_SHADOW_MAP_RESOLUTION;
-        imageInfo.extent.height = Graphics::Constants::POINT_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.width = Graphics::Settings::POINT_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.height = Graphics::Settings::POINT_LIGHT_SHADOW_MAP_RESOLUTION;
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 6;
@@ -335,8 +335,8 @@ void Lighting::Initialize()
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = Graphics::Constants::SPOT_LIGHT_SHADOW_MAP_RESOLUTION;
-        imageInfo.extent.height = Graphics::Constants::SPOT_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.width = Graphics::Settings::SPOT_LIGHT_SHADOW_MAP_RESOLUTION;
+        imageInfo.extent.height = Graphics::Settings::SPOT_LIGHT_SHADOW_MAP_RESOLUTION;
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;

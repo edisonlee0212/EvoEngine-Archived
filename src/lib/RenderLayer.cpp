@@ -430,7 +430,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 	m_renderInfoBlock.m_directionalLightSize = 0;
 	if (directionalLightEntities && !directionalLightEntities->empty())
 	{
-		m_directionalLightInfoBlocks.resize(Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE * cameras.size());
+		m_directionalLightInfoBlocks.resize(Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE * cameras.size());
 		for (const auto& lightEntity : *directionalLightEntities)
 		{
 			if (!scene->IsEntityEnabled(lightEntity))
@@ -441,12 +441,12 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 			m_renderInfoBlock.m_directionalLightSize++;
 		}
 		std::vector<glm::uvec3> viewPortResults;
-		Lighting::AllocateAtlas(m_renderInfoBlock.m_directionalLightSize, Graphics::Constants::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_directionalLightSize, Graphics::Settings::DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
 		for (const auto& [cameraGlobalTransform, camera] : cameras) {
 			auto cameraIndex = GetCameraIndex(camera->GetHandle());
 			for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 			{
-				const auto blockIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+				const auto blockIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 				auto& viewPort = m_directionalLightInfoBlocks[blockIndex].m_viewPort;
 				viewPort.x = viewPortResults[i].x;
 				viewPort.y = viewPortResults[i].y;
@@ -472,7 +472,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 				glm::vec3 lightDir = glm::normalize(rotation * glm::vec3(0, 0, 1));
 				float planeDistance = 0;
 				glm::vec3 center;
-				const auto blockIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + directionalLightIndex;
+				const auto blockIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + directionalLightIndex;
 				m_directionalLightInfoBlocks[blockIndex].m_direction = glm::vec4(lightDir, 0.0f);
 				m_directionalLightInfoBlocks[blockIndex].m_diffuse =
 					glm::vec4(dlc->m_diffuse * dlc->m_diffuseBrightness, dlc->m_castShadow);
@@ -668,7 +668,7 @@ void RenderLayer::CollectPointLights()
 			m_renderInfoBlock.m_pointLightSize++;
 		}
 		std::vector<glm::uvec3> viewPortResults;
-		Lighting::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::Constants::POINT_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_pointLightSize, Graphics::Settings::POINT_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
 		int allocationIndex = 0;
 		for (const auto& pointLightIndex : sortedPointLightIndices)
 		{
@@ -737,7 +737,7 @@ void RenderLayer::CollectSpotLights()
 			m_renderInfoBlock.m_spotLightSize++;
 		}
 		std::vector<glm::uvec3> viewPortResults;
-		Lighting::AllocateAtlas(m_renderInfoBlock.m_spotLightSize, Graphics::Constants::SPOT_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
+		Lighting::AllocateAtlas(m_renderInfoBlock.m_spotLightSize, Graphics::Settings::SPOT_LIGHT_SHADOW_MAP_RESOLUTION, viewPortResults);
 		int allocationIndex = 0;
 		for (const auto& spotLightIndex : sortedSpotLightIndices)
 		{
@@ -869,7 +869,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = 0;
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							pointLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (Graphics::Constants::ENABLE_MESH_SHADER) {
+							if (Graphics::Settings::ENABLE_MESH_SHADER) {
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
@@ -890,7 +890,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									pushConstant.m_lightSplitIndex = face;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (Graphics::Constants::ENABLE_MESH_SHADER)
+									if (Graphics::Settings::ENABLE_MESH_SHADER)
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
@@ -1101,7 +1101,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						pushConstant.m_instanceIndex = 0;
 						spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						spotLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if (Graphics::Constants::ENABLE_MESH_SHADER) {
+						if (Graphics::Settings::ENABLE_MESH_SHADER) {
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
@@ -1122,7 +1122,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_lightSplitIndex = 0;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-								if (Graphics::Constants::ENABLE_MESH_SHADER)
+								if (Graphics::Settings::ENABLE_MESH_SHADER)
 								{
 									graphics.m_drawCall[currentFrameIndex]++;
 									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
@@ -1598,11 +1598,11 @@ void RenderLayer::CreateStandardDescriptorBuffers()
 		bufferCreateInfo.size = sizeof(glm::vec4) * Graphics::Constants::MAX_KERNEL_AMOUNT * 2;
 		m_kernelDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE * Graphics::Constants::INITIAL_CAMERA_SIZE;
+		bufferCreateInfo.size = sizeof(DirectionalLightInfo) * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE * Graphics::Constants::INITIAL_CAMERA_SIZE;
 		m_directionalLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::Constants::MAX_POINT_LIGHT_SIZE;
+		bufferCreateInfo.size = sizeof(PointLightInfo) * Graphics::Settings::MAX_POINT_LIGHT_SIZE;
 		m_pointLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		bufferCreateInfo.size = sizeof(SpotLightInfo) * Graphics::Constants::MAX_SPOT_LIGHT_SIZE;
+		bufferCreateInfo.size = sizeof(SpotLightInfo) * Graphics::Settings::MAX_SPOT_LIGHT_SIZE;
 		m_spotLightInfoDescriptorBuffers.emplace_back(std::make_unique<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
 
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
@@ -1807,7 +1807,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
-						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i];
 						viewport.x = directionalLightInfoBlock.m_viewPort.x;
 						viewport.y = directionalLightInfoBlock.m_viewPort.y;
 						viewport.width = directionalLightInfoBlock.m_viewPort.z;
@@ -1819,12 +1819,12 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
 						if (m_enableIndirectRendering) {
 							RenderInstancePushConstant pushConstant;
-							pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+							pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 							pushConstant.m_lightSplitIndex = split;
 							pushConstant.m_instanceIndex = 0;
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (Graphics::Constants::ENABLE_MESH_SHADER) {
+							if (Graphics::Settings::ENABLE_MESH_SHADER) {
 								graphics.m_drawCall[currentFrameIndex]++;
 								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
@@ -1841,11 +1841,11 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								{
 									if (!renderCommand.m_castShadow) return;
 									RenderInstancePushConstant pushConstant;
-									pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+									pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 									pushConstant.m_lightSplitIndex = split;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (Graphics::Constants::ENABLE_MESH_SHADER)
+									if (Graphics::Settings::ENABLE_MESH_SHADER)
 									{
 										graphics.m_drawCall[currentFrameIndex]++;
 										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
@@ -1885,7 +1885,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					GeometryStorage::BindVertices(commandBuffer);
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
-						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i];
 						viewport.x = directionalLightInfoBlock.m_viewPort.x;
 						viewport.y = directionalLightInfoBlock.m_viewPort.y;
 						viewport.width = directionalLightInfoBlock.m_viewPort.z;
@@ -1902,7 +1902,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								renderCommand.m_particleInfos->UploadData();
 								directionalLightShadowPipelineInstanced->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 								pushConstant.m_lightSplitIndex = split;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineInstanced->PushConstant(commandBuffer, 0, pushConstant);
@@ -1936,7 +1936,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					directionalLightShadowPipelineSkinned->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
-						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i];
 						viewport.x = directionalLightInfoBlock.m_viewPort.x;
 						viewport.y = directionalLightInfoBlock.m_viewPort.y;
 						viewport.width = directionalLightInfoBlock.m_viewPort.z;
@@ -1952,7 +1952,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								if (!renderCommand.m_castShadow) return;
 								directionalLightShadowPipelineSkinned->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 								pushConstant.m_lightSplitIndex = split;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
@@ -1986,7 +1986,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					directionalLightShadowPipelineStrands->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_renderInfoBlock.m_directionalLightSize; i++)
 					{
-						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i];
+						const auto& directionalLightInfoBlock = m_directionalLightInfoBlocks[cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i];
 						viewport.x = directionalLightInfoBlock.m_viewPort.x;
 						viewport.y = directionalLightInfoBlock.m_viewPort.y;
 						viewport.width = directionalLightInfoBlock.m_viewPort.z;
@@ -2001,7 +2001,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							{
 								if (!renderCommand.m_castShadow) return;
 								RenderInstancePushConstant pushConstant;
-								pushConstant.m_cameraIndex = cameraIndex * Graphics::Constants::MAX_DIRECTIONAL_LIGHT_SIZE + i;
+								pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 								pushConstant.m_lightSplitIndex = split;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
@@ -2086,7 +2086,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 				pushConstant.m_cameraIndex = cameraIndex;
 				pushConstant.m_instanceIndex = 0;
 				deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-				if (Graphics::Constants::ENABLE_MESH_SHADER) {
+				if (Graphics::Settings::ENABLE_MESH_SHADER) {
 					graphics.m_drawCall[currentFrameIndex]++;
 					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
@@ -2106,7 +2106,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						if (Graphics::Constants::ENABLE_MESH_SHADER)
+						if (Graphics::Settings::ENABLE_MESH_SHADER)
 						{
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();

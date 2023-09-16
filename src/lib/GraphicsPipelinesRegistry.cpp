@@ -102,7 +102,7 @@ void Graphics::CreateGraphicsPipelines() const
 
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-		if (Constants::ENABLE_MESH_SHADER) {
+		if (Settings::ENABLE_MESH_SHADER) {
 			standardDeferredPrepass->m_taskShader = Resources::GetResource<Shader>("STANDARD_TASK");
 			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESH");
 		}
@@ -128,7 +128,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto standardDeferredPrepass = std::make_shared<GraphicsPipeline>();
-		if (Constants::ENABLE_MESH_SHADER) {
+		if (Settings::ENABLE_MESH_SHADER) {
 			standardDeferredPrepass->m_taskShader = Resources::GetResource<Shader>("STANDARD_TASK");
 			standardDeferredPrepass->m_meshShader = Resources::GetResource<Shader>("STANDARD_MESHLET_COLORED_MESH");
 		}
@@ -258,7 +258,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto directionalLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (Constants::ENABLE_MESH_SHADER) {
+		if (Settings::ENABLE_MESH_SHADER) {
 			directionalLightShadowMap->m_taskShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_TASK");
 			directionalLightShadowMap->m_meshShader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH");
 		}
@@ -341,7 +341,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto pointLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (Constants::ENABLE_MESH_SHADER) {
+		if (Settings::ENABLE_MESH_SHADER) {
 			pointLightShadowMap->m_taskShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_TASK");
 			pointLightShadowMap->m_meshShader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_MESH");
 		}
@@ -424,7 +424,7 @@ void Graphics::CreateGraphicsPipelines() const
 	}
 	{
 		const auto spotLightShadowMap = std::make_shared<GraphicsPipeline>();
-		if (Constants::ENABLE_MESH_SHADER) {
+		if (Settings::ENABLE_MESH_SHADER) {
 			spotLightShadowMap->m_taskShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_TASK");
 			spotLightShadowMap->m_meshShader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_MESH");
 		}

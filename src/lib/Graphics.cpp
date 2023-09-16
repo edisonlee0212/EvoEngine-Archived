@@ -650,7 +650,7 @@ void Graphics::SelectPhysicalDevice()
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
 #endif
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
-	if (Constants::ENABLE_MESH_SHADER) {
+	if (Settings::ENABLE_MESH_SHADER) {
 		m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
 	}
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
@@ -727,7 +727,7 @@ void Graphics::CreateLogicalDevice()
 	dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 	dynamicRenderingFeatures.pNext = &shaderDrawParametersFeatures;
-	if (Constants::ENABLE_MESH_SHADER) {
+	if (Settings::ENABLE_MESH_SHADER) {
 		VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeaturesExt{};
 		meshShaderFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
 		meshShaderFeaturesExt.pNext = &shaderDrawParametersFeatures;

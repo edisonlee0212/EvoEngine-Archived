@@ -141,43 +141,40 @@ namespace EvoEngine
 		std::vector<size_t> m_strandsSegments;
 		std::vector<size_t> m_drawCall;
 
-		
+		class Settings
+		{
+		public:
+			inline static bool ENABLE_MESH_SHADER = false;
+			inline static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
+			inline static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
+			inline static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
+			inline static uint32_t MAX_TEXTURE_2D_RESOURCE_SIZE = 2048;
+			inline static uint32_t MAX_CUBEMAP_RESOURCE_SIZE = 256;
+			
+			inline static uint32_t MAX_DIRECTIONAL_LIGHT_SIZE = 16;
+			inline static uint32_t MAX_POINT_LIGHT_SIZE = 16;
+			inline static uint32_t MAX_SPOT_LIGHT_SIZE = 16;
+		};
 
 		class Constants
 		{
 		public:
-			friend class RenderLayer;
-			friend class Resources;
-			friend class Lighting;
-			friend class PointLightShadowMap;
-			friend class SpotLightShadowMap;
-			inline constexpr static bool ENABLE_MESH_SHADER = false;
-
-			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SIZE = 2048;
-			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SETS = 2048;
+			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SIZE = 16384;
+			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SETS = 16384;
 			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 1;
 			inline constexpr static uint32_t INITIAL_MATERIAL_SIZE = 1;
 			inline constexpr static uint32_t INITIAL_INSTANCE_SIZE = 1;
 			inline constexpr static uint32_t INITIAL_RENDER_TASK_SIZE = 1;
 			inline constexpr static uint32_t MAX_KERNEL_AMOUNT = 64;
-			inline constexpr static uint32_t MAX_DIRECTIONAL_LIGHT_SIZE = 16;
-			inline constexpr static uint32_t MAX_POINT_LIGHT_SIZE = 16;
-			inline constexpr static uint32_t MAX_SPOT_LIGHT_SIZE = 16;
 
-			inline constexpr static uint32_t MAX_TEXTURE_2D_RESOURCE_SIZE = 2048;
-			inline constexpr static uint32_t MAX_CUBEMAP_RESOURCE_SIZE = 256;
-			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
-			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
-
-			inline constexpr static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
-			inline constexpr static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
-			inline constexpr static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
 			inline constexpr static VkFormat TEXTURE_2D = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline constexpr static VkFormat RENDER_TEXTURE_DEPTH = VK_FORMAT_D32_SFLOAT;
 			inline constexpr static VkFormat RENDER_TEXTURE_COLOR = VK_FORMAT_R32G32B32A32_SFLOAT;
 			inline constexpr static VkFormat G_BUFFER_DEPTH = VK_FORMAT_D32_SFLOAT;
 			inline constexpr static VkFormat G_BUFFER_COLOR = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline constexpr static VkFormat SHADOW_MAP = VK_FORMAT_D32_SFLOAT;
+			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
+			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);
