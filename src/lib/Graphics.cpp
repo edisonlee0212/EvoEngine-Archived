@@ -410,7 +410,11 @@ bool CheckDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vec
 	for (const auto& extension : availableExtensions) {
 		requiredExtensions.erase(extension.extensionName);
 	}
-
+#ifndef NDEBUG
+	for(const auto& extension : requiredExtensions){
+		EVOENGINE_ERROR("Extension " + extension + " is not supported by this device!");
+	}
+#endif
 	return requiredExtensions.empty();
 }
 
