@@ -1,3 +1,7 @@
+#vscode
+.vscode/
+build/
+
 #Docs
 docs/
 
@@ -9,8 +13,6 @@ docs/
 3rdParty/physx/win.x86_64.vc143.mt/release/PhysXGpu_64.dll
 3rdParty/shaderc/lib/shaderc_combined.lib
 3rdParty/shaderc/lib/shaderc_combined_d.lib
-
-build
 
 # Include Resource folder
 !Resources/

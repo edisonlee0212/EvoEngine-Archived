@@ -35,7 +35,7 @@ void FileUtils::OpenFolder(const std::string& dialogTitle,
 	const std::function<void(const std::filesystem::path& path)>& func, bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
@@ -74,9 +74,20 @@ void FileUtils::OpenFolder(const std::string& dialogTitle,
 		}
 	}
 #else
-	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFolderDlgKey", "Choose Folder", nullptr, ".");
+	// display
+	if (ImGuiFileDialog::Instance()->Display("ChooseFolderDlgKey"))
 	{
-
+		// action if OK
+		if (ImGuiFileDialog::Instance()->IsOk())
+		{
+			// action
+			std::filesystem::path path = ImGuiFileDialog::Instance()->GetCurrentPath();
+			if (!projectDirCheck || ProjectManager::IsInProjectFolder(path))
+				func(path);
+		}
+		// close
+		ImGuiFileDialog::Instance()->Close();
 	}
 #endif
 }
@@ -89,7 +100,7 @@ void FileUtils::OpenFile(
 	bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
@@ -152,30 +163,31 @@ void FileUtils::OpenFile(
 				pos = retVal.find(search, pos + 1);
 			}
 			std::filesystem::path path = retVal;
-			//if (!projectDirCheck || ProjectManager::IsInProjectFolder(path))
-			func(path);
+			if (!projectDirCheck || ProjectManager::IsInProjectFolder(path))
+				func(path);
 		}
 	}
 #else
-	/*
-	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
-		ImGui::OpenPopup(dialogTitle.c_str());
-	static imgui_addons::ImGuiFileBrowser file_dialog;
-	std::string filters;
-	for (int i = 0; i < extensions.size(); i++)
-	{
-		filters += extensions[i];
-		if (i < extensions.size() - 1)
-			filters += ",";
+	std::stringstream fileExtensions;
+	for (int i = 0; i < extensions.size(); i++) {
+		fileExtensions << extensions[i];
+		if(i != extensions.size() - 1) fileExtensions << ",";
 	}
-	if (file_dialog.showFileDialog(
-		dialogTitle, imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), filters))
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".");
+	// display
+	if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
 	{
-		func(file_dialog.selected_path);
-	}*/
-	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
-	{
+		// action if OK
+		if (ImGuiFileDialog::Instance()->IsOk())
+		{
+			// action
+			std::filesystem::path path = ImGuiFileDialog::Instance()->GetFilePathName();
+			if (!projectDirCheck || ProjectManager::IsInProjectFolder(path))
+				func(path);
+		}
 
+		// close
+		ImGuiFileDialog::Instance()->Close();
 	}
 #endif
 }
@@ -185,7 +197,7 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 	bool projectDirCheck)
 {
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
@@ -256,28 +268,27 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 		}
 	}
 #else
-	/*
-	if (ImGui::Button(dialogTitle.c_str()))
-		ImGui::OpenPopup(dialogTitle.c_str());
-	static imgui_addons::ImGuiFileBrowser file_dialog;
-	std::string filters;
-	for (int i = 0; i < extensions.size(); i++)
-	{
-		filters += extensions[i];
-		if (i < extensions.size() - 1)
-			filters += ",";
+	std::stringstream fileExtensions;
+	for (int i = 0; i < extensions.size(); i++) {
+		fileExtensions << extensions[i];
+		if (i != extensions.size() - 1) fileExtensions << ",";
 	}
-	if (file_dialog.showFileDialog(
-		dialogTitle, imgui_addons::ImGuiFileBrowser::DialogMode::SAVE, ImVec2(700, 310), filters))
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".");
+	// display
+	if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
 	{
-		std::filesystem::path path = file_dialog.selected_path;
-		func(path);
-	}
-	*/
-	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
-	{
+		// action if OK
+		if (ImGuiFileDialog::Instance()->IsOk())
+		{
+			// action
+			std::filesystem::path path = ImGuiFileDialog::Instance()->GetFilePathName();
+			if (!projectDirCheck || ProjectManager::IsInProjectFolder(path))
+				func(path);
+		}
 
-	}
+		// close
+		ImGuiFileDialog::Instance()->Close();
+}
 #endif
 }
 
