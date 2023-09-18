@@ -34,7 +34,6 @@ int main() {
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
-	const std::filesystem::path resourceFolderPath("../../../Resources");
 	SetupDemoScene(demoSetup, applicationInfo, true);
 
 	Application::Initialize(applicationInfo);
@@ -166,11 +165,15 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 
 void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics)
 {
-	const std::filesystem::path resourceFolderPath("../../../Resources");
+	std::filesystem::path resourceFolderPath("../../../Resources");
+	if (!std::filesystem::exists(resourceFolderPath)) {
+		resourceFolderPath = "../../Resources";
+	}
+	if (!std::filesystem::exists(resourceFolderPath)) {
+		resourceFolderPath = "../Resources";
+	}
 #pragma region Demo scene setup
-	if (demoSetup != DemoSetup::Empty) {
-
-
+	if (demoSetup != DemoSetup::Empty && std::filesystem::exists(resourceFolderPath)) {
 		for (const auto i : std::filesystem::recursive_directory_iterator(resourceFolderPath))
 		{
 			if (i.is_directory()) continue;
