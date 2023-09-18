@@ -53,12 +53,6 @@ add_library(evoengine
         ${LOCAL_EVOENGINE_SOURCES}
         )
 
-set(LOCAL_EVOENGINE_PCH ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/evoengine-pch.hpp)
-target_precompile_headers(evoengine
-        PRIVATE
-        ${LOCAL_EVOENGINE_PCH}
-        )
-
 set(LOCAL_EVOENGINE_INCLUDES
         ${3RD_PARTY_INCLUDES}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lib
@@ -87,6 +81,12 @@ set(LOCAL_EVOENGINE_INCLUDES
 target_include_directories(evoengine
         PRIVATE
         ${LOCAL_EVOENGINE_INCLUDES}
+        )
+
+set(LOCAL_EVOENGINE_PCH ${CMAKE_CURRENT_SOURCE_DIR}/include/lib/evoengine-pch.hpp)
+target_precompile_headers(evoengine
+        PRIVATE
+        ${LOCAL_EVOENGINE_PCH}
         )
 
 # ------------------------------------------------------------------

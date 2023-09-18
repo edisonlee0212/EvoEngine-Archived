@@ -24,14 +24,12 @@ set(GLFW_DIR ${3RD_PARTY_DIR}/glfw/ PARENT_SCOPE)
 # yaml
 # ------------------------------------------------------------------
 set(YAML_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/)
-include_directories(${YAML_CPP_DIR}/include)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
 # pybind11
 # ------------------------------------------------------------------
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11/)
-include_directories(${PYBIND11_DIR}/include)
 add_subdirectory(${PYBIND11_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
@@ -39,7 +37,6 @@ add_subdirectory(${PYBIND11_DIR} EXCLUDE_FROM_ALL)
 # ------------------------------------------------------------------
 if (WIN32)
 	set(GLM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/glm/)
-	include_directories(${GLM_DIR})
 	add_subdirectory(${GLM_DIR} EXCLUDE_FROM_ALL)
 elseif (UNIX AND NOT APPLE)
 	find_package(GLM REQUIRED)
@@ -49,10 +46,10 @@ endif ()
 # ------------------------------------------------------------------
 # volk
 # ------------------------------------------------------------------
+find_package(Vulkan REQUIRED)
 if (WIN32)
 	set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_WIN32_KHR)
 elseif (UNIX AND NOT APPLE)
-	find_package(Vulkan REQUIRED)
 	message(STATUS "Vulkan included at ${Vulkan_INCLUDE_DIRS}")
 	set(VOLK_STATIC_DEFINES VK_NO_PROTOTYPES VK_USE_PLATFORM_XLIB_KHR)
 elseif (APPLE)
@@ -110,6 +107,7 @@ set(IMGUI_DIR
 # ------------------------------------------------------------------
 set(3RD_PARTY_INCLUDES
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/glm
 	${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include
 	${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/include
 	${CMAKE_CURRENT_SOURCE_DIR}/glfw/include
@@ -118,9 +116,8 @@ set(3RD_PARTY_INCLUDES
 	${CMAKE_CURRENT_SOURCE_DIR}/ImGui
 	${CMAKE_CURRENT_SOURCE_DIR}/ImGui/backends
 	${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo
-	${CMAKE_CURRENT_SOURCE_DIR}/glad/include
-	${CMAKE_CURRENT_SOURCE_DIR}/glad/include/glad
-	${CMAKE_CURRENT_SOURCE_DIR}/glad/include/KHR
+	${Vulkan_INCLUDE_DIRS}
+	${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator/include
 	${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader
 	${CMAKE_CURRENT_SOURCE_DIR}/shaderc/include
 	${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include
