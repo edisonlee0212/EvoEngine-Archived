@@ -136,13 +136,60 @@ void Application::LateUpdateInternal()
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 		const auto windowLayer = GetLayer<WindowLayer>();
-		if (windowLayer && ImGui::BeginMainMenuBar())
-		{
-			FileUtils::SaveFile(
-				"Create or load New Project",
-				"Project",
-				{ ".eveproj" },
-				[&](const std::filesystem::path& path) {
+		if (windowLayer)
+		{			
+			ImGuiFileDialog::Instance()->OpenDialog("ChooseProjectKey", "Choose Project", ".eveproj", ".");
+#pragma region Dock
+			static bool opt_fullscreen_persistant = true;
+			bool opt_fullscreen = opt_fullscreen_persistant;
+			static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+			// because it would be confusing to have two docking targets within each others.
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+			if (opt_fullscreen)
+			{
+				ImGuiViewport* viewport = ImGui::GetMainViewport();
+				ImGui::SetNextWindowPos(viewport->WorkPos);
+				ImGui::SetNextWindowSize(viewport->WorkSize);
+				ImGui::SetNextWindowViewport(viewport->ID);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+				window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+					ImGuiWindowFlags_NoMove;
+				window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			}
+
+			// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+			// and handle the pass-thru hole, so we ask Begin() to not render a background.
+			if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+				window_flags |= ImGuiWindowFlags_NoBackground;
+
+			// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+			// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+			// all active windows docked into it will lose their parent and become undocked.
+			// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+			// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			static bool openDock = true;
+			ImGui::Begin("Root DockSpace", &openDock, window_flags);
+			ImGui::PopStyleVar();
+			if (opt_fullscreen)
+				ImGui::PopStyleVar(2);
+			ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+			ImGui::End();
+#pragma endregion
+			ImGui::SetNextWindowDockID(dockspace_id);
+			// display
+			if (ImGuiFileDialog::Instance()->Display("ChooseProjectKey"))
+			{
+				// action if OK
+				if (ImGuiFileDialog::Instance()->IsOk())
+				{
+					// action
+					std::filesystem::path path = ImGuiFileDialog::Instance()->GetFilePathName();
 					ProjectManager::GetOrCreateProject(path);
 					if (ProjectManager::GetInstance().m_projectFolder)
 					{
@@ -151,9 +198,10 @@ void Application::LateUpdateInternal()
 							application.m_applicationInfo.m_defaultWindowSize.y);
 						application.m_applicationStatus = ApplicationStatus::Stop;
 					}
-				},
-				false);
-			ImGui::EndMainMenuBar();
+				}
+				// close
+				ImGuiFileDialog::Instance()->Close();
+			}
 		}
 
 		Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer)
@@ -293,7 +341,10 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 	else
 	{
-		application.m_applicationStatus = ApplicationStatus::NoProject;
+		application.m_applicationStatus = ApplicationStatus::NoProject; 
+		if (windowLayer) {
+			windowLayer->ResizeWindow(800, 600);
+		}
 	}
 }
 

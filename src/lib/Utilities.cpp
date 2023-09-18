@@ -35,8 +35,7 @@ void FileUtils::OpenFolder(const std::string& dialogTitle,
 	const std::function<void(const std::filesystem::path& path)>& func, bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-	
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		TCHAR path[MAX_PATH];
@@ -74,9 +73,9 @@ void FileUtils::OpenFolder(const std::string& dialogTitle,
 		}
 	}
 #else
-	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFolderDlgKey", "Choose Folder", nullptr, ".");
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFolderDlgKey", "Choose Folder", nullptr, ".", 1, nullptr, ImGuiFileDialogFlags_Default);
 	// display
-	if (ImGuiFileDialog::Instance()->Display("ChooseFolderDlgKey"))
+	if (ImGuiFileDialog::Instance()->Display("ChooseFolderDlgKey", ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		// action if OK
 		if (ImGuiFileDialog::Instance()->IsOk())
@@ -100,7 +99,7 @@ void FileUtils::OpenFile(
 	bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
@@ -173,7 +172,7 @@ void FileUtils::OpenFile(
 		fileExtensions << extensions[i];
 		if(i != extensions.size() - 1) fileExtensions << ",";
 	}
-	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".");
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".", 1, nullptr, ImGuiFileDialogFlags_Default);
 	// display
 	if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
 	{
@@ -197,7 +196,7 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 	bool projectDirCheck)
 {
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
@@ -273,7 +272,7 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 		fileExtensions << extensions[i];
 		if (i != extensions.size() - 1) fileExtensions << ",";
 	}
-	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".");
+	if (windowLayer && ImGui::Button(dialogTitle.c_str())) ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", fileExtensions.str().c_str(), ".", 1, nullptr, ImGuiFileDialogFlags_Default);
 	// display
 	if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
 	{

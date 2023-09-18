@@ -90,6 +90,9 @@ namespace EvoEngine
 		std::vector<GizmoInstancedMeshTask> m_gizmoInstancedMeshTasks;
 		std::vector<GizmoStrandsTask> m_gizmoStrandsTasks;
 	public:
+		bool m_transformReload = false;
+		bool m_transformReadOnly = false;
+
 		void RegisterEditorCamera(const std::shared_ptr<Camera>& camera);
 
 		[[nodiscard]] glm::vec2 GetMouseSceneCameraPosition() const;

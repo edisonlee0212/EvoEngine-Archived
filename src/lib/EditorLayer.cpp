@@ -40,10 +40,9 @@ void EditorLayer::OnCreate()
 		static Entity previousEntity;
 		auto* ltp = static_cast<Transform*>(static_cast<void*>(data));
 		bool edited = false;
-		bool reload = previousEntity != entity;
-		bool readOnly = false;
+		bool reload = previousEntity != entity || m_transformReload;
 		auto scene = Application::GetActiveScene();
-#ifdef EVOENGINE_PHYSICSLAYER
+#ifdef false
 		if (Application::IsPlaying() && scene->HasPrivateComponent<RigidBody>(entity)) {
 			const auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(entity).lock();
 			if (!rigidBody->IsKinematic() && rigidBody->Registered()) {
@@ -67,7 +66,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			readOnly ? ImGuiSliderFlags_ReadOnly : 0))
+			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Position##Local", &m_localPositionSelected) && m_localPositionSelected) {
@@ -81,7 +80,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			readOnly ? ImGuiSliderFlags_ReadOnly : 0))
+			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Rotation##Local", &m_localRotationSelected) && m_localRotationSelected) {
@@ -95,7 +94,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			readOnly ? ImGuiSliderFlags_ReadOnly : 0))
+			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Scale##Local", &m_localScaleSelected) && m_localScaleSelected) {
@@ -107,6 +106,8 @@ void EditorLayer::OnCreate()
 				glm::mat4_cast(glm::quat(glm::radians(m_previouslyStoredRotation))) *
 				glm::scale(m_previouslyStoredScale);
 		}
+		m_transformReload = false;
+		m_transformReadOnly = false;
 		return edited;
 		});
 
@@ -783,7 +784,6 @@ void EditorLayer::LateUpdate()
 			renderInfo.pColorAttachments = &colorAttachmentInfo;
 
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-
 			ImGui::Render();
 			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
