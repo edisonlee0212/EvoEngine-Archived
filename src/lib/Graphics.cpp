@@ -478,6 +478,7 @@ bool Graphics::IsDeviceSuitable(VkPhysicalDevice physicalDevice, const std::vect
 {
 	if (!CheckDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions)) return false;
 	if (const auto windowLayer = Application::GetLayer<WindowLayer>()) {
+		if (const auto queueFamilyIndices = FindQueueFamilies(m_vkPhysicalDevice); !queueFamilyIndices.m_presentFamily.has_value()) return false;
 		const auto swapChainSupportDetails = QuerySwapChainSupport(physicalDevice);
 		if (swapChainSupportDetails.m_formats.empty() || swapChainSupportDetails.m_presentModes.empty()) return false;
 	}
@@ -679,6 +680,7 @@ void Graphics::SelectPhysicalDevice()
 #ifndef NDEBUG
 		EVOENGINE_LOG("Found device: " + std::string(properties.deviceName) + ".");
 #endif
+		
 		if (!IsDeviceSuitable(physicalDevice, m_requiredDeviceExtensions)) {
 #ifndef NDEBUG
 			EVOENGINE_LOG("Device is not suitable!");
