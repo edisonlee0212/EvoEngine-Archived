@@ -3,7 +3,7 @@ EvoEngine is an early-stage, cross-platform interactive application and renderin
 ## Main features
 Here are the features that already exist in the EvoEngine.
  - Modularized Design
-    - Removable WindowLayer, RenderLayer, PhysicsLayer, EditorLayer, etc.
+    - Removable WindowLayer, RenderLayer, EditorLayer, etc.
     - E.g. Offscreen rendering by unloading WindowLayer and EditorLayer.
  - Complete Entity Component System (ECS) 
     - Cache-friendly data component, similar to the ComponentData in Unity Engine.
@@ -48,10 +48,6 @@ Here are the features that already exist in the EvoEngine.
  - Native high-level rendering API support (Please visit Graphics for further details)
  - Exportable as a static library (For my research purposes, I'm using the EvoEngine as the underlying rendering framework for my other research projects. Those are private.)
  - Input/Event System
- - Physics
-    - Integrated PhysX for 3D physics (Incomplete and in development)
-       - RigidBody with colliders
-       - Joints
  - Documentation
        - https://codedocs.xyz/edisonlee0212/EvoEngine/
 ## Upcoming features
@@ -61,7 +57,7 @@ Here are the features that will be introduced to EvoEngine in the future, though
 - Audio system
 - Event System
 ## Getting Started
-The project is a CMake project. For project editing and code inspections, Visual Studio 2017 or 2019 is recommended. Simply clone/download the project files and open the folder as a project in Visual Studio and you are ready.
+The project is a CMake project. For project editing and code inspections, Visual Studio 2019 or 2022 is recommended. Simply clone/download the project files and open the folder as a project in Visual Studio and you are ready.
 To directly build the project, scripts under the root folder build.cmd (for Windows) and build.sh (for Linux) is provided for building with a single command line.
 E.g. For Linux, the command may be :
  - bash build.sh (build in default settings)
