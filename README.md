@@ -28,7 +28,8 @@ Here are the features that already exist in the EvoEngine.
           - Default/Local/Global asset serialization
           - Entity/DataComponent/PrivateComponent/System serialization
        - Prefabs
- - PBR + IBL + PCSS
+ - Rendering: PBR + IBL + PCSS
+    - Vulkan
     - Support for both deferred (RenderSystem) and forward rendering (RenderSystem/native rendering API).
     - Lighting and Shadows
        - PCF + Cascaded Shadow Map
@@ -41,12 +42,12 @@ Here are the features that already exist in the EvoEngine.
        - Environmental map
        - Basic light probe/reflection probe support
     - Instanced rendering
-    - High-level rendering API - You can issue a complete render command with no glXXX command involved.
+    - High-level rendering API - You can issue a complete render command without any vk... command involved.
        - Similiar to https://docs.unity3d.com/ScriptReference/Graphics.DrawMeshInternal.html
  - Animation
  - Cross-platform support for Linux, Windows
  - Native high-level rendering API support (Please visit Graphics for further details)
- - Exportable as a static library (For my research purposes, I'm using the EvoEngine as the underlying rendering framework for my other research projects. Those are private.)
+ - Exportable as a static library (For my research purposes, I'm using the EvoEngine as the underlying rendering framework for my other research projects)
  - Input/Event System
  - Documentation
        - https://codedocs.xyz/edisonlee0212/EvoEngine/
@@ -55,7 +56,6 @@ Here are the features that will be introduced to EvoEngine in the future, though
 - Procedural terrain and world generation
 - Artificial Intelligence
 - Audio system
-- Event System
 ## Getting Started
 The project is a CMake project. For project editing and code inspections, Visual Studio 2019 or 2022 is recommended. Simply clone/download the project files and open the folder as a project in Visual Studio and you are ready.
 To directly build the project, scripts under the root folder build.cmd (for Windows) and build.sh (for Linux) is provided for building with a single command line.
