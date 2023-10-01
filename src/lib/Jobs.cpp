@@ -17,14 +17,14 @@ void Jobs::Initialize()
     Workers().Resize(std::thread::hardware_concurrency() - 1);
 }
 
-void Jobs::ParallelFor(size_t size, const std::function<void(unsigned i)>& func)
+void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i)>& func)
 {
     auto& workers = GetInstance().m_workers;
     const auto threadSize = workers.Size();
     const auto threadLoad = size / threadSize;
     const auto loadReminder = size % threadSize;
     std::vector<std::shared_future<void>> results;
-    results.reserve(results.size() + threadSize);
+    results.reserve(threadSize);
     for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
     {
         results.push_back(workers
@@ -70,6 +70,33 @@ void Jobs::ParallelFor(
     }
 }
 
+void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func)
+{
+    auto& workers = GetInstance().m_workers;
+    const auto threadSize = workers.Size();
+    const auto threadLoad = size / threadSize;
+    const auto loadReminder = size % threadSize;
+    std::vector<std::shared_future<void>> results;
+    results.reserve(threadSize);
+    for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
+    {
+        results.push_back(workers
+            .Push([=](const int id) {
+                for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
+                {
+                    func(i, id);
+                }
+                if (threadIndex < loadReminder)
+                {
+                    const unsigned i = threadIndex + threadSize * threadLoad;
+                    func(i, id);
+                }
+                })
+            .share());
+    }
+    for (const auto& i : results) i.wait();
+}
+
 void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func,
                        std::vector<std::shared_future<void>>& results)
 {
@@ -81,7 +108,7 @@ void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, u
     for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
     {
         results.push_back(workers
-            .Push([=](int id) {
+            .Push([=](const int id) {
                 for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
                 {
                     func(i, id);
@@ -94,4 +121,46 @@ void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, u
                 })
             .share());
     }
+}
+
+void Jobs::Parallel(const std::function<void(unsigned threadIndex)>& func)
+{
+    auto& workers = GetInstance().m_workers;
+    const auto threadSize = workers.Size();
+    std::vector<std::shared_future<void>> results;
+    results.reserve(threadSize);
+    for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
+    {
+        results.push_back(workers
+            .Push([=](const int id) {
+                func(id);
+                })
+            .share());
+    }
+    for (const auto& i : results) i.wait();
+}
+
+void Jobs::Parallel(const std::function<void(unsigned threadIndex)>& func,
+	std::vector<std::shared_future<void>>& results)
+{
+    auto& workers = GetInstance().m_workers;
+    const auto threadSize = workers.Size();
+    results.reserve(results.size() + threadSize);
+    for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
+    {
+        results.push_back(workers
+            .Push([=](const int id) {
+                func(id);
+                })
+            .share());
+    }
+    for (const auto& i : results) i.wait();
+}
+
+std::shared_future<void> Jobs::AddTask(const std::function<void(unsigned threadIndex)>& func)
+{
+    auto& workers = GetInstance().m_workers;
+    return workers.Push([=](const int id) {
+        func(id);
+        }).share();
 }

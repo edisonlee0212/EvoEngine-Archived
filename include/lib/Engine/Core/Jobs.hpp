@@ -13,6 +13,13 @@ class Jobs final : ISingleton<Jobs>
     static void Initialize();
     static void ParallelFor(size_t size, const std::function<void(unsigned i)>& func);
     static void ParallelFor(size_t size, const std::function<void(unsigned i)> &func, std::vector<std::shared_future<void>>& results);
+
+    static void ParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func);
     static void ParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, std::vector<std::shared_future<void>>& results);
+
+    static void Parallel(const std::function<void(unsigned threadIndex)>& func);
+    static void Parallel(const std::function<void(unsigned threadIndex)>& func, std::vector<std::shared_future<void>>& results);
+
+    static std::shared_future<void> AddTask(const std::function<void(unsigned threadIndex)>& func);
 };
 } // namespace EvoEngine
