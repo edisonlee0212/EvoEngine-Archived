@@ -352,6 +352,39 @@ std::vector<uint32_t> ShaderUtils::CompileFile(const std::string& sourceName, sh
 	return { module.cbegin(), module.cend() };
 }
 
+std::vector<uint32_t> ShaderUtils::Get(const std::string& sourceName, shaderc_shader_kind kind,
+	const std::string& source, bool optimize)
+{
+	//1. Look for compiled resource.
+	const auto binarySearchPath = std::filesystem::path("./DefaultResources") / "CompiledShaderBinaries" / (std::to_string(std::hash<std::string>{}(source)) + ".yml");
+	std::vector<uint32_t> retVal;
+	if(std::filesystem::exists(binarySearchPath))
+	{
+		const std::ifstream stream(binarySearchPath.string());
+		std::stringstream stringStream;
+		stringStream << stream.rdbuf();
+		const YAML::Node in = YAML::Load(stringStream.str());
+		assert(in["CompiledBinaries"]);
+		const auto binaries = in["CompiledBinaries"].as<YAML::Binary>();
+		retVal.resize(binaries.size() / sizeof(uint32_t));
+		std::memcpy(retVal.data(), binaries.data(), binaries.size());
+	}
+	else {
+		retVal = CompileFile(sourceName, kind, source, optimize);
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "CompiledBinaries" << YAML::Value
+			<< YAML::Binary(
+				reinterpret_cast<const unsigned char*>(retVal.data()), retVal.size() * sizeof(uint32_t));
+		out << YAML::EndMap;
+		std::filesystem::create_directories(std::filesystem::path("./DefaultResources") / "CompiledShaderBinaries");
+		std::ofstream fileOutput(binarySearchPath);
+		fileOutput << out.c_str();
+		fileOutput.close();
+	}
+	return retVal;
+}
+
 void SphereMeshGenerator::Icosahedron(std::vector<glm::vec3>& vertices, std::vector<glm::uvec3>& triangles)
 {
 	vertices.clear();

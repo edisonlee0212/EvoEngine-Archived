@@ -61,6 +61,11 @@ namespace EvoEngine
 		                                  shaderc_shader_kind kind,
 		                                  const std::string& source,
 		                                  bool optimize = false);
+
+		static std::vector<uint32_t> Get(const std::string& sourceName,
+			shaderc_shader_kind kind,
+			const std::string& source,
+			bool optimize = false);
 	};
 
 	class SphereMeshGenerator {

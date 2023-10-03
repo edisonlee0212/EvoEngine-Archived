@@ -36,7 +36,7 @@ void Shader::Set(const ShaderType shaderType, const std::string& shaderCode)
 
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	const auto binary = ShaderUtils::CompileFile("Shader", shaderKind, m_code);
+	const auto binary = ShaderUtils::Get("Shader", shaderKind, m_code);
 	createInfo.pCode = binary.data();
 	createInfo.codeSize = binary.size() * sizeof(uint32_t);
 	m_shaderModule = std::make_unique<ShaderModule>(createInfo);
