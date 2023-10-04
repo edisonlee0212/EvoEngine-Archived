@@ -90,6 +90,9 @@ namespace EvoEngine
 		std::vector<GizmoInstancedMeshTask> m_gizmoInstancedMeshTasks;
 		std::vector<GizmoStrandsTask> m_gizmoStrandsTasks;
 	public:
+		[[nodiscard]] bool SceneCameraWindowFocused() const;
+		[[nodiscard]] bool MainCameraWindowFocused() const;
+
 		bool m_transformReload = false;
 		bool m_transformReadOnly = false;
 

@@ -1314,6 +1314,16 @@ void EditorLayer::ResizeCameras()
 	}
 }
 
+bool EditorLayer::SceneCameraWindowFocused() const
+{
+	return m_sceneCameraWindowFocused;
+}
+
+bool EditorLayer::MainCameraWindowFocused() const
+{
+	return m_mainCameraWindowFocused;
+}
+
 void EditorLayer::RegisterEditorCamera(const std::shared_ptr<Camera>& camera)
 {
 	if (m_editorCameras.find(camera->GetHandle()) == m_editorCameras.end()) {
