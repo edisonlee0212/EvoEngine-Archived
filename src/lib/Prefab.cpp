@@ -981,6 +981,7 @@ void Prefab::SaveModelInternal(const std::filesystem::path& path)
 }
 void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize, unsigned int flags)
 {
+    flags = flags | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate;
     if (optimize)
     {
         flags = flags | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;

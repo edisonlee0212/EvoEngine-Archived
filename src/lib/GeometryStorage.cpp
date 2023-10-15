@@ -214,7 +214,10 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	while(meshletFirstTriangleIndex < triangles.size())
 	{
 		if (assignedTriangles.size() == triangles.size()) break;
-		if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) continue;
+		if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) {
+			meshletFirstTriangleIndex++;
+			continue;
+		}
 		meshletRange->m_size++;
 		const uint32_t currentMeshletIndex = storage.m_meshlets.size();
 		storage.m_meshlets.emplace_back();
@@ -227,19 +230,25 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
 
 		std::unordered_map<uint32_t, uint32_t> currentMeshletAssignedVertices{};
-		std::queue<uint32_t> connectedTrianglesWaitingList{};
-		connectedTrianglesWaitingList.push(meshletFirstTriangleIndex);
+		std::multimap<float, uint32_t> connectedTrianglesWaitingList{};
+		connectedTrianglesWaitingList.insert({ 0.0f, meshletFirstTriangleIndex });
+		const auto& meshletFirstTriangle = triangles.at(meshletFirstTriangleIndex);
+		const auto meshletCenter = (vertices.at(meshletFirstTriangle.x).m_position + vertices.at(meshletFirstTriangle.y).m_position + vertices.at(meshletFirstTriangle.z).m_position) / 3.0f;
 		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && assignedTriangles.size() < triangles.size())
 		{
-			while(connectedTrianglesWaitingList.empty() && meshletFirstTriangleIndex < triangles.size() - 1)
+			while(!connectedTrianglesWaitingList.empty() && assignedTriangles.find(connectedTrianglesWaitingList.begin()->second) != assignedTriangles.end())
+			{
+				connectedTrianglesWaitingList.erase(connectedTrianglesWaitingList.begin());
+			}
+			while (connectedTrianglesWaitingList.empty())
 			{
 				meshletFirstTriangleIndex++;
 				if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) continue;
-				connectedTrianglesWaitingList.push(meshletFirstTriangleIndex);
+				connectedTrianglesWaitingList.insert({ 0.0f, meshletFirstTriangleIndex });
 			}
 			if (connectedTrianglesWaitingList.empty()) break;
-			const auto currentTriangleIndex = connectedTrianglesWaitingList.front();
-			connectedTrianglesWaitingList.pop();
+			const auto currentTriangleIndex = connectedTrianglesWaitingList.begin()->second;
+			connectedTrianglesWaitingList.erase(connectedTrianglesWaitingList.begin());
 			if(assignedTriangles.find(currentTriangleIndex) != assignedTriangles.end())
 			{
 				continue;
@@ -263,23 +272,35 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 			assignedTriangles.emplace(currentTriangleIndex);
 			for(const auto& i : connectivityGraph.at(currentTriangle.x).m_triangleIndices)
 			{
-				if(i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				if(i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
 				{
-					connectedTrianglesWaitingList.emplace(i);
+					auto& nextTriangle = triangles[i];
+					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
+					connectedTrianglesWaitingList.insert({ distance, i });
 				}
 			}
 			for (const auto& i : connectivityGraph.at(currentTriangle.y).m_triangleIndices)
 			{
-				if (i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				if (i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
 				{
-					connectedTrianglesWaitingList.emplace(i);
+					auto& nextTriangle = triangles[i];
+					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
+					connectedTrianglesWaitingList.insert({ distance, i });
 				}
 			}
 			for (const auto& i : connectivityGraph.at(currentTriangle.z).m_triangleIndices)
 			{
-				if (i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				if (i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
 				{
-					connectedTrianglesWaitingList.emplace(i);
+					auto& nextTriangle = triangles[i];
+					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
+						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
+					connectedTrianglesWaitingList.insert({ distance, i });
 				}
 			}
 
