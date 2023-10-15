@@ -35,7 +35,7 @@ void FileUtils::OpenFolder(const std::string& dialogTitle,
 	const std::function<void(const std::filesystem::path& path)>& func, bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false //defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		TCHAR path[MAX_PATH];
@@ -100,7 +100,7 @@ void FileUtils::OpenFile(
 	bool projectDirCheck)
 {
 	auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false// defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (windowLayer && ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
@@ -198,7 +198,7 @@ void FileUtils::SaveFile(const std::string& dialogTitle, const std::string& file
 	bool projectDirCheck)
 {
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
-#if false//defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 	if (ImGui::Button(dialogTitle.c_str()))
 	{
 		OPENFILENAMEA ofn;
