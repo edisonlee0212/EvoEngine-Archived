@@ -1,4 +1,5 @@
 #include "GeometryStorage.hpp"
+#include "meshoptimizer.h"
 using namespace EvoEngine;
 
 void GeometryStorage::UploadData()
@@ -205,6 +206,15 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	triangleRange->m_handle = handle;
 	triangleRange->m_offset = storage.m_triangles.size();
 	triangleRange->m_size = 0;
+
+	std::vector<meshopt_Meshlet> meshlets;
+	std::vector<unsigned> meshletVertices;
+	std::vector<unsigned char> meshletTriangles;
+	meshlets.resize(meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE));
+	meshopt_buildMeshlets(
+		meshlets.data(), meshletVertices.data(), meshletTriangles.data(), 
+		&triangles.at(0).x, triangles.size() * 3, &vertices.at(0).m_position.x, vertices.size(), sizeof(Vertex),
+		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
 
 	std::vector<ConnectivityGraphNode> connectivityGraph;
 	EstablishConnectivityGraph(vertices, triangles, connectivityGraph);

@@ -27,6 +27,12 @@ set(YAML_CPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/)
 add_subdirectory(${YAML_CPP_DIR} EXCLUDE_FROM_ALL)
 
 # ------------------------------------------------------------------
+# meshoptimizer
+# ------------------------------------------------------------------
+set(MESH_OPTIMIZER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/meshoptimizer/)
+add_subdirectory(${MESH_OPTIMIZER_DIR} EXCLUDE_FROM_ALL)
+
+# ------------------------------------------------------------------
 # pybind11
 # ------------------------------------------------------------------
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11/)
@@ -108,6 +114,7 @@ set(IMGUI_DIR
 set(3RD_PARTY_INCLUDES
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${CMAKE_CURRENT_SOURCE_DIR}/glm
+	${CMAKE_CURRENT_SOURCE_DIR}/meshoptimizer/src
 	${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include
 	${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/include
 	${CMAKE_CURRENT_SOURCE_DIR}/glfw/include

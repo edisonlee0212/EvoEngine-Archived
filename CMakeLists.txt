@@ -95,6 +95,7 @@ target_precompile_headers(evoengine
 target_link_libraries(evoengine
         volk
         yaml-cpp
+        meshoptimizer
         GPUOpen::VulkanMemoryAllocator
         )
 
