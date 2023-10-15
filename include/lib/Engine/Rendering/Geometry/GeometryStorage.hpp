@@ -124,7 +124,7 @@ namespace EvoEngine
 
 		static void AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
 			std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange);
-		static void AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& triangles,
+		static void AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& skinnedTriangles,
 			std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange);
 		static void AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints, const std::vector<glm::uvec4>& segments,
 			std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange, std::shared_ptr<RangeDescriptor>& targetSegmentRange);

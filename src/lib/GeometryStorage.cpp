@@ -206,29 +206,23 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	triangleRange->m_handle = handle;
 	triangleRange->m_offset = storage.m_triangles.size();
 	triangleRange->m_size = 0;
-
-	std::vector<meshopt_Meshlet> meshlets;
-	std::vector<unsigned> meshletVertices;
-	std::vector<unsigned char> meshletTriangles;
-	meshlets.resize(meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE));
-	meshopt_buildMeshlets(
-		meshlets.data(), meshletVertices.data(), meshletTriangles.data(), 
+	
+	std::vector<meshopt_Meshlet> meshletsResults;
+	std::vector<unsigned> meshletResultVertices;
+	std::vector<unsigned char> meshletResultTriangles;
+	const auto maxMeshlets = 
+		meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
+	meshletsResults.resize(maxMeshlets);
+	meshletResultVertices.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE);
+	meshletResultTriangles.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3);
+	const auto meshletSize = meshopt_buildMeshlets(
+		meshletsResults.data(), meshletResultVertices.data(), meshletResultTriangles.data(), 
 		&triangles.at(0).x, triangles.size() * 3, &vertices.at(0).m_position.x, vertices.size(), sizeof(Vertex),
 		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
 
-	std::vector<ConnectivityGraphNode> connectivityGraph;
-	EstablishConnectivityGraph(vertices, triangles, connectivityGraph);
-
-	std::unordered_set<uint32_t> assignedTriangles;
-	uint32_t meshletFirstTriangleIndex = 0;
-	while(meshletFirstTriangleIndex < triangles.size())
+	meshletRange->m_size = meshletSize;
+	for(size_t meshletIndex = 0; meshletIndex < meshletSize; meshletIndex++)
 	{
-		if (assignedTriangles.size() == triangles.size()) break;
-		if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) {
-			meshletFirstTriangleIndex++;
-			continue;
-		}
-		meshletRange->m_size++;
 		const uint32_t currentMeshletIndex = storage.m_meshlets.size();
 		storage.m_meshlets.emplace_back();
 		auto& currentMeshlet = storage.m_meshlets[currentMeshletIndex];
@@ -237,140 +231,29 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		storage.m_vertexDataChunks.emplace_back();
 		auto& currentChunk = storage.m_vertexDataChunks[currentMeshlet.m_vertexChunkIndex];
 
-		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
-
-		std::unordered_map<uint32_t, uint32_t> currentMeshletAssignedVertices{};
-		std::multimap<float, uint32_t> connectedTrianglesWaitingList{};
-		connectedTrianglesWaitingList.insert({ 0.0f, meshletFirstTriangleIndex });
-		const auto& meshletFirstTriangle = triangles.at(meshletFirstTriangleIndex);
-		const auto meshletCenter = (vertices.at(meshletFirstTriangle.x).m_position + vertices.at(meshletFirstTriangle.y).m_position + vertices.at(meshletFirstTriangle.z).m_position) / 3.0f;
-		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && assignedTriangles.size() < triangles.size())
+		const auto& meshletResult = meshletsResults.at(meshletIndex);
+		for(unsigned vi = 0; vi < meshletResult.vertex_count; vi++)
 		{
-			while(!connectedTrianglesWaitingList.empty() && assignedTriangles.find(connectedTrianglesWaitingList.begin()->second) != assignedTriangles.end())
-			{
-				connectedTrianglesWaitingList.erase(connectedTrianglesWaitingList.begin());
-			}
-			while (connectedTrianglesWaitingList.empty())
-			{
-				meshletFirstTriangleIndex++;
-				if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) continue;
-				connectedTrianglesWaitingList.insert({ 0.0f, meshletFirstTriangleIndex });
-			}
-			if (connectedTrianglesWaitingList.empty()) break;
-			const auto currentTriangleIndex = connectedTrianglesWaitingList.begin()->second;
-			connectedTrianglesWaitingList.erase(connectedTrianglesWaitingList.begin());
-			if(assignedTriangles.find(currentTriangleIndex) != assignedTriangles.end())
-			{
-				continue;
-			}
-			const auto& currentTriangle = triangles[currentTriangleIndex];
-			uint32_t newVerticesAmount = 0;
-			auto searchX = currentMeshletAssignedVertices.find(currentTriangle.x);
-			if (searchX == currentMeshletAssignedVertices.end()) newVerticesAmount++;
-
-			auto searchY = currentMeshletAssignedVertices.find(currentTriangle.y);
-			if (searchY == currentMeshletAssignedVertices.end()) newVerticesAmount++;
-
-			auto searchZ = currentMeshletAssignedVertices.find(currentTriangle.z);
-			if (searchZ == currentMeshletAssignedVertices.end()) newVerticesAmount++;
-
-			if (currentMeshlet.m_verticesSize + newVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
-			{
-				break;
-			}
-
-			assignedTriangles.emplace(currentTriangleIndex);
-			for(const auto& i : connectivityGraph.at(currentTriangle.x).m_triangleIndices)
-			{
-				if(i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
-				{
-					auto& nextTriangle = triangles[i];
-					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
-					connectedTrianglesWaitingList.insert({ distance, i });
-				}
-			}
-			for (const auto& i : connectivityGraph.at(currentTriangle.y).m_triangleIndices)
-			{
-				if (i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
-				{
-					auto& nextTriangle = triangles[i];
-					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
-					connectedTrianglesWaitingList.insert({ distance, i });
-				}
-			}
-			for (const auto& i : connectivityGraph.at(currentTriangle.z).m_triangleIndices)
-			{
-				if (i != currentTriangleIndex && assignedTriangles.find(i) == assignedTriangles.end())
-				{
-					auto& nextTriangle = triangles[i];
-					const auto distance = glm::distance(meshletCenter, vertices.at(nextTriangle.x).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.y).m_position) +
-						glm::distance(meshletCenter, vertices.at(nextTriangle.z).m_position);
-					connectedTrianglesWaitingList.insert({ distance, i });
-				}
-			}
-
-			auto& currentMeshletTriangle = currentMeshlet.m_triangles[currentMeshlet.m_triangleSize];
-			if (searchX != currentMeshletAssignedVertices.end())
-			{
-				currentMeshletTriangle.x = searchX->second;
-			}
-			else
-			{
-				//Add current vertex index into the map.
-				currentMeshletAssignedVertices[currentTriangle.x] = currentMeshlet.m_verticesSize;
-
-				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
-				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.x];
-				currentMeshletTriangle.x = currentMeshlet.m_verticesSize;
-				currentMeshlet.m_verticesSize++;
-			}
-
-			searchY = currentMeshletAssignedVertices.find(currentTriangle.y);
-			if (searchY != currentMeshletAssignedVertices.end())
-			{
-				currentMeshletTriangle.y = searchY->second;
-			}
-			else
-			{
-				//Add current vertex index into the map.
-				currentMeshletAssignedVertices[currentTriangle.y] = currentMeshlet.m_verticesSize;
-
-				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
-				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.y];
-				currentMeshletTriangle.y = currentMeshlet.m_verticesSize;
-				currentMeshlet.m_verticesSize++;
-			}
-
-			searchZ = currentMeshletAssignedVertices.find(currentTriangle.z);
-			if (searchZ != currentMeshletAssignedVertices.end())
-			{
-				currentMeshletTriangle.z = searchZ->second;
-			}
-			else
-			{
-				//Add current vertex index into the map.
-				currentMeshletAssignedVertices[currentTriangle.z] = currentMeshlet.m_verticesSize;
-
-				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
-				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.z];
-				currentMeshletTriangle.z = currentMeshlet.m_verticesSize;
-				currentMeshlet.m_verticesSize++;
-			}
-			currentMeshlet.m_triangleSize++;
+			currentChunk.m_vertexData[vi] = vertices[meshletResultVertices.at(meshletResult.vertex_offset + vi)];
+		}
+		currentMeshlet.m_verticesSize = meshletResult.vertex_count;
+		currentMeshlet.m_triangleSize = meshletResult.triangle_count;
+		for (unsigned ti = 0; ti < meshletResult.triangle_count; ti++)
+		{
+			auto& currentMeshletTriangle = currentMeshlet.m_triangles[ti];
+			currentMeshletTriangle = glm::uvec3(
+				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset],
+				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 1], 
+				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 2]);
 
 			auto& globalTriangle = storage.m_triangles.emplace_back();
 			globalTriangle.x = currentMeshletTriangle.x + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalTriangle.y = currentMeshletTriangle.y + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalTriangle.z = currentMeshletTriangle.z + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			triangleRange->m_size++;
 		}
+		triangleRange->m_size += currentMeshlet.m_triangleSize;
 	}
-	assert(assignedTriangles.size() == triangles.size());
+
 	storage.m_meshletRangeDescriptor.push_back(meshletRange);
 	targetMeshletRange = meshletRange;
 
@@ -385,14 +268,13 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 }
 
 void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices,
-	const std::vector<glm::uvec3>& triangles, std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange)
+	const std::vector<glm::uvec3>& skinnedTriangles, std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange)
 {
-	if (skinnedVertices.empty() || triangles.empty()) {
-		throw std::runtime_error("Empty skinned vertices or triangles!");
+	if (skinnedVertices.empty() || skinnedTriangles.empty()) {
+		throw std::runtime_error("Empty skinned vertices or skinnedTriangles!");
 	}
 	auto& storage = GetInstance();
 	
-	uint32_t currentSkinnedTriangleIndex = 0;
 	const auto skinnedMeshletRange = std::make_shared<RangeDescriptor>();
 	skinnedMeshletRange->m_handle = handle;
 	skinnedMeshletRange->m_offset = storage.m_skinnedMeshlets.size();
@@ -403,95 +285,54 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 	skinnedTriangleRange->m_offset = storage.m_skinnedTriangles.size();
 	skinnedTriangleRange->m_size = 0;
 
-	while (currentSkinnedTriangleIndex < triangles.size())
+	std::vector<meshopt_Meshlet> skinnedMeshletsResults;
+	std::vector<unsigned> skinnedMeshletResultVertices;
+	std::vector<unsigned char> skinnedMeshletResultTriangles;
+	const auto maxMeshlets =
+		meshopt_buildMeshletsBound(skinnedTriangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
+	skinnedMeshletsResults.resize(maxMeshlets);
+	skinnedMeshletResultVertices.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE);
+	skinnedMeshletResultTriangles.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3);
+	const auto skinnedMeshletSize = meshopt_buildMeshlets(
+		skinnedMeshletsResults.data(), skinnedMeshletResultVertices.data(), skinnedMeshletResultTriangles.data(),
+		&skinnedTriangles.at(0).x, skinnedTriangles.size() * 3, &skinnedVertices.at(0).m_position.x, skinnedVertices.size(), sizeof(SkinnedVertex),
+		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
+
+	skinnedMeshletRange->m_size = skinnedMeshletSize;
+	for (size_t skinnedMeshletIndex = 0; skinnedMeshletIndex < skinnedMeshletSize; skinnedMeshletIndex++)
 	{
-		skinnedMeshletRange->m_size++;
-		const uint32_t currentSkinnedMeshletIndex = storage.m_skinnedMeshlets.size();
+		const uint32_t currentMeshletIndex = storage.m_skinnedMeshlets.size();
 		storage.m_skinnedMeshlets.emplace_back();
-		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets[currentSkinnedMeshletIndex];
+		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets[currentMeshletIndex];
 
 		currentSkinnedMeshlet.m_skinnedVertexChunkIndex = storage.m_skinnedVertexDataChunks.size();
 		storage.m_skinnedVertexDataChunks.emplace_back();
-		auto& currentChunk = storage.m_skinnedVertexDataChunks[currentSkinnedMeshlet.m_skinnedVertexChunkIndex];
+		auto& currentSkinnedChunk = storage.m_skinnedVertexDataChunks[currentSkinnedMeshlet.m_skinnedVertexChunkIndex];
 
-		currentSkinnedMeshlet.m_skinnedVerticesSize = currentSkinnedMeshlet.m_skinnedTriangleSize = 0;
-
-		std::unordered_map<uint32_t, uint32_t> assignedSkinnedVertices{};
-		while (currentSkinnedMeshlet.m_skinnedTriangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentSkinnedTriangleIndex < triangles.size())
+		const auto& skinnedMeshletResult = skinnedMeshletsResults.at(skinnedMeshletIndex);
+		for (unsigned vi = 0; vi < skinnedMeshletResult.vertex_count; vi++)
 		{
-			const auto& currentTriangle = triangles[currentSkinnedTriangleIndex];
-			uint32_t newSkinnedVerticesAmount = 0;
-			auto searchX = assignedSkinnedVertices.find(currentTriangle.x);
-			if (searchX == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
-
-			auto searchY = assignedSkinnedVertices.find(currentTriangle.y);
-			if (searchY == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
-
-			auto searchZ = assignedSkinnedVertices.find(currentTriangle.z);
-			if (searchZ == assignedSkinnedVertices.end()) newSkinnedVerticesAmount++;
-
-			if (currentSkinnedMeshlet.m_skinnedVerticesSize + newSkinnedVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
-			{
-				break;
-			}
-			auto& currentSkinnedMeshletTriangle = currentSkinnedMeshlet.m_skinnedTriangles[currentSkinnedMeshlet.m_skinnedTriangleSize];
-
-			if (searchX != assignedSkinnedVertices.end())
-			{
-				currentSkinnedMeshletTriangle.x = searchX->second;
-			}
-			else
-			{
-				//Add current skinnedVertex index into the map.
-				assignedSkinnedVertices[currentTriangle.x] = currentSkinnedMeshlet.m_skinnedVerticesSize;
-
-				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.x];
-				currentSkinnedMeshletTriangle.x = currentSkinnedMeshlet.m_skinnedVerticesSize;
-				currentSkinnedMeshlet.m_skinnedVerticesSize++;
-			}
-
-			searchY = assignedSkinnedVertices.find(currentTriangle.y);
-			if (searchY != assignedSkinnedVertices.end())
-			{
-				currentSkinnedMeshletTriangle.y = searchY->second;
-			}
-			else
-			{
-				//Add current skinnedVertex index into the map.
-				assignedSkinnedVertices[currentTriangle.y] = currentSkinnedMeshlet.m_skinnedVerticesSize;
-
-				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.y];
-				currentSkinnedMeshletTriangle.y = currentSkinnedMeshlet.m_skinnedVerticesSize;
-				currentSkinnedMeshlet.m_skinnedVerticesSize++;
-			}
-
-			searchZ = assignedSkinnedVertices.find(currentTriangle.z);
-			if (searchZ != assignedSkinnedVertices.end())
-			{
-				currentSkinnedMeshletTriangle.z = searchZ->second;
-			}
-			else
-			{
-				//Add current skinnedVertex index into the map.
-				assignedSkinnedVertices[currentTriangle.z] = currentSkinnedMeshlet.m_skinnedVerticesSize;
-
-				//Assign new skinnedVertex in skinnedMeshlet, and retrieve actual skinnedVertex index in skinnedVertex data chunks.
-				currentChunk.m_skinnedVertexData[currentSkinnedMeshlet.m_skinnedVerticesSize] = skinnedVertices[currentTriangle.z];
-				currentSkinnedMeshletTriangle.z = currentSkinnedMeshlet.m_skinnedVerticesSize;
-				currentSkinnedMeshlet.m_skinnedVerticesSize++;
-			}
-			currentSkinnedMeshlet.m_skinnedTriangleSize++;
-			currentSkinnedTriangleIndex++;
-
-			auto& globalSkinnedTriangle = storage.m_skinnedTriangles.emplace_back();
-			globalSkinnedTriangle.x = currentSkinnedMeshletTriangle.x + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalSkinnedTriangle.y = currentSkinnedMeshletTriangle.y + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalSkinnedTriangle.z = currentSkinnedMeshletTriangle.z + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			skinnedTriangleRange->m_size++;
+			currentSkinnedChunk.m_skinnedVertexData[vi] = skinnedVertices[skinnedMeshletResultVertices.at(skinnedMeshletResult.vertex_offset + vi)];
 		}
+		currentSkinnedMeshlet.m_skinnedVerticesSize = skinnedMeshletResult.vertex_count;
+		currentSkinnedMeshlet.m_skinnedTriangleSize = skinnedMeshletResult.triangle_count;
+		for (unsigned ti = 0; ti < skinnedMeshletResult.triangle_count; ti++)
+		{
+			auto& currentMeshletTriangle = currentSkinnedMeshlet.m_skinnedTriangles[ti];
+			currentMeshletTriangle = glm::uvec3(
+				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset],
+				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 1],
+				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 2]);
+
+			auto& globalTriangle = storage.m_skinnedTriangles.emplace_back();
+			globalTriangle.x = currentMeshletTriangle.x + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalTriangle.y = currentMeshletTriangle.y + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+			globalTriangle.z = currentMeshletTriangle.z + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
+		}
+		skinnedTriangleRange->m_size += currentSkinnedMeshlet.m_skinnedTriangleSize;
 	}
+
+
 	storage.m_skinnedMeshletRangeDescriptor.push_back(skinnedMeshletRange);
 	targetSkinnedMeshletRange = skinnedMeshletRange;
 
