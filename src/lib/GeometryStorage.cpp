@@ -285,9 +285,9 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 	skinnedTriangleRange->m_offset = storage.m_skinnedTriangles.size();
 	skinnedTriangleRange->m_size = 0;
 
-	std::vector<meshopt_Meshlet> skinnedMeshletsResults;
-	std::vector<unsigned> skinnedMeshletResultVertices;
-	std::vector<unsigned char> skinnedMeshletResultTriangles;
+	std::vector<meshopt_Meshlet> skinnedMeshletsResults{};
+	std::vector<unsigned> skinnedMeshletResultVertices{};
+	std::vector<unsigned char> skinnedMeshletResultTriangles{};
 	const auto maxMeshlets =
 		meshopt_buildMeshletsBound(skinnedTriangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
 	skinnedMeshletsResults.resize(maxMeshlets);
@@ -301,13 +301,12 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 	skinnedMeshletRange->m_size = skinnedMeshletSize;
 	for (size_t skinnedMeshletIndex = 0; skinnedMeshletIndex < skinnedMeshletSize; skinnedMeshletIndex++)
 	{
-		const uint32_t currentMeshletIndex = storage.m_skinnedMeshlets.size();
 		storage.m_skinnedMeshlets.emplace_back();
-		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets[currentMeshletIndex];
+		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets.back();
 
 		currentSkinnedMeshlet.m_skinnedVertexChunkIndex = storage.m_skinnedVertexDataChunks.size();
 		storage.m_skinnedVertexDataChunks.emplace_back();
-		auto& currentSkinnedChunk = storage.m_skinnedVertexDataChunks[currentSkinnedMeshlet.m_skinnedVertexChunkIndex];
+		auto& currentSkinnedChunk = storage.m_skinnedVertexDataChunks.back();
 
 		const auto& skinnedMeshletResult = skinnedMeshletsResults.at(skinnedMeshletIndex);
 		for (unsigned vi = 0; vi < skinnedMeshletResult.vertex_count; vi++)
@@ -324,7 +323,8 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 1],
 				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 2]);
 
-			auto& globalTriangle = storage.m_skinnedTriangles.emplace_back();
+			storage.m_skinnedTriangles.emplace_back();
+			auto& globalTriangle = storage.m_skinnedTriangles.back();
 			globalTriangle.x = currentMeshletTriangle.x + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalTriangle.y = currentMeshletTriangle.y + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 			globalTriangle.z = currentMeshletTriangle.z + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
