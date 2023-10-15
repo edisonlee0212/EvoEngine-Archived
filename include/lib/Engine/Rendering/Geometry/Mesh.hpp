@@ -69,6 +69,8 @@ namespace EvoEngine
 
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<unsigned>& indices);
 		void SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles);
+
+		void MergeVertices();
 		[[nodiscard]] size_t GetVerticesAmount() const;
 		[[nodiscard]] size_t GetTriangleAmount() const;
 

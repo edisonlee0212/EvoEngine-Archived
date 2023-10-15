@@ -144,7 +144,7 @@ namespace EvoEngine
 		class Settings
 		{
 		public:
-			inline static bool ENABLE_MESH_SHADER = false;
+			inline static bool ENABLE_MESH_SHADER = true;
 			inline static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
 			inline static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
@@ -174,7 +174,7 @@ namespace EvoEngine
 			inline constexpr static VkFormat G_BUFFER_COLOR = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline constexpr static VkFormat SHADOW_MAP = VK_FORMAT_D32_SFLOAT;
 			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
-			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
+			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 126;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);

@@ -162,6 +162,31 @@ const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strandPointInde
 	return storage.m_strandPointDataChunks[strandPointIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_strandPointData[strandPointIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE];
 }
 
+void ConnectivityGraphNode::RegisterTriangle(const uint32_t triangleIndex)
+{
+	for(const auto& i : m_triangleIndices) if(i == triangleIndex) return;
+	m_triangleIndices.emplace_back(triangleIndex);
+}
+
+void GeometryStorage::EstablishConnectivityGraph(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles, std::vector<ConnectivityGraphNode> &connectivityGraph){
+	connectivityGraph.resize(vertices.size());
+	for (uint32_t triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++)
+	{
+		const auto& triangle = triangles[triangleIndex];
+		connectivityGraph[triangle.x].m_a = triangle.y;
+		connectivityGraph[triangle.x].m_b = triangle.z;
+		connectivityGraph[triangle.x].RegisterTriangle(triangleIndex);
+
+		connectivityGraph[triangle.y].m_a = triangle.x;
+		connectivityGraph[triangle.y].m_b = triangle.z;
+		connectivityGraph[triangle.y].RegisterTriangle(triangleIndex);
+
+		connectivityGraph[triangle.z].m_a = triangle.x;
+		connectivityGraph[triangle.z].m_b = triangle.y;
+		connectivityGraph[triangle.z].RegisterTriangle(triangleIndex);
+	}
+}
+
 void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
 	std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange)
 {
@@ -171,7 +196,6 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	}
 	auto& storage = GetInstance();
 
-	uint32_t currentTriangleIndex = 0;
 	const auto meshletRange = std::make_shared<RangeDescriptor>();
 	meshletRange->m_handle = handle;
 	meshletRange->m_offset = storage.m_meshlets.size();
@@ -181,9 +205,16 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	triangleRange->m_handle = handle;
 	triangleRange->m_offset = storage.m_triangles.size();
 	triangleRange->m_size = 0;
-	
-	while (currentTriangleIndex < triangles.size())
+
+	std::vector<ConnectivityGraphNode> connectivityGraph;
+	EstablishConnectivityGraph(vertices, triangles, connectivityGraph);
+
+	std::unordered_set<uint32_t> assignedTriangles;
+	uint32_t meshletFirstTriangleIndex = 0;
+	while(meshletFirstTriangleIndex < triangles.size())
 	{
+		if (assignedTriangles.size() == triangles.size()) break;
+		if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) continue;
 		meshletRange->m_size++;
 		const uint32_t currentMeshletIndex = storage.m_meshlets.size();
 		storage.m_meshlets.emplace_back();
@@ -194,34 +225,73 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		auto& currentChunk = storage.m_vertexDataChunks[currentMeshlet.m_vertexChunkIndex];
 
 		currentMeshlet.m_verticesSize = currentMeshlet.m_triangleSize = 0;
-		std::unordered_map<uint32_t, uint32_t> assignedVertices{};
-		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentTriangleIndex < triangles.size())
+
+		std::unordered_map<uint32_t, uint32_t> currentMeshletAssignedVertices{};
+		std::queue<uint32_t> connectedTrianglesWaitingList{};
+		connectedTrianglesWaitingList.push(meshletFirstTriangleIndex);
+		while (currentMeshlet.m_triangleSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && assignedTriangles.size() < triangles.size())
 		{
+			while(connectedTrianglesWaitingList.empty() && meshletFirstTriangleIndex < triangles.size() - 1)
+			{
+				meshletFirstTriangleIndex++;
+				if (assignedTriangles.find(meshletFirstTriangleIndex) != assignedTriangles.end()) continue;
+				connectedTrianglesWaitingList.push(meshletFirstTriangleIndex);
+			}
+			if (connectedTrianglesWaitingList.empty()) break;
+			const auto currentTriangleIndex = connectedTrianglesWaitingList.front();
+			connectedTrianglesWaitingList.pop();
+			if(assignedTriangles.find(currentTriangleIndex) != assignedTriangles.end())
+			{
+				continue;
+			}
 			const auto& currentTriangle = triangles[currentTriangleIndex];
 			uint32_t newVerticesAmount = 0;
-			auto searchX = assignedVertices.find(currentTriangle.x);
-			if (searchX == assignedVertices.end()) newVerticesAmount++;
+			auto searchX = currentMeshletAssignedVertices.find(currentTriangle.x);
+			if (searchX == currentMeshletAssignedVertices.end()) newVerticesAmount++;
 
-			auto searchY = assignedVertices.find(currentTriangle.y);
-			if (searchY == assignedVertices.end()) newVerticesAmount++;
+			auto searchY = currentMeshletAssignedVertices.find(currentTriangle.y);
+			if (searchY == currentMeshletAssignedVertices.end()) newVerticesAmount++;
 
-			auto searchZ = assignedVertices.find(currentTriangle.z);
-			if (searchZ == assignedVertices.end()) newVerticesAmount++;
+			auto searchZ = currentMeshletAssignedVertices.find(currentTriangle.z);
+			if (searchZ == currentMeshletAssignedVertices.end()) newVerticesAmount++;
 
 			if (currentMeshlet.m_verticesSize + newVerticesAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 			{
 				break;
 			}
-			auto& currentMeshletTriangle = currentMeshlet.m_triangles[currentMeshlet.m_triangleSize];
 
-			if (searchX != assignedVertices.end())
+			assignedTriangles.emplace(currentTriangleIndex);
+			for(const auto& i : connectivityGraph.at(currentTriangle.x).m_triangleIndices)
+			{
+				if(i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				{
+					connectedTrianglesWaitingList.emplace(i);
+				}
+			}
+			for (const auto& i : connectivityGraph.at(currentTriangle.y).m_triangleIndices)
+			{
+				if (i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				{
+					connectedTrianglesWaitingList.emplace(i);
+				}
+			}
+			for (const auto& i : connectivityGraph.at(currentTriangle.z).m_triangleIndices)
+			{
+				if (i != currentTriangleIndex && assignedTriangles.find(i) != assignedTriangles.end())
+				{
+					connectedTrianglesWaitingList.emplace(i);
+				}
+			}
+
+			auto& currentMeshletTriangle = currentMeshlet.m_triangles[currentMeshlet.m_triangleSize];
+			if (searchX != currentMeshletAssignedVertices.end())
 			{
 				currentMeshletTriangle.x = searchX->second;
 			}
 			else
 			{
 				//Add current vertex index into the map.
-				assignedVertices[currentTriangle.x] = currentMeshlet.m_verticesSize;
+				currentMeshletAssignedVertices[currentTriangle.x] = currentMeshlet.m_verticesSize;
 
 				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
 				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.x];
@@ -229,15 +299,15 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 				currentMeshlet.m_verticesSize++;
 			}
 
-			searchY = assignedVertices.find(currentTriangle.y);
-			if (searchY != assignedVertices.end())
+			searchY = currentMeshletAssignedVertices.find(currentTriangle.y);
+			if (searchY != currentMeshletAssignedVertices.end())
 			{
 				currentMeshletTriangle.y = searchY->second;
 			}
 			else
 			{
 				//Add current vertex index into the map.
-				assignedVertices[currentTriangle.y] = currentMeshlet.m_verticesSize;
+				currentMeshletAssignedVertices[currentTriangle.y] = currentMeshlet.m_verticesSize;
 
 				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
 				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.y];
@@ -245,15 +315,15 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 				currentMeshlet.m_verticesSize++;
 			}
 
-			searchZ = assignedVertices.find(currentTriangle.z);
-			if (searchZ != assignedVertices.end())
+			searchZ = currentMeshletAssignedVertices.find(currentTriangle.z);
+			if (searchZ != currentMeshletAssignedVertices.end())
 			{
 				currentMeshletTriangle.z = searchZ->second;
 			}
 			else
 			{
 				//Add current vertex index into the map.
-				assignedVertices[currentTriangle.z] = currentMeshlet.m_verticesSize;
+				currentMeshletAssignedVertices[currentTriangle.z] = currentMeshlet.m_verticesSize;
 
 				//Assign new vertex in meshlet, and retrieve actual vertex index in vertex data chunks.
 				currentChunk.m_vertexData[currentMeshlet.m_verticesSize] = vertices[currentTriangle.z];
@@ -261,7 +331,6 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 				currentMeshlet.m_verticesSize++;
 			}
 			currentMeshlet.m_triangleSize++;
-			currentTriangleIndex++;
 
 			auto& globalTriangle = storage.m_triangles.emplace_back();
 			globalTriangle.x = currentMeshletTriangle.x + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
@@ -270,6 +339,7 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 			triangleRange->m_size++;
 		}
 	}
+	assert(assignedTriangles.size() == triangles.size());
 	storage.m_meshletRangeDescriptor.push_back(meshletRange);
 	targetMeshletRange = meshletRange;
 

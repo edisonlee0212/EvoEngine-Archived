@@ -50,6 +50,15 @@ namespace EvoEngine
 		uint32_t m_offset;
 		uint32_t m_size;
 	};
+
+	struct ConnectivityGraphNode
+	{
+		uint32_t m_a = 0;
+		uint32_t m_b = 0;
+		std::vector<uint32_t> m_triangleIndices{};
+		void RegisterTriangle(uint32_t triangleIndex);
+	};
+
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
@@ -95,6 +104,7 @@ namespace EvoEngine
 		static void DeviceSync();
 		static void Initialize();
 	public:
+		static void EstablishConnectivityGraph(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles, std::vector<ConnectivityGraphNode>& connectivityGraph);
 		static const std::unique_ptr<Buffer>& GetVertexBuffer();
 		static const std::unique_ptr<Buffer>& GetMeshletBuffer();
 

@@ -162,7 +162,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	}
 	m_vertices = vertices;
 	m_triangles = triangles;
-	
+
 #pragma region Bound
 	glm::vec3 minBound = m_vertices.at(0).m_position;
 	glm::vec3 maxBound = m_vertices.at(0).m_position;
@@ -189,14 +189,59 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 	m_vertexAttributes.m_normal = true;
 	m_vertexAttributes.m_tangent = true;
 
-	
-	if(m_triangleRange || m_meshletRange) GeometryStorage::FreeMesh(GetHandle());
+	//MergeVertices();
+
+	if (m_triangleRange || m_meshletRange) GeometryStorage::FreeMesh(GetHandle());
 	m_triangleRange.reset();
 	m_meshletRange.reset();
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
 
 	m_version++;
 	m_saved = false;
+}
+
+void Mesh::MergeVertices()
+{
+	for (uint32_t i = 0; i < m_vertices.size() - 1; i++)
+	{
+		for (uint32_t j = i + 1; j < m_vertices.size(); j++)
+		{
+			const auto& vi = m_vertices.at(i);
+			const auto& vj = m_vertices.at(j);
+			if (glm::distance(vi.m_position, vj.m_position) > glm::epsilon<float>())
+			{
+				continue;
+			}
+			if (glm::distance(vi.m_normal, vj.m_normal) > glm::epsilon<float>())
+			{
+				continue;
+			}
+			if (glm::distance(vi.m_tangent, vj.m_tangent) > glm::epsilon<float>())
+			{
+				continue;
+			}
+			if (m_vertexAttributes.m_texCoord && glm::distance(vi.m_texCoord, vj.m_texCoord) > glm::epsilon<float>())
+			{
+				continue;
+			}
+			if (m_vertexAttributes.m_color && glm::distance(vi.m_color, vj.m_color) > glm::epsilon<float>())
+			{
+				continue;
+			}
+			m_vertices.at(j) = m_vertices.back();
+			for (auto& triangle : m_triangles)
+			{
+				if (triangle.x == j) triangle.x = i;
+				else if (triangle.x == m_vertices.size() - 1) triangle.x = j;
+				if (triangle.y == j) triangle.y = i;
+				else if (triangle.y == m_vertices.size() - 1) triangle.y = j;
+				if (triangle.z == j) triangle.z = i;
+				else if (triangle.z == m_vertices.size() - 1) triangle.z = j;
+			}
+			m_vertices.pop_back();
+			j--;
+		}
+	}
 }
 
 size_t Mesh::GetVerticesAmount() const
@@ -316,10 +361,11 @@ void Mesh::Serialize(YAML::Emitter& out)
 
 void Mesh::Deserialize(const YAML::Node& in)
 {
-	if(in["m_vertexAttributes"])
+	if (in["m_vertexAttributes"])
 	{
 		m_vertexAttributes.Deserialize(in["m_vertexAttributes"]);
-	}else
+	}
+	else
 	{
 		m_vertexAttributes = {};
 		m_vertexAttributes.m_normal = true;
@@ -383,7 +429,7 @@ void ParticleInfoList::Deserialize(const YAML::Node& in)
 void ParticleInfoList::UploadData(const bool force)
 {
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	if(force || m_pendingUpdate[currentFrameIndex])
+	if (force || m_pendingUpdate[currentFrameIndex])
 	{
 		m_buffer[currentFrameIndex]->UploadVector(m_particleInfos);
 		VkDescriptorBufferInfo bufferInfo{};
@@ -484,7 +530,7 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
-                                        const std::vector<glm::vec4>& colors, float rayWidth)
+	const std::vector<glm::vec4>& colors, float rayWidth)
 {
 	m_particleInfos.resize(starts.size());
 	Jobs::ParallelFor(
