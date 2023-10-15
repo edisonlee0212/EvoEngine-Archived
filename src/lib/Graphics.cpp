@@ -620,6 +620,7 @@ void Graphics::CreateDebugMessenger()
 }
 int RateDeviceSuitability(VkPhysicalDevice physicalDevice) {
 	int score = 0;
+	
 	VkPhysicalDeviceProperties deviceProperties;
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -651,7 +652,9 @@ void Graphics::SelectPhysicalDevice()
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
 #endif
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
-	if (Settings::ENABLE_MESH_SHADER) {
+	if (Constants::ENABLE_MESH_SHADER) {
+		//m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+		//m_requiredDeviceExtensions.emplace_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 		m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
 	}
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
@@ -720,26 +723,48 @@ void Graphics::CreateLogicalDevice()
 
 #pragma region Logical Device
 
+	
+
+	VkPhysicalDeviceVulkan12Features vkPhysicalDeviceVulkan12Features{};
+	vkPhysicalDeviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vkPhysicalDeviceVulkan12Features.shaderInt8 = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.storageBuffer8BitAccess = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.storagePushConstant8 = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.runtimeDescriptorArray = VK_TRUE;
+	vkPhysicalDeviceVulkan12Features.pNext = nullptr;
+
+	
 	VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures{};
 	shaderDrawParametersFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
 	shaderDrawParametersFeatures.shaderDrawParameters = VK_TRUE;
-	shaderDrawParametersFeatures.pNext = nullptr;
+	shaderDrawParametersFeatures.pNext = &vkPhysicalDeviceVulkan12Features;
 	
 	VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{};
 	dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 	dynamicRenderingFeatures.pNext = &shaderDrawParametersFeatures;
-	if (Settings::ENABLE_MESH_SHADER) {
-		VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeaturesExt{};
-		meshShaderFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
-		meshShaderFeaturesExt.pNext = &shaderDrawParametersFeatures;
-		meshShaderFeaturesExt.meshShader = VK_TRUE;
-		meshShaderFeaturesExt.taskShader = VK_TRUE;
-		dynamicRenderingFeatures.pNext = &meshShaderFeaturesExt;
-	}
+
+	VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeaturesExt{};
+	meshShaderFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+	meshShaderFeaturesExt.pNext = &dynamicRenderingFeatures;
+	meshShaderFeaturesExt.meshShader = VK_TRUE;
+	meshShaderFeaturesExt.taskShader = VK_TRUE;
+	meshShaderFeaturesExt.multiviewMeshShader = VK_FALSE;
+	meshShaderFeaturesExt.primitiveFragmentShadingRateMeshShader = VK_FALSE;
+	meshShaderFeaturesExt.meshShaderQueries = VK_FALSE;
+	
+
 	VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronization2Features{};
 	physicalDeviceSynchronization2Features.synchronization2 = VK_TRUE;
-	physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;
+	if (Constants::ENABLE_MESH_SHADER) {
+		physicalDeviceSynchronization2Features.pNext = &meshShaderFeaturesExt;
+	}else
+	{
+		physicalDeviceSynchronization2Features.pNext = &dynamicRenderingFeatures;
+	}
+	
 	physicalDeviceSynchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
 
 	VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT extendedVertexInputDynamicStateFeatures{};
@@ -770,20 +795,9 @@ void Graphics::CreateLogicalDevice()
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
 	extendedDynamicStateFeatures.pNext = &extendedDynamicState2Features;
 
-	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
-	descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-	descriptorIndexingFeatures.pNext = &extendedDynamicStateFeatures;
-	descriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-	descriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
-
-	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures separateDepthStencilLayoutsFeatures{};
-	separateDepthStencilLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES;
-	separateDepthStencilLayoutsFeatures.pNext = &descriptorIndexingFeatures;
-	separateDepthStencilLayoutsFeatures.separateDepthStencilLayouts = VK_TRUE;
-
 	VkPhysicalDeviceFeatures2 deviceFeatures2{};
 	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	deviceFeatures2.pNext = &descriptorIndexingFeatures;
+	deviceFeatures2.pNext = &extendedDynamicStateFeatures;
 	vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &deviceFeatures2);
 
 	VkDeviceCreateInfo deviceCreateInfo{};
@@ -806,6 +820,7 @@ void Graphics::CreateLogicalDevice()
 	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 #pragma endregion
+	
 	deviceCreateInfo.pEnabledFeatures = nullptr;
 	deviceCreateInfo.pNext = &deviceFeatures2;
 
@@ -817,7 +832,6 @@ void Graphics::CreateLogicalDevice()
 	if (vkCreateDevice(m_vkPhysicalDevice, &deviceCreateInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create logical device!");
 	}
-
 	if (m_queueFamilyIndices.m_graphicsFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_graphicsFamily.value(), 0, &m_vkGraphicsQueue);
 	if (m_queueFamilyIndices.m_presentFamily.has_value()) vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.m_presentFamily.value(), 0, &m_vkPresentQueue);
 

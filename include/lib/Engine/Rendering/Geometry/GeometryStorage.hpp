@@ -13,7 +13,7 @@ namespace EvoEngine
 
 	struct Meshlet
 	{
-		glm::uvec3 m_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
+		glm::u8vec3 m_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_verticesSize = 0;
 		uint32_t m_triangleSize = 0;
 		uint32_t m_vertexChunkIndex = 0;
@@ -25,7 +25,7 @@ namespace EvoEngine
 	};
 	struct SkinnedMeshlet
 	{
-		glm::uvec3 m_skinnedTriangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
+		glm::u8vec3 m_skinnedTriangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_skinnedVerticesSize = 0;
 		uint32_t m_skinnedTriangleSize = 0;
 		uint32_t m_skinnedVertexChunkIndex = 0;
@@ -37,7 +37,7 @@ namespace EvoEngine
 	};
 	struct StrandMeshlet
 	{
-		glm::uvec4 m_segments[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
+		glm::u8vec4 m_segments[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {}; // up to 126 triangles
 		uint32_t m_strandPointsSize = 0;
 		uint32_t m_segmentSize = 0;
 		uint32_t m_strandPointChunkIndex = 0;
@@ -49,14 +49,6 @@ namespace EvoEngine
 	public:
 		uint32_t m_offset;
 		uint32_t m_size;
-	};
-
-	struct ConnectivityGraphNode
-	{
-		uint32_t m_a = 0;
-		uint32_t m_b = 0;
-		std::vector<uint32_t> m_triangleIndices{};
-		void RegisterTriangle(uint32_t triangleIndex);
 	};
 
 	class GeometryStorage : public ISingleton<GeometryStorage>
@@ -104,7 +96,6 @@ namespace EvoEngine
 		static void DeviceSync();
 		static void Initialize();
 	public:
-		static void EstablishConnectivityGraph(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles, std::vector<ConnectivityGraphNode>& connectivityGraph);
 		static const std::unique_ptr<Buffer>& GetVertexBuffer();
 		static const std::unique_ptr<Buffer>& GetMeshletBuffer();
 

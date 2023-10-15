@@ -24,7 +24,7 @@ enum class DemoSetup
 	Planets
 };
 Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName, bool addSpheres);
-void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics);
+void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo);
 Entity LoadPhysicsScene(const std::shared_ptr<Scene>& scene, const std::string& baseEntityName);
 #pragma endregion
 
@@ -34,7 +34,7 @@ int main() {
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	ApplicationInfo applicationInfo;
-	SetupDemoScene(demoSetup, applicationInfo, true);
+	SetupDemoScene(demoSetup, applicationInfo);
 
 	Application::Initialize(applicationInfo);
 	Application::Start();
@@ -79,6 +79,10 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 			}
 		}
 		scene->SetParent(collection, baseEntity);
+		Transform physicsDemoTransform;
+		physicsDemoTransform.SetPosition(glm::vec3(0.0f, 0.0f, -3.5f));
+		physicsDemoTransform.SetScale(glm::vec3(3.0f));
+		scene->SetDataComponent(collection, physicsDemoTransform);
 #pragma endregion
 	}
 
@@ -163,7 +167,7 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& baseEnt
 	return baseEntity;
 }
 
-void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool enablePhysics)
+void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo)
 {
 	std::filesystem::path resourceFolderPath("../../../Resources");
 	if (!std::filesystem::exists(resourceFolderPath)) {
@@ -211,11 +215,8 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool 
 				auto camera = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
 				scene->GetOrSetPrivateComponent<PlayerController>(mainCameraEntity);
 #pragma endregion
-				LoadScene(scene, "Rendering Demo", !enablePhysics);
-				const auto physicsDemo = LoadPhysicsScene(scene, "Physics Demo");
-				Transform physicsDemoTransform;
-				physicsDemoTransform.SetPosition(glm::vec3(-0.5f, -0.5f, -1.0f));
-				scene->SetDataComponent(physicsDemo, physicsDemoTransform);
+				LoadScene(scene, "Rendering Demo", true);
+				
 #pragma region Dynamic Lighting
 				const auto dirLightEntity = scene->CreateEntity("Directional Light");
 				const auto dirLight = scene->GetOrSetPrivateComponent<DirectionalLight>(dirLightEntity).lock();
@@ -244,10 +245,15 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool 
 				scene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
 
 				Application::RegisterUpdateFunction([=]() {
-
-					if (!Application::IsPlaying()) return;
+					static bool lastFramePlaying = false;
+					if (!Application::IsPlaying()) {
+						lastFramePlaying = Application::IsPlaying();
+						return;
+					}
 					const auto currentScene = Application::GetActiveScene();
-					const float currentTime = Times::Now();
+					static float startTime;
+					if (!lastFramePlaying) startTime = Times::Now();
+					const float currentTime = Times::Now() - startTime;
 					const float cosTime = glm::cos(currentTime / 5.0f);
 					Transform dirLightTransform;
 					dirLightTransform.SetEulerRotation(glm::radians(glm::vec3(105.0f, currentTime * 20, 0.0f)));
@@ -258,6 +264,8 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo, bool 
 					pointLightRightTransform.SetScale({ 0.1f, 0.1f, 0.1f });
 					pointLightRightTransform.SetPosition(glm::vec3(4, 1.2, cosTime * 5 - 5));
 					currentScene->SetDataComponent(pointLightRightEntity, pointLightRightTransform);
+
+					lastFramePlaying = Application::IsPlaying();
 					}
 				);
 #pragma endregion

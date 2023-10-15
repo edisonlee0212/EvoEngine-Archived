@@ -151,7 +151,7 @@ void RenderLayer::LateUpdate()
 	graphics.m_triangles[currentFrameIndex] = 0;
 	graphics.m_strandsSegments[currentFrameIndex] = 0;
 	graphics.m_drawCall[currentFrameIndex] = 0;
-	
+
 	GeometryStorage::DeviceSync();
 	TextureStorage::DeviceSync();
 
@@ -255,8 +255,16 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	if (m_enableRenderMenu)
 	{
 		ImGui::Begin("Render Settings");
+		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
 		ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
-		ImGui::Checkbox("Meshlet Debug", &m_enableMeshletDebug);
+		if(Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
+		const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
+		if (useMeshShader) {
+			ImGui::Checkbox("Show meshlets", &m_enableDebugVisualization);
+		}else
+		{
+			ImGui::Checkbox("Show meshes", &m_enableDebugVisualization);
+		}
 		ImGui::DragFloat("Gamma", &m_renderInfoBlock.m_gamma, 0.01f, 1.0f, 3.0f);
 		if (ImGui::CollapsingHeader("Shadow", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -792,9 +800,11 @@ void RenderLayer::ApplyAnimator() const
 
 void RenderLayer::PreparePointAndSpotLightShadowMap() const
 {
+	const bool countShadowRenderingDrawCalls = m_countShadowRenderingDrawCalls;
+	const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	const auto& pointLightShadowPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
-	const auto& spotLightShadowPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
+	const auto& pointLightShadowPipeline = useMeshShader ? Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_MESH") : Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
+	const auto& spotLightShadowPipeline = useMeshShader ? Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_MESH") : Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
 
 	const auto& pointLightShadowSkinnedPipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_SKINNED");
 	const auto& spotLightShadowSkinnedPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_SKINNED");
@@ -830,7 +840,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 
 #pragma endregion
 			m_lighting->m_pointLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-			
+
 			for (int face = 0; face < 6; face++) {
 				GeometryStorage::BindVertices(commandBuffer);
 				{
@@ -845,7 +855,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
 					pointLightShadowPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowPipeline->m_states.m_scissor = scissor;
-					
+
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowPipeline->Bind(commandBuffer);
 					pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
@@ -861,7 +871,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						scissor.extent.width = viewport.width;
 						scissor.extent.height = viewport.height;
 						pointLightShadowPipeline->m_states.m_scissor = scissor;
-						
+
 						if (m_enableIndirectRendering) {
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = i;
@@ -869,15 +879,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = 0;
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							pointLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (Graphics::Settings::ENABLE_MESH_SHADER) {
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							if (useMeshShader) {
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 							}
 						}
@@ -890,16 +900,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									pushConstant.m_lightSplitIndex = face;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (Graphics::Settings::ENABLE_MESH_SHADER)
+									if (useMeshShader)
 									{
-										graphics.m_drawCall[currentFrameIndex]++;
-										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
-										graphics.m_drawCall[currentFrameIndex]++;
-										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states, 1);
 									}
 								}
@@ -946,8 +956,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
 								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 							}
 						);
@@ -992,8 +1002,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1);
 							}
 						);
@@ -1037,8 +1047,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1);
 							}
 						);
@@ -1101,15 +1111,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						pushConstant.m_instanceIndex = 0;
 						spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						spotLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if (Graphics::Settings::ENABLE_MESH_SHADER) {
-							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+						if (useMeshShader) {
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 						}
 						else
 						{
-							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 					}
@@ -1122,16 +1132,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_lightSplitIndex = 0;
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-								if (Graphics::Settings::ENABLE_MESH_SHADER)
+								if (useMeshShader)
 								{
-									graphics.m_drawCall[currentFrameIndex]++;
-									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+									if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+									if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 									vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
-									graphics.m_drawCall[currentFrameIndex]++;
-									graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+									if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+									if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 									mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states, 1);
 								}
 							}
@@ -1176,8 +1186,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
-							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
 							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 						}
 					);
@@ -1220,8 +1230,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto skinnedMesh = renderCommand.m_skinnedMesh;
-							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1);
 						}
 					);
@@ -1263,8 +1273,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto strands = renderCommand.m_strands;
-							graphics.m_drawCall[currentFrameIndex]++;
-							graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1);
 						}
 					);
@@ -1335,6 +1345,10 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_castShadow = meshRenderer->m_castShadow;
 			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
 			renderInstance.m_instanceIndex = instanceIndex;
+
+			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 			if (material->m_drawSettings.m_blending)
 			{
@@ -1415,6 +1429,10 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
 			renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
 			renderInstance.m_instanceIndex = instanceIndex;
+
+			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
@@ -1478,6 +1496,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
 
 			renderInstance.m_instanceIndex = instanceIndex;
+
+			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
@@ -1537,6 +1560,11 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_size;
 
 			renderInstance.m_instanceIndex = instanceIndex;
+
+			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
 			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 
 			if (material->m_drawSettings.m_blending)
@@ -1751,11 +1779,14 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 
 void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera)
 {
+	const bool countShadowRenderingDrawCalls = m_countShadowRenderingDrawCalls;
+	const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	const int cameraIndex = GetCameraIndex(camera->GetHandle());
 	const auto scene = Application::GetActiveScene();
 #pragma region Directional Light Shadows
-	const auto& directionalLightShadowPipeline = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
+	const auto& directionalLightShadowPipeline = useMeshShader ? Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH")
+		: Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
 	const auto& directionalLightShadowPipelineSkinned = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
 	const auto& directionalLightShadowPipelineInstanced = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED");
 	const auto& directionalLightShadowPipelineStrands = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS");
@@ -1824,15 +1855,15 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							pushConstant.m_instanceIndex = 0;
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (Graphics::Settings::ENABLE_MESH_SHADER) {
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							if (useMeshShader) {
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
 							}
 							else
 							{
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 							}
 						}
@@ -1845,17 +1876,17 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									pushConstant.m_lightSplitIndex = split;
 									pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 									directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
-									if (Graphics::Settings::ENABLE_MESH_SHADER)
+									if (useMeshShader)
 									{
-										graphics.m_drawCall[currentFrameIndex]++;
-										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
 										GeometryStorage::BindVertices(commandBuffer);
-										graphics.m_drawCall[currentFrameIndex]++;
-										graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states, 1);
 									}
 								}
@@ -1907,8 +1938,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineInstanced->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
 								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
 							}
 						);
@@ -1957,8 +1988,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineSkinned->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 								skinnedMesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineSkinned->m_states, 1);
 							}
 						);
@@ -2006,8 +2037,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								graphics.m_drawCall[currentFrameIndex]++;
-								graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1);
 							}
 						);
@@ -2067,7 +2098,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.colorAttachmentCount = colorAttachmentInfos.size();
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
-			const auto& deferredPrepassPipeline = m_enableMeshletDebug ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
+			const auto& deferredPrepassPipeline = m_enableDebugVisualization ? useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS") : useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
 			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
@@ -2080,13 +2111,13 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			
+
 			if (m_enableIndirectRendering) {
 				RenderInstancePushConstant pushConstant;
 				pushConstant.m_cameraIndex = cameraIndex;
 				pushConstant.m_instanceIndex = 0;
 				deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-				if (Graphics::Settings::ENABLE_MESH_SHADER) {
+				if (useMeshShader) {
 					graphics.m_drawCall[currentFrameIndex]++;
 					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
@@ -2105,8 +2136,12 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						RenderInstancePushConstant pushConstant;
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+						deferredPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+						deferredPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
+						deferredPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
+						deferredPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
 						deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-						if (Graphics::Settings::ENABLE_MESH_SHADER)
+						if (useMeshShader)
 						{
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
@@ -2152,6 +2187,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredInstancedPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredInstancedPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
+					deferredInstancedPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
+					deferredInstancedPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
 					deferredInstancedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto mesh = renderCommand.m_mesh;
 					graphics.m_drawCall[currentFrameIndex]++;
@@ -2190,6 +2229,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredSkinnedPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredSkinnedPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
+					deferredSkinnedPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
+					deferredSkinnedPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
 					deferredSkinnedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto skinnedMesh = renderCommand.m_skinnedMesh;
 					graphics.m_drawCall[currentFrameIndex]++;
@@ -2227,6 +2270,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
+					deferredStrandsPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredStrandsPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
+					deferredStrandsPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
 					deferredStrandsPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto strands = renderCommand.m_strands;
 					graphics.m_drawCall[currentFrameIndex]++;
@@ -2276,7 +2322,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			pushConstant.m_instanceIndex = needFade ? 1 : 0;
 			deferredLightingPipeline->PushConstant(commandBuffer, 0, pushConstant);
 			const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_TEX_PASS_THROUGH");
-			
+
 			mesh->DrawIndexed(commandBuffer, deferredLightingPipeline->m_states, 1);
 			vkCmdEndRendering(commandBuffer);
 		}

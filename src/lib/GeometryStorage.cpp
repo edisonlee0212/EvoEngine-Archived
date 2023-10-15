@@ -163,31 +163,6 @@ const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strandPointInde
 	return storage.m_strandPointDataChunks[strandPointIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_strandPointData[strandPointIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE];
 }
 
-void ConnectivityGraphNode::RegisterTriangle(const uint32_t triangleIndex)
-{
-	for(const auto& i : m_triangleIndices) if(i == triangleIndex) return;
-	m_triangleIndices.emplace_back(triangleIndex);
-}
-
-void GeometryStorage::EstablishConnectivityGraph(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles, std::vector<ConnectivityGraphNode> &connectivityGraph){
-	connectivityGraph.resize(vertices.size());
-	for (uint32_t triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++)
-	{
-		const auto& triangle = triangles[triangleIndex];
-		connectivityGraph[triangle.x].m_a = triangle.y;
-		connectivityGraph[triangle.x].m_b = triangle.z;
-		connectivityGraph[triangle.x].RegisterTriangle(triangleIndex);
-
-		connectivityGraph[triangle.y].m_a = triangle.x;
-		connectivityGraph[triangle.y].m_b = triangle.z;
-		connectivityGraph[triangle.y].RegisterTriangle(triangleIndex);
-
-		connectivityGraph[triangle.z].m_a = triangle.x;
-		connectivityGraph[triangle.z].m_b = triangle.y;
-		connectivityGraph[triangle.z].RegisterTriangle(triangleIndex);
-	}
-}
-
 void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
 	std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange)
 {
@@ -241,7 +216,7 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		for (unsigned ti = 0; ti < meshletResult.triangle_count; ti++)
 		{
 			auto& currentMeshletTriangle = currentMeshlet.m_triangles[ti];
-			currentMeshletTriangle = glm::uvec3(
+			currentMeshletTriangle = glm::u8vec3(
 				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset],
 				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 1], 
 				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 2]);
@@ -318,7 +293,7 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 		for (unsigned ti = 0; ti < skinnedMeshletResult.triangle_count; ti++)
 		{
 			auto& currentMeshletTriangle = currentSkinnedMeshlet.m_skinnedTriangles[ti];
-			currentMeshletTriangle = glm::uvec3(
+			currentMeshletTriangle = glm::u8vec3(
 				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset],
 				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 1],
 				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 2]);

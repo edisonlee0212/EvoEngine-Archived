@@ -1,4 +1,6 @@
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+
 #define EE_PER_FRAME_SET 0
 #define EE_PER_PASS_SET 1
 #define EE_PER_GROUP_SET 2
@@ -181,7 +183,7 @@ layout(set = EE_PER_FRAME_SET, binding = 9) readonly buffer EE_VERTICES_BLOCK
 };
 
 struct Meshlet {
-	uint primitiveIndices[MESHLET_MAX_INDICES_SIZE];
+	uint8_t primitiveIndices[MESHLET_MAX_INDICES_SIZE];
 	uint verticesSize;
 	uint triangleSize;
 	uint chunkIndex;

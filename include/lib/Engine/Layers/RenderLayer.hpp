@@ -32,6 +32,10 @@ namespace EvoEngine
 		bool m_castShadow = true;
 
 		uint32_t m_meshletSize = 0;
+
+		float m_lineWidth = 1.0f;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 	};
 
 	struct SkinnedRenderInstance {
@@ -43,6 +47,10 @@ namespace EvoEngine
 		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
 
 		uint32_t m_skinnedMeshletSize = 0;
+
+		float m_lineWidth = 1.0f;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 	};
 
 	struct InstancedRenderInstance
@@ -55,6 +63,10 @@ namespace EvoEngine
 		std::shared_ptr<ParticleInfoList> m_particleInfos;
 
 		uint32_t m_meshletSize = 0;
+
+		float m_lineWidth = 1.0f;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 	};
 
 	struct StrandsRenderInstance
@@ -66,6 +78,10 @@ namespace EvoEngine
 		bool m_castShadow = true;
 
 		uint32_t m_strandMeshletSize = 0;
+
+		float m_lineWidth = 1.0f;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 	};
 
 	struct RenderInstanceCollection
@@ -145,8 +161,9 @@ namespace EvoEngine
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	public:
+		bool m_countShadowRenderingDrawCalls = false;
 		bool m_enableIndirectRendering = true;
-		bool m_enableMeshletDebug = false;
+		bool m_enableDebugVisualization = false;
 		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
 		float m_maxShadowDistance = 100;

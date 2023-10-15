@@ -228,7 +228,7 @@ vec3 EE_FUNC_SPOT_LIGHT(vec3 albedo, float specular, int i, vec3 normal, vec3 fr
 vec2 VogelDiskSample(int sampleIndex, int sampleCount, float phi)
 {
 	float goldenAngle = 2.4;
-	float r = sqrt(sampleIndex + 0.5) / sqrt(sampleCount);
+	float r = sqrt(float(sampleIndex + 0.5)) / sqrt(float(sampleCount));
 	float theta = goldenAngle * sampleIndex + phi;
 	return r * vec2(cos(theta), sin(theta));
 }
