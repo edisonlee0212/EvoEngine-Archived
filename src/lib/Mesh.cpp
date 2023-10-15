@@ -86,7 +86,10 @@ void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			"Export as OBJ",
 			"Mesh",
 			{ ".obj" },
-			[&](const std::filesystem::path& path) { Export(path); },
+			[&](const std::filesystem::path& path)
+			{
+				Export(path);
+			},
 			false);
 	}
 	/*

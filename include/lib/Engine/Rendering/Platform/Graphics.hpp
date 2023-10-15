@@ -144,7 +144,7 @@ namespace EvoEngine
 		class Settings
 		{
 		public:
-			inline static bool ENABLE_MESH_SHADER = true;
+			inline static bool ENABLE_MESH_SHADER = false;
 			inline static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
 			inline static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
 			inline static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
