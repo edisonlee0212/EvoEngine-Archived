@@ -483,7 +483,9 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::SameLine();
 		ImGui::Checkbox("Lock", &m_lockEntitySelection);
 		ImGui::SameLine();
-		ImGui::Checkbox("Highlight", &m_highlightSelection);
+		ImGui::Checkbox("Focus", &m_highlightSelection);
+		ImGui::SameLine();
+		ImGui::Checkbox("Gizmos", &m_enableGizmos);
 		ImGui::SameLine();
 		if (ImGui::Button("Clear")) {
 			SetSelectedEntity({});
@@ -1038,7 +1040,7 @@ void EditorLayer::SceneCameraWindow()
 		}
 #pragma region Gizmos and Entity Selection
 		bool mouseSelectEntity = true;
-		if (scene->IsEntityValid(m_selectedEntity)) {
+		if (m_enableGizmos && scene->IsEntityValid(m_selectedEntity)) {
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, viewPortSize.x,

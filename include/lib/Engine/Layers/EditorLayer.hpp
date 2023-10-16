@@ -331,6 +331,7 @@ namespace EvoEngine
 		bool m_lockEntitySelection = false;
 
 		bool m_highlightSelection = true;
+		bool m_enableGizmos = true;
 		Entity m_selectedEntity;
 
 		glm::vec2 m_mouseSceneWindowPosition;

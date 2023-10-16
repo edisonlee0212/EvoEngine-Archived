@@ -2057,7 +2057,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	if (editorLayer)
 	{
 		if (camera.get() == editorLayer->GetSceneCamera().get()) isSceneCamera = true;
-		if (m_needFade) needFade = true;
+		if (m_needFade && editorLayer->m_highlightSelection) needFade = true;
 	}
 
 #pragma region Deferred Rendering
