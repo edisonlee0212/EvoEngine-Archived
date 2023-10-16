@@ -475,7 +475,6 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	}
 	if (meshletRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target meshlet range!");
 		return;
 	}
 	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
@@ -505,7 +504,6 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	}
 	if (triangleRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target triangle range!");
 		return;
 	}
 	const auto& triangleRangeDescriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
@@ -546,7 +544,6 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 	}
 	if (skinnedMeshletRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target skinned meshlet range!");
 		return;
 	};
 	const auto& skinnedMeshletRangeDescriptor = storage.m_skinnedMeshletRangeDescriptor[skinnedMeshletRangeDescriptorIndex];
@@ -576,7 +573,6 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 	}
 	if (skinnedTriangleRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target skinned triangle range!");
 		return;
 	}
 	const auto& skinnedTriangleRangeDescriptor = storage.m_skinnedTriangleRangeDescriptor[skinnedTriangleRangeDescriptorIndex];
@@ -617,7 +613,6 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 	}
 	if (strandMeshletRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target strand meshlet range!");
 		return;
 	}
 	const auto& strandMeshletRangeDescriptor = storage.m_strandMeshletRangeDescriptor[strandMeshletRangeDescriptorIndex];
@@ -647,7 +642,6 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 	}
 	if (segmentRangeDescriptorIndex == UINT_MAX)
 	{
-		EVOENGINE_ERROR("Can't find the target strand triangle range!");
 		return;
 	}
 	const auto& segmentRangeDescriptor = storage.m_segmentRangeDescriptor[segmentRangeDescriptorIndex];

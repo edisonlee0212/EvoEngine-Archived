@@ -160,7 +160,9 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 {
 	if (vertices.empty() || triangles.empty())
 	{
+#ifndef NDEBUG
 		EVOENGINE_LOG("Vertices or triangles empty!");
+#endif
 		return;
 	}
 	m_vertices = vertices;
