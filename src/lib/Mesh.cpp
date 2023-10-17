@@ -28,36 +28,36 @@ bool Mesh::SaveInternal(const std::filesystem::path& path)
 				header += "\n";
 				of.write(header.c_str(), header.size());
 				of.flush();
-				std::string data;
+				std::stringstream data;
 #pragma region Data collection
 				for (auto i = 0; i < m_vertices.size(); i++) {
 					auto& vertexPosition = m_vertices.at(i).m_position;
 					auto& color = m_vertices.at(i).m_color;
-					data += "v " + std::to_string(vertexPosition.x) + " " +
+					data << "v " + std::to_string(vertexPosition.x) + " " +
 						std::to_string(vertexPosition.y) + " " +
 						std::to_string(vertexPosition.z) + " " +
 						std::to_string(color.x) + " " + std::to_string(color.y) + " " +
 						std::to_string(color.z) + "\n";
 				}
 				for (const auto& vertex : m_vertices) {
-					data += "vn " + std::to_string(vertex.m_normal.x) + " " +
+					data << "vn " + std::to_string(vertex.m_normal.x) + " " +
 						std::to_string(vertex.m_normal.y) + " " +
 						std::to_string(vertex.m_normal.z) + "\n";
 				}
 
 				for (const auto& vertex : m_vertices) {
-					data += "vt " + std::to_string(vertex.m_texCoord.x) + " " +
+					data << "vt " + std::to_string(vertex.m_texCoord.x) + " " +
 						std::to_string(vertex.m_texCoord.y) + "\n";
 				}
 				// data += "s off\n";
-				data += "# List of indices for faces vertices, with (x, y, z).\n";
+				data << "# List of indices for faces vertices, with (x, y, z).\n";
 				auto& triangles = m_triangles;
 				for (auto i = 0; i < m_triangles.size(); i++) {
 					const auto triangle = triangles[i];
 					const auto f1 = triangle.x + startIndex;
 					const auto f2 = triangle.y + startIndex;
 					const auto f3 = triangle.z + startIndex;
-					data += "f " + std::to_string(f1) + "/" + std::to_string(f1) + "/" +
+					data << "f " + std::to_string(f1) + "/" + std::to_string(f1) + "/" +
 						std::to_string(f1) + " " + std::to_string(f2) + "/" +
 						std::to_string(f2) + "/" + std::to_string(f2) + " " +
 						std::to_string(f3) + "/" + std::to_string(f3) + "/" +
@@ -65,7 +65,8 @@ bool Mesh::SaveInternal(const std::filesystem::path& path)
 				}
 				startIndex += m_vertices.size();
 #pragma endregion
-				of.write(data.c_str(), data.size());
+				const auto result = data.str();
+				of.write(result.c_str(), result.size());
 				of.flush();
 			}
 			of.close();
