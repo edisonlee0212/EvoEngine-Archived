@@ -689,7 +689,7 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 	if (!foundScene)
 	{
 		scene = CreateTemporaryAsset<Scene>();
-		std::filesystem::path newSceneRelativePath = GenerateNewPath("New Scene", ".evescene");
+		std::filesystem::path newSceneRelativePath = GenerateNewProjectRelativePath("New Scene", ".evescene");
 		bool succeed = scene->SetPathAndSave(newSceneRelativePath);
 		if (succeed)
 		{
@@ -830,22 +830,38 @@ bool ProjectManager::IsValidAssetFileName(const std::filesystem::path& path)
 	auto typeName = GetTypeName(extension);
 	return typeName == "Binary";
 }
-std::filesystem::path ProjectManager::GenerateNewPath(const std::string& prefix, const std::string& postfix)
+std::filesystem::path ProjectManager::GenerateNewProjectRelativePath(const std::string& relativeStem, const std::string& postfix)
 {
-	assert(std::filesystem::path(prefix + postfix).is_relative());
-	auto& projectManager = GetInstance();
-	auto projectPath = projectManager.m_projectPath.parent_path();
-	std::filesystem::path testPath = projectPath / (prefix + postfix);
+	assert(std::filesystem::path(relativeStem + postfix).is_relative());
+	const auto& projectManager = GetInstance();
+	const auto projectPath = projectManager.m_projectPath.parent_path();
+	std::filesystem::path testPath = projectPath / (relativeStem + postfix);
 	int i = 0;
 	while (std::filesystem::exists(testPath))
 	{
 		i++;
-		testPath = projectPath / (prefix + " (" + std::to_string(i) + ")" + postfix);
+		testPath = projectPath / (relativeStem + " (" + std::to_string(i) + ")" + postfix);
 	}
 	if (i == 0)
-		return prefix + postfix;
-	return prefix + " (" + std::to_string(i) + ")" + postfix;
+		return relativeStem + postfix;
+	return relativeStem + " (" + std::to_string(i) + ")" + postfix;
 }
+
+std::filesystem::path ProjectManager::GenerateNewAbsolutePath(const std::string& absoluteStem,
+	const std::string& postfix)
+{
+	std::filesystem::path testPath = absoluteStem + postfix;
+	int i = 0;
+	while (std::filesystem::exists(testPath))
+	{
+		i++;
+		testPath = absoluteStem + " (" + std::to_string(i) + ")" + postfix;
+	}
+	if (i == 0)
+		return absoluteStem + postfix;
+	return absoluteStem + " (" + std::to_string(i) + ")" + postfix;
+}
+
 void ProjectManager::SetScenePostLoadActions(const std::function<void(const std::shared_ptr<Scene>&)>& actions)
 {
 	auto& projectManager = GetInstance();
@@ -949,7 +965,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 										projectManager.m_assetExtensions[asset->GetTypeName()].front();
 									auto fileName = "New " + asset->GetTypeName();
 									int index = 0;
-									auto filePath = GenerateNewPath(
+									auto filePath = GenerateNewProjectRelativePath(
 										(currentFocusedFolder->GetProjectRelativePath() / fileName).string(), fileExtension);
 									asset->SetPathAndSave(filePath);
 								}
@@ -960,7 +976,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 									{
 										auto fileExtension = assetRecord->GetAssetExtension();
 										auto fileName = assetRecord->GetAssetFileName();
-										auto filePath = GenerateNewPath(
+										auto filePath = GenerateNewProjectRelativePath(
 											(currentFocusedFolder->GetProjectRelativePath() / fileName).string(),
 											fileExtension);
 										asset->SetPathAndSave(filePath);
@@ -998,7 +1014,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							auto fileName = scene->GetEntityName(entity);
 							auto fileExtension = projectManager.m_assetExtensions["Prefab"].at(0);
 							auto filePath =
-								GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
+								GenerateNewProjectRelativePath((currentFolderPath / fileName).string(), fileExtension);
 							prefab->SetPathAndSave(filePath);
 						}
 					}
@@ -1051,7 +1067,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				{
 					if (ImGui::Button("New folder..."))
 					{
-						auto newPath = GenerateNewPath(
+						auto newPath = GenerateNewProjectRelativePath(
 							(currentFocusedFolder->GetProjectRelativePath() / "New Folder").string(), "");
 						GetOrCreateFolder(newPath);
 					}
@@ -1062,7 +1078,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							if (ImGui::Button(i.first.c_str()))
 							{
 								std::string newFileName = "New " + i.first;
-								std::filesystem::path newPath = GenerateNewPath(
+								std::filesystem::path newPath = GenerateNewProjectRelativePath(
 									(currentFocusedFolder->GetProjectRelativePath() / newFileName).string(),
 									i.second.front());
 								currentFocusedFolder->GetOrCreateAsset(
@@ -1157,7 +1173,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 												projectManager.m_assetExtensions[asset->GetTypeName()].front();
 											auto fileName = "New " + asset->GetTypeName();
 											int index = 0;
-											auto filePath = GenerateNewPath(
+											auto filePath = GenerateNewProjectRelativePath(
 												(i.second->GetProjectRelativePath() / fileName).string(), fileExtension);
 											asset->SetPathAndSave(filePath);
 										}
@@ -1168,7 +1184,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 											{
 												auto fileExtension = assetRecord->GetAssetExtension();
 												auto fileName = assetRecord->GetAssetFileName();
-												auto filePath = GenerateNewPath(
+												auto filePath = GenerateNewProjectRelativePath(
 													(i.second->GetProjectRelativePath() / fileName).string(),
 													fileExtension);
 												asset->SetPathAndSave(filePath);
@@ -1212,7 +1228,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 								auto fileName = scene->GetEntityName(entity);
 								auto fileExtension = projectManager.m_assetExtensions["Prefab"].at(0);
 								auto filePath =
-									GenerateNewPath((currentFolderPath / fileName).string(), fileExtension);
+									GenerateNewProjectRelativePath((currentFolderPath / fileName).string(), fileExtension);
 								prefab->SetPathAndSave(filePath);
 							}
 							
@@ -1443,7 +1459,7 @@ void ProjectManager::FolderHierarchyHelper(const std::shared_ptr<Folder>& folder
 						auto fileExtension = projectManager.m_assetExtensions[asset->GetTypeName()].front();
 						auto fileName = "New " + asset->GetTypeName();
 						int index = 0;
-						auto filePath = ProjectManager::GenerateNewPath(
+						auto filePath = ProjectManager::GenerateNewProjectRelativePath(
 							(folder->GetProjectRelativePath() / fileName).string(), fileExtension);
 						asset->SetPathAndSave(filePath);
 					}
@@ -1454,7 +1470,7 @@ void ProjectManager::FolderHierarchyHelper(const std::shared_ptr<Folder>& folder
 						{
 							auto fileExtension = assetRecord->GetAssetExtension();
 							auto fileName = assetRecord->GetAssetFileName();
-							auto filePath = ProjectManager::GenerateNewPath(
+							auto filePath = ProjectManager::GenerateNewProjectRelativePath(
 								(folder->GetProjectRelativePath() / fileName).string(), fileExtension);
 							asset->SetPathAndSave(filePath);
 						}
@@ -1553,14 +1569,20 @@ void ProjectManager::FolderHierarchyHelper(const std::shared_ptr<Folder>& folder
 
 std::shared_ptr<IAsset> ProjectManager::DuplicateAsset(const std::shared_ptr<IAsset>& target)
 {
-	auto folder = target->GetAssetRecord().lock()->GetFolder().lock();
-	auto path = target->GetProjectRelativePath();
-	auto prefix = (folder->GetProjectRelativePath() / path.stem()).string();
-	auto postfix = path.extension().string();
-	std::filesystem::path newPath = prefix + "_copy" + postfix;
+	const auto& projectManager = GetInstance();
+	const auto folder = target->GetAssetRecord().lock()->GetFolder().lock();
+	const auto path = target->GetProjectRelativePath();
+	const auto prefix = (folder->GetProjectRelativePath() / path.stem()).string();
+	const auto postfix = path.extension().string();
+	const auto newPath = projectManager.GenerateNewProjectRelativePath(prefix, postfix);
+	try {
+		std::filesystem::copy(target->GetAbsolutePath(), projectManager.GetProjectPath().parent_path() / newPath, std::filesystem::copy_options::overwrite_existing);
+	}catch (const std::exception& e)
+	{
+		EVOENGINE_ERROR(e.what());
+	}
 	auto newAsset = folder->GetOrCreateAsset(
 		newPath.stem().string(), newPath.extension().string());
-	std::filesystem::copy_file(target->GetAbsolutePath(), newAsset->GetAbsolutePath());
 	return newAsset;
 }
 

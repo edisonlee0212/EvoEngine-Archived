@@ -376,7 +376,6 @@ void Scene::Serialize(YAML::Emitter& out)
 }
 void Scene::Deserialize(const YAML::Node& in)
 {
-	EVOENGINE_LOG("Loading scene...");
 	auto scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 	m_sceneDataStorage.m_entities.clear();
 	m_sceneDataStorage.m_entityMetadataList.clear();
