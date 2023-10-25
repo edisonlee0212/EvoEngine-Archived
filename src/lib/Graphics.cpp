@@ -652,11 +652,8 @@ void Graphics::SelectPhysicalDevice()
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
 #endif
 	m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
-	if (Constants::ENABLE_MESH_SHADER) {
-		//m_requiredDeviceExtensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
-		//m_requiredDeviceExtensions.emplace_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
-		m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
-	}
+
+	
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
@@ -696,6 +693,7 @@ void Graphics::SelectPhysicalDevice()
 #endif
 		candidates.insert(std::make_pair(score, physicalDevice));
 	}
+
 	// Check if the best candidate is suitable at all
 	if (!candidates.empty() && candidates.rbegin()->first > 0) {
 		m_vkPhysicalDevice = candidates.rbegin()->second;
@@ -710,6 +708,13 @@ void Graphics::SelectPhysicalDevice()
 		throw std::runtime_error("failed to find a suitable GPU!");
 	}
 #pragma endregion
+
+	if (Constants::ENABLE_MESH_SHADER && IsDeviceSuitable(m_vkPhysicalDevice, {{VK_EXT_MESH_SHADER_EXTENSION_NAME}})) {
+		m_requiredDeviceExtensions.emplace_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+	}else
+	{
+		Constants::ENABLE_MESH_SHADER = VK_FALSE;
+	}
 }
 
 void Graphics::CreateLogicalDevice()

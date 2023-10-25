@@ -159,7 +159,7 @@ namespace EvoEngine
 		class Constants
 		{
 		public:
-			inline constexpr static bool ENABLE_MESH_SHADER = true;
+			inline static bool ENABLE_MESH_SHADER = true;
 			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SIZE = 16384;
 			inline constexpr static uint32_t INITIAL_DESCRIPTOR_POOL_MAX_SETS = 16384;
 			inline constexpr static uint32_t INITIAL_CAMERA_SIZE = 1;

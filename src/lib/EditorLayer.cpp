@@ -18,7 +18,7 @@ using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
 {
-	if(Application::GetLayer<WindowLayer>())
+	if (Application::GetLayer<WindowLayer>())
 	{
 		std::runtime_error("EditorLayer requires WindowLayer!");
 	}
@@ -122,7 +122,7 @@ void EditorLayer::OnCreate()
 			changed = true;
 		return changed;
 		});
-	
+
 	LoadIcons();
 
 	VkBufferCreateInfo entityIndexReadBuffer{};
@@ -357,18 +357,18 @@ void EditorLayer::PreUpdate()
 		}
 	}
 	const auto& scene = Application::GetActiveScene();
-	if(!scene->IsEntityValid(m_selectedEntity))
+	if (!scene->IsEntityValid(m_selectedEntity))
 	{
 		SetSelectedEntity(Entity());
 	}
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if(renderLayer && renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
+	if (renderLayer && renderLayer->m_needFade != 0 && m_selectionAlpha < 256)
 	{
 		m_selectionAlpha += Times::DeltaTime() * 5120;
 	}
 
 	m_selectionAlpha = glm::clamp(m_selectionAlpha, 0, 256);
-	
+
 }
 static const char* HierarchyDisplayMode[]{ "Archetype", "Hierarchy" };
 void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
@@ -677,7 +677,7 @@ void EditorLayer::LateUpdate()
 					});
 			}
 		}
-		for(const auto& i : m_gizmoInstancedMeshTasks)
+		for (const auto& i : m_gizmoInstancedMeshTasks)
 		{
 			if (m_editorCameras.find(i.m_editorCameraComponent->GetHandle()) == m_editorCameras.end())
 			{
@@ -710,7 +710,7 @@ void EditorLayer::LateUpdate()
 					});
 			}
 		}
-		for(const auto& i : m_gizmoStrandsTasks)
+		for (const auto& i : m_gizmoStrandsTasks)
 		{
 			if (m_editorCameras.find(i.m_editorCameraComponent->GetHandle()) == m_editorCameras.end())
 			{
@@ -1211,8 +1211,8 @@ void EditorLayer::MainCameraWindow()
 			{
 				SetSelectedEntity(Entity());
 			}
-			if (!Application::IsPlaying() && m_mainCameraWindowFocused 
-				&& !m_lockEntitySelection && Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press 
+			if (!Application::IsPlaying() && m_mainCameraWindowFocused
+				&& !m_lockEntitySelection && Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press
 				&& !(m_mouseCameraWindowPosition.x < 0 || m_mouseCameraWindowPosition.y < 0 ||
 					m_mouseCameraWindowPosition.x > viewPortSize.x || m_mouseCameraWindowPosition.y > viewPortSize.y)) {
 				if (const auto focusedEntity = MouseEntitySelection(mainCamera, m_mouseCameraWindowPosition); focusedEntity == Entity()) {
@@ -1244,7 +1244,7 @@ void EditorLayer::MainCameraWindow()
 			}
 		}
 
-		
+
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_mainCameraWindowFocused = true;
 		}
@@ -1388,23 +1388,23 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 	m_selectedEntityHierarchyList.clear();
 	const auto scene = GetScene();
 	const auto previousDescendents = scene->GetDescendants(m_selectedEntity);
-	for(const auto& i : previousDescendents)
+	for (const auto& i : previousDescendents)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = false;
 	}
-	if(scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
+	if (scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
 	if (entity.GetIndex() == 0) {
 		m_selectedEntity = Entity();
 		m_lockEntitySelection = false;
 		m_selectionAlpha = 0;
 		return;
 	}
-	
+
 	if (!scene->IsEntityValid(entity))
 		return;
 	m_selectedEntity = entity;
 	const auto descendents = scene->GetDescendants(m_selectedEntity);
-	
+
 	for (const auto& i : descendents)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = true;
@@ -1626,7 +1626,7 @@ Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCa
 			const auto renderLayer = Application::GetLayer<RenderLayer>();
 			const auto scene = GetScene();
 			const auto handle = renderLayer->GetInstanceHandle(static_cast<uint32_t>(instanceIndexWithOneAdded - 1));
-			if(handle != 0) retVal = scene->GetEntity(handle);
+			if (handle != 0) retVal = scene->GetEntity(handle);
 		}
 	}
 	return retVal;
@@ -1812,7 +1812,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			auto material = ProjectManager::CreateTemporaryAsset<Material>();
 			meshRenderer->m_material.Set<Material>(material);
 		}
-		
+
 		else if (asset->GetTypeName() == "Strands") {
 			Entity entity = scene->CreateEntity(asset->GetTitle());
 			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(entity).lock();

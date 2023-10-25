@@ -1290,7 +1290,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 {
 	m_needFade = false;
 	auto scene = GetScene();
-
+	auto editorLayer = Application::GetLayer<EditorLayer>();
+	const bool enableSelectionHighLight = editorLayer && scene->IsEntityValid(editorLayer->m_selectedEntity);
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(FLT_MAX);
@@ -1331,7 +1332,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
 			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
@@ -1416,7 +1417,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 			instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1482,7 +1483,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1547,7 +1548,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			InstanceInfoBlock instanceInfoBlock;
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 			instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_size;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -2099,35 +2100,31 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredPrepassPipeline = m_enableDebugVisualization ? useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS") : useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
+			deferredPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
-			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredPrepassPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
 			if (m_enableIndirectRendering) {
-				RenderInstancePushConstant pushConstant;
-				pushConstant.m_cameraIndex = cameraIndex;
-				pushConstant.m_instanceIndex = 0;
-				deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-				if (useMeshShader) {
-					graphics.m_drawCall[currentFrameIndex]++;
-					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-					vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
-				}
-				else
-				{
-					GeometryStorage::BindVertices(commandBuffer);
-					graphics.m_drawCall[currentFrameIndex]++;
-					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-					vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
+				if (!m_deferredRenderInstances.m_renderCommands.empty()) {
+					RenderInstancePushConstant pushConstant;
+					pushConstant.m_cameraIndex = cameraIndex;
+					pushConstant.m_instanceIndex = 0;
+					deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
+					if (useMeshShader) {
+						graphics.m_drawCall[currentFrameIndex]++;
+						graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+						vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
+					}
+					else
+					{
+						GeometryStorage::BindVertices(commandBuffer);
+						graphics.m_drawCall[currentFrameIndex]++;
+						graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+						vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
+					}
 				}
 			}
 			else {
@@ -2168,15 +2165,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredInstancedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS");
+			deferredInstancedPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredInstancedPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredInstancedPrepassPipeline->m_states.m_scissor = scissor;
-			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredInstancedPrepassPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredInstancedPrepassPipeline->Bind(commandBuffer);
 			deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
@@ -2211,15 +2202,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredSkinnedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
+			deferredSkinnedPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredSkinnedPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredSkinnedPrepassPipeline->m_states.m_scissor = scissor;
-			deferredSkinnedPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredSkinnedPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredSkinnedPrepassPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredSkinnedPrepassPipeline->Bind(commandBuffer);
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
@@ -2253,15 +2238,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredStrandsPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS");
+			deferredStrandsPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredStrandsPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredStrandsPrepassPipeline->m_states.m_scissor = scissor;
-			deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredStrandsPrepassPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
+			
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredStrandsPrepassPipeline->Bind(commandBuffer);
 			deferredStrandsPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
@@ -2302,14 +2282,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
+			deferredLightingPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredLightingPipeline->m_states.m_depthTest = false;
-			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.clear();
-			deferredLightingPipeline->m_states.m_colorBlendAttachmentStates.resize(colorAttachmentInfos.size());
-			for (auto& i : deferredLightingPipeline->m_states.m_colorBlendAttachmentStates)
-			{
-				i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				i.blendEnable = VK_FALSE;
-			}
+			
 			deferredLightingPipeline->Bind(commandBuffer);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
@@ -2329,6 +2304,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 #pragma endregion
 		}
 	);
+#pragma endregion
+
+#pragma region ForwardRendering
+
 #pragma endregion
 
 	//Post processing
