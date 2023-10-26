@@ -852,14 +852,14 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowPipeline->m_states.m_scissor = scissor;
 
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowPipeline->Bind(commandBuffer);
 					pointLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					pointLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -927,13 +927,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowInstancedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowInstancedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowInstancedPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowInstancedPipeline->m_states.m_scissor = scissor;
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowInstancedPipeline->Bind(commandBuffer);
 					pointLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					pointLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -974,13 +974,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowSkinnedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowSkinnedPipeline->Bind(commandBuffer);
 					pointLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					pointLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -1020,13 +1020,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowStrandsPipeline->m_states.m_colorBlendAttachmentStates.clear();
+					pointLightShadowStrandsPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowStrandsPipeline->m_states.m_scissor = scissor;
 					vkCmdBeginRendering(commandBuffer, &renderInfo);
 					pointLightShadowStrandsPipeline->Bind(commandBuffer);
 					pointLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-					pointLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					for (int i = 0; i < m_pointLightInfoBlocks.size(); i++)
 					{
 						const auto& pointLightInfoBlock = m_pointLightInfoBlocks[i];
@@ -1086,13 +1086,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowPipeline->Bind(commandBuffer);
 				spotLightShadowPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-				spotLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1159,13 +1159,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowInstancedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowInstancedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowInstancedPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowInstancedPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowInstancedPipeline->Bind(commandBuffer);
 				spotLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-				spotLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1204,13 +1204,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowSkinnedPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowSkinnedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowSkinnedPipeline->Bind(commandBuffer);
 				spotLightShadowSkinnedPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-				spotLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];
@@ -1248,13 +1248,13 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowStrandsPipeline->m_states.m_colorBlendAttachmentStates.clear();
+				spotLightShadowStrandsPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowStrandsPipeline->m_states.m_scissor = scissor;
 				vkCmdBeginRendering(commandBuffer, &renderInfo);
 				spotLightShadowStrandsPipeline->Bind(commandBuffer);
 				spotLightShadowStrandsPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-				spotLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				for (int i = 0; i < m_spotLightInfoBlocks.size(); i++)
 				{
 					const auto& spotLightInfoBlock = m_spotLightInfoBlocks[i];

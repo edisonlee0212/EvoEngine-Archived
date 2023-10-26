@@ -10,6 +10,7 @@
 #include "GeometryStorage.hpp"
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"
+#include "Times.hpp"
 using namespace EvoEngine;
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -1137,11 +1138,12 @@ void Graphics::SwapChainSwapImage()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
 	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
+	const auto justNow = Times::Now();
 	vkDeviceWaitIdle(m_vkDevice);
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
-
+	m_cpuWaitTime = Times::Now() - justNow;
 	auto result = vkAcquireNextImageKHR(m_vkDevice,
 		m_swapchain->GetVkSwapchain(), UINT64_MAX,
 		m_imageAvailableSemaphores[m_currentFrameIndex]->GetVkSemaphore(),
@@ -1190,7 +1192,6 @@ void Graphics::SubmitPresent()
 	if (vkQueueSubmit(m_vkGraphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrameIndex]->GetVkFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
-
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

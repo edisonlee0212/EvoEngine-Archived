@@ -117,7 +117,7 @@ namespace EvoEngine
 		[[nodiscard]] bool GetLockEntitySelection() const;
 		bool m_showSceneWindow = true;
 		bool m_showCameraWindow = true;
-		bool m_showCameraInfo = true;
+		bool m_showCameraInfo = false;
 		bool m_showSceneInfo = true;
 
 		bool m_showEntityExplorerWindow = true;

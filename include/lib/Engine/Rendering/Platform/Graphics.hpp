@@ -65,6 +65,7 @@ namespace EvoEngine
 		std::vector<std::unique_ptr<Semaphore>> m_imageAvailableSemaphores = {};
 		std::vector<std::unique_ptr<Semaphore>> m_renderFinishedSemaphores = {};
 		std::vector<std::unique_ptr<Fence>> m_inFlightFences = {};
+		
 		uint32_t m_currentFrameIndex = 0;
 
 		uint32_t m_nextImageIndex = 0;
@@ -115,6 +116,8 @@ namespace EvoEngine
 		static void PreUpdate();
 		static void LateUpdate();
 
+		
+
 		bool m_recreateSwapChain = false;
 		unsigned m_swapchainVersion = 0;
 		static uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -128,6 +131,7 @@ namespace EvoEngine
 		uint32_t m_maxWorkGroupInvocations = 128;
 
 	public:
+		double m_cpuWaitTime = 0.0f;
 		static void WaitForDeviceIdle();
 
 		[[nodiscard]] static uint32_t GetMaxWorkGroupInvocations();
@@ -146,8 +150,8 @@ namespace EvoEngine
 		public:
 			inline static bool USE_MESH_SHADER = false;
 			inline static uint32_t DIRECTIONAL_LIGHT_SHADOW_MAP_RESOLUTION = 2048;
-			inline static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
-			inline static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 512;
+			inline static uint32_t POINT_LIGHT_SHADOW_MAP_RESOLUTION = 1024;
+			inline static uint32_t SPOT_LIGHT_SHADOW_MAP_RESOLUTION = 1024;
 			inline static uint32_t MAX_TEXTURE_2D_RESOURCE_SIZE = 2048;
 			inline static uint32_t MAX_CUBEMAP_RESOURCE_SIZE = 256;
 			

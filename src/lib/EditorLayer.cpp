@@ -209,7 +209,6 @@ void EditorLayer::PreUpdate()
 	m_mainCameraFocusOverride = false;
 	m_sceneCameraFocusOverride = false;
 	if (ImGui::BeginMainMenuBar()) {
-
 		switch (Application::GetApplicationStatus()) {
 		case ApplicationStatus::Stop: {
 			if (ImGui::ImageButton(
@@ -380,16 +379,36 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::Checkbox("Scene", &m_showSceneWindow);
-			ImGui::Checkbox("Camera", &m_showCameraWindow);
-			ImGui::Checkbox("Entity Explorer", &m_showEntityExplorerWindow);
-			ImGui::Checkbox("Entity Inspector", &m_showEntityInspectorWindow);
+			if (ImGui::BeginMenu("Editor"))
+			{
+				if (ImGui::BeginMenu("Scene"))
+				{
+					ImGui::Checkbox("Show Scene Window", &m_showSceneWindow);
+					if (m_showSceneWindow)
+					{
+						ImGui::Checkbox("Show Scene Window Info", &m_showSceneInfo);
+					}
+					ImGui::EndMenu();
+				}
+				if (ImGui::BeginMenu("Camera"))
+				{
+					ImGui::Checkbox("Show Camera Window", &m_showCameraWindow);
+					if (m_showCameraWindow)
+					{
+						ImGui::Checkbox("Show Camera Window Info", &m_showCameraInfo);
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::Checkbox("Show Entity Explorer", &m_showEntityExplorerWindow);
+				ImGui::Checkbox("Show Entity Inspector", &m_showEntityInspectorWindow);
+				ImGui::EndMenu();
+			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
 
-	auto scene = GetScene();
+	const auto scene = GetScene();
 	if (scene && m_showEntityExplorerWindow) {
 		ImGui::Begin("Entity Explorer");
 		if (ImGui::BeginPopupContextWindow("NewEntityPopup")) {
@@ -932,7 +951,7 @@ void EditorLayer::SceneCameraWindow()
 					ImGuiWindowFlags_AlwaysAutoResize |
 					ImGuiWindowFlags_NoSavedSettings |
 					ImGuiWindowFlags_NoFocusOnAppearing;
-				if (ImGui::BeginChild("Info", ImVec2(300, 100), true, windowFlags)) {
+				if (ImGui::BeginChild("Info", ImVec2(200, 350), true, windowFlags)) {
 					ImGui::Text("Info & Settings");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					std::string drawCallInfo = {};
@@ -946,6 +965,7 @@ void EditorLayer::SceneCameraWindow()
 					drawCallInfo += " tris";
 					ImGui::Text(drawCallInfo.c_str());
 					ImGui::Text("%d drawcall", graphics.m_drawCall[currentFrameIndex]);
+					ImGui::Text("Idle: %.3f", graphics.m_cpuWaitTime);
 					ImGui::Separator();
 					if (ImGui::IsMousePosValid()) {
 						const auto pos = Input::GetMousePosition();
@@ -963,14 +983,14 @@ void EditorLayer::SceneCameraWindow()
 						m_defaultSceneCameraRotation = sceneCameraRotation;
 					}
 					ImGui::PushItemWidth(100);
-					ImGui::Checkbox("Use background color", &sceneCamera->m_useClearColor);
-					ImGui::ColorEdit3("Bg color", &sceneCamera->m_clearColor.x);
-					ImGui::SliderFloat("Fov", &sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
+					ImGui::Checkbox("Use clear color", &sceneCamera->m_useClearColor);
+					ImGui::ColorEdit3("Clear color", &sceneCamera->m_clearColor.x);
+					ImGui::SliderFloat("FOV", &sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
 					ImGui::DragFloat3("Position", &sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
 					ImGui::DragFloat("Speed", &m_velocity, 0.1f, 0, 0, "%.1f");
 					ImGui::DragFloat("Sensitivity", &m_sensitivity, 0.1f, 0, 0, "%.1f");
-					ImGui::Checkbox("Apply transform to main camera", &m_applyTransformToMainCamera);
-					ImGui::DragFloat("Resolution multiplier", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
+					ImGui::Checkbox("Copy Transform", &m_applyTransformToMainCamera);
+					ImGui::DragFloat("Resolution", &m_sceneCameraResolutionMultiplier, 0.1f, 0.1f, 4.0f);
 					DragAndDropButton<Cubemap>(sceneCamera->m_skybox, "Skybox", true);
 					ImGui::PopItemWidth();
 				}
@@ -1174,7 +1194,7 @@ void EditorLayer::MainCameraWindow()
 					ImGuiWindowFlags_NoSavedSettings |
 					ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
 
-				if (ImGui::BeginChild("Render Info", ImVec2(300, 100), true, window_flags)) {
+				if (ImGui::BeginChild("Render Info", ImVec2(300, 150), true, window_flags)) {
 					ImGui::Text("Info & Settings");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					ImGui::PushItemWidth(100);
