@@ -21,7 +21,7 @@ EntityArchetype Entities::CreateEntityArchetype(const std::string &name, const s
     std::vector<DataComponentType> actualTypes;
     actualTypes.push_back(Typeof<Transform>());
     actualTypes.push_back(Typeof<GlobalTransform>());
-    actualTypes.push_back(Typeof<GlobalTransformUpdateFlag>());
+    actualTypes.push_back(Typeof<TransformUpdateStatus>());
     actualTypes.insert(actualTypes.end(), types.begin(), types.end());
     std::sort(actualTypes.begin() + 3, actualTypes.end(), ComponentTypeComparator);
     size_t offset = 0;
@@ -103,7 +103,7 @@ void Entities::Initialize()
     entityManager.m_entityQueryInfos.emplace_back();
 
     entityManager.m_basicArchetype =
-        CreateEntityArchetype("Basic", Transform(), GlobalTransform(), GlobalTransformUpdateFlag());
+        CreateEntityArchetype("Basic", Transform(), GlobalTransform(), TransformUpdateStatus());
 }
 
 EntityArchetype Entities::CreateEntityArchetypeHelper(const EntityArchetypeInfo &info)

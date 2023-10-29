@@ -40,17 +40,9 @@ void EditorLayer::OnCreate()
 		static Entity previousEntity;
 		auto* ltp = static_cast<Transform*>(static_cast<void*>(data));
 		bool edited = false;
-		bool reload = previousEntity != entity || m_transformReload;
-		auto scene = Application::GetActiveScene();
-#ifdef false
-		if (Application::IsPlaying() && scene->HasPrivateComponent<RigidBody>(entity)) {
-			const auto rigidBody = scene->GetOrSetPrivateComponent<RigidBody>(entity).lock();
-			if (!rigidBody->IsKinematic() && rigidBody->Registered()) {
-				reload = true;
-				readOnly = true;
-			}
-		}
-#endif
+		const auto scene = Application::GetActiveScene();
+		const auto status = scene->GetDataComponent<TransformUpdateStatus>(entity);
+		const bool reload = previousEntity != entity || m_transformReload || status.m_transformModified || status.m_globalTransformModified;
 		if (reload) {
 			previousEntity = entity;
 			ltp->Decompose(m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
@@ -66,7 +58,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
+			reload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Position##Local", &m_localPositionSelected) && m_localPositionSelected) {
@@ -80,7 +72,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
+			reload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Rotation##Local", &m_localRotationSelected) && m_localRotationSelected) {
@@ -94,7 +86,7 @@ void EditorLayer::OnCreate()
 			0,
 			0,
 			"%.3f",
-			m_transformReload ? ImGuiSliderFlags_ReadOnly : 0))
+			reload ? ImGuiSliderFlags_ReadOnly : 0))
 			edited = true;
 		ImGui::SameLine();
 		if (ImGui::Selectable("Scale##Local", &m_localScaleSelected) && m_localScaleSelected) {

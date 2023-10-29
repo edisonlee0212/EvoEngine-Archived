@@ -9,7 +9,7 @@ using namespace EvoEngine;
 
 DataComponentRegistration<Transform> TransformRegistry("Transform");
 DataComponentRegistration<GlobalTransform> GlobalTransformRegistry("GlobalTransform");
-DataComponentRegistration<GlobalTransformUpdateFlag> GlobalTransformUpdateFlagRegistry("GlobalTransformUpdateFlag");
+DataComponentRegistration<TransformUpdateStatus> TransformUpdateStatusRegistry("TransformUpdateStatus");
 
 
 void TransformGraph::Initialize()
@@ -28,16 +28,16 @@ void TransformGraph::CalculateTransformGraph(
 	const auto& entityInfo = entityInfos.at(parent.GetIndex());
     for (const auto& entity : entityInfo.m_children)
     {
-        auto* transformStatus = reinterpret_cast<GlobalTransformUpdateFlag*>(
-            scene->GetDataComponentPointer(entity.GetIndex(), typeid(GlobalTransformUpdateFlag).hash_code()));
+        auto* transformStatus = reinterpret_cast<TransformUpdateStatus*>(
+            scene->GetDataComponentPointer(entity.GetIndex(), typeid(TransformUpdateStatus).hash_code()));
         GlobalTransform ltw;
-        if (transformStatus->m_value)
+        if (transformStatus->m_globalTransformModified)
         {
             ltw = scene->GetDataComponent<GlobalTransform>(entity.GetIndex());
             reinterpret_cast<Transform*>(
                 scene->GetDataComponentPointer(entity.GetIndex(), typeid(Transform).hash_code()))
                 ->m_value = glm::inverse(parentGlobalTransform.m_value) * ltw.m_value;
-            transformStatus->m_value = false;
+            transformStatus->m_globalTransformModified = false;
         }
         else
         {
@@ -46,6 +46,7 @@ void TransformGraph::CalculateTransformGraph(
             *reinterpret_cast<GlobalTransform*>(
                 scene->GetDataComponentPointer(entity.GetIndex(), typeid(GlobalTransform).hash_code())) = ltw;
         }
+        transformStatus->m_transformModified = false;
         CalculateTransformGraph(scene, entityInfos, ltw, entity);
     }
 }
@@ -54,28 +55,30 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
     if (!scene)
         return;
     auto& transformGraph = GetInstance();
-    auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
+    const auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
     //ProfilerLayer::StartEvent("TransformManager");
-    scene->ForEach<Transform, GlobalTransform, GlobalTransformUpdateFlag>(
+    scene->ForEach<Transform, GlobalTransform, TransformUpdateStatus>(
         Jobs::Workers(),
         transformGraph.m_transformQuery,
         [&](int i,
             Entity entity,
             Transform& transform,
             GlobalTransform& globalTransform,
-            GlobalTransformUpdateFlag& transformStatus) {
-                EntityMetadata& entityInfo = scene->m_sceneDataStorage.m_entityMetadataList.at(entity.GetIndex());
+            TransformUpdateStatus& transformStatus) {
+	        const EntityMetadata& entityInfo = scene->m_sceneDataStorage.m_entityMetadataList.at(entity.GetIndex());
                 if (entityInfo.m_parent.GetIndex() != 0)
                     return;
                 if (checkStatic && entityInfo.m_static)
                     return;
-                if (transformStatus.m_value)
+                if (transformStatus.m_globalTransformModified)
                 {
                     transform.m_value = globalTransform.m_value;
+                    transformStatus.m_globalTransformModified = false;
                 }
-                else
+                else {
                     globalTransform.m_value = transform.m_value;
-                transformStatus.m_value = false;
+                }
+                transformStatus.m_transformModified = false;
                 transformGraph.CalculateTransformGraph(scene, entityInfos, globalTransform, entity);
         },
         false);
@@ -87,7 +90,7 @@ void TransformGraph::CalculateTransformGraphForDescendents(const std::shared_ptr
     if (!scene)
         return;
     auto& transformGraph = GetInstance();
-    auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
+    const auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
     transformGraph.CalculateTransformGraph(
         scene, entityInfos, scene->GetDataComponent<GlobalTransform>(entity.GetIndex()), entity);
 }

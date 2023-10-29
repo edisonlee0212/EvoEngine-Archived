@@ -11,7 +11,7 @@ namespace EvoEngine
         friend class Application;
         EntityQuery m_transformQuery;
         bool m_physicsSystemOverride = false;
-        void CalculateTransformGraph(const std::shared_ptr<Scene>& scene, const std::vector<EntityMetadata>& entityInfos, const GlobalTransform& parentGlobalTransform, const Entity& parent);
+        static void CalculateTransformGraph(const std::shared_ptr<Scene>& scene, const std::vector<EntityMetadata>& entityInfos, const GlobalTransform& parentGlobalTransform, const Entity& parent);
         static void Initialize();
     public:
         static void CalculateTransformGraphForDescendents(const std::shared_ptr<Scene>& scene, const Entity& entity);

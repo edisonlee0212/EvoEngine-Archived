@@ -151,7 +151,7 @@ std::vector<DataComponentType> Entities::CollectDataComponentTypes(T arg, Ts... 
     auto retVal = std::vector<DataComponentType>();
     retVal.push_back(Typeof<Transform>());
     retVal.push_back(Typeof<GlobalTransform>());
-    retVal.push_back(Typeof<GlobalTransformUpdateFlag>());
+    retVal.push_back(Typeof<TransformUpdateStatus>());
     CollectDataComponentTypes(&retVal, arg, args...);
     std::sort(retVal.begin() + 3, retVal.end(), ComponentTypeComparator);
     size_t offset = 0;
