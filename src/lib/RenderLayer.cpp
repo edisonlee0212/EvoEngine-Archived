@@ -124,10 +124,17 @@ void RenderLayer::PreUpdate()
 	Bound worldBound {};
 	m_totalMeshTriangles = 0;
 
-	if(const bool hasRenderInstance = CollectRenderInstances(worldBound)) scene->SetBound(worldBound);
+	if (CollectRenderInstances(worldBound)) {
+		worldBound.m_min - glm::vec3(0.1f);
+		worldBound.m_max + glm::vec3(0.1f);
+		scene->SetBound(worldBound);
+	}
 	else
 	{
 		worldBound.m_min = worldBound.m_max = glm::vec3(0.0f);
+		worldBound.m_min - glm::vec3(0.1f);
+		worldBound.m_max + glm::vec3(0.1f);
+		scene->SetBound(worldBound);
 	}
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
