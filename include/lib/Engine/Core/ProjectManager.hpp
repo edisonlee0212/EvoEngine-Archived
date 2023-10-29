@@ -10,9 +10,9 @@ namespace EvoEngine
 	{
 		friend class Folder;
 		friend class IAsset;
-		std::string m_assetFileName;
-		std::string m_assetExtension;
-		std::string m_assetTypeName;
+		std::string m_assetFileName = {};
+		std::string m_assetExtension = {};
+		std::string m_assetTypeName = "Binary";
 		Handle m_assetHandle = 0;
 		std::weak_ptr<IAsset> m_asset;
 		std::weak_ptr<Folder> m_folder;

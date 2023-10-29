@@ -173,6 +173,11 @@ void AssetRecord::Load(const std::filesystem::path& path)
 		m_assetTypeName = in["m_assetTypeName"].as<std::string>();
 	if (in["m_assetHandle"])
 		m_assetHandle = in["m_assetHandle"].as<uint64_t>();
+
+	if(!Serialization::HasSerializableType(m_assetTypeName))
+	{
+		m_assetTypeName = "Binary";
+	}
 }
 std::weak_ptr<Folder> AssetRecord::GetFolder() const
 {
@@ -1551,8 +1556,7 @@ void ProjectManager::FolderHierarchyHelper(const std::shared_ptr<Folder>& folder
 				if (ImGui::IsMouseDoubleClicked(0) && i.second->GetAssetTypeName() != "Binary")
 				{
 					// If it's an asset then inspect.
-					auto asset = i.second->GetAsset();
-					if (asset)
+					if (auto asset = i.second->GetAsset())
 						projectManager.m_inspectingAsset = asset;
 				}
 			}
