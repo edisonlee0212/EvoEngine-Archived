@@ -198,7 +198,7 @@ namespace EvoEngine
 		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
 
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
-		void CollectRenderInstances(Bound& worldBound);
+		[[nodiscard]] bool CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();
 		void CollectSpotLights();

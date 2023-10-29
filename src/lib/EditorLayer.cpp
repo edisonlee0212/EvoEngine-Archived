@@ -1052,9 +1052,11 @@ void EditorLayer::SceneCameraWindow()
 		}
 #pragma region Gizmos and Entity Selection
 		bool mouseSelectEntity = true;
-		if (m_enableGizmos && scene->IsEntityValid(m_selectedEntity)) {
+		if (m_enableGizmos) {
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
+			float viewManipulateLeft = ImGui::GetWindowPos().x;
+			float viewManipulateTop = ImGui::GetWindowPos().y;
 			ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, viewPortSize.x,
 				viewPortSize.y);
 			glm::mat4 cameraView =
@@ -1063,28 +1065,35 @@ void EditorLayer::SceneCameraWindow()
 			const auto op = m_localPositionSelected ? ImGuizmo::OPERATION::TRANSLATE
 				: m_localRotationSelected ? ImGuizmo::OPERATION::ROTATE
 				: ImGuizmo::OPERATION::SCALE;
+			if (scene->IsEntityValid(m_selectedEntity)) {
+				auto transform = scene->GetDataComponent<Transform>(m_selectedEntity);
+				GlobalTransform parentGlobalTransform;
+				Entity parentEntity = scene->GetParent(m_selectedEntity);
+				if (parentEntity.GetIndex() != 0) {
+					parentGlobalTransform = scene->GetDataComponent<GlobalTransform>(
+						scene->GetParent(m_selectedEntity));
+				}
+				auto globalTransform = scene->GetDataComponent<GlobalTransform>(m_selectedEntity);
 
-			auto transform = scene->GetDataComponent<Transform>(m_selectedEntity);
-			GlobalTransform parentGlobalTransform;
-			Entity parentEntity = scene->GetParent(m_selectedEntity);
-			if (parentEntity.GetIndex() != 0) {
-				parentGlobalTransform = scene->GetDataComponent<GlobalTransform>(
-					scene->GetParent(m_selectedEntity));
+				ImGuizmo::Manipulate(
+					glm::value_ptr(cameraView),
+					glm::value_ptr(cameraProjection),
+					op,
+					ImGuizmo::LOCAL,
+					glm::value_ptr(globalTransform.m_value));
+				if (ImGuizmo::IsUsing()) {
+					transform.m_value = glm::inverse(parentGlobalTransform.m_value) * globalTransform.m_value;
+					scene->SetDataComponent(m_selectedEntity, transform);
+					transform.Decompose(
+						m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
+					mouseSelectEntity = false;
+				}
 			}
-			auto globalTransform = scene->GetDataComponent<GlobalTransform>(m_selectedEntity);
-			ImGuizmo::Manipulate(
-				glm::value_ptr(cameraView),
-				glm::value_ptr(cameraProjection),
-				op,
-				ImGuizmo::LOCAL,
-				glm::value_ptr(globalTransform.m_value));
-			if (ImGuizmo::IsUsing()) {
-				transform.m_value = glm::inverse(parentGlobalTransform.m_value) * globalTransform.m_value;
-				scene->SetDataComponent(m_selectedEntity, transform);
-				transform.Decompose(
-					m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
-				mouseSelectEntity = false;
-			}
+			ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), 1.0f, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(96, 96), 0);
+			GlobalTransform gl;
+			gl.m_value = glm::inverse(cameraView);
+			sceneCameraRotation = gl.GetRotation();
+			Camera::ReverseAngle(sceneCameraRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
 		}
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
 		{

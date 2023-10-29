@@ -121,12 +121,14 @@ void RenderLayer::PreUpdate()
 	if (!scene) return;
 
 	CollectCameras(m_cameras);
-	Bound worldBound;
+	Bound worldBound {};
 	m_totalMeshTriangles = 0;
 
-	CollectRenderInstances(worldBound);
-	scene->SetBound(worldBound);
-
+	if(const bool hasRenderInstance = CollectRenderInstances(worldBound)) scene->SetBound(worldBound);
+	else
+	{
+		worldBound.m_min = worldBound.m_max = glm::vec3(0.0f);
+	}
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
 	CollectSpotLights();
@@ -1286,7 +1288,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 		});
 }
 
-void RenderLayer::CollectRenderInstances(Bound& worldBound)
+bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 {
 	m_needFade = false;
 	auto scene = GetScene();
@@ -1296,7 +1298,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(FLT_MAX);
 	maxBound = glm::vec3(FLT_MIN);
-
+	bool hasRenderInstance = false;
 	if (const auto* owners =
 		scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>())
 	{
@@ -1310,6 +1312,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
 				continue;
 			if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) continue;
+			hasRenderInstance = true;
+
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
 			auto meshBound = mesh->GetBound();
@@ -1392,6 +1396,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			{
 				continue;
 			}
+			hasRenderInstance = true;
 			if (!skinnedMeshRenderer->m_ragDoll)
 			{
 				gt = scene->GetDataComponent<GlobalTransform>(owner);
@@ -1460,6 +1465,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
 				continue;
 			if (particleInfoList->m_particleInfos.empty()) continue;
+
+			hasRenderInstance = true;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
 			auto meshBound = mesh->GetBound();
@@ -1526,6 +1533,8 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			auto strands = strandsRenderer->m_strands.Get<Strands>();
 			if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
 				continue;
+
+			hasRenderInstance = true;
 			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 			auto ltw = gt.m_value;
 			auto meshBound = strands->m_bound;
@@ -1578,6 +1587,7 @@ void RenderLayer::CollectRenderInstances(Bound& worldBound)
 			}
 		}
 	}
+	return hasRenderInstance;
 }
 
 
