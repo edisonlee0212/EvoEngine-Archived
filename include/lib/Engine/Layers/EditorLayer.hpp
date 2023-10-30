@@ -127,8 +127,6 @@ namespace EvoEngine
 		bool m_sceneCameraFocusOverride = false;
 
 		int m_selectedHierarchyDisplayMode = 1;
-		float m_sceneCameraYawAngle = -90;
-		float m_sceneCameraPitchAngle = 0;
 		float m_velocity = 10.0f;
 		float m_sensitivity = 0.1f;
 		bool m_applyTransformToMainCamera = false;

@@ -435,7 +435,10 @@ void Camera::ReverseAngle(const glm::quat& rotation, float& pitchAngle, float& y
 {
 	const auto angle = glm::degrees(glm::eulerAngles(rotation));
 	pitchAngle = angle.x;
-	yawAngle = glm::abs(angle.z) > 90.0f ? 90.0f - angle.y : -90.0f - angle.y;
+	//yawAngle = glm::abs(angle.z) > 90.0f ? 90.0f - angle.y : -90.0f - angle.y;
+	glm::vec3 front = rotation * glm::vec3(0, 0, -1);
+	front.y = 0;
+	yawAngle = glm::degrees(glm::acos(glm::dot(glm::vec3(0, 0, 1), glm::normalize(front))));
 	if (constrainPitch)
 	{
 		if (pitchAngle > 89.0f)

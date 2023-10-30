@@ -637,7 +637,7 @@ void EditorLayer::LateUpdate()
 			m_lockCamera = false;
 			sceneCameraRotation = m_targetRotation;
 			sceneCameraPosition = m_targetPosition;
-			Camera::ReverseAngle(m_targetRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
+			//Camera::ReverseAngle(m_targetRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
 		}
 	}
 
@@ -1011,7 +1011,7 @@ void EditorLayer::SceneCameraWindow()
 				isDraggingPreviously = mouseDrag;
 
 				if (mouseDrag && !m_lockCamera) {
-					const glm::vec3 front = sceneCameraRotation * glm::vec3(0, 0, -1);
+					glm::vec3 front = sceneCameraRotation * glm::vec3(0, 0, -1);
 					const glm::vec3 right = sceneCameraRotation * glm::vec3(1, 0, 0);
 					if (Input::GetKey(GLFW_KEY_W) == KeyActionType::Hold) {
 						sceneCameraPosition +=
@@ -1036,14 +1036,13 @@ void EditorLayer::SceneCameraWindow()
 						sceneCameraPosition.y -= m_velocity * static_cast<float>(Times::DeltaTime());
 					}
 					if (xOffset != 0.0f || yOffset != 0.0f) {
-						m_sceneCameraYawAngle += xOffset * m_sensitivity;
-						m_sceneCameraPitchAngle -= yOffset * m_sensitivity;
-						if (m_sceneCameraPitchAngle > 89.0f)
-							m_sceneCameraPitchAngle = 89.0f;
-						if (m_sceneCameraPitchAngle < -89.0f)
-							m_sceneCameraPitchAngle = -89.0f;
-						sceneCameraRotation =
-							Camera::ProcessMouseMovement(m_sceneCameraYawAngle, m_sceneCameraPitchAngle, false);
+						front = glm::rotate(front, glm::radians( - xOffset * m_sensitivity), glm::vec3(0, 1, 0));
+						const glm::vec3 right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
+						if ((front.y < 0.99f && yOffset < 0.0f) || (front.y > -0.99f && yOffset > 0.0f)) {
+							front = glm::rotate(front, glm::radians(-yOffset * m_sensitivity), right);
+						}
+						const glm::vec3 up = glm::normalize(glm::cross(right, front));
+						sceneCameraRotation = glm::quatLookAt(front, up);
 					}
 #pragma endregion
 				}
@@ -1093,7 +1092,6 @@ void EditorLayer::SceneCameraWindow()
 			GlobalTransform gl;
 			gl.m_value = glm::inverse(cameraView);
 			sceneCameraRotation = gl.GetRotation();
-			Camera::ReverseAngle(sceneCameraRotation, m_sceneCameraPitchAngle, m_sceneCameraYawAngle);
 		}
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
 		{
