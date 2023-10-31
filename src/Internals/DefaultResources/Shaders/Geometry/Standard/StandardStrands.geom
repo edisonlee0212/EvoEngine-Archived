@@ -18,14 +18,16 @@ layout (location = 0) out VS_OUT {
 
 const float PI2 = 6.28318531;
 
-layout(location = 5) in flat uint currentInstanceIndexIn[];
-layout(location = 5) out flat uint currentInstanceIndexOut;
+layout(location = 5) in uint currentInstanceIndexIn[];
+layout(location = 5) out uint currentInstanceIndexOut;
 
 void main(){
 	
-	mat4 model = EE_INSTANCES[EE_INSTANCE_INDEX].model;
 	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
+	uint instanceIndex = currentInstanceIndexIn[0];
+	mat4 model = EE_INSTANCES[instanceIndex].model;
 	mat4 inverseModel = inverse(model);
+	
 	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
 		//Reading Data
@@ -56,7 +58,7 @@ void main(){
 		int maxRingAmount = max(ringAmountS, ringAmountT);
 		for(int k = 0; k <= maxRingAmount; k += 1)
 		{
-			currentInstanceIndexOut = currentInstanceIndexIn[i];
+			
 			int tempIS = int(k * ringAmountS / maxRingAmount);
 			float angleS = PI2 / ringAmountS * tempIS;
 
@@ -67,6 +69,7 @@ void main(){
 			vec3 newPT = vec3(model * vec4(modelPosT.xyz + (v21 * sin(-angleT) + v22 * cos(-angleT)) * thickT, 1.0));
 
 			//Source Vertex
+			currentInstanceIndexOut = instanceIndex;
 			gs_out.FragPos = newPS;
 			gs_out.Normal = normalize(newPS - worldPosS);
 			gs_out.Tangent = tS;
@@ -75,6 +78,7 @@ void main(){
 			EmitVertex();
 
 			//Target Vertex
+			currentInstanceIndexOut = instanceIndex;
 			gs_out.FragPos = newPT;
 			gs_out.Normal = normalize(newPT - worldPosT);
 			gs_out.Tangent = tT;
