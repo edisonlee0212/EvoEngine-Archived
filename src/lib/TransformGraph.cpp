@@ -67,11 +67,11 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
 			TransformUpdateFlag& transformStatus) {
 				const EntityMetadata& entityInfo = scene->m_sceneDataStorage.m_entityMetadataList.at(entity.GetIndex());
 				if (entityInfo.m_parent.GetIndex() != 0) {
-					transformStatus.m_transformModified = transformStatus.m_globalTransformModified = false;
+					transformStatus.m_transformModified = false;
 					return;
 				}
 				if (checkStatic && entityInfo.m_static) {
-					transformStatus.m_transformModified = transformStatus.m_globalTransformModified = false;
+					transformStatus.m_transformModified = false;
 					return;
 				}
 				if (transformStatus.m_globalTransformModified)
