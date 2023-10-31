@@ -41,8 +41,8 @@ void EditorLayer::OnCreate()
 		auto* ltp = static_cast<Transform*>(static_cast<void*>(data));
 		bool edited = false;
 		const auto scene = Application::GetActiveScene();
-		const auto status = scene->GetDataComponent<TransformUpdateStatus>(entity);
-		const bool reload = previousEntity != entity || m_transformReload || status.m_transformModified || status.m_globalTransformModified;
+		const auto status = scene->GetDataComponent<GlobalTransformUpdateFlag>(entity);
+		const bool reload = previousEntity != entity || m_transformReload;// || status.m_transformModified || status.m_globalTransformModified;
 		if (reload) {
 			previousEntity = entity;
 			ltp->Decompose(m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);

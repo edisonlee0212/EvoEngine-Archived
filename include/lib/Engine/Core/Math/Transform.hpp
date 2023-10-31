@@ -2,7 +2,7 @@
 #include "Entity.hpp"
 namespace EvoEngine
 {
-struct TransformUpdateStatus : IDataComponent
+struct GlobalTransformUpdateFlag : IDataComponent
 {
     bool m_globalTransformModified = false;
     bool m_transformModified = false;

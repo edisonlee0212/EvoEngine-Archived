@@ -1077,7 +1077,7 @@ Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& 
 	}
 	SetDataComponent(retVal, Transform());
 	SetDataComponent(retVal, GlobalTransform());
-	SetDataComponent(retVal, TransformUpdateStatus());
+	SetDataComponent(retVal, GlobalTransformUpdateFlag());
 	return retVal;
 }
 
@@ -1092,7 +1092,7 @@ std::vector<Entity> Scene::CreateEntities(
 	auto remainAmount = amount;
 	const Transform transform;
 	const GlobalTransform globalTransform;
-	const TransformUpdateStatus transformStatus;
+	const GlobalTransformUpdateFlag transformStatus;
 	while (remainAmount > 0 && storage.m_entityAliveCount != storage.m_entityCount)
 	{
 		remainAmount--;
@@ -1120,7 +1120,7 @@ std::vector<Entity> Scene::CreateEntities(
 		retVal.push_back(entity);
 		SetDataComponent(entity, transform);
 		SetDataComponent(entity, globalTransform);
-		SetDataComponent(entity, TransformUpdateStatus());
+		SetDataComponent(entity, GlobalTransformUpdateFlag());
 	}
 	if (remainAmount == 0)
 		return retVal;
@@ -1179,7 +1179,7 @@ std::vector<Entity> Scene::CreateEntities(
 						auto& entity = m_sceneDataStorage.m_entities.at(index);
 						SetDataComponent(entity, transform);
 						SetDataComponent(entity, globalTransform);
-						SetDataComponent(entity, TransformUpdateStatus());
+						SetDataComponent(entity, GlobalTransformUpdateFlag());
 					}
 					})
 				.share());
@@ -1195,7 +1195,7 @@ std::vector<Entity> Scene::CreateEntities(
 					auto& entity = m_sceneDataStorage.m_entities.at(index);
 					SetDataComponent(entity, transform);
 					SetDataComponent(entity, globalTransform);
-					SetDataComponent(entity, TransformUpdateStatus());
+					SetDataComponent(entity, GlobalTransformUpdateFlag());
 				}
 				})
 			.share());
@@ -1411,7 +1411,7 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)
 {
 	assert(IsEntityValid(entity));
 	if (typeID == typeid(Transform).hash_code() || typeID == typeid(GlobalTransform).hash_code() ||
-		typeID == typeid(TransformUpdateStatus).hash_code())
+		typeID == typeid(GlobalTransformUpdateFlag).hash_code())
 	{
 		return;
 	}
@@ -1491,10 +1491,10 @@ void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size
 	if (id == typeid(Transform).hash_code())
 	{
 		chunk.SetData(static_cast<size_t>(chunkPointer * sizeof(Transform)), sizeof(Transform), data);
-		static_cast<TransformUpdateStatus*>(
+		static_cast<GlobalTransformUpdateFlag*>(
 			chunk.GetDataPointer(static_cast<size_t>(
 				(sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-				chunkPointer * sizeof(TransformUpdateStatus))))
+				chunkPointer * sizeof(GlobalTransformUpdateFlag))))
 			->m_transformModified = true;
 	}
 	else if (id == typeid(GlobalTransform).hash_code())
@@ -1504,19 +1504,19 @@ void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size
 				sizeof(Transform) * dataComponentStorage.m_chunkCapacity + chunkPointer * sizeof(GlobalTransform)),
 			sizeof(GlobalTransform),
 			data);
-		static_cast<TransformUpdateStatus*>(
+		static_cast<GlobalTransformUpdateFlag*>(
 			chunk.GetDataPointer(static_cast<size_t>(
 				(sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-				chunkPointer * sizeof(TransformUpdateStatus))))
+				chunkPointer * sizeof(GlobalTransformUpdateFlag))))
 			->m_globalTransformModified = true;
 	}
-	else if (id == typeid(TransformUpdateStatus).hash_code())
+	else if (id == typeid(GlobalTransformUpdateFlag).hash_code())
 	{
 		chunk.SetData(
 			static_cast<size_t>(
 				(sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-				chunkPointer * sizeof(TransformUpdateStatus)),
-			sizeof(TransformUpdateStatus),
+				chunkPointer * sizeof(GlobalTransformUpdateFlag)),
+			sizeof(GlobalTransformUpdateFlag),
 			data);
 	}
 	else
@@ -1552,11 +1552,11 @@ IDataComponent* Scene::GetDataComponentPointer(unsigned entityIndex, const size_
 		return chunk.GetDataPointer(static_cast<size_t>(
 			sizeof(Transform) * dataComponentStorage.m_chunkCapacity + chunkPointer * sizeof(GlobalTransform)));
 	}
-	if (id == typeid(TransformUpdateStatus).hash_code())
+	if (id == typeid(GlobalTransformUpdateFlag).hash_code())
 	{
 		return chunk.GetDataPointer(static_cast<size_t>(
 			(sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-			chunkPointer * sizeof(TransformUpdateStatus)));
+			chunkPointer * sizeof(GlobalTransformUpdateFlag)));
 	}
 	for (const auto& type : dataComponentStorage.m_dataComponentTypes)
 	{
@@ -1586,11 +1586,11 @@ IDataComponent* Scene::GetDataComponentPointer(const Entity& entity, const size_
 		return chunk.GetDataPointer(static_cast<size_t>(
 			sizeof(Transform) * dataComponentStorage.m_chunkCapacity + chunkPointer * sizeof(GlobalTransform)));
 	}
-	if (id == typeid(TransformUpdateStatus).hash_code())
+	if (id == typeid(GlobalTransformUpdateFlag).hash_code())
 	{
 		return chunk.GetDataPointer(static_cast<size_t>(
 			(sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-			chunkPointer * sizeof(TransformUpdateStatus)));
+			chunkPointer * sizeof(GlobalTransformUpdateFlag)));
 	}
 	for (const auto& type : dataComponentStorage.m_dataComponentTypes)
 	{

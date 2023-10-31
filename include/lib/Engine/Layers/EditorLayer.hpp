@@ -397,7 +397,7 @@ namespace EvoEngine
 	template <typename T> void EditorLayer::RegisterDataComponent()
 	{
 		if (const auto id = typeid(T).hash_code(); id == typeid(Transform).hash_code() || id == typeid(GlobalTransform).hash_code() ||
-			id == typeid(TransformUpdateStatus).hash_code())
+			id == typeid(GlobalTransformUpdateFlag).hash_code())
 			return;
 		auto func = [](const Entity owner) {
 			const auto scene = Application::GetActiveScene();
