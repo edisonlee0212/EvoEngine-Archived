@@ -9,7 +9,7 @@ using namespace EvoEngine;
 
 DataComponentRegistration<Transform> TransformRegistry("Transform");
 DataComponentRegistration<GlobalTransform> GlobalTransformRegistry("GlobalTransform");
-DataComponentRegistration<GlobalTransformUpdateFlag> TransformUpdateStatusRegistry("GlobalTransformUpdateFlag");
+DataComponentRegistration<TransformUpdateFlag> TransformUpdateStatusRegistry("TransformUpdateFlag");
 
 
 void TransformGraph::Initialize()
@@ -28,8 +28,8 @@ void TransformGraph::CalculateTransformGraph(
 	const auto& entityInfo = entityInfos.at(parent.GetIndex());
 	for (const auto& entity : entityInfo.m_children)
 	{
-		auto* transformStatus = reinterpret_cast<GlobalTransformUpdateFlag*>(
-			scene->GetDataComponentPointer(entity.GetIndex(), typeid(GlobalTransformUpdateFlag).hash_code()));
+		auto* transformStatus = reinterpret_cast<TransformUpdateFlag*>(
+			scene->GetDataComponentPointer(entity.GetIndex(), typeid(TransformUpdateFlag).hash_code()));
 		GlobalTransform ltw;
 		if (transformStatus->m_globalTransformModified)
 		{
@@ -57,14 +57,14 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
 	auto& transformGraph = GetInstance();
 	const auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
 	//ProfilerLayer::StartEvent("TransformManager");
-	scene->ForEach<Transform, GlobalTransform, GlobalTransformUpdateFlag>(
+	scene->ForEach<Transform, GlobalTransform, TransformUpdateFlag>(
 		Jobs::Workers(),
 		transformGraph.m_transformQuery,
 		[&](int i,
 			Entity entity,
 			Transform& transform,
 			GlobalTransform& globalTransform,
-			GlobalTransformUpdateFlag& transformStatus) {
+			TransformUpdateFlag& transformStatus) {
 				const EntityMetadata& entityInfo = scene->m_sceneDataStorage.m_entityMetadataList.at(entity.GetIndex());
 				if (entityInfo.m_parent.GetIndex() != 0) {
 					transformStatus.m_transformModified = transformStatus.m_globalTransformModified = false;

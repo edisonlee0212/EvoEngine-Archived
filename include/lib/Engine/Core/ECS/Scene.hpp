@@ -721,7 +721,7 @@ namespace EvoEngine
         assert(IsEntityValid(entity));
         const auto id = typeid(T).hash_code();
         if (id == typeid(Transform).hash_code() || id == typeid(GlobalTransform).hash_code() ||
-            id == typeid(GlobalTransformUpdateFlag).hash_code())
+            id == typeid(TransformUpdateFlag).hash_code())
         {
             return;
         }
@@ -821,11 +821,11 @@ namespace EvoEngine
             return chunk.GetData<T>(static_cast<size_t>(
                 sizeof(Transform) * dataComponentStorage.m_chunkCapacity + chunkPointer * sizeof(GlobalTransform)));
         }
-        if (id == typeid(GlobalTransformUpdateFlag).hash_code())
+        if (id == typeid(TransformUpdateFlag).hash_code())
         {
             return chunk.GetData<T>(static_cast<size_t>(
                 (sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-                chunkPointer * sizeof(GlobalTransformUpdateFlag)));
+                chunkPointer * sizeof(TransformUpdateFlag)));
         }
         for (const auto& type : dataComponentStorage.m_dataComponentTypes)
         {
@@ -853,7 +853,7 @@ namespace EvoEngine
         {
             return true;
         }
-        if (id == typeid(GlobalTransformUpdateFlag).hash_code())
+        if (id == typeid(TransformUpdateFlag).hash_code())
         {
             return true;
         }
@@ -885,11 +885,11 @@ namespace EvoEngine
             return chunk.GetData<T>(static_cast<size_t>(
                 sizeof(Transform) * dataComponentStorage.m_chunkCapacity + chunkPointer * sizeof(GlobalTransform)));
         }
-        if (id == typeid(GlobalTransformUpdateFlag).hash_code())
+        if (id == typeid(TransformUpdateFlag).hash_code())
         {
             return chunk.GetData<T>(static_cast<size_t>(
                 (sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.m_chunkCapacity +
-                chunkPointer * sizeof(GlobalTransformUpdateFlag)));
+                chunkPointer * sizeof(TransformUpdateFlag)));
         }
         for (const auto& type : dataComponentStorage.m_dataComponentTypes)
         {
@@ -919,7 +919,7 @@ namespace EvoEngine
         {
             return true;
         }
-        if (id == typeid(GlobalTransformUpdateFlag).hash_code())
+        if (id == typeid(TransformUpdateFlag).hash_code())
         {
             return true;
         }
