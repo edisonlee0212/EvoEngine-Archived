@@ -119,7 +119,7 @@ class PrivateComponentRef final
     }
     void Load(const std::string &name, const YAML::Node &in, const std::shared_ptr<Scene> &scene)
     {
-        Deserialize(in[name], scene);
+        if(in[name]) Deserialize(in[name], scene);
     }
 };
 } // namespace EvoEngine

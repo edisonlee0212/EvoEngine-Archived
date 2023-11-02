@@ -96,10 +96,7 @@ class AssetRef final
     }
     void Load(const std::string &name, const YAML::Node &in)
     {
-        if (in[name])
-        {
-            Deserialize(in[name]);
-        }
+        if (in[name]) Deserialize(in[name]);
     }
 };
 
