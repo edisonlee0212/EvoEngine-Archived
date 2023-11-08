@@ -179,7 +179,7 @@ namespace EvoEngine
 			inline constexpr static VkFormat G_BUFFER_COLOR = VK_FORMAT_R16G16B16A16_SFLOAT;
 			inline constexpr static VkFormat SHADOW_MAP = VK_FORMAT_D32_SFLOAT;
 			inline constexpr static uint32_t MESHLET_MAX_VERTICES_SIZE = 64;
-			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 84;
+			inline constexpr static uint32_t MESHLET_MAX_TRIANGLES_SIZE = 40;
 		};
 
 		static void EverythingBarrier(VkCommandBuffer commandBuffer);

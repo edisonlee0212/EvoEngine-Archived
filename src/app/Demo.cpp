@@ -30,15 +30,10 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo);
 int main() {
 	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
-	//Application::PushLayer<EditorLayer>();
+	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
 	Graphics::Settings::USE_MESH_SHADER = true;
-#ifdef BUILD_WITH_RAYTRACER
-	Application::PushLayer<RayTracerLayer>();
-#endif
-#ifdef BUILD_WITH_PHYSICS
-	Application::PushLayer<PhysicsLayer>();
-#endif
+
 
 
 	ApplicationInfo applicationInfo;

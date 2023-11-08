@@ -1,5 +1,6 @@
 #extension GL_EXT_mesh_shader : enable
 #extension GL_ARB_shader_draw_parameters : enable
+#extension GL_EXT_control_flow_attributes : require
 layout(local_size_x = 1) in;
 layout(triangles) out;
 layout(max_vertices = MESHLET_MAX_VERTICES_SIZE, max_primitives = MESHLET_MAX_TRIANGLES_SIZE) out;
@@ -23,7 +24,7 @@ layout(location = 5) out flat uint currentInstanceIndex[];
 void main()
 {
 	uint instanceIndex = ts_in.instanceIndex;
-	uint meshletIndex = ts_in.meshletOffset + gl_GlobalInvocationID.x;
+	uint meshletIndex = ts_in.meshletOffset + gl_WorkGroupID.x;
 
 	mat4 model = EE_INSTANCES[instanceIndex].model;
 
@@ -34,6 +35,7 @@ void main()
 	uint chunkIndex = meshletIndex;
 	SetMeshOutputsEXT(verticesSize, triangleSize);
 	mat4 projectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
+	//[[unroll]]
 	for (uint i = 0; i < verticesSize; ++i)
 	{
 		Vertex v = EE_VERTEX_DATA_CHUNKS[chunkIndex].vertices[i];
@@ -48,7 +50,7 @@ void main()
 		gl_MeshVerticesEXT[i].gl_Position = projectionView * vec4(ms_v_out[i].FragPos, 1.0);
 		currentInstanceIndex[i] = instanceIndex;
 	}
-
+	//[[unroll]]
 	for (uint i = 0; i < triangleSize; ++i)
 	{
 		gl_PrimitiveTriangleIndicesEXT[i] = 
