@@ -88,7 +88,7 @@ class AssetRef final
         return m_assetHandle;
     }
 
-    void Save(const std::string &name, YAML::Emitter &out)
+    void Save(const std::string &name, YAML::Emitter &out) const
     {
         out << YAML::Key << name << YAML::Value << YAML::BeginMap;
         Serialize(out);
