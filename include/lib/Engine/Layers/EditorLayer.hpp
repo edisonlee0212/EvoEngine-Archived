@@ -425,6 +425,7 @@ namespace EvoEngine
 		ImGui::SameLine();
 		const auto ptr = target.Get<IAsset>();
 		bool statusChanged = false;
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.5f, 0, 1));
 		if (ptr)
 		{
 			ImGui::Button(ptr->GetTitle().c_str());
@@ -443,6 +444,7 @@ namespace EvoEngine
 		{
 			ImGui::Button("none");
 		}
+		ImGui::PopStyleColor(1);
 		statusChanged = Droppable<T>(target) || statusChanged;
 		return statusChanged;
 	}
@@ -453,6 +455,7 @@ namespace EvoEngine
 		ImGui::Text(name.c_str());
 		ImGui::SameLine();
 		bool statusChanged = false;
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.3f, 0, 1));
 		if (const auto ptr = target.Get<IPrivateComponent>())
 		{
 			const auto scene = Application::GetActiveScene();
@@ -473,6 +476,7 @@ namespace EvoEngine
 		{
 			ImGui::Button("none");
 		}
+		ImGui::PopStyleColor(1);
 		statusChanged = Droppable<T>(target) || statusChanged;
 		return statusChanged;
 	}

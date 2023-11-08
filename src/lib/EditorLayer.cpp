@@ -603,7 +603,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			}
 		}
 		else {
-			m_selectedEntity = Entity();
+			SetSelectedEntity(Entity());
 		}
 		ImGui::End();
 	}
@@ -1684,6 +1684,7 @@ bool EditorLayer::DragAndDropButton(
 	ImGui::SameLine();
 	auto ptr = target.Get<IAsset>();
 	bool statusChanged = false;
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.5f, 0, 1));
 	if (ptr)
 	{
 		const auto title = ptr->GetTitle();
@@ -1703,6 +1704,7 @@ bool EditorLayer::DragAndDropButton(
 	{
 		ImGui::Button("none");
 	}
+	ImGui::PopStyleColor(1);
 	statusChanged = UnsafeDroppableAsset(target, acceptableTypeNames) || statusChanged;
 	return statusChanged;
 }
@@ -1716,6 +1718,7 @@ bool EditorLayer::DragAndDropButton(
 	ImGui::SameLine();
 	bool statusChanged = false;
 	auto ptr = target.Get<IPrivateComponent>();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.3f, 0, 1));
 	if (ptr)
 	{
 		auto scene = Application::GetActiveScene();
@@ -1731,6 +1734,7 @@ bool EditorLayer::DragAndDropButton(
 	{
 		ImGui::Button("none");
 	}
+	ImGui::PopStyleColor(1);
 	statusChanged = UnsafeDroppablePrivateComponent(target, acceptableTypeNames) || statusChanged;
 	return statusChanged;
 }
