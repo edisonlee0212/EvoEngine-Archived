@@ -33,7 +33,7 @@ void main()
 	uint triangleSize = meshlet.triangleSize;
 	uint chunkIndex = meshletIndex;
 	SetMeshOutputsEXT(verticesSize, triangleSize);
-
+	mat4 projectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
 	for (uint i = 0; i < verticesSize; ++i)
 	{
 		Vertex v = EE_VERTEX_DATA_CHUNKS[chunkIndex].vertices[i];
@@ -45,7 +45,7 @@ void main()
 		ms_v_out[i].Normal = N;
 		ms_v_out[i].Tangent = T;
 		ms_v_out[i].TexCoord = v.texCoord.xy;
-		gl_MeshVerticesEXT[i].gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(ms_v_out[i].FragPos, 1.0);
+		gl_MeshVerticesEXT[i].gl_Position = projectionView * vec4(ms_v_out[i].FragPos, 1.0);
 		currentInstanceIndex[i] = instanceIndex;
 	}
 

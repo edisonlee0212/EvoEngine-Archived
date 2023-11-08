@@ -5,6 +5,7 @@
 #include "EditorLayer.hpp"
 #include "Prefab.hpp"
 #include "Resources.hpp"
+#include "TransformGraph.hpp"
 using namespace EvoEngine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
@@ -713,8 +714,10 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		scene->m_mainCamera = mainCameraComponent;
 		mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
 #pragma endregion
-		if (projectManager.m_newSceneCustomizer.has_value())
+		if (projectManager.m_newSceneCustomizer.has_value()) {
 			projectManager.m_newSceneCustomizer.value()(scene);
+			TransformGraph::CalculateTransformGraphs(scene);
+		}
 	}
 }
 void ProjectManager::SaveProject()
