@@ -379,6 +379,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 					if (m_showSceneWindow)
 					{
 						ImGui::Checkbox("Show Scene Window Info", &m_showSceneInfo);
+						ImGui::Checkbox("View Gizmos", &m_enableViewGizmos);
 					}
 					ImGui::EndMenu();
 				}
@@ -1088,10 +1089,12 @@ void EditorLayer::SceneCameraWindow()
 					mouseSelectEntity = false;
 				}
 			}
-			ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), 1.0f, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(96, 96), 0);
-			GlobalTransform gl;
-			gl.m_value = glm::inverse(cameraView);
-			sceneCameraRotation = gl.GetRotation();
+			if (m_enableViewGizmos) {
+				ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), 1.0f, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(96, 96), 0);
+				GlobalTransform gl;
+				gl.m_value = glm::inverse(cameraView);
+				sceneCameraRotation = gl.GetRotation();
+			}
 		}
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
 		{
