@@ -1090,10 +1090,11 @@ void EditorLayer::SceneCameraWindow()
 				}
 			}
 			if (m_enableViewGizmos) {
-				ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), 1.0f, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(96, 96), 0);
-				GlobalTransform gl;
-				gl.m_value = glm::inverse(cameraView);
-				sceneCameraRotation = gl.GetRotation();
+				if (ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), 1.0f, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(96, 96), 0)) {
+					GlobalTransform gl;
+					gl.m_value = glm::inverse(cameraView);
+					sceneCameraRotation = gl.GetRotation();
+				}
 			}
 		}
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)

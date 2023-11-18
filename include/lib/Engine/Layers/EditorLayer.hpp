@@ -92,7 +92,7 @@ namespace EvoEngine
 	public:
 		[[nodiscard]] bool SceneCameraWindowFocused() const;
 		[[nodiscard]] bool MainCameraWindowFocused() const;
-		bool m_enableViewGizmos = false;
+		bool m_enableViewGizmos = true;
 		bool m_transformReload = false;
 		bool m_transformReadOnly = false;
 
