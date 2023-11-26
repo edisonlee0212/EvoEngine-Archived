@@ -825,6 +825,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 	const auto& spotLightShadowStrandsPipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_STRANDS");
 	auto& graphics = Graphics::GetInstance();
 
+	const uint32_t taskWorkGroupInvocations = graphics.m_meshShaderPropertiesExt.maxPreferredTaskWorkGroupInvocations;
+
+
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
@@ -881,24 +884,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						scissor.extent.height = viewport.height;
 						pointLightShadowPipeline->m_states.m_scissor = scissor;
 
-						if (m_enableIndirectRendering) {
+						if (m_enableIndirectRendering && !useMeshShader) {
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = i;
 							pushConstant.m_lightSplitIndex = face;
 							pushConstant.m_instanceIndex = 0;
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							pointLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (useMeshShader) {
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
-							}
-							else
-							{
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
-							}
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 						else {
 							m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
@@ -913,7 +908,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									{
 										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
 										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
+
+										const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
+										vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -1113,24 +1110,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					scissor.extent.width = viewport.width;
 					scissor.extent.height = viewport.height;
 					spotLightShadowPipeline->m_states.m_scissor = scissor;
-					if (m_enableIndirectRendering) {
+					if (m_enableIndirectRendering && !useMeshShader) {
 						RenderInstancePushConstant pushConstant;
 						pushConstant.m_cameraIndex = i;
 						pushConstant.m_lightSplitIndex = 0;
 						pushConstant.m_instanceIndex = 0;
 						spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						spotLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if (useMeshShader) {
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-							vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
-						}
-						else
-						{
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
-						}
+						if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+						if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+						vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 					}
 					else {
 						m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
@@ -1145,7 +1134,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								{
 									if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
 									if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-									vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
+									const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
+									vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
@@ -1809,6 +1799,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 	const auto& directionalLightShadowPipelineInstanced = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED");
 	const auto& directionalLightShadowPipelineStrands = Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS");
 	auto& graphics = Graphics::GetInstance();
+	const uint32_t taskWorkGroupInvocations = graphics.m_meshShaderPropertiesExt.maxPreferredTaskWorkGroupInvocations;
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 #pragma region Viewport and scissor
@@ -1866,24 +1857,16 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						directionalLightShadowPipeline->m_states.m_scissor = scissor;
 						directionalLightShadowPipeline->m_states.m_viewPort = viewport;
 						directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if (m_enableIndirectRendering) {
+						if (m_enableIndirectRendering && !useMeshShader) {
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
 							pushConstant.m_lightSplitIndex = split;
 							pushConstant.m_instanceIndex = 0;
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if (useMeshShader) {
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
-							}
-							else
-							{
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-								vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
-							}
+							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 						else {
 							m_deferredRenderInstances.Dispatch([&](const RenderInstance& renderCommand)
@@ -1898,7 +1881,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									{
 										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
 										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-										vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
+
+										const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
+										vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
@@ -2124,24 +2109,16 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 
-			if (m_enableIndirectRendering) {
+			if (m_enableIndirectRendering && !useMeshShader) {
 				if (!m_deferredRenderInstances.m_renderCommands.empty()) {
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = 0;
 					deferredPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
-					if (useMeshShader) {
-						graphics.m_drawCall[currentFrameIndex]++;
-						graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-						vkCmdDrawMeshTasksIndirectEXT(commandBuffer, m_meshDrawMeshTasksIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawMeshTasksIndirectCommands.size(), sizeof(VkDrawMeshTasksIndirectCommandEXT));
-					}
-					else
-					{
-						GeometryStorage::BindVertices(commandBuffer);
-						graphics.m_drawCall[currentFrameIndex]++;
-						graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
-						vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
-					}
+					GeometryStorage::BindVertices(commandBuffer);
+					graphics.m_drawCall[currentFrameIndex]++;
+					graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+					vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 				}
 			}
 			else {
@@ -2159,7 +2136,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						{
 							graphics.m_drawCall[currentFrameIndex]++;
 							graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
-							vkCmdDrawMeshTasksEXT(commandBuffer, 1, 1, 1);
+
+							const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
+							vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 						}
 						else {
 							const auto mesh = renderCommand.m_mesh;

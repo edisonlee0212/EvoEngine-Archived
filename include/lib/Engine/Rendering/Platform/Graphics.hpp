@@ -35,6 +35,13 @@ namespace EvoEngine
 		VkDebugUtilsMessengerEXT m_vkDebugMessenger = {};
 		VkPhysicalDeviceFeatures m_vkPhysicalDeviceFeatures = {};
 		VkPhysicalDeviceProperties m_vkPhysicalDeviceProperties = {};
+		VkPhysicalDeviceProperties2 m_vkPhysicalDeviceProperties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+		VkPhysicalDeviceVulkan11Properties m_vkPhysicalDeviceVulkan11Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES };
+		VkPhysicalDeviceVulkan12Properties m_vkPhysicalDeviceVulkan12Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES };
+		VkPhysicalDeviceMeshShaderPropertiesEXT m_meshShaderPropertiesExt = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT };
+		VkPhysicalDeviceSubgroupSizeControlProperties m_subgroupSizeControlProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES };
+
+
 		VkPhysicalDeviceMemoryProperties m_vkPhysicalDeviceMemoryProperties = {};
 		VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
 		VkPhysicalDevice m_vkPhysicalDevice = VK_NULL_HANDLE;
@@ -127,8 +134,6 @@ namespace EvoEngine
 		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayout>> m_descriptorSetLayouts;
 		void CreateGraphicsPipelines() const;
 		void PrepareDescriptorSetLayouts() const;
-
-		uint32_t m_maxWorkGroupInvocations = 128;
 
 	public:
 		double m_cpuWaitTime = 0.0f;

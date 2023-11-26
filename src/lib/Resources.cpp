@@ -14,13 +14,32 @@ void Resources::LoadShaders()
 #pragma region Shaders
 #pragma region Shader Includes
 	std::string add;
+	uint32_t meshWorkGroupInvocations = Graphics::GetInstance().m_meshShaderPropertiesExt.maxPreferredMeshWorkGroupInvocations;
+	uint32_t taskWorkGroupInvocations = Graphics::GetInstance().m_meshShaderPropertiesExt.maxPreferredTaskWorkGroupInvocations;
+
+	uint32_t meshSubgroupSize = Graphics::GetInstance().m_vkPhysicalDeviceVulkan11Properties.subgroupSize;
+	uint32_t meshSubgroupCount =
+		(std::min(std::max(Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE), meshWorkGroupInvocations)
+			+ meshSubgroupSize - 1)
+		/ meshSubgroupSize;
+
+	uint32_t taskSubgroupSize = Graphics::GetInstance().m_vkPhysicalDeviceVulkan11Properties.subgroupSize;
+	uint32_t taskSubgroupCount = 
+		(taskWorkGroupInvocations + taskSubgroupSize - 1) / taskSubgroupSize;
 
 	add += "\n#define MAX_DIRECTIONAL_LIGHT_SIZE " + std::to_string(Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE)
 		 + "\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::Constants::MAX_KERNEL_AMOUNT)
 		+ "\n#define MESHLET_MAX_VERTICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 		+ "\n#define MESHLET_MAX_TRIANGLES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE)
-		+ "\n#define MAX_GROUP_INVOCATIONS " + std::to_string(Graphics::GetMaxWorkGroupInvocations())
 		+ "\n#define MESHLET_MAX_INDICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3)
+
+		+ "\n#define EXT_TASK_SUBGROUP_SIZE " + std::to_string(taskSubgroupSize)
+		+ "\n#define EXT_MESH_SUBGROUP_SIZE " + std::to_string(meshSubgroupSize)
+		+ "\n#define EXT_TASK_SUBGROUP_COUNT " + std::to_string(taskSubgroupCount)
+		+ "\n#define EXT_MESH_SUBGROUP_COUNT " + std::to_string(meshSubgroupCount)
+
+		+ "\n#define NVMESHLET_PER_TASK " + std::to_string(taskWorkGroupInvocations)
+		
 
 	+ "\n";
 

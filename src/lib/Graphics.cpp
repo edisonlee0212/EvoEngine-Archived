@@ -133,12 +133,6 @@ void Graphics::WaitForDeviceIdle()
 	vkDeviceWaitIdle(graphics.m_vkDevice);
 }
 
-uint32_t Graphics::GetMaxWorkGroupInvocations()
-{
-	const auto& graphics = GetInstance();
-	return graphics.m_maxWorkGroupInvocations;
-}
-
 void Graphics::RegisterGraphicsPipeline(const std::string& name, const std::shared_ptr<GraphicsPipeline>& graphicsPipeline)
 {
 	auto& graphics = GetInstance();
@@ -698,8 +692,17 @@ void Graphics::SelectPhysicalDevice()
 	// Check if the best candidate is suitable at all
 	if (!candidates.empty() && candidates.rbegin()->first > 0) {
 		m_vkPhysicalDevice = candidates.rbegin()->second;
+
 		vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &m_vkPhysicalDeviceFeatures);
 		vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
+
+		m_vkPhysicalDeviceProperties2.pNext = &m_vkPhysicalDeviceVulkan11Properties;
+		m_vkPhysicalDeviceVulkan11Properties.pNext = &m_vkPhysicalDeviceVulkan12Properties;
+		m_vkPhysicalDeviceVulkan12Properties.pNext = &m_meshShaderPropertiesExt;
+		m_meshShaderPropertiesExt.pNext = &m_subgroupSizeControlProperties;
+		m_subgroupSizeControlProperties.pNext = nullptr;
+
+		vkGetPhysicalDeviceProperties2(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties2);
 		vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceMemoryProperties);
 #ifndef NDEBUG
 		EVOENGINE_LOG("Chose \"" + std::string(m_vkPhysicalDeviceProperties.deviceName) + "\" as physical device.");

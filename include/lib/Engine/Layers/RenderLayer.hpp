@@ -162,7 +162,7 @@ namespace EvoEngine
 
 	public:
 		bool m_countShadowRenderingDrawCalls = false;
-		bool m_enableIndirectRendering = true;
+		bool m_enableIndirectRendering = false;
 		bool m_enableDebugVisualization = false;
 		bool m_enableRenderMenu = false;
 		bool m_stableFit = true;
