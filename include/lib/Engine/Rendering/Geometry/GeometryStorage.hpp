@@ -59,10 +59,10 @@ namespace EvoEngine
 		std::vector<glm::uvec3> m_triangles;
 		std::vector<std::shared_ptr<RangeDescriptor>> m_triangleRangeDescriptor;
 
-		std::vector<std::unique_ptr<Buffer>> m_vertexBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_meshletBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_triangleBuffer = {};
-		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
+		std::unique_ptr<Buffer> m_vertexBuffer = {};
+		std::unique_ptr<Buffer> m_meshletBuffer = {};
+		std::unique_ptr<Buffer> m_triangleBuffer = {};
+		bool m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
 		std::vector<SkinnedMeshlet> m_skinnedMeshlets = {};
@@ -70,10 +70,10 @@ namespace EvoEngine
 		std::vector<glm::uvec3> m_skinnedTriangles;
 		std::vector<std::shared_ptr<RangeDescriptor>> m_skinnedTriangleRangeDescriptor;
 
-		std::vector<std::unique_ptr<Buffer>> m_skinnedVertexBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_skinnedMeshletBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_skinnedTriangleBuffer = {};
-		std::vector<bool> m_requireSkinnedMeshDataDeviceUpdate = {};
+		std::unique_ptr<Buffer> m_skinnedVertexBuffer = {};
+		std::unique_ptr<Buffer> m_skinnedMeshletBuffer = {};
+		std::unique_ptr<Buffer> m_skinnedTriangleBuffer = {};
+		bool m_requireSkinnedMeshDataDeviceUpdate = {};
 
 		std::vector<StrandPointDataChunk> m_strandPointDataChunks = {};
 		std::vector<StrandMeshlet> m_strandMeshlets = {};
@@ -81,10 +81,10 @@ namespace EvoEngine
 		std::vector<glm::uvec4> m_segments;
 		std::vector<std::shared_ptr<RangeDescriptor>> m_segmentRangeDescriptor;
 
-		std::vector<std::unique_ptr<Buffer>> m_strandPointBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_strandMeshletBuffer = {};
-		std::vector<std::unique_ptr<Buffer>> m_segmentBuffer = {};
-		std::vector<bool> m_requireStrandMeshDataDeviceUpdate = {};
+		std::unique_ptr<Buffer> m_strandPointBuffer = {};
+		std::unique_ptr<Buffer> m_strandMeshletBuffer = {};
+		std::unique_ptr<Buffer> m_segmentBuffer = {};
+		bool m_requireStrandMeshDataDeviceUpdate = {};
 
 		void UploadData();
 		friend class RenderLayer;
