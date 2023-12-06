@@ -80,6 +80,5 @@ void MeshRenderer::OnDestroy()
     m_mesh.Clear();
     m_material.Clear();
 
-    m_material.Clear();
     m_castShadow = true;
 }

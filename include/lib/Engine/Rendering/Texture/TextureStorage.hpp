@@ -13,6 +13,7 @@ namespace EvoEngine
 		std::vector<std::vector<bool>> m_cubemapPendingUpdates;
 
 		friend class RenderLayer;
+		friend class Graphics;
 		static void DeviceSync();
 	public:
 		

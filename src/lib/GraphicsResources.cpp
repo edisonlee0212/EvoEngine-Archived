@@ -564,14 +564,18 @@ void Buffer::UploadData(const size_t size, const void* src)
 		|| m_vmaAllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT)
 	{
 		void* mapping;
+		if (size > 204800) EVOENGINE_LOG("Mapping buffer of " + std::to_string(size) + " bytes of data...");
 		vmaMapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation, &mapping);
 		memcpy(mapping, src, size);
 		vmaUnmapMemory(Graphics::GetVmaAllocator(), m_vmaAllocation);
 	}
 	else
 	{
+		if(size > 204800) EVOENGINE_LOG("Creating staging buffer of " + std::to_string(size) + " bytes of data...");
 		Buffer stagingBuffer(size);
+		if (size > 204800) EVOENGINE_LOG("Uploading staging buffer of " + std::to_string(size) + " bytes of data...");
 		stagingBuffer.UploadData(size, src);
+		if (size > 204800) EVOENGINE_LOG("Uploading " + std::to_string(size) + " bytes of data...");
 		CopyFromBuffer(stagingBuffer, size, 0, 0);
 	}
 }
@@ -684,6 +688,7 @@ void Buffer::Resize(VkDeviceSize newSize)
 	if (vmaCreateBuffer(Graphics::GetVmaAllocator(), &bufferCreateInfo, &m_vmaAllocationCreateInfo, &m_vkBuffer, &m_vmaAllocation, &m_vmaAllocationInfo)) {
 		throw std::runtime_error("Failed to create buffer!");
 	}
+	if (newSize > 204800) EVOENGINE_LOG("Created buffer of " + std::to_string(newSize) + " bytes of data...");
 	m_size = newSize;
 }
 

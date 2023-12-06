@@ -54,7 +54,6 @@ namespace EvoEngine
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
-		uint32_t m_verticesCount = 0;
 		std::vector<Meshlet> m_meshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_meshletRangeDescriptor;
 		std::vector<glm::uvec3> m_triangles;
@@ -66,7 +65,6 @@ namespace EvoEngine
 		std::vector<bool> m_requireMeshDataDeviceUpdate = {};
 
 		std::vector<SkinnedVertexDataChunk> m_skinnedVertexDataChunks = {};
-		uint32_t m_skinnedVerticesCount = 0;
 		std::vector<SkinnedMeshlet> m_skinnedMeshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_skinnedMeshletRangeDescriptor;
 		std::vector<glm::uvec3> m_skinnedTriangles;
@@ -78,7 +76,6 @@ namespace EvoEngine
 		std::vector<bool> m_requireSkinnedMeshDataDeviceUpdate = {};
 
 		std::vector<StrandPointDataChunk> m_strandPointDataChunks = {};
-		uint32_t m_strandPointsCount = 0;
 		std::vector<StrandMeshlet> m_strandMeshlets = {};
 		std::vector<std::shared_ptr<RangeDescriptor>> m_strandMeshletRangeDescriptor;
 		std::vector<glm::uvec4> m_segments;

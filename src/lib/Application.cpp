@@ -30,6 +30,7 @@
 #include "StrandsRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
 #include "Strands.hpp"
+#include "WayPoints.hpp"
 using namespace EvoEngine;
 
 void Application::PreUpdateInternal()
@@ -472,6 +473,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<PointLight>("PointLight");
 	ClassRegistry::RegisterPrivateComponent<SpotLight>("SpotLight");
 	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
+	ClassRegistry::RegisterPrivateComponent<WayPoints>("WayPoints");
 	ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
 	ClassRegistry::RegisterAsset<PostProcessingStack>("PostProcessingStack", { ".evepostprocessingstack" });

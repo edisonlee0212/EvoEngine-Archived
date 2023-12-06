@@ -161,8 +161,7 @@ void RenderLayer::LateUpdate()
 	graphics.m_strandsSegments[currentFrameIndex] = 0;
 	graphics.m_drawCall[currentFrameIndex] = 0;
 
-	GeometryStorage::DeviceSync();
-	TextureStorage::DeviceSync();
+	
 
 	ApplyAnimator();
 	//The following data stays consistent during entire frame.
@@ -265,8 +264,8 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		ImGui::Begin("Render Settings");
 		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
-		ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
 		if(Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
+		if(!Graphics::Settings::USE_MESH_SHADER) ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
 		const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
 		if (useMeshShader) {
 			ImGui::Checkbox("Show meshlets", &m_enableDebugVisualization);

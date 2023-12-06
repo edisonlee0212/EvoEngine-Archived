@@ -18,17 +18,17 @@ option(EVOENGINE_BUILD_EXAMPLES "Build EvoEngine Examples" OFF)
 # Build types
 # ------------------------------------------------------------------
 # Set a default build type if none was specified
-set(default_build_type "Release")
+set(default_build_type "RelWithDebInfo")
 # Set the possible values of build type for cmake-gui
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-			"Debug" "Release")
+			"Debug" "Release" "RelWithDebInfo")
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
 	set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
 			STRING "Choose the type of build." FORCE)
 endif ()
 
-if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
+if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease" OR CMAKE_BUILD_TYPE MATCHES "^[Rr]lWithDebInfo")
 	set(DEBUG_STATUS NDEBUG)
 elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
 	set(DEBUG_STATUS _DEBUG)
@@ -115,6 +115,13 @@ if (WIN32)
 				${ASSIMP_DIR}assimp-vc143-mt.lib
 				${ASSIMP_DIR}zlibstatic.lib
 				)
+	elseif (CMAKE_BUILD_TYPE MATCHES "^[Rr]elWithDebInfo")
+		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
+		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
+		set(ASSIMP_LIBS
+				${ASSIMP_DIR}assimp-vc143-mt.lib
+				${ASSIMP_DIR}zlibstatic.lib
+				)
 	else()
 		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/debug/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined_d.lib)
@@ -142,6 +149,10 @@ else()
 		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
 		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/release/*.a")
 		set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+	elseif (CMAKE_BUILD_TYPE MATCHES "^[Rr]elWithDebInfo")
+		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
+		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/release/*.a")
+		set(CMAKE_CXX_FLAGS_RELWITHDEBINGO "-O2 -g -NDEBUG")
 	elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
 		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/debug/*.a")
 		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/debug/*.a")
@@ -245,7 +256,7 @@ add_custom_command(TARGET evoengine POST_BUILD
 # Copy DLLs
 # ------------------------------------------------------------------
 if (WIN32)
-	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
+	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease" OR CMAKE_BUILD_TYPE MATCHES "^[Rr]lWithDebInfo")
 		file(GLOB PHYSX_DLLS "3rdParty/physx/win.x86_64.vc143.mt/release/*.dll")
 		set(ASSIMP_DLL ${3RD_PARTY_DIR}/assimp/assimp-vc143-mt.dll)
 	elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
@@ -260,7 +271,7 @@ if (WIN32)
 			${CMAKE_BINARY_DIR}
 	)
 elseif (UNIX AND NOT APPLE)
-	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
+	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease" OR CMAKE_BUILD_TYPE MATCHES "^[Rr]lWithDebInfo")
 		file(GLOB PHYSX_DLLS "3rdParty/physx/linux.clang/release/*.so")
 		file(GLOB SHADERC_DLLS "3rdParty/shaderc/lib/linux/release/*.so")
 	elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")

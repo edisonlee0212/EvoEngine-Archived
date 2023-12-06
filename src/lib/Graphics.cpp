@@ -1143,6 +1143,8 @@ void Graphics::SwapChainSwapImage()
 	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
 	const auto justNow = Times::Now();
 	vkDeviceWaitIdle(m_vkDevice);
+	GeometryStorage::DeviceSync();
+	TextureStorage::DeviceSync();
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
