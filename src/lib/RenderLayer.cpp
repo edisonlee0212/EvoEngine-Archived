@@ -90,32 +90,7 @@ void RenderLayer::OnDestroy()
 void RenderLayer::PreUpdate()
 {
 
-	m_deferredRenderInstances.m_renderCommands.clear();
-	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
-	m_deferredInstancedRenderInstances.m_renderCommands.clear();
-	m_deferredStrandsRenderInstances.m_renderCommands.clear();
-	m_transparentRenderInstances.m_renderCommands.clear();
-	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
-	m_transparentInstancedRenderInstances.m_renderCommands.clear();
-	m_transparentStrandsRenderInstances.m_renderCommands.clear();
-
-	m_cameraIndices.clear();
-	m_materialIndices.clear();
-	m_instanceIndices.clear();
-	m_instanceHandles.clear();
-	m_cameraInfoBlocks.clear();
-	m_materialInfoBlocks.clear();
-	m_instanceInfoBlocks.clear();
-
-
-	m_directionalLightInfoBlocks.clear();
-	m_pointLightInfoBlocks.clear();
-	m_spotLightInfoBlocks.clear();
-
-	m_meshDrawIndexedIndirectCommands.clear();
-	m_meshDrawMeshTasksIndirectCommands.clear();
-
-	m_cameras.clear();
+	
 
 	const auto scene = GetScene();
 	if (!scene) return;
@@ -246,6 +221,34 @@ void RenderLayer::LateUpdate()
 			RenderToCamera(cameraGlobalTransform, camera);
 		}
 	}
+
+
+	m_deferredRenderInstances.m_renderCommands.clear();
+	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
+	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_deferredStrandsRenderInstances.m_renderCommands.clear();
+	m_transparentRenderInstances.m_renderCommands.clear();
+	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
+	m_transparentInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentStrandsRenderInstances.m_renderCommands.clear();
+
+	m_cameraIndices.clear();
+	m_materialIndices.clear();
+	m_instanceIndices.clear();
+	m_instanceHandles.clear();
+	m_cameraInfoBlocks.clear();
+	m_materialInfoBlocks.clear();
+	m_instanceInfoBlocks.clear();
+
+
+	m_directionalLightInfoBlocks.clear();
+	m_pointLightInfoBlocks.clear();
+	m_spotLightInfoBlocks.clear();
+
+	m_meshDrawIndexedIndirectCommands.clear();
+	m_meshDrawMeshTasksIndirectCommands.clear();
+
+	m_cameras.clear();
 }
 
 void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
