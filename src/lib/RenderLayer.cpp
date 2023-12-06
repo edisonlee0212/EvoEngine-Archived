@@ -222,6 +222,132 @@ void RenderLayer::LateUpdate()
 		}
 	}
 
+	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
+		//Gizmos rendering
+		for (const auto& i : editorLayer->m_gizmoMeshTasks)
+		{
+			if (editorLayer->m_editorCameras.find(i.m_editorCameraComponent->GetHandle()) == editorLayer->m_editorCameras.end())
+			{
+				EVOENGINE_ERROR("Target camera not registered in editor!");
+				return;
+			}
+			if (i.m_editorCameraComponent && i.m_editorCameraComponent->IsEnabled())
+			{
+				Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+					{
+						std::shared_ptr<GraphicsPipeline> gizmosPipeline;
+						switch (i.m_gizmoSettings.m_colorMode) {
+						case GizmoSettings::ColorMode::Default:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS");
+						}break;
+						case GizmoSettings::ColorMode::VertexColor:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_VERTEX_COLORED");
+						}break;
+						case GizmoSettings::ColorMode::NormalColor:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_NORMAL_COLORED");
+						}break;
+						}
+						i.m_editorCameraComponent->GetRenderTexture()->ApplyGraphicsPipelineStates(gizmosPipeline->m_states);
+						i.m_gizmoSettings.ApplySettings(gizmosPipeline->m_states);
+
+						gizmosPipeline->Bind(commandBuffer);
+						gizmosPipeline->BindDescriptorSet(commandBuffer, 0, GetPerFrameDescriptorSet()->GetVkDescriptorSet());
+
+						i.m_editorCameraComponent->GetRenderTexture()->BeginRendering(commandBuffer, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+						GizmosPushConstant pushConstant;
+						pushConstant.m_model = i.m_model;
+						pushConstant.m_color = i.m_color;
+						pushConstant.m_size = i.m_size;
+						pushConstant.m_cameraIndex = GetCameraIndex(i.m_editorCameraComponent->GetHandle());
+						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
+						GeometryStorage::BindVertices(commandBuffer);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1);
+						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
+					});
+			}
+		}
+		for (const auto& i : editorLayer->m_gizmoInstancedMeshTasks)
+		{
+			if (editorLayer->m_editorCameras.find(i.m_editorCameraComponent->GetHandle()) == editorLayer->m_editorCameras.end())
+			{
+				EVOENGINE_ERROR("Target camera not registered in editor!");
+				return;
+			}
+			if (i.m_editorCameraComponent && i.m_editorCameraComponent->IsEnabled())
+			{
+				i.m_instancedData->UploadData();
+				Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+					{
+						const auto gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_INSTANCED_COLORED");
+						i.m_editorCameraComponent->GetRenderTexture()->ApplyGraphicsPipelineStates(gizmosPipeline->m_states);
+						i.m_gizmoSettings.ApplySettings(gizmosPipeline->m_states);
+
+						gizmosPipeline->Bind(commandBuffer);
+						gizmosPipeline->BindDescriptorSet(commandBuffer, 0, GetPerFrameDescriptorSet()->GetVkDescriptorSet());
+						gizmosPipeline->BindDescriptorSet(commandBuffer, 1, i.m_instancedData->GetDescriptorSet()->GetVkDescriptorSet());
+
+						i.m_editorCameraComponent->GetRenderTexture()->BeginRendering(commandBuffer, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+						GizmosPushConstant pushConstant;
+						pushConstant.m_model = i.m_model;
+						pushConstant.m_color = glm::vec4(0.0f);
+						pushConstant.m_size = i.m_size;
+						pushConstant.m_cameraIndex = GetCameraIndex(i.m_editorCameraComponent->GetHandle());
+						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
+						GeometryStorage::BindVertices(commandBuffer);
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size());
+						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
+					});
+			}
+		}
+		for (const auto& i : editorLayer->m_gizmoStrandsTasks)
+		{
+			if (editorLayer->m_editorCameras.find(i.m_editorCameraComponent->GetHandle()) == editorLayer->m_editorCameras.end())
+			{
+				EVOENGINE_ERROR("Target camera not registered in editor!");
+				return;
+			}
+			if (i.m_editorCameraComponent && i.m_editorCameraComponent->IsEnabled())
+			{
+				Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
+					{
+						std::shared_ptr<GraphicsPipeline> gizmosPipeline;
+						switch (i.m_gizmoSettings.m_colorMode) {
+						case GizmoSettings::ColorMode::Default:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_STRANDS");
+						}break;
+						case GizmoSettings::ColorMode::VertexColor:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_STRANDS_VERTEX_COLORED");
+						}break;
+						case GizmoSettings::ColorMode::NormalColor:
+						{
+							gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_STRANDS_NORMAL_COLORED");
+						}break;
+						}
+						i.m_editorCameraComponent->GetRenderTexture()->ApplyGraphicsPipelineStates(gizmosPipeline->m_states);
+						i.m_gizmoSettings.ApplySettings(gizmosPipeline->m_states);
+
+						gizmosPipeline->Bind(commandBuffer);
+						gizmosPipeline->BindDescriptorSet(commandBuffer, 0, GetPerFrameDescriptorSet()->GetVkDescriptorSet());
+
+						i.m_editorCameraComponent->GetRenderTexture()->BeginRendering(commandBuffer, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
+						GizmosPushConstant pushConstant;
+						pushConstant.m_model = i.m_model;
+						pushConstant.m_color = i.m_color;
+						pushConstant.m_size = i.m_size;
+						pushConstant.m_cameraIndex = GetCameraIndex(i.m_editorCameraComponent->GetHandle());
+						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
+						GeometryStorage::BindStrandPoints(commandBuffer);
+						i.m_strands->DrawIndexed(commandBuffer, gizmosPipeline->m_states, 1);
+						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
+					});
+			}
+		}
+	}
 
 	m_deferredRenderInstances.m_renderCommands.clear();
 	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
