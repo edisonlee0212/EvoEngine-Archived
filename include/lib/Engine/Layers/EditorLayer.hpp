@@ -14,6 +14,19 @@
 #include "Strands.hpp"
 namespace EvoEngine
 {
+	enum class ConsoleMessageType
+	{
+		Log,
+		Warning,
+		Error
+	};
+	struct ConsoleMessage
+	{
+		ConsoleMessageType m_type = ConsoleMessageType::Log;
+		std::string m_value;
+		double m_time = 0;
+	};
+
 	struct GizmoSettings {
 		DrawSettings m_drawSettings;
 		enum class ColorMode {
@@ -89,7 +102,20 @@ namespace EvoEngine
 		std::vector<GizmoMeshTask> m_gizmoMeshTasks;
 		std::vector<GizmoInstancedMeshTask> m_gizmoInstancedMeshTasks;
 		std::vector<GizmoStrandsTask> m_gizmoStrandsTasks;
+
+		
+		std::vector<ConsoleMessage> m_consoleMessages;
+		std::mutex m_consoleMessageMutex;
+
+
+		bool m_enableConsoleLogs = true;
+		bool m_enableConsoleErrors = true;
+		bool m_enableConsoleWarnings = true;
+		friend class Console;
 	public:
+		bool m_showConsoleWindow = true;
+		std::vector<ConsoleMessage>& GetConsoleMessages();
+
 		[[nodiscard]] bool SceneCameraWindowFocused() const;
 		[[nodiscard]] bool MainCameraWindowFocused() const;
 		bool m_enableViewGizmos = true;

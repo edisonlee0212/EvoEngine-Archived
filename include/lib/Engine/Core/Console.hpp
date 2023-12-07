@@ -2,7 +2,6 @@
 #include "ISingleton.hpp"
 namespace EvoEngine
 {
-
     class Console : public ISingleton<Console>
     {
     public:
@@ -32,7 +31,7 @@ namespace EvoEngine
 #define EVOENGINE_LOG(msg)                                                                                             \
     {                                                                                                                  \
         EvoEngine::Console::Log(msg);                                                                                    \
-        std::cout << "(EvoEngine)Log: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;       \
+        std::cout << "[EvoEngine]Log: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;       \
     }
 
  /**
@@ -42,7 +41,7 @@ namespace EvoEngine
 #define EVOENGINE_ERROR(msg)                                                                                           \
     {                                                                                                                  \
         EvoEngine::Console::Error(msg);                                                                                  \
-        std::cerr << "(EvoEngine)Error: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;     \
+        std::cerr << "[EvoEngine]Error: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;     \
     }
   /**
    * \brief A thread-safe warning log macro.
@@ -51,5 +50,5 @@ namespace EvoEngine
 #define EVOENGINE_WARNING(msg)                                                                                         \
     {                                                                                                                  \
         EvoEngine::Console::Warning(msg);                                                                                \
-        std::cout << "(EvoEngine)Warning: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;   \
+        std::cout << "[EvoEngine]Warning: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;   \
     }

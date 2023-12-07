@@ -393,6 +393,7 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		ImGui::Begin("Render Settings");
 		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
+		ImGui::Checkbox("Wireframe", &m_wireFrame);
 		if(Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
 		if(!Graphics::Settings::USE_MESH_SHADER) ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
 		const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
@@ -1881,14 +1882,12 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			attachment.clearValue = { 0, 0, 0, 1 };
 			attachment.imageView = m_environmentalBRDFLut->m_imageView->GetVkImageView();
 
-			//const auto depthAttachment = camera->GetRenderTexture()->GetDepthAttachmentInfo();
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 			renderInfo.renderArea = renderArea;
 			renderInfo.layerCount = 1;
 			renderInfo.colorAttachmentCount = 1;
 			renderInfo.pColorAttachments = &attachment;
-			//renderInfo.pDepthAttachment = &depthAttachment;
 			environmentalBrdfPipeline->m_states.m_depthTest = false;
 			environmentalBrdfPipeline->m_states.m_colorBlendAttachmentStates.clear();
 			environmentalBrdfPipeline->m_states.m_colorBlendAttachmentStates.resize(1);
@@ -2233,10 +2232,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
+			deferredPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredPrepassPipeline->Bind(commandBuffer);
 			deferredPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-
 			if (m_enableIndirectRendering && !useMeshShader) {
 				if (!m_deferredRenderInstances.m_renderCommands.empty()) {
 					RenderInstancePushConstant pushConstant;
@@ -2255,7 +2254,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						RenderInstancePushConstant pushConstant;
 						pushConstant.m_cameraIndex = cameraIndex;
 						pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-						deferredPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+						deferredPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : renderCommand.m_polygonMode;
 						deferredPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
 						deferredPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
 						deferredPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
@@ -2302,7 +2301,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					deferredInstancedPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredInstancedPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : renderCommand.m_polygonMode;
 					deferredInstancedPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
 					deferredInstancedPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
 					deferredInstancedPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
@@ -2332,13 +2331,14 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredSkinnedPrepassPipeline->Bind(commandBuffer);
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+			
 			m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 				{
 					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					deferredSkinnedPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredSkinnedPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : renderCommand.m_polygonMode;
 					deferredSkinnedPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
 					deferredSkinnedPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
 					deferredSkinnedPrepassPipeline->m_states.ApplyAllStates(commandBuffer);
@@ -2374,7 +2374,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
 					pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
-					deferredStrandsPrepassPipeline->m_states.m_polygonMode = renderCommand.m_polygonMode;
+					deferredStrandsPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : renderCommand.m_polygonMode;
 					deferredStrandsPrepassPipeline->m_states.m_cullMode = renderCommand.m_cullMode;
 					deferredStrandsPrepassPipeline->m_states.m_lineWidth = renderCommand.m_lineWidth;
 					deferredStrandsPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);

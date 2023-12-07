@@ -161,6 +161,8 @@ namespace EvoEngine
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
 	public:
+		bool m_wireFrame = false;
+
 		bool m_countShadowRenderingDrawCalls = false;
 		bool m_enableIndirectRendering = false;
 		bool m_enableDebugVisualization = false;

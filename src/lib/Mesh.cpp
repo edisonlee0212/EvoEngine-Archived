@@ -379,7 +379,7 @@ void Mesh::Deserialize(const YAML::Node& in)
 		m_vertexAttributes.m_texCoord = true;
 		m_vertexAttributes.m_color = true;
 	}
-
+	
 	if (in["m_vertices"] && in["m_triangles"])
 	{
 		auto vertexData = in["m_vertices"].as<YAML::Binary>();

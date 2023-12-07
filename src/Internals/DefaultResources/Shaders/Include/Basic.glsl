@@ -165,11 +165,13 @@ layout(set = EE_PER_FRAME_SET, binding = 8) readonly buffer EE_SPOT_LIGHT_BLOCK
 };
 
 struct Vertex {
-	vec4 position;
-	vec4 normal;
-	vec4 tangent;
+	vec3 position;
+	vec3 normal;
+	vec3 tangent;
+	
 	vec4 color;
-	vec4 texCoord;
+	vec2 texCoord;
+	vec2 vertexInfo;
 };
 
 struct VertexDataChunk {
