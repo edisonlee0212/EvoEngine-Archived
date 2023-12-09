@@ -27,6 +27,10 @@ void Resources::LoadShaders()
 	uint32_t taskSubgroupCount = 
 		(taskWorkGroupInvocations + taskSubgroupSize - 1) / taskSubgroupSize;
 
+	taskSubgroupSize = glm::max(taskSubgroupSize, 1u);
+	meshSubgroupSize = glm::max(meshSubgroupSize, 1u);
+	taskSubgroupCount = glm::max(taskSubgroupCount, 1u);
+	meshSubgroupCount = glm::max(meshSubgroupCount, 1u);
 	add += "\n#define MAX_DIRECTIONAL_LIGHT_SIZE " + std::to_string(Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE)
 		 + "\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::Constants::MAX_KERNEL_AMOUNT)
 		+ "\n#define MESHLET_MAX_VERTICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
@@ -38,7 +42,7 @@ void Resources::LoadShaders()
 		+ "\n#define EXT_TASK_SUBGROUP_COUNT " + std::to_string(taskSubgroupCount)
 		+ "\n#define EXT_MESH_SUBGROUP_COUNT " + std::to_string(meshSubgroupCount)
 
-		+ "\n#define NVMESHLET_PER_TASK " + std::to_string(taskWorkGroupInvocations)
+		+ "\n#define EXT_MESHLET_PER_TASK " + std::to_string(taskWorkGroupInvocations)
 		
 
 	+ "\n";
