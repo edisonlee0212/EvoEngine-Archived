@@ -594,7 +594,8 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	}
 
 	editorLayer->DragAndDropButton<PostProcessingStack>(m_postProcessingStack, "PostProcessingStack");
-	if(const auto pps = m_postProcessingStack.Get<PostProcessingStack>(); ImGui::TreeNode("Post Processing"))
+	const auto pps = m_postProcessingStack.Get<PostProcessingStack>();
+	if(pps && ImGui::TreeNode("Post Processing"))
 	{
 		ImGui::Checkbox("SSAO", &pps->m_SSAO);
 		ImGui::Checkbox("SSR", &pps->m_SSR);
