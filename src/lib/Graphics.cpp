@@ -1218,6 +1218,8 @@ void Graphics::SubmitPresent()
 void Graphics::WaitForCommandsComplete()
 {
 	vkDeviceWaitIdle(m_vkDevice);
+	GeometryStorage::DeviceSync();
+	TextureStorage::DeviceSync();
 	const VkFence inFlightFences[] = { m_inFlightFences[m_currentFrameIndex]->GetVkFence() };
 	vkWaitForFences(m_vkDevice, 1, inFlightFences,
 		VK_TRUE, UINT64_MAX);
@@ -1410,13 +1412,7 @@ void Graphics::PreUpdate()
 		}
 	}
 	else {
-		vkDeviceWaitIdle(graphics.m_vkDevice);
-		GeometryStorage::DeviceSync();
-		TextureStorage::DeviceSync();
-		const VkFence inFlightFences[] = { graphics.m_inFlightFences[graphics.m_currentFrameIndex]->GetVkFence() };
-		vkWaitForFences(graphics.m_vkDevice, 1, inFlightFences,
-			VK_TRUE, UINT64_MAX);
-		vkResetFences(graphics.m_vkDevice, 1, inFlightFences);
+		graphics.WaitForCommandsComplete();
 	}
 
 	graphics.ResetCommandBuffers();
@@ -1515,7 +1511,6 @@ void Graphics::LateUpdate()
 	}else
 	{
 		graphics.Submit();
-		graphics.WaitForCommandsComplete();
 	}
 }
 
