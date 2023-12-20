@@ -111,6 +111,7 @@ namespace EvoEngine
 		void RecreateSwapChain();
 
 		void OnDestroy();
+		void WaitForInflightFences();
 		void SwapChainSwapImage();
 		void SubmitPresent();
 		void WaitForCommandsComplete();

@@ -1409,6 +1409,15 @@ void Graphics::PreUpdate()
 			graphics.SwapChainSwapImage();
 		}
 	}
+	else {
+		vkDeviceWaitIdle(graphics.m_vkDevice);
+		GeometryStorage::DeviceSync();
+		TextureStorage::DeviceSync();
+		const VkFence inFlightFences[] = { graphics.m_inFlightFences[graphics.m_currentFrameIndex]->GetVkFence() };
+		vkWaitForFences(graphics.m_vkDevice, 1, inFlightFences,
+			VK_TRUE, UINT64_MAX);
+		vkResetFences(graphics.m_vkDevice, 1, inFlightFences);
+	}
 
 	graphics.ResetCommandBuffers();
 
