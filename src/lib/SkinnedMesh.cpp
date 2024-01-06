@@ -159,7 +159,7 @@ void SkinnedMesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPip
 {
 	if (instancesCount == 0) return;
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_skinnedTriangles.size() * 3), instancesCount, m_skinnedTriangleRange->m_offset * 3, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, m_skinnedTriangleRange->m_prevFrameIndexCount * 3, instancesCount, m_skinnedTriangleRange->m_prevFrameOffset * 3, 0, 0);
 }
 
 glm::vec3 SkinnedMesh::GetCenter() const
@@ -182,7 +182,10 @@ void SkinnedMesh::FetchIndices()
 
 void SkinnedMesh::OnCreate()
 {
+	m_version = 0;
 	m_bound = Bound();
+	m_skinnedMeshletRange = std::make_shared<RangeDescriptor>();
+	m_skinnedTriangleRange = std::make_shared<RangeDescriptor>();
 }
 
 void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices)
@@ -234,11 +237,9 @@ void SkinnedMesh::SetVertices(const SkinnedVertexAttributes& skinnedVertexAttrib
 	m_skinnedVertexAttributes.m_normal = true;
 	m_skinnedVertexAttributes.m_tangent = true;
 
-	if(m_skinnedTriangleRange || m_skinnedMeshletRange) GeometryStorage::FreeSkinnedMesh(GetHandle());
-	m_skinnedTriangleRange.reset();
-	m_skinnedMeshletRange.reset();
+	if (m_version != 0)  GeometryStorage::FreeSkinnedMesh(GetHandle());
 	GeometryStorage::AllocateSkinnedMesh(GetHandle(), m_skinnedVertices, m_skinnedTriangles, m_skinnedMeshletRange, m_skinnedTriangleRange);
-
+	
 	m_version++;
 	m_saved = false;
 }

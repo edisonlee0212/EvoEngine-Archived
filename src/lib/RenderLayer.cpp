@@ -223,6 +223,18 @@ void RenderLayer::LateUpdate()
 		}
 	}
 
+	
+
+	m_deferredRenderInstances.m_renderCommands.clear();
+	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
+	m_deferredInstancedRenderInstances.m_renderCommands.clear();
+	m_deferredStrandsRenderInstances.m_renderCommands.clear();
+	m_transparentRenderInstances.m_renderCommands.clear();
+	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
+	m_transparentInstancedRenderInstances.m_renderCommands.clear();
+	m_transparentStrandsRenderInstances.m_renderCommands.clear();
+
+
 	if (const auto editorLayer = Application::GetLayer<EditorLayer>()) {
 		//Gizmos rendering
 		for (const auto& i : editorLayer->m_gizmoMeshTasks)
@@ -350,14 +362,6 @@ void RenderLayer::LateUpdate()
 		}
 	}
 
-	m_deferredRenderInstances.m_renderCommands.clear();
-	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
-	m_deferredInstancedRenderInstances.m_renderCommands.clear();
-	m_deferredStrandsRenderInstances.m_renderCommands.clear();
-	m_transparentRenderInstances.m_renderCommands.clear();
-	m_transparentSkinnedRenderInstances.m_renderCommands.clear();
-	m_transparentInstancedRenderInstances.m_renderCommands.clear();
-	m_transparentStrandsRenderInstances.m_renderCommands.clear();
 
 	m_cameraIndices.clear();
 	m_materialIndices.clear();
@@ -1466,7 +1470,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
 			instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
+			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
 
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -1475,7 +1479,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_owner = owner;
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = meshRenderer->m_castShadow;
-			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
+			renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
 			renderInstance.m_instanceIndex = instanceIndex;
 
 			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
@@ -1550,7 +1554,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
+			instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1560,7 +1564,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_skinnedMesh = skinnedMesh;
 			renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
 			renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
-			renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_size;
+			renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
 			renderInstance.m_instanceIndex = instanceIndex;
 
 			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
@@ -1618,7 +1622,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
+			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1628,7 +1632,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_mesh = mesh;
 			renderInstance.m_castShadow = particles->m_castShadow;
 			renderInstance.m_particleInfos = particleInfoList;
-			renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
+			renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
 
 			renderInstance.m_instanceIndex = instanceIndex;
 
@@ -1685,7 +1689,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			instanceInfoBlock.m_model = gt;
 			instanceInfoBlock.m_materialIndex = materialIndex;
 			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_size;
+			instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_range;
 			auto entityHandle = scene->GetEntityHandle(owner);
 			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
 
@@ -1694,7 +1698,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 			renderInstance.m_owner = owner;
 			renderInstance.m_strands = strands;
 			renderInstance.m_castShadow = strandsRenderer->m_castShadow;
-			renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_size;
+			renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_range;
 
 			renderInstance.m_instanceIndex = instanceIndex;
 
@@ -2457,7 +2461,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	instanceInfoBlock.m_materialIndex = materialIndex;
 	instanceInfoBlock.m_entitySelected = 0;
 	instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_size;
+	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
 
 	auto entityHandle = Handle();
 	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
@@ -2466,7 +2470,7 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 	renderInstance.m_owner = Entity();
 	renderInstance.m_mesh = mesh;
 	renderInstance.m_castShadow = castShadow;
-	renderInstance.m_meshletSize = mesh->m_meshletRange->m_size;
+	renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
 	renderInstance.m_instanceIndex = instanceIndex;
 	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
 	if (material->m_drawSettings.m_blending)

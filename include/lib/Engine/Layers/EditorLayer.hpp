@@ -103,6 +103,7 @@ namespace EvoEngine
 		std::vector<GizmoInstancedMeshTask> m_gizmoInstancedMeshTasks;
 		std::vector<GizmoStrandsTask> m_gizmoStrandsTasks;
 
+
 		
 		std::vector<ConsoleMessage> m_consoleMessages;
 		std::mutex m_consoleMessageMutex;

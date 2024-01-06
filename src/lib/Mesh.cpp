@@ -125,7 +125,10 @@ void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 
 void Mesh::OnCreate()
 {
+	m_version = 0;
 	m_bound = Bound();
+	m_triangleRange = std::make_shared<RangeDescriptor>();
+	m_meshletRange = std::make_shared<RangeDescriptor>();
 }
 
 Mesh::~Mesh()
@@ -139,7 +142,7 @@ void Mesh::DrawIndexed(const VkCommandBuffer vkCommandBuffer, GraphicsPipelineSt
 {
 	if (instancesCount == 0) return;
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_triangles.size() * 3), instancesCount, m_triangleRange->m_offset * 3, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, m_triangleRange->m_prevFrameIndexCount * 3, instancesCount, m_triangleRange->m_prevFrameOffset * 3, 0, 0);
 }
 
 void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vector<Vertex>& vertices,
@@ -197,11 +200,9 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 
 	//MergeVertices();
 
-	if (m_triangleRange || m_meshletRange) GeometryStorage::FreeMesh(GetHandle());
-	m_triangleRange.reset();
-	m_meshletRange.reset();
+	if (m_version != 0) GeometryStorage::FreeMesh(GetHandle());
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
-
+	
 	m_version++;
 	m_saved = false;
 }
@@ -393,7 +394,6 @@ void Mesh::Deserialize(const YAML::Node& in)
 		std::memcpy(triangles.data(), triangleData.data(), triangleData.size());
 
 		SetVertices(m_vertexAttributes, vertices, triangles);
-		m_version++;
 	}
 }
 void VertexAttributes::Serialize(YAML::Emitter& out) const

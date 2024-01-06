@@ -64,12 +64,8 @@ void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes)
 	if (!m_strandPointAttributes.m_normal)
 		RecalculateNormal();
 	m_strandPointAttributes.m_normal = true;
-
-	if(m_segmentRange || m_strandMeshletRange) GeometryStorage::FreeStrands(GetHandle());
-	m_segmentRange.reset();
-	m_strandMeshletRange.reset();
+	if(m_version != 0) GeometryStorage::FreeStrands(GetHandle());
 	GeometryStorage::AllocateStrands(GetHandle(), m_strandPoints, m_segments, m_strandMeshletRange, m_segmentRange);
-
 	m_version++;
 	m_saved = false;
 }
@@ -262,7 +258,10 @@ void Strands::Deserialize(const YAML::Node& in) {
 
 void Strands::OnCreate()
 {
+	m_version = 0;
 	m_bound = Bound();
+	m_segmentRange = std::make_shared<RangeDescriptor>();
+	m_strandMeshletRange = std::make_shared<RangeDescriptor>();
 }
 Bound Strands::GetBound() const
 {
@@ -355,7 +354,7 @@ void Strands::DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineState
 {
 	if (instancesCount == 0) return;
 	globalPipelineState.ApplyAllStates(vkCommandBuffer);
-	vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(m_segments.size() * 4), instancesCount, m_segmentRange->m_offset * 4, 0, 0);
+	vkCmdDrawIndexed(vkCommandBuffer, m_segmentRange->m_prevFrameIndexCount * 4, instancesCount, m_segmentRange->m_prevFrameOffset * 4, 0, 0);
 }
 
 

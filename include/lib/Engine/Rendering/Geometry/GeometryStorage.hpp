@@ -48,7 +48,15 @@ namespace EvoEngine
 		Handle m_handle;
 	public:
 		uint32_t m_offset;
-		uint32_t m_size;
+		/**
+		 * \brief When used to record meshlet range. This records the newest number of meshlet for this geometry.
+		 * When used to record triangles, this records the newest number of triangles, including the size of the empty fillers.
+		 */
+		uint32_t m_range;
+
+		uint32_t m_prevFrameOffset;
+		uint32_t m_indexCount;
+		uint32_t m_prevFrameIndexCount;
 	};
 
 	class GeometryStorage : public ISingleton<GeometryStorage>
@@ -111,11 +119,11 @@ namespace EvoEngine
 		[[nodiscard]] static const StrandPoint& PeekStrandPoint(size_t strandPointIndex);
 
 		static void AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
-			std::shared_ptr<RangeDescriptor>& targetMeshletRange, std::shared_ptr<RangeDescriptor>& targetTriangleRange);
+			const std::shared_ptr<RangeDescriptor>& targetMeshletRange, const std::shared_ptr<RangeDescriptor>& targetTriangleRange);
 		static void AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<glm::uvec3>& skinnedTriangles,
-			std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange);
+			const std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange, const std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange);
 		static void AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints, const std::vector<glm::uvec4>& segments,
-			std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange, std::shared_ptr<RangeDescriptor>& targetSegmentRange);
+			const std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange, const std::shared_ptr<RangeDescriptor>& targetSegmentRange);
 
 		static void FreeMesh(const Handle& handle);
 		static void FreeSkinnedMesh(const Handle& handle);
