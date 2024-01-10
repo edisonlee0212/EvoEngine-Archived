@@ -171,6 +171,11 @@ namespace EvoEngine
 		float m_maxShadowDistance = 100;
 		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
 
+		bool m_enableStrandsRenderer = false;
+		bool m_enableMeshRenderer = true;
+		bool m_enableParticles = true;
+		bool m_enableSkinnedMeshRenderer = true;
+
 		[[nodiscard]] uint32_t GetCameraIndex(const Handle& handle);
 		[[nodiscard]] uint32_t GetMaterialIndex(const Handle& handle);
 		[[nodiscard]] uint32_t GetInstanceIndex(const Handle& handle);

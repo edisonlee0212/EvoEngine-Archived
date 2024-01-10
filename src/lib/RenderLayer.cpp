@@ -397,6 +397,11 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	if (m_enableRenderMenu)
 	{
 		ImGui::Begin("Render Settings");
+		ImGui::Checkbox("Enable MeshRenderer", &m_enableMeshRenderer);
+		ImGui::Checkbox("Enable SkinnedMeshRenderer", &m_enableSkinnedMeshRenderer);
+		ImGui::Checkbox("Enable Particles", &m_enableParticles);
+		ImGui::Checkbox("Enable StrandsRenderer", &m_enableStrandsRenderer);
+
 		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
 		ImGui::Checkbox("Wireframe", &m_wireFrame);
 		if(Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
@@ -1430,291 +1435,296 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 	minBound = glm::vec3(FLT_MAX);
 	maxBound = glm::vec3(FLT_MIN);
 	bool hasRenderInstance = false;
-	if (const auto* owners =
-		scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>())
-	{
-		for (auto owner : *owners)
+	if (m_enableMeshRenderer) {
+		if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>())
 		{
-			if (!scene->IsEntityEnabled(owner))
-				continue;
-			auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
-			auto material = meshRenderer->m_material.Get<Material>();
-			auto mesh = meshRenderer->m_mesh.Get<Mesh>();
-			if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
-				continue;
-			if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) continue;
-			hasRenderInstance = true;
-
-			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-			auto ltw = gt.m_value;
-			auto meshBound = mesh->GetBound();
-			meshBound.ApplyTransform(ltw);
-			glm::vec3 center = meshBound.Center();
-
-			glm::vec3 size = meshBound.Size();
-			minBound = glm::vec3(
-				(glm::min)(minBound.x, center.x - size.x),
-				(glm::min)(minBound.y, center.y - size.y),
-				(glm::min)(minBound.z, center.z - size.z));
-			maxBound = glm::vec3(
-				(glm::max)(maxBound.x, center.x + size.x),
-				(glm::max)(maxBound.y, center.y + size.y),
-				(glm::max)(maxBound.z, center.z + size.z));
-
-			MaterialInfoBlock materialInfoBlock;
-			material->UpdateMaterialInfoBlock(materialInfoBlock);
-			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-			InstanceInfoBlock instanceInfoBlock;
-			instanceInfoBlock.m_model = gt;
-			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-
-			instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
-
-			auto entityHandle = scene->GetEntityHandle(owner);
-			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-			RenderInstance renderInstance;
-			renderInstance.m_commandType = RenderCommandType::FromRenderer;
-			renderInstance.m_owner = owner;
-			renderInstance.m_mesh = mesh;
-			renderInstance.m_castShadow = meshRenderer->m_castShadow;
-			renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
-			renderInstance.m_instanceIndex = instanceIndex;
-
-			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-			if (material->m_drawSettings.m_blending)
+			for (auto owner : *owners)
 			{
-				m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
-			}
-			else
-			{
-				m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
-			}
+				if (!scene->IsEntityEnabled(owner))
+					continue;
+				auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
+				auto material = meshRenderer->m_material.Get<Material>();
+				auto mesh = meshRenderer->m_mesh.Get<Mesh>();
+				if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
+					continue;
+				if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) continue;
+				hasRenderInstance = true;
 
-			auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
-			newMeshTask.groupCountX = 1;
-			newMeshTask.groupCountY = 1;
-			newMeshTask.groupCountZ = 1;
+				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+				auto ltw = gt.m_value;
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(ltw);
+				glm::vec3 center = meshBound.Center();
 
-			auto& newDrawTask = m_meshDrawIndexedIndirectCommands.emplace_back();
-			newDrawTask.instanceCount = 1;
-			newDrawTask.firstIndex = mesh->m_triangleRange->m_offset * 3;
-			newDrawTask.indexCount = static_cast<uint32_t>(mesh->m_triangles.size() * 3);
-			newDrawTask.vertexOffset = 0;
-			newDrawTask.firstInstance = 0;
+				glm::vec3 size = meshBound.Size();
+				minBound = glm::vec3(
+					(glm::min)(minBound.x, center.x - size.x),
+					(glm::min)(minBound.y, center.y - size.y),
+					(glm::min)(minBound.z, center.z - size.z));
+				maxBound = glm::vec3(
+					(glm::max)(maxBound.x, center.x + size.x),
+					(glm::max)(maxBound.y, center.y + size.y),
+					(glm::max)(maxBound.z, center.z + size.z));
 
-			m_totalMeshTriangles += mesh->m_triangles.size();
-		}
-	}
-	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
-	{
-		for (auto owner : *owners)
-		{
-			if (!scene->IsEntityEnabled(owner))
-				continue;
-			auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owner).lock();
-			auto material = skinnedMeshRenderer->m_material.Get<Material>();
-			auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
-			if (!skinnedMeshRenderer->IsEnabled() || !material || !skinnedMesh || !skinnedMesh->m_skinnedMeshletRange || !skinnedMesh->m_skinnedTriangleRange)
-				continue;
-			if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) continue;
-			GlobalTransform gt;
-			if (auto animator = skinnedMeshRenderer->m_animator.Get<Animator>(); !animator)
-			{
-				continue;
-			}
-			hasRenderInstance = true;
-			if (!skinnedMeshRenderer->m_ragDoll)
-			{
-				gt = scene->GetDataComponent<GlobalTransform>(owner);
-			}
-			auto ltw = gt.m_value;
-			auto meshBound = skinnedMesh->GetBound();
-			meshBound.ApplyTransform(ltw);
-			glm::vec3 center = meshBound.Center();
+				MaterialInfoBlock materialInfoBlock;
+				material->UpdateMaterialInfoBlock(materialInfoBlock);
+				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+				InstanceInfoBlock instanceInfoBlock;
+				instanceInfoBlock.m_model = gt;
+				instanceInfoBlock.m_materialIndex = materialIndex;
+				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
 
-			glm::vec3 size = meshBound.Size();
-			minBound = glm::vec3(
-				(glm::min)(minBound.x, center.x - size.x),
-				(glm::min)(minBound.y, center.y - size.y),
-				(glm::min)(minBound.z, center.z - size.z));
-			maxBound = glm::vec3(
-				(glm::max)(maxBound.x, center.x + size.x),
-				(glm::max)(maxBound.y, center.y + size.y),
-				(glm::max)(maxBound.z, center.z + size.z));
+				instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
+				instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
 
-			MaterialInfoBlock materialInfoBlock;
-			material->UpdateMaterialInfoBlock(materialInfoBlock);
-			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-			InstanceInfoBlock instanceInfoBlock;
-			instanceInfoBlock.m_model = gt;
-			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
-			auto entityHandle = scene->GetEntityHandle(owner);
-			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+				auto entityHandle = scene->GetEntityHandle(owner);
+				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+				RenderInstance renderInstance;
+				renderInstance.m_commandType = RenderCommandType::FromRenderer;
+				renderInstance.m_owner = owner;
+				renderInstance.m_mesh = mesh;
+				renderInstance.m_castShadow = meshRenderer->m_castShadow;
+				renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
+				renderInstance.m_instanceIndex = instanceIndex;
 
-			SkinnedRenderInstance renderInstance;
-			renderInstance.m_commandType = RenderCommandType::FromRenderer;
-			renderInstance.m_owner = owner;
-			renderInstance.m_skinnedMesh = skinnedMesh;
-			renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
-			renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
-			renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
-			renderInstance.m_instanceIndex = instanceIndex;
+				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+				if (material->m_drawSettings.m_blending)
+				{
+					m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
+				else
+				{
+					m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
 
-			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+				auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
+				newMeshTask.groupCountX = 1;
+				newMeshTask.groupCountY = 1;
+				newMeshTask.groupCountZ = 1;
 
-			if (material->m_drawSettings.m_blending)
-			{
-				m_transparentSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
-			}
-			else
-			{
-				m_deferredSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+				auto& newDrawTask = m_meshDrawIndexedIndirectCommands.emplace_back();
+				newDrawTask.instanceCount = 1;
+				newDrawTask.firstIndex = mesh->m_triangleRange->m_offset * 3;
+				newDrawTask.indexCount = static_cast<uint32_t>(mesh->m_triangles.size() * 3);
+				newDrawTask.vertexOffset = 0;
+				newDrawTask.firstInstance = 0;
+
+				m_totalMeshTriangles += mesh->m_triangles.size();
 			}
 		}
 	}
-
-	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<Particles>())
-	{
-		for (auto owner : *owners)
+	if (m_enableSkinnedMeshRenderer) {
+		if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
 		{
-			if (!scene->IsEntityEnabled(owner))
-				continue;
-			auto particles = scene->GetOrSetPrivateComponent<Particles>(owner).lock();
-			auto material = particles->m_material.Get<Material>();
-			auto mesh = particles->m_mesh.Get<Mesh>();
-			auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
-			if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
-				continue;
-			if (particleInfoList->m_particleInfos.empty()) continue;
-
-			hasRenderInstance = true;
-			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-			auto ltw = gt.m_value;
-			auto meshBound = mesh->GetBound();
-			meshBound.ApplyTransform(ltw);
-			glm::vec3 center = meshBound.Center();
-
-			glm::vec3 size = meshBound.Size();
-			minBound = glm::vec3(
-				(glm::min)(minBound.x, center.x - size.x),
-				(glm::min)(minBound.y, center.y - size.y),
-				(glm::min)(minBound.z, center.z - size.z));
-
-			maxBound = glm::vec3(
-				(glm::max)(maxBound.x, center.x + size.x),
-				(glm::max)(maxBound.y, center.y + size.y),
-				(glm::max)(maxBound.z, center.z + size.z));
-
-			MaterialInfoBlock materialInfoBlock;
-			material->UpdateMaterialInfoBlock(materialInfoBlock);
-			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-			InstanceInfoBlock instanceInfoBlock;
-			instanceInfoBlock.m_model = gt;
-			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
-			auto entityHandle = scene->GetEntityHandle(owner);
-			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-
-			InstancedRenderInstance renderInstance;
-			renderInstance.m_commandType = RenderCommandType::FromRenderer;
-			renderInstance.m_owner = owner;
-			renderInstance.m_mesh = mesh;
-			renderInstance.m_castShadow = particles->m_castShadow;
-			renderInstance.m_particleInfos = particleInfoList;
-			renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
-
-			renderInstance.m_instanceIndex = instanceIndex;
-
-			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-
-			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-
-			if (material->m_drawSettings.m_blending)
+			for (auto owner : *owners)
 			{
-				m_transparentInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
-			}
-			else
-			{
-				m_deferredInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+				if (!scene->IsEntityEnabled(owner))
+					continue;
+				auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owner).lock();
+				auto material = skinnedMeshRenderer->m_material.Get<Material>();
+				auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
+				if (!skinnedMeshRenderer->IsEnabled() || !material || !skinnedMesh || !skinnedMesh->m_skinnedMeshletRange || !skinnedMesh->m_skinnedTriangleRange)
+					continue;
+				if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) continue;
+				GlobalTransform gt;
+				if (auto animator = skinnedMeshRenderer->m_animator.Get<Animator>(); !animator)
+				{
+					continue;
+				}
+				hasRenderInstance = true;
+				if (!skinnedMeshRenderer->m_ragDoll)
+				{
+					gt = scene->GetDataComponent<GlobalTransform>(owner);
+				}
+				auto ltw = gt.m_value;
+				auto meshBound = skinnedMesh->GetBound();
+				meshBound.ApplyTransform(ltw);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				minBound = glm::vec3(
+					(glm::min)(minBound.x, center.x - size.x),
+					(glm::min)(minBound.y, center.y - size.y),
+					(glm::min)(minBound.z, center.z - size.z));
+				maxBound = glm::vec3(
+					(glm::max)(maxBound.x, center.x + size.x),
+					(glm::max)(maxBound.y, center.y + size.y),
+					(glm::max)(maxBound.z, center.z + size.z));
+
+				MaterialInfoBlock materialInfoBlock;
+				material->UpdateMaterialInfoBlock(materialInfoBlock);
+				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+				InstanceInfoBlock instanceInfoBlock;
+				instanceInfoBlock.m_model = gt;
+				instanceInfoBlock.m_materialIndex = materialIndex;
+				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+				instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
+				auto entityHandle = scene->GetEntityHandle(owner);
+				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+				SkinnedRenderInstance renderInstance;
+				renderInstance.m_commandType = RenderCommandType::FromRenderer;
+				renderInstance.m_owner = owner;
+				renderInstance.m_skinnedMesh = skinnedMesh;
+				renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
+				renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
+				renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
+				renderInstance.m_instanceIndex = instanceIndex;
+
+				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+				if (material->m_drawSettings.m_blending)
+				{
+					m_transparentSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
+				else
+				{
+					m_deferredSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
 			}
 		}
 	}
-
-	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<StrandsRenderer>())
-	{
-		for (auto owner : *owners)
+	if (m_enableParticles) {
+		if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<Particles>())
 		{
-			if (!scene->IsEntityEnabled(owner))
-				continue;
-			auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
-			auto material = strandsRenderer->m_material.Get<Material>();
-			auto strands = strandsRenderer->m_strands.Get<Strands>();
-			if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
-				continue;
-
-			hasRenderInstance = true;
-			auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-			auto ltw = gt.m_value;
-			auto meshBound = strands->m_bound;
-			meshBound.ApplyTransform(ltw);
-			glm::vec3 center = meshBound.Center();
-
-			glm::vec3 size = meshBound.Size();
-			minBound = glm::vec3(
-				(glm::min)(minBound.x, center.x - size.x),
-				(glm::min)(minBound.y, center.y - size.y),
-				(glm::min)(minBound.z, center.z - size.z));
-			maxBound = glm::vec3(
-				(glm::max)(maxBound.x, center.x + size.x),
-				(glm::max)(maxBound.y, center.y + size.y),
-				(glm::max)(maxBound.z, center.z + size.z));
-
-			MaterialInfoBlock materialInfoBlock;
-			material->UpdateMaterialInfoBlock(materialInfoBlock);
-			auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-			InstanceInfoBlock instanceInfoBlock;
-			instanceInfoBlock.m_model = gt;
-			instanceInfoBlock.m_materialIndex = materialIndex;
-			instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-			instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_range;
-			auto entityHandle = scene->GetEntityHandle(owner);
-			auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-
-			StrandsRenderInstance renderInstance;
-			renderInstance.m_commandType = RenderCommandType::FromRenderer;
-			renderInstance.m_owner = owner;
-			renderInstance.m_strands = strands;
-			renderInstance.m_castShadow = strandsRenderer->m_castShadow;
-			renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_range;
-
-			renderInstance.m_instanceIndex = instanceIndex;
-
-			renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-			renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-			renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-
-			if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-
-			if (material->m_drawSettings.m_blending)
+			for (auto owner : *owners)
 			{
-				m_transparentStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+				if (!scene->IsEntityEnabled(owner))
+					continue;
+				auto particles = scene->GetOrSetPrivateComponent<Particles>(owner).lock();
+				auto material = particles->m_material.Get<Material>();
+				auto mesh = particles->m_mesh.Get<Mesh>();
+				auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
+				if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
+					continue;
+				if (particleInfoList->m_particleInfos.empty()) continue;
+
+				hasRenderInstance = true;
+				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+				auto ltw = gt.m_value;
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(ltw);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				minBound = glm::vec3(
+					(glm::min)(minBound.x, center.x - size.x),
+					(glm::min)(minBound.y, center.y - size.y),
+					(glm::min)(minBound.z, center.z - size.z));
+
+				maxBound = glm::vec3(
+					(glm::max)(maxBound.x, center.x + size.x),
+					(glm::max)(maxBound.y, center.y + size.y),
+					(glm::max)(maxBound.z, center.z + size.z));
+
+				MaterialInfoBlock materialInfoBlock;
+				material->UpdateMaterialInfoBlock(materialInfoBlock);
+				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+				InstanceInfoBlock instanceInfoBlock;
+				instanceInfoBlock.m_model = gt;
+				instanceInfoBlock.m_materialIndex = materialIndex;
+				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+				instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
+				auto entityHandle = scene->GetEntityHandle(owner);
+				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+				InstancedRenderInstance renderInstance;
+				renderInstance.m_commandType = RenderCommandType::FromRenderer;
+				renderInstance.m_owner = owner;
+				renderInstance.m_mesh = mesh;
+				renderInstance.m_castShadow = particles->m_castShadow;
+				renderInstance.m_particleInfos = particleInfoList;
+				renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
+
+				renderInstance.m_instanceIndex = instanceIndex;
+
+				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
+				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+				if (material->m_drawSettings.m_blending)
+				{
+					m_transparentInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
+				else
+				{
+					m_deferredInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
 			}
-			else
+		}
+	}
+	if (m_enableStrandsRenderer) {
+		if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<StrandsRenderer>())
+		{
+			for (auto owner : *owners)
 			{
-				m_deferredStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+				if (!scene->IsEntityEnabled(owner))
+					continue;
+				auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
+				auto material = strandsRenderer->m_material.Get<Material>();
+				auto strands = strandsRenderer->m_strands.Get<Strands>();
+				if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
+					continue;
+
+				hasRenderInstance = true;
+				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+				auto ltw = gt.m_value;
+				auto meshBound = strands->m_bound;
+				meshBound.ApplyTransform(ltw);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				minBound = glm::vec3(
+					(glm::min)(minBound.x, center.x - size.x),
+					(glm::min)(minBound.y, center.y - size.y),
+					(glm::min)(minBound.z, center.z - size.z));
+				maxBound = glm::vec3(
+					(glm::max)(maxBound.x, center.x + size.x),
+					(glm::max)(maxBound.y, center.y + size.y),
+					(glm::max)(maxBound.z, center.z + size.z));
+
+				MaterialInfoBlock materialInfoBlock;
+				material->UpdateMaterialInfoBlock(materialInfoBlock);
+				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+				InstanceInfoBlock instanceInfoBlock;
+				instanceInfoBlock.m_model = gt;
+				instanceInfoBlock.m_materialIndex = materialIndex;
+				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+				instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_range;
+				auto entityHandle = scene->GetEntityHandle(owner);
+				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+				StrandsRenderInstance renderInstance;
+				renderInstance.m_commandType = RenderCommandType::FromRenderer;
+				renderInstance.m_owner = owner;
+				renderInstance.m_strands = strands;
+				renderInstance.m_castShadow = strandsRenderer->m_castShadow;
+				renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_range;
+
+				renderInstance.m_instanceIndex = instanceIndex;
+
+				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
+				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+				if (material->m_drawSettings.m_blending)
+				{
+					m_transparentStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
+				else
+				{
+					m_deferredStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+				}
 			}
 		}
 	}
