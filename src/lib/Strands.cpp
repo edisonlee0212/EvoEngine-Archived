@@ -28,15 +28,25 @@ std::vector<StrandPoint>& Strands::UnsafeGetStrandPoints() {
 	return m_strandPoints;
 }
 
-std::vector<glm::uvec4>& Strands::UnsafeGetSegments() {
-	return m_segments;
+std::vector<glm::uint>& Strands::UnsafeGetSegments() {
+	return m_segmentRawIndices;
 }
 
 void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes) {
+	m_segments.resize(m_segmentRawIndices.size());
+	Jobs::ParallelFor(m_segmentRawIndices.size(), [&](unsigned i)
+		{
+			m_segments[i].x = m_segmentRawIndices[i];
+			m_segments[i].y = m_segmentRawIndices[i] + 1;
+			m_segments[i].z = m_segmentRawIndices[i] + 2;
+			m_segments[i].w = m_segmentRawIndices[i] + 3;
+		}
+	);
+
 #pragma region Bound
 	glm::vec3 minBound = m_strandPoints.at(0).m_position;
 	glm::vec3 maxBound = m_strandPoints.at(0).m_position;
-	for (const auto& vertex : m_strandPoints)
+	for (auto& vertex : m_strandPoints)
 	{
 		minBound = glm::vec3(
 			(glm::min)(minBound.x, vertex.m_position.x),
@@ -199,7 +209,7 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
 			StrandPointAttributes strandPointAttributes{};
 			strandPointAttributes.m_texCoord = true;
 			strandPointAttributes.m_color = true;
-			//SetStrands(strandPointAttributes, strands, strandPoints);
+			SetStrands(strandPointAttributes, strands, strandPoints);
 			return true;
 		}
 		catch (std::exception& e) {
@@ -218,9 +228,9 @@ void Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 
 void Strands::Serialize(YAML::Emitter& out) {
 
-	if (!m_segments.empty() && !m_strandPoints.empty()) {
-		out << YAML::Key << "m_segments" << YAML::Value
-			<< YAML::Binary((const unsigned char*)m_segments.data(), m_segments.size() * sizeof(glm::uint));
+	if (!m_segmentRawIndices.empty() && !m_strandPoints.empty()) {
+		out << YAML::Key << "m_segmentRawIndices" << YAML::Value
+			<< YAML::Binary((const unsigned char*)m_segmentRawIndices.data(), m_segmentRawIndices.size() * sizeof(glm::uint));
 
 		out << YAML::Key << "m_scatteredPoints" << YAML::Value
 			<< YAML::Binary((const unsigned char*)m_strandPoints.data(), m_strandPoints.size() * sizeof(StrandPoint));
@@ -228,12 +238,12 @@ void Strands::Serialize(YAML::Emitter& out) {
 }
 
 void Strands::Deserialize(const YAML::Node& in) {
-	if (in["m_segments"] && in["m_scatteredPoints"]) {
-		const auto &segmentData = in["m_segments"].as<YAML::Binary>();
-		m_segments.resize(segmentData.size() / sizeof(glm::uint));
-		std::memcpy(m_segments.data(), segmentData.data(), segmentData.size());
+	if (in["m_segmentRawIndices"] && in["m_scatteredPoints"]) {
+		auto segmentData = in["m_segmentRawIndices"].as<YAML::Binary>();
+		m_segmentRawIndices.resize(segmentData.size() / sizeof(glm::uint));
+		std::memcpy(m_segmentRawIndices.data(), segmentData.data(), segmentData.size());
 
-		const auto& pointData = in["m_scatteredPoints"].as<YAML::Binary>();
+		auto pointData = in["m_scatteredPoints"].as<YAML::Binary>();
 		m_strandPoints.resize(pointData.size() / sizeof(StrandPoint));
 		std::memcpy(m_strandPoints.data(), pointData.data(), pointData.size());
 
@@ -245,8 +255,6 @@ void Strands::Deserialize(const YAML::Node& in) {
 	}
 
 }
-
-
 
 void Strands::OnCreate()
 {
@@ -276,30 +284,50 @@ size_t Strands::GetStrandPointAmount() const
 {
 	return m_strandPoints.size();
 }
-void Strands::SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uvec4>& segments,
-	const std::vector<StrandPoint>& points)
-{
+
+void Strands::SetSegments(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& segments, const std::vector<StrandPoint>& points) {
 	if (points.empty() || segments.empty()) {
 		return;
 	}
 
-	m_segments = segments;
+	m_segmentRawIndices = segments;
+	m_strandPoints = points;
+
+	PrepareStrands(strandPointAttributes);
+}
+
+void Strands::SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& strands, const std::vector<StrandPoint>& points)
+{
+	if (points.empty() || strands.empty()) {
+		return;
+	}
+
+	m_segmentRawIndices.clear();
+	// loop to one before end, as last strand value is the "past last valid vertex"
+	// index
+	for (auto strand = strands.begin(); strand != strands.end() - 1; ++strand) {
+		const int start = *(strand);                      // first vertex in first segment
+		const int end = *(strand + 1) - 3;//CurveDegree();  // second vertex of last segment
+		for (int i = start; i < end; i++) {
+			m_segmentRawIndices.emplace_back(i);
+		}
+	}
 	m_strandPoints = points;
 	PrepareStrands(strandPointAttributes);
 }
 
 
-void Strands::CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, glm::vec3& result, glm::vec3& tangent, const float u)
+void CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, glm::vec3& result, glm::vec3& tangent, const float t)
 {
-	const float t2 = u * u;
+	float t2 = t * t;
 
-	const glm::vec3 a0 = -0.5f * v0 + 1.5f * v1 - 1.5f * v2 + 0.5f * v3;
-	const glm::vec3 a1 = v0 - 2.5f * v1 + 2.0f * v2 - 0.5f * v3;
-	const glm::vec3 a2 = -0.5f * v0 + 0.5f * v2;
-	const glm::vec3 a3 = v1;
+	glm::vec3 a0 = -0.5f * v0 + 1.5f * v1 - 1.5f * v2 + 0.5f * v3;
+	glm::vec3 a1 = v0 - 2.5f * v1 + 2.0f * v2 - 0.5f * v3;
+	glm::vec3 a2 = -0.5f * v0 + 0.5f * v2;
+	glm::vec3 a3 = v1;
 
-	result = glm::vec3(a0 * u * t2 + a1 * t2 + a2 * u + a3);
-	tangent = normalize(glm::vec3(3.0f * a0 * t2 + 2.0f * a1 * u + a2));
+	result = glm::vec3(a0 * t * t2 + a1 * t2 + a2 * t + a3);
+	tangent = normalize(glm::vec3(3.0f * a0 * t2 + 2.0f * a1 * t + a2));
 }
 
 void Strands::RecalculateNormal()

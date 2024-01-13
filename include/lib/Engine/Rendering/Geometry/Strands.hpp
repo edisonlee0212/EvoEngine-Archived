@@ -17,7 +17,7 @@ namespace EvoEngine
     };
     class Strands : public IAsset, public IGeometry {
     public:
-        [[nodiscard]] std::vector<glm::uvec4>& UnsafeGetSegments();
+        [[nodiscard]] std::vector<glm::uint>& UnsafeGetSegments();
         [[nodiscard]] std::vector<StrandPoint>& UnsafeGetStrandPoints();
         void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
@@ -25,7 +25,10 @@ namespace EvoEngine
 
         void Deserialize(const YAML::Node& in) override;
 
-        void SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uvec4>& segments,
+        void SetSegments(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& segments,
+            const std::vector<StrandPoint>& points);
+
+        void SetStrands(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& strands,
             const std::vector<StrandPoint>& points);
         void RecalculateNormal();
         void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
@@ -36,8 +39,6 @@ namespace EvoEngine
         [[nodiscard]] size_t GetSegmentAmount() const;
         ~Strands() override;
         [[nodiscard]] size_t GetStrandPointAmount() const;
-
-        static void CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, glm::vec3& result, glm::vec3& tangent, float u);
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
@@ -52,7 +53,9 @@ namespace EvoEngine
         Bound m_bound;
 
         void PrepareStrands(const StrandPointAttributes& strandPointAttributes);
-        
+        //The starting index of the point where this segment starts;
+        std::vector<glm::uint> m_segmentRawIndices;
+
         std::vector<glm::uvec4> m_segments;
         std::vector<StrandPoint> m_strandPoints;
     };
