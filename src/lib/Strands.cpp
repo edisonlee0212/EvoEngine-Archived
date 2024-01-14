@@ -285,6 +285,7 @@ size_t Strands::GetStrandPointAmount() const
 	return m_strandPoints.size();
 }
 
+
 void Strands::SetSegments(const StrandPointAttributes& strandPointAttributes, const std::vector<glm::uint>& segments, const std::vector<StrandPoint>& points) {
 	if (points.empty() || segments.empty()) {
 		return;
@@ -317,18 +318,25 @@ void Strands::SetStrands(const StrandPointAttributes& strandPointAttributes, con
 }
 
 
-void CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, glm::vec3& result, glm::vec3& tangent, const float t)
+void Strands::CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3,
+	glm::vec3& result, glm::vec3& tangent, float u)
 {
-	float t2 = t * t;
-
-	glm::vec3 a0 = -0.5f * v0 + 1.5f * v1 - 1.5f * v2 + 0.5f * v3;
-	glm::vec3 a1 = v0 - 2.5f * v1 + 2.0f * v2 - 0.5f * v3;
-	glm::vec3 a2 = -0.5f * v0 + 0.5f * v2;
-	glm::vec3 a3 = v1;
-
-	result = glm::vec3(a0 * t * t2 + a1 * t2 + a2 * t + a3);
-	tangent = normalize(glm::vec3(3.0f * a0 * t2 + 2.0f * a1 * t + a2));
+	const glm::vec3 p0 = (v2 + v0) / 6.0f + v1 * (4.0f / 6.0f);
+	const glm::vec3 p1 = v2 - v0;
+	const glm::vec3 p2 = v2 - v1;
+	const glm::vec3 p3 = v3 - v1;
+	const float uu = u * u;
+	const float u3 = 1.0f / 6.0f * uu * u;
+	const glm::vec3 q = glm::vec3(u3 + 0.5 * (u - uu), uu - 4.0 * u3, u3);
+	result = p0 + q.x * p1 + q.y * p2 + q.z * p3;
+	if (u == 0.0)
+		u = 0.000001f;
+	if (u == 1.0)
+		u = 0.999999f;
+	const float v = 1.0f - u;
+	tangent = 0.5f * v * v * p1 + 2.0f * v * u * p2 + 0.5f * u * u * p3;
 }
+
 
 void Strands::RecalculateNormal()
 {
