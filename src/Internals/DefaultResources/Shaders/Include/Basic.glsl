@@ -321,49 +321,58 @@ int EE_STRANDS_SEGMENT_SUBDIVISION(in vec3 worldPosA, in vec3 worldPosB) {
 	return max(1, min(EE_STRANDS_SUBDIVISION_MAX_X, int(pixelDistance / EE_STRANDS_SUBDIVISION_X_FACTOR)));
 }
 
-void EE_SPLINE_INTERPOLATION(in vec3 v0, in vec3 v1, in vec3 v2, in vec3 v3, out vec3 result, out vec3 tangent, float t)
+void EE_SPLINE_INTERPOLATION(in vec3 v0, in vec3 v1, in vec3 v2, in vec3 v3, out vec3 result, out vec3 tangent, float u)
 {
-	float t2 = t * t;
-	vec3 a0, a1, a2, a3;
-
-	a0 = -0.5 * v0 + 1.5 * v1 - 1.5 * v2 + 0.5 * v3;
-	a1 = v0 - 2.5 * v1 + 2.0 * v2 - 0.5 * v3;
-	a2 = -0.5 * v0 + 0.5 * v2;
-	a3 = v1;
-
-	result = vec3(a0 * t * t2 + a1 * t2 + a2 * t + a3);
-	vec3 d1 = vec3(3.0 * a0 * t2 + 2.0 * a1 * t + a2);
-	tangent = normalize(d1);
+	vec3 p0 = (v2 + v0) / 6.0 + v1 * (4.0 / 6.0);
+	vec3 p1 = v2 - v0;
+	vec3 p2 = v2 - v1;
+	vec3 p3 = v3 - v1;
+	float uu = u * u;
+	float u3 = (1.0f / 6.0) * uu * u;
+	vec3 q = vec3(u3 + 0.5 * (u - uu), uu - 4.0 * u3, u3);
+	result = p0 + q.x * p1 + q.y * p2 + q.z * p3;
+	if (u == 0.0)
+		u = 0.000001;
+	if (u == 1.0)
+		u = 0.999999;
+	float v = 1.0 - u;
+	tangent = 0.5 * v * v * p1 + 2.0 * v * u * p2 + 0.5 * u * u * p3;
 }
 
-void EE_SPLINE_INTERPOLATION(in float v0, in float v1, in float v2, in float v3, out float result, out float tangent, float t)
+void EE_SPLINE_INTERPOLATION(in float v0, in float v1, in float v2, in float v3, out float result, out float tangent, float u)
 {
-	float t2 = t * t;
-	float a0, a1, a2, a3;
-
-	a0 = -0.5 * v0 + 1.5 * v1 - 1.5 * v2 + 0.5 * v3;
-	a1 = v0 - 2.5 * v1 + 2.0 * v2 - 0.5 * v3;
-	a2 = -0.5 * v0 + 0.5 * v2;
-	a3 = v1;
-
-	result = a0 * t * t2 + a1 * t2 + a2 * t + a3;
-	float d1 = 3.0 * a0 * t2 + 2.0 * a1 * t + a2;
-	tangent = d1;
+	float p0 = (v2 + v0) / 6.0 + v1 * (4.0 / 6.0);
+	float p1 = v2 - v0;
+	float p2 = v2 - v1;
+	float p3 = v3 - v1;
+	float uu = u * u;
+	float u3 = (1.0f / 6.0) * uu * u;
+	vec3 q = vec3(u3 + 0.5 * (u - uu), uu - 4.0 * u3, u3);
+	result = p0 + q.x * p1 + q.y * p2 + q.z * p3;
+	if (u == 0.0)
+		u = 0.000001;
+	if (u == 1.0)
+		u = 0.999999;
+	float v = 1.0 - u;
+	tangent = 0.5 * v * v * p1 + 2.0 * v * u * p2 + 0.5 * u * u * p3;
 }
 
-void EE_SPLINE_INTERPOLATION(in vec4 v0, in vec4 v1, in vec4 v2, in vec4 v3, out vec4 result, out vec4 tangent, float t)
+void EE_SPLINE_INTERPOLATION(in vec4 v0, in vec4 v1, in vec4 v2, in vec4 v3, out vec4 result, out vec4 tangent, float u)
 {
-	float t2 = t * t;
-	vec4 a0, a1, a2, a3;
-
-	a0 = -0.5 * v0 + 1.5 * v1 - 1.5 * v2 + 0.5 * v3;
-	a1 = v0 - 2.5 * v1 + 2.0 * v2 - 0.5 * v3;
-	a2 = -0.5 * v0 + 0.5 * v2;
-	a3 = v1;
-
-	result = vec4(a0 * t * t2 + a1 * t2 + a2 * t + a3);
-	vec4 d1 = vec4(3.0 * a0 * t2 + 2.0 * a1 * t + a2);
-	tangent = normalize(d1);
+	vec4 p0 = (v2 + v0) / 6.0 + v1 * (4.0 / 6.0);
+	vec4 p1 = v2 - v0;
+	vec4 p2 = v2 - v1;
+	vec4 p3 = v3 - v1;
+	float uu = u * u;
+	float u3 = (1.0f / 6.0) * uu * u;
+	vec3 q = vec3(u3 + 0.5 * (u - uu), uu - 4.0 * u3, u3);
+	result = p0 + q.x * p1 + q.y * p2 + q.z * p3;
+	if (u == 0.0)
+		u = 0.000001;
+	if (u == 1.0)
+		u = 0.999999;
+	float v = 1.0 - u;
+	tangent = 0.5 * v * v * p1 + 2.0 * v * u * p2 + 0.5 * u * u * p3;
 }
 
 int EE_STRANDS_RING_SUBDIVISION(in mat4 model, in vec3 worldPos, in vec3 modelPos, in float thickness)
