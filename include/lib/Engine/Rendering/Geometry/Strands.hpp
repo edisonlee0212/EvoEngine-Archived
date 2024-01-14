@@ -39,6 +39,8 @@ namespace EvoEngine
         [[nodiscard]] size_t GetSegmentAmount() const;
         ~Strands() override;
         [[nodiscard]] size_t GetStrandPointAmount() const;
+
+        static void CubicInterpolation(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, glm::vec3& result, glm::vec3& tangent, float u);
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
