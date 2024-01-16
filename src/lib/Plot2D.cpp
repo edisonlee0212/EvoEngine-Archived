@@ -39,7 +39,7 @@ bool Curve2D::OnInspect(const std::string& label, const ImVec2& editorSize, unsi
         const ImGuiStyle& style = g.Style;
         ImVec2 size = editorSize;
 
-        size.x = size.x < 0 ? ImGui::GetWindowContentRegionWidth() : size.x;
+        size.x = size.x < 0 ? ImGui::CalcItemWidth() : size.x;
         size.y = size.y < 0 ? size.x / 2.0f : size.y;
 
         ImGuiWindow* parentWindow = ImGui::GetCurrentWindow();

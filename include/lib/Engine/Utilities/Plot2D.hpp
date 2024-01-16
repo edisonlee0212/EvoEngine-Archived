@@ -21,8 +21,8 @@ namespace EvoEngine
 		glm::vec2 m_max;
 
 	public:
-		explicit Curve2D(const glm::vec2& min = { 0, -1 }, const glm::vec2& max = { 1, 1 }, bool tangent = true);
-		Curve2D(float start, float end, const glm::vec2& min = { 0, -1 }, const glm::vec2& max = { 1, 1 }, bool tangent = true);
+		explicit Curve2D(const glm::vec2& min = { 0, 0 }, const glm::vec2& max = { 1, 1 }, bool tangent = true);
+		Curve2D(float start, float end, const glm::vec2& min = { 0, 0 }, const glm::vec2& max = { 1, 1 }, bool tangent = true);
 		void Clear();
 		[[nodiscard]] std::vector<glm::vec2>& UnsafeGetValues();
 		void SetTangent(bool value);
