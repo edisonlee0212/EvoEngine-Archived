@@ -213,28 +213,14 @@ void Mesh::MergeVertices()
 	{
 		for (uint32_t j = i + 1; j < m_vertices.size(); j++)
 		{
-			const auto& vi = m_vertices.at(i);
+			auto& vi = m_vertices.at(i);
 			const auto& vj = m_vertices.at(j);
 			if (glm::distance(vi.m_position, vj.m_position) > glm::epsilon<float>())
 			{
 				continue;
 			}
-			if (glm::distance(vi.m_normal, vj.m_normal) > glm::epsilon<float>())
-			{
-				continue;
-			}
-			if (glm::distance(vi.m_tangent, vj.m_tangent) > glm::epsilon<float>())
-			{
-				continue;
-			}
-			if (m_vertexAttributes.m_texCoord && glm::distance(vi.m_texCoord, vj.m_texCoord) > glm::epsilon<float>())
-			{
-				continue;
-			}
-			if (m_vertexAttributes.m_color && glm::distance(vi.m_color, vj.m_color) > glm::epsilon<float>())
-			{
-				continue;
-			}
+			vi.m_texCoord = (vi.m_texCoord + vj.m_texCoord) * 0.5f;
+			vi.m_color = (vi.m_color + vj.m_color) * 0.5f;
 			m_vertices.at(j) = m_vertices.back();
 			for (auto& triangle : m_triangles)
 			{
