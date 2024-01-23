@@ -126,7 +126,7 @@ struct HairHeader {
 };
 
 bool Strands::LoadInternal(const std::filesystem::path& path) {
-	if (path.extension() == ".uestrands") {
+	if (path.extension() == ".evestrands") {
 		return IAsset::LoadInternal(path);
 	}
 	if (path.extension() == ".hair") {
@@ -239,11 +239,11 @@ void Strands::Serialize(YAML::Emitter& out) {
 
 void Strands::Deserialize(const YAML::Node& in) {
 	if (in["m_segmentRawIndices"] && in["m_scatteredPoints"]) {
-		auto segmentData = in["m_segmentRawIndices"].as<YAML::Binary>();
+		const auto& segmentData = in["m_segmentRawIndices"].as<YAML::Binary>();
 		m_segmentRawIndices.resize(segmentData.size() / sizeof(glm::uint));
 		std::memcpy(m_segmentRawIndices.data(), segmentData.data(), segmentData.size());
 
-		auto pointData = in["m_scatteredPoints"].as<YAML::Binary>();
+		const auto& pointData = in["m_scatteredPoints"].as<YAML::Binary>();
 		m_strandPoints.resize(pointData.size() / sizeof(StrandPoint));
 		std::memcpy(m_strandPoints.data(), pointData.data(), pointData.size());
 
