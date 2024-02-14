@@ -13,7 +13,7 @@ namespace EvoEngine
 		SHOW_DEBUG = 1 << 6
 	};
 
-	class Curve2D : public ISerializable
+	class Curve2D
 	{
 		bool m_tangent;
 		std::vector<glm::vec2> m_values;
@@ -34,8 +34,8 @@ namespace EvoEngine
 			const ImVec2& editorSize = ImVec2(-1, -1),
 			unsigned flags = static_cast<unsigned>(CurveEditorFlags::ALLOW_RESIZE) | static_cast<unsigned>(CurveEditorFlags::SHOW_GRID));
 		[[nodiscard]] float GetValue(float x, unsigned iteration = 8) const;
-		void Serialize(YAML::Emitter& out) override;
-		void Deserialize(const YAML::Node& in) override;
+		void Save(const std::string& name, YAML::Emitter& out) const;
+		void Load(const std::string& name, const YAML::Node& in);
 	};
 
 	struct CurveDescriptorSettings {
@@ -55,8 +55,8 @@ namespace EvoEngine
 				{ 1, 1 }));
 		bool OnInspect(const std::string& name,
 			const CurveDescriptorSettings& settings = {});
-		void Serialize(const std::string& name, YAML::Emitter& out);
-		void Deserialize(const std::string& name, const YAML::Node& in);
+		void Save(const std::string& name, YAML::Emitter& out) const;
+		void Load(const std::string& name, const YAML::Node& in);
 
 		[[nodiscard]] T GetValue(float t) const;
 	};
@@ -65,8 +65,8 @@ namespace EvoEngine
 		float m_deviation = 0.0f;
 		bool OnInspect(const std::string& name, float speed = 0.01f,
 			const std::string& tip = "");
-		void Serialize(const std::string& name, YAML::Emitter& out);
-		void Deserialize(const std::string& name, const YAML::Node& in);
+		void Save(const std::string& name, YAML::Emitter& out) const;
+		void Load(const std::string& name, const YAML::Node& in);
 		[[nodiscard]] T GetValue() const;
 	};
 
@@ -82,14 +82,14 @@ namespace EvoEngine
 		Plot2D<float> m_deviation;
 		bool OnInspect(const std::string& name,
 			const PlottedDistributionSettings& settings = {});
-		void Serialize(const std::string& name, YAML::Emitter& out);
-		void Deserialize(const std::string& name, const YAML::Node& in);
+		void Save(const std::string& name, YAML::Emitter& out) const;
+		void Load(const std::string& name, const YAML::Node& in);
 		T GetValue(float t) const;
 	};
 
 	template <class T>
-	void SingleDistribution<T>::Serialize(const std::string& name,
-		YAML::Emitter& out) {
+	void SingleDistribution<T>::Save(const std::string& name,
+		YAML::Emitter& out) const {
 		out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 		{
 			out << YAML::Key << "m_mean" << YAML::Value << m_mean;
@@ -98,7 +98,7 @@ namespace EvoEngine
 		out << YAML::EndMap;
 	}
 	template <class T>
-	void SingleDistribution<T>::Deserialize(const std::string& name,
+	void SingleDistribution<T>::Load(const std::string& name,
 		const YAML::Node& in) {
 		if (in[name]) {
 			const auto& cd = in[name];
@@ -156,22 +156,22 @@ namespace EvoEngine
 	}
 
 	template <class T>
-	void PlottedDistribution<T>::Serialize(const std::string& name,
-		YAML::Emitter& out) {
+	void PlottedDistribution<T>::Save(const std::string& name,
+		YAML::Emitter& out) const {
 		out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 		{
-			m_mean.Serialize("m_mean", out);
-			m_deviation.Serialize("m_deviation", out);
+			m_mean.Save("m_mean", out);
+			m_deviation.Save("m_deviation", out);
 		}
 		out << YAML::EndMap;
 	}
 	template <class T>
-	void PlottedDistribution<T>::Deserialize(const std::string& name,
+	void PlottedDistribution<T>::Load(const std::string& name,
 		const YAML::Node& in) {
 		if (in[name]) {
 			const auto& cd = in[name];
-			m_mean.Deserialize("m_mean", cd);
-			m_deviation.Deserialize("m_deviation", cd);
+			m_mean.Load("m_mean", cd);
+			m_deviation.Load("m_deviation", cd);
 		}
 	}
 	template <class T> T PlottedDistribution<T>::GetValue(float t) const {
@@ -226,20 +226,18 @@ namespace EvoEngine
 		return changed;
 	}
 	template <class T>
-	void Plot2D<T>::Serialize(const std::string& name,
-		YAML::Emitter& out) {
+	void Plot2D<T>::Save(const std::string& name,
+		YAML::Emitter& out) const {
 		out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 		{
 			out << YAML::Key << "m_minValue" << YAML::Value << m_minValue;
 			out << YAML::Key << "m_maxValue" << YAML::Value << m_maxValue;
-			out << YAML::Key << "m_curve" << YAML::Value << YAML::BeginMap;
-			m_curve.Serialize(out);
-			out << YAML::EndMap;
+			m_curve.Save("m_curve", out);
 		}
 		out << YAML::EndMap;
 	}
 	template <class T>
-	void Plot2D<T>::Deserialize(const std::string& name,
+	void Plot2D<T>::Load(const std::string& name,
 		const YAML::Node& in) {
 		if (in[name]) {
 			const auto& cd = in[name];
@@ -247,8 +245,7 @@ namespace EvoEngine
 				m_minValue = cd["m_minValue"].as<T>();
 			if (cd["m_maxValue"])
 				m_maxValue = cd["m_maxValue"].as<T>();
-			if (cd["m_curve"])
-				m_curve.Deserialize(cd["m_curve"]);
+			m_curve.Load("m_curve", cd);
 		}
 	}
 	template <class T> Plot2D<T>::Plot2D() {

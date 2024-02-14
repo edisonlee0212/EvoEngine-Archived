@@ -577,6 +577,9 @@ float Curve2D::GetValue(float x, unsigned iteration) const
         return m_values[m_values.size() - 1].y;
     }
 }
+
+
+
 Curve2D::Curve2D(const glm::vec2& min, const glm::vec2& max, bool tangent)
 {
     m_tangent = tangent;
@@ -651,33 +654,42 @@ void Curve2D::Clear()
         m_values.push_back({ (m_max.y - m_min.y) / 10.0f, 0.0f });
     }
 }
-void Curve2D::Serialize(YAML::Emitter& out)
-{
-    out << YAML::Key << "m_tangent" << m_tangent;
-    out << YAML::Key << "m_min" << m_min;
-    out << YAML::Key << "m_max" << m_max;
 
-    if (!m_values.empty())
-    {
-        out << YAML::Key << "m_values" << YAML::BeginSeq;
-        for (auto& i : m_values)
-        {
-            out << i;
-        }
-        out << YAML::EndSeq;
-    }
-}
-void Curve2D::Deserialize(const YAML::Node& in)
+void Curve2D::Save(const std::string& name, YAML::Emitter& out) const
 {
-    m_tangent = in["m_tangent"].as<bool>();
-    m_min = in["m_min"].as<glm::vec2>();
-    m_max = in["m_max"].as<glm::vec2>();
-    m_values.clear();
-    if (in["m_values"])
+    out << YAML::Key << name << YAML::Value << YAML::BeginMap;
     {
-        for (const auto& i : in["m_values"])
+        out << YAML::Key << "m_tangent" << m_tangent;
+        out << YAML::Key << "m_min" << m_min;
+        out << YAML::Key << "m_max" << m_max;
+
+        if (!m_values.empty())
         {
-            m_values.push_back(i.as<glm::vec2>());
+            out << YAML::Key << "m_values" << YAML::BeginSeq;
+            for (auto& i : m_values)
+            {
+                out << i;
+            }
+            out << YAML::EndSeq;
         }
+    }
+    out << YAML::EndMap;
+}
+
+void Curve2D::Load(const std::string& name, const YAML::Node& in)
+{
+    if (in[name]) {
+        const auto& cd = in[name];
+    	m_tangent = cd["m_tangent"].as<bool>();
+	    m_min = cd["m_min"].as<glm::vec2>();
+	    m_max = cd["m_max"].as<glm::vec2>();
+	    m_values.clear();
+	    if (cd["m_values"])
+	    {
+	        for (const auto& i : cd["m_values"])
+	        {
+	            m_values.push_back(i.as<glm::vec2>());
+	        }
+	    }
     }
 }
