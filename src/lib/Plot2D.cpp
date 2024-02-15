@@ -634,19 +634,23 @@ void Curve2D::Clear()
 {
 	if (!m_tangent)
 	{
-		const auto start = m_values.front().y;
-		const auto end = m_values.back().y;
+		auto start = 0.0f;
+		if (!m_values.empty()) start = m_values.front().y;
+		auto end = 0.0f;
+		if (!m_values.empty()) end = m_values.back().y;
 
 		m_values.clear();
 		m_values.emplace_back(m_min.x, (m_min.y + m_max.y) / 2.0f);
 		m_values.emplace_back(m_max.x, (m_min.y + m_max.y) / 2.0f);
-		SetStart(start);
-		SetEnd(end);
+		if (!m_values.empty()) SetStart(start);
+		if (!m_values.empty()) SetEnd(end);
 	}
 	else
 	{
-		const auto start = m_values[1].y;
-		const auto end = m_values[m_values.size() - 2].y;
+		auto start = 0.0f;
+		auto end = 0.0f;
+		if (m_values.size() >= 6) start = m_values[1].y;
+		if (m_values.size() >= 6) end = m_values[m_values.size() - 2].y;
 
 		m_values.clear();
 		m_values.emplace_back(-(m_max.y - m_min.y) / 10.0f, 0.0f);
@@ -657,8 +661,8 @@ void Curve2D::Clear()
 		m_values.emplace_back(m_max.x, (m_min.y + m_max.y) / 2.0f);
 		m_values.emplace_back((m_max.y - m_min.y) / 10.0f, 0.0f);
 
-		SetStart(start);
-		SetEnd(end);
+		if (m_values.size() >= 6) SetStart(start);
+		if (m_values.size() >= 6) SetEnd(end);
 	}
 }
 
