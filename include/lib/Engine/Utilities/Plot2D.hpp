@@ -34,6 +34,7 @@ namespace EvoEngine
 			const ImVec2& editorSize = ImVec2(-1, -1),
 			unsigned flags = static_cast<unsigned>(CurveEditorFlags::ALLOW_RESIZE) | static_cast<unsigned>(CurveEditorFlags::SHOW_GRID));
 		[[nodiscard]] float GetValue(float x, unsigned iteration = 8) const;
+
 		void Save(const std::string& name, YAML::Emitter& out) const;
 		void Load(const std::string& name, const YAML::Node& in);
 	};
@@ -145,8 +146,8 @@ namespace EvoEngine
 				ImGui::TextUnformatted(settings.m_tip.c_str());
 				ImGui::EndTooltip();
 			}
-			auto meanTitle = name + "(mean)";
-			auto devTitle = name + "(deviation)";
+			auto meanTitle = name + " (mean)";
+			auto devTitle = name + " (deviation)";
 			changed = m_mean.OnInspect(meanTitle, settings.m_meanSettings);
 			if (m_deviation.OnInspect(devTitle, settings.m_devSettings))
 				changed = true;
