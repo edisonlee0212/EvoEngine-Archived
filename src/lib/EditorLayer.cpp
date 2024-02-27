@@ -1381,7 +1381,7 @@ void EditorLayer::SetLockEntitySelection(const bool value)
 {
 	const auto scene = GetScene();
 	if (!value) m_lockEntitySelection = false;
-	else if (!scene->IsEntityValid(m_selectedEntity))
+	else if (scene->IsEntityValid(m_selectedEntity))
 	{
 		m_lockEntitySelection = true;
 	}

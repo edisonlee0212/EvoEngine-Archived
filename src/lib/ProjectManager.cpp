@@ -691,6 +691,10 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 			foundScene = true;
 		}
 		EVOENGINE_LOG("Found and loaded project");
+		if (projectManager.m_scenePostLoadFunction.has_value()) {
+			projectManager.m_scenePostLoadFunction.value()(scene);
+			TransformGraph::CalculateTransformGraphs(scene);
+		}
 	}
 	if (!foundScene)
 	{
@@ -870,11 +874,18 @@ std::filesystem::path ProjectManager::GenerateNewAbsolutePath(const std::string&
 	return absoluteStem + " (" + std::to_string(i) + ")" + postfix;
 }
 
-void ProjectManager::SetScenePostLoadActions(const std::function<void(const std::shared_ptr<Scene>&)>& actions)
+void ProjectManager::SetActionAfterSceneLoad(const std::function<void(const std::shared_ptr<Scene>&)>& actions)
+{
+	auto& projectManager = GetInstance();
+	projectManager.m_scenePostLoadFunction = actions;
+}
+
+void ProjectManager::SetActionAfterNewScene(const std::function<void(const std::shared_ptr<Scene>&)>& actions)
 {
 	auto& projectManager = GetInstance();
 	projectManager.m_newSceneCustomizer = actions;
 }
+
 void ProjectManager::ScanProject()
 {
 	const auto& projectManager = GetInstance();

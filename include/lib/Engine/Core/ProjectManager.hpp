@@ -92,6 +92,7 @@ namespace EvoEngine
 		friend class Resources;
 		std::shared_ptr<Folder> m_projectFolder;
 		std::filesystem::path m_projectPath;
+		std::optional<std::function<void(const std::shared_ptr<Scene>&)>> m_scenePostLoadFunction;
 		std::optional<std::function<void(const std::shared_ptr<Scene>&)>> m_newSceneCustomizer;
 		std::weak_ptr<Folder> m_currentFocusedFolder;
 		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_residentAsset;
@@ -131,7 +132,8 @@ namespace EvoEngine
 		static void SetStartScene(const std::shared_ptr<Scene>& scene);
 		static void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer);
 		static void SaveProject();
-		static void SetScenePostLoadActions(const std::function<void(const std::shared_ptr<Scene>&)>& actions);
+		static void SetActionAfterSceneLoad(const std::function<void(const std::shared_ptr<Scene>&)>& actions);
+		static void SetActionAfterNewScene(const std::function<void(const std::shared_ptr<Scene>&)>& actions);
 		[[nodiscard]] static std::filesystem::path GenerateNewProjectRelativePath(const std::string& relativeStem, const std::string& postfix);
 		[[nodiscard]] static std::filesystem::path GenerateNewAbsolutePath(const std::string& absoluteStem, const std::string& postfix);
 		[[nodiscard]] static std::weak_ptr<Folder> GetCurrentFocusedFolder();
