@@ -120,6 +120,7 @@ namespace EvoEngine
 		[[nodiscard]] bool SceneCameraWindowFocused() const;
 		[[nodiscard]] bool MainCameraWindowFocused() const;
 		bool m_enableViewGizmos = true;
+		bool m_enableGizmos = true;
 		bool m_transformReload = false;
 		bool m_transformReadOnly = false;
 
@@ -358,7 +359,7 @@ namespace EvoEngine
 		bool m_lockEntitySelection = false;
 
 		bool m_highlightSelection = true;
-		bool m_enableGizmos = true;
+		
 		Entity m_selectedEntity;
 
 		glm::vec2 m_mouseSceneWindowPosition;
