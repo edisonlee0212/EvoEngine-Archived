@@ -1340,8 +1340,8 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 		return;
 	m_selectedEntityHierarchyList.clear();
 	const auto scene = GetScene();
-	const auto previousDescendents = scene->GetDescendants(m_selectedEntity);
-	for (const auto& i : previousDescendents)
+	const auto previousDescendants = scene->GetDescendants(m_selectedEntity);
+	for (const auto& i : previousDescendants)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = false;
 	}
@@ -1356,9 +1356,9 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 	if (!scene->IsEntityValid(entity))
 		return;
 	m_selectedEntity = entity;
-	const auto descendents = scene->GetDescendants(m_selectedEntity);
+	const auto descendants = scene->GetDescendants(m_selectedEntity);
 
-	for (const auto& i : descendents)
+	for (const auto& i : descendants)
 	{
 		scene->GetEntityMetadata(i).m_ancestorSelected = true;
 	}
@@ -1375,6 +1375,16 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 bool EditorLayer::GetLockEntitySelection() const
 {
 	return m_lockEntitySelection;
+}
+
+void EditorLayer::SetLockEntitySelection(const bool value)
+{
+	const auto scene = GetScene();
+	if (!value) m_lockEntitySelection = false;
+	else if (!scene->IsEntityValid(m_selectedEntity))
+	{
+		m_lockEntitySelection = true;
+	}
 }
 
 bool EditorLayer::UnsafeDroppableAsset(AssetRef& target, const std::vector<std::string>& typeNames)

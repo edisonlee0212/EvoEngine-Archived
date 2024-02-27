@@ -142,6 +142,8 @@ namespace EvoEngine
 		void SetSelectedEntity(const Entity& entity, bool openMenu = true);
 		float m_sceneCameraResolutionMultiplier = 1.0f;
 		[[nodiscard]] bool GetLockEntitySelection() const;
+
+		void SetLockEntitySelection(bool value);
 		bool m_showSceneWindow = true;
 		bool m_showCameraWindow = true;
 		bool m_showCameraInfo = false;
