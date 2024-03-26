@@ -618,7 +618,7 @@ void Resources::InitializeEnvironmentalMap()
 {
 	auto& resources = GetInstance();
 	resources.LoadPrimitives();
-	GeometryStorage::GetInstance().UploadData();
+	GeometryStorage::DeviceSync();
 	const auto defaultEnvironmentalMapTexture = CreateResource<Texture2D>("DEFAULT_ENVIRONMENTAL_MAP_TEXTURE");
 	defaultEnvironmentalMapTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
 	
