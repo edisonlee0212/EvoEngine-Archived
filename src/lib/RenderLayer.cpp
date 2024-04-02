@@ -291,7 +291,6 @@ void RenderLayer::LateUpdate()
 			}
 			if (i.m_editorCameraComponent && i.m_editorCameraComponent->IsEnabled())
 			{
-				i.m_instancedData->UploadData();
 				Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 					{
 						const auto gizmosPipeline = Graphics::GetGraphicsPipeline("GIZMOS_INSTANCED_COLORED");
@@ -310,7 +309,7 @@ void RenderLayer::LateUpdate()
 						pushConstant.m_cameraIndex = GetCameraIndex(i.m_editorCameraComponent->GetHandle());
 						gizmosPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						GeometryStorage::BindVertices(commandBuffer);
-						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->m_particleInfos.size());
+						i.m_mesh->DrawIndexed(commandBuffer, gizmosPipeline->m_states, i.m_instancedData->PeekParticleInfoList().size());
 						i.m_editorCameraComponent->GetRenderTexture()->EndRendering(commandBuffer);
 					});
 			}
@@ -1093,7 +1092,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
 							{
 								if (!renderCommand.m_castShadow) return;
-								renderCommand.m_particleInfos->UploadData();
 								pointLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = i;
@@ -1102,8 +1100,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pointLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
 								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
-								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 							}
 						);
 					}
@@ -1316,7 +1314,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
 						{
 							if (!renderCommand.m_castShadow) return;
-							renderCommand.m_particleInfos->UploadData();
 							spotLightShadowInstancedPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
 							RenderInstancePushConstant pushConstant;
 							pushConstant.m_cameraIndex = i;
@@ -1325,8 +1322,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							spotLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
 							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
-							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
+							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 						}
 					);
 				}
@@ -1603,7 +1600,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
 				if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
 					continue;
-				if (particleInfoList->m_particleInfos.empty()) continue;
+				if (particleInfoList->PeekParticleInfoList().empty()) continue;
 
 				hasRenderInstance = true;
 				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
@@ -2075,7 +2072,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 						m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
 							{
 								if (!renderCommand.m_castShadow) return;
-								renderCommand.m_particleInfos->UploadData();
 								directionalLightShadowPipelineInstanced->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
 								RenderInstancePushConstant pushConstant;
 								pushConstant.m_cameraIndex = cameraIndex * Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE + i;
@@ -2084,8 +2080,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								directionalLightShadowPipelineInstanced->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
 								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
-								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
+								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 							}
 						);
 
@@ -2311,7 +2307,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			m_deferredInstancedRenderInstances.Dispatch([&](const InstancedRenderInstance& renderCommand)
 				{
-					renderCommand.m_particleInfos->UploadData();
 					deferredInstancedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_particleInfos->GetDescriptorSet()->GetVkDescriptorSet());
 					RenderInstancePushConstant pushConstant;
 					pushConstant.m_cameraIndex = cameraIndex;
@@ -2323,8 +2318,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 					deferredInstancedPrepassPipeline->PushConstant(commandBuffer, 0, pushConstant);
 					const auto mesh = renderCommand.m_mesh;
 					graphics.m_drawCall[currentFrameIndex]++;
-					graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->m_particleInfos.size();
-					mesh->DrawIndexed(commandBuffer, deferredInstancedPrepassPipeline->m_states, renderCommand.m_particleInfos->m_particleInfos.size());
+					graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+					mesh->DrawIndexed(commandBuffer, deferredInstancedPrepassPipeline->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 				}
 			);
 

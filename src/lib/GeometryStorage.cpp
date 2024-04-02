@@ -22,6 +22,33 @@ void GeometryStorage::UploadData()
 		m_segmentBuffer->UploadVector(m_segments);
 		m_requireStrandMeshDataDeviceUpdate = false;
 	}
+
+	for(int index = 0; index < m_particleInfoListDataList.size(); index++)
+	{
+		auto& particleInfoListData = m_particleInfoListDataList.at(index);
+		if(particleInfoListData.m_status == ParticleInfoListDataStatus::Removed)
+		{
+			m_particleInfoListDataList.at(index) = m_particleInfoListDataList.back();
+			m_particleInfoListDataList.pop_back();
+			index--;
+		}
+		else if (particleInfoListData.m_status == ParticleInfoListDataStatus::UpdatePending)
+		{
+			particleInfoListData.m_buffer->UploadVector(particleInfoListData.m_particleInfoList);
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.offset = 0;
+			bufferInfo.range = VK_WHOLE_SIZE;
+			bufferInfo.buffer = particleInfoListData.m_buffer->GetVkBuffer();
+			particleInfoListData.m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
+			
+			particleInfoListData.m_status = ParticleInfoListDataStatus::Updated;
+		}
+	}
+	for (int index = 0; index < m_particleInfoListDataList.size(); index++)
+	{
+		const auto& particleInfoListData = m_particleInfoListDataList.at(index);
+		particleInfoListData.m_rangeDescriptor->m_offset = index;
+	}
 	const auto& storage = GetInstance();
 	for (const auto& triangleRange : storage.m_triangleRangeDescriptor)
 	{
@@ -639,6 +666,59 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 	storage.m_segmentRangeDescriptor.erase(storage.m_segmentRangeDescriptor.begin() + segmentRangeDescriptorIndex);
 
 	storage.m_requireStrandMeshDataDeviceUpdate = true;
+}
+
+void GeometryStorage::AllocateParticleInfo(const Handle& handle,
+	const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
+{
+	auto& storage = GetInstance();
+	storage.m_particleInfoListDataList.emplace_back();
+	auto& infoData = storage.m_particleInfoListDataList.back();
+	infoData.m_rangeDescriptor = rangeDescriptor;
+	infoData.m_rangeDescriptor->m_offset = storage.m_particleInfoListDataList.size() - 1;
+	infoData.m_rangeDescriptor->m_handle = handle;
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.size = sizeof(ParticleInfo);
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
+	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	infoData.m_buffer = std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo);
+	infoData.m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
+	infoData.m_status = ParticleInfoListDataStatus::UpdatePending;
+}
+
+void GeometryStorage::UpdateParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor,
+	const std::vector<ParticleInfo>& particleInfos)
+{
+	auto& storage = GetInstance();
+	assert(rangeDescriptor->m_offset < storage.m_particleInfoListDataList.size());
+	auto& infoData = storage.m_particleInfoListDataList.at(rangeDescriptor->m_offset);
+	assert(infoData.m_status != ParticleInfoListDataStatus::Removed);
+	infoData.m_particleInfoList = particleInfos;
+	infoData.m_status = ParticleInfoListDataStatus::UpdatePending;
+}
+
+void GeometryStorage::FreeParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
+{
+	auto& storage = GetInstance();
+	assert(rangeDescriptor->m_offset < storage.m_particleInfoListDataList.size());
+	auto& infoData = storage.m_particleInfoListDataList.at(rangeDescriptor->m_offset);
+	assert(infoData.m_status != ParticleInfoListDataStatus::Removed);
+	infoData.m_status = ParticleInfoListDataStatus::Removed;
+}
+
+const std::vector<ParticleInfo>& GeometryStorage::PeekParticleInfoList(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
+{
+	const auto& storage = GetInstance();
+	return storage.m_particleInfoListDataList[rangeDescriptor->m_offset].m_particleInfoList;
+}
+
+const std::shared_ptr<DescriptorSet>& GeometryStorage::PeekDescriptorSet(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
+{
+	const auto& storage = GetInstance();
+	return storage.m_particleInfoListDataList[rangeDescriptor->m_offset].m_descriptorSet;
 }
 
 const Meshlet& GeometryStorage::PeekMeshlet(const uint32_t meshletIndex)

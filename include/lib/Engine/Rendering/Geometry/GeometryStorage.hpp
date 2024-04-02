@@ -59,6 +59,27 @@ namespace EvoEngine
 		uint32_t m_prevFrameIndexCount;
 	};
 
+	struct ParticleInfo
+	{
+		Transform m_instanceMatrix = {};
+		glm::vec4 m_instanceColor = glm::vec4(1.0f);
+	};
+
+	enum class ParticleInfoListDataStatus
+	{
+		Updated,
+		UpdatePending,
+		Removed
+	};
+	struct ParticleInfoListData
+	{
+		std::shared_ptr<Buffer> m_buffer;
+		std::shared_ptr<DescriptorSet> m_descriptorSet;
+		std::vector<ParticleInfo> m_particleInfoList;
+		ParticleInfoListDataStatus m_status = ParticleInfoListDataStatus::Updated;
+		std::shared_ptr<RangeDescriptor> m_rangeDescriptor;
+	};
+
 	class GeometryStorage : public ISingleton<GeometryStorage>
 	{
 		std::vector<VertexDataChunk> m_vertexDataChunks = {};
@@ -100,6 +121,8 @@ namespace EvoEngine
 		friend class Graphics;
 		static void DeviceSync();
 		static void Initialize();
+
+		std::vector<ParticleInfoListData> m_particleInfoListDataList;
 	public:
 		static const std::unique_ptr<Buffer>& GetVertexBuffer();
 		static const std::unique_ptr<Buffer>& GetMeshletBuffer();
@@ -128,6 +151,12 @@ namespace EvoEngine
 		static void FreeMesh(const Handle& handle);
 		static void FreeSkinnedMesh(const Handle& handle);
 		static void FreeStrands(const Handle& handle);
+
+		static void AllocateParticleInfo(const Handle& handle, const std::shared_ptr<RangeDescriptor>& rangeDescriptor);
+		static void UpdateParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor, const std::vector<ParticleInfo>& particleInfos);
+		static void FreeParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor);
+		[[nodiscard]] static const std::vector<ParticleInfo>& PeekParticleInfoList(const std::shared_ptr<RangeDescriptor>& rangeDescriptor);
+		[[nodiscard]] static const std::shared_ptr<DescriptorSet>& PeekDescriptorSet(const std::shared_ptr<RangeDescriptor>& rangeDescriptor);
 
 		[[nodiscard]] static const Meshlet& PeekMeshlet(uint32_t meshletIndex);
 		[[nodiscard]] static const SkinnedMeshlet& PeekSkinnedMeshlet(uint32_t skinnedMeshletIndex);

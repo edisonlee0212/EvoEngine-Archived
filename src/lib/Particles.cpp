@@ -14,7 +14,7 @@ void Particles::RecalculateBoundingBox()
 {
     const auto particleInfoList = m_particleInfoList.Get<ParticleInfoList>();
     if (!particleInfoList) return;
-    if (particleInfoList->m_particleInfos.empty())
+    if (particleInfoList->PeekParticleInfoList().empty())
     {
         m_boundingBox.m_min = glm::vec3(0.0f);
         m_boundingBox.m_max = glm::vec3(0.0f);
@@ -23,7 +23,7 @@ void Particles::RecalculateBoundingBox()
     auto minBound = glm::vec3(FLT_MAX);
     auto maxBound = glm::vec3(FLT_MAX);
     const auto meshBound = m_mesh.Get<Mesh>()->GetBound();
-    for (const auto& i : particleInfoList->m_particleInfos)
+    for (const auto& i : particleInfoList->PeekParticleInfoList())
     {
 	    const glm::vec3 center = i.m_instanceMatrix.m_value * glm::vec4(meshBound.Center(), 1.0f);
 	    const glm::vec3 size = glm::vec4(meshBound.Size(), 0) * i.m_instanceMatrix.m_value / 2.0f;
@@ -49,7 +49,7 @@ void Particles::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
     editorLayer->DragAndDropButton<ParticleInfoList>(m_particleInfoList, "ParticleInfoList");
 
     if (const auto particleInfoList = m_particleInfoList.Get<ParticleInfoList>()) {
-        ImGui::Text(("Instance count##Particles" + std::to_string(particleInfoList->m_particleInfos.size())).c_str());
+        ImGui::Text(("Instance count##Particles" + std::to_string(particleInfoList->PeekParticleInfoList().size())).c_str());
         if (ImGui::Button("Calculate bounds##Particles"))
         {
             RecalculateBoundingBox();

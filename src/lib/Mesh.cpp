@@ -398,12 +398,25 @@ void VertexAttributes::Deserialize(const YAML::Node& in)
 	if (in["m_color"]) m_color = in["m_color"].as<bool>();
 }
 
+void ParticleInfoList::OnCreate()
+{
+	m_rangeDescriptor = std::make_shared<RangeDescriptor>();
+	GeometryStorage::AllocateParticleInfo(GetHandle(), m_rangeDescriptor);
+}
+
+ParticleInfoList::~ParticleInfoList()
+{
+	GeometryStorage::FreeParticleInfo(m_rangeDescriptor);
+}
+
+
 void ParticleInfoList::Serialize(YAML::Emitter& out)
 {
-	if (!m_particleInfos.empty())
+	const auto particleInfos = GeometryStorage::PeekParticleInfoList(m_rangeDescriptor);
+	if (!particleInfos.empty())
 	{
 		out << YAML::Key << "m_particleInfos" << YAML::Value
-			<< YAML::Binary(reinterpret_cast<const unsigned char*>(m_particleInfos.data()), m_particleInfos.size() * sizeof(ParticleInfo));
+			<< YAML::Binary(reinterpret_cast<const unsigned char*>(particleInfos.data()), particleInfos.size() * sizeof(ParticleInfo));
 	}
 }
 
@@ -412,57 +425,17 @@ void ParticleInfoList::Deserialize(const YAML::Node& in)
 	if (in["m_particleInfos"])
 	{
 		const auto& vertexData = in["m_particleInfos"].as<YAML::Binary>();
-		m_particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
-		std::memcpy(m_particleInfos.data(), vertexData.data(), vertexData.size());
-		SetPendingUpdate();
-	}
-}
-
-void ParticleInfoList::UploadData(const bool force)
-{
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	if (force || m_pendingUpdate[currentFrameIndex])
-	{
-		m_buffer[currentFrameIndex]->UploadVector(m_particleInfos);
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.offset = 0;
-		bufferInfo.range = VK_WHOLE_SIZE;
-		bufferInfo.buffer = m_buffer[currentFrameIndex]->GetVkBuffer();
-		m_descriptorSet[currentFrameIndex]->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
-		m_pendingUpdate[currentFrameIndex] = false;
-		m_version++;
-	}
-}
-
-void ParticleInfoList::SetPendingUpdate()
-{
-	for (int i = 0; i < m_pendingUpdate.size(); i++)
-	{
-		m_pendingUpdate[i] = true;
-	}
-}
-
-ParticleInfoList::ParticleInfoList()
-{
-	VkBufferCreateInfo bufferCreateInfo{};
-	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.size = sizeof(ParticleInfo);
-	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
-	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	const auto maxFramesInFlight = Graphics::GetMaxFramesInFlight();
-	m_pendingUpdate.resize(maxFramesInFlight);
-	for (int i = 0; i < maxFramesInFlight; i++) {
-		m_pendingUpdate[i] = false;
-		m_buffer.emplace_back(std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo));
-		m_descriptorSet.emplace_back(std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT")));
+		std::vector<ParticleInfo> particleInfos;
+		particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
+		std::memcpy(particleInfos.data(), vertexData.data(), vertexData.size());
+		GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 	}
 }
 
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
 {
-	m_particleInfos.resize(rays.size());
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(rays.size());
 	Jobs::ParallelFor(
 		rays.size(),
 		[&](unsigned i) {
@@ -473,15 +446,16 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
 			const auto model = glm::translate((ray.m_start + ray.m_direction * ray.m_length / 2.0f)) * rotationMat *
 				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
-			m_particleInfos[i].m_instanceMatrix.m_value = model;
-			m_particleInfos[i].m_instanceColor = color;
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = color;
 		});
-	SetPendingUpdate();
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
 void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
 {
-	m_particleInfos.resize(rays.size());
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(rays.size());
 	Jobs::ParallelFor(
 		rays.size(),
 		[&](unsigned i) {
@@ -492,17 +466,18 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
 			const auto model = glm::translate((ray.m_start + ray.m_direction * ray.m_length / 2.0f)) * rotationMat *
 				glm::scale(glm::vec3(rayWidth, ray.m_length, rayWidth));
-			m_particleInfos[i].m_instanceMatrix.m_value = model;
-			m_particleInfos[i].m_instanceColor = colors[i];
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = colors[i];
 		}
 	);
-	SetPendingUpdate();
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
 	const glm::vec4& color, float rayWidth)
 {
-	m_particleInfos.resize(starts.size());
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(starts.size());
 	Jobs::ParallelFor(
 		starts.size(),
 		[&](unsigned i) {
@@ -514,17 +489,18 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
 			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
 				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
-			m_particleInfos[i].m_instanceMatrix.m_value = model;
-			m_particleInfos[i].m_instanceColor = color;
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = color;
 		}
 	);
-	SetPendingUpdate();
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
 	const std::vector<glm::vec4>& colors, float rayWidth)
 {
-	m_particleInfos.resize(starts.size());
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(starts.size());
 	Jobs::ParallelFor(
 		starts.size(),
 		[&](unsigned i) {
@@ -536,15 +512,24 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
 			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
 				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
-			m_particleInfos[i].m_instanceMatrix.m_value = model;
-			m_particleInfos[i].m_instanceColor = colors[i];
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = colors[i];
 		}
 	);
-	SetPendingUpdate();
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
+}
+
+void ParticleInfoList::SetParticleInfos(const std::vector<ParticleInfo>& particleInfos)
+{
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
+}
+
+const std::vector<ParticleInfo>& ParticleInfoList::PeekParticleInfoList() const
+{
+	return GeometryStorage::PeekParticleInfoList(m_rangeDescriptor);
 }
 
 const std::shared_ptr<DescriptorSet>& ParticleInfoList::GetDescriptorSet() const
 {
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
-	return m_descriptorSet[currentFrameIndex];
+	return GeometryStorage::PeekDescriptorSet(m_rangeDescriptor);
 }

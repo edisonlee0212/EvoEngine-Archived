@@ -19,32 +19,22 @@ namespace EvoEngine
 		void Deserialize(const YAML::Node& in);
 	};
 
-	struct ParticleInfo
-	{
-		Transform m_instanceMatrix = {};
-		glm::vec4 m_instanceColor = glm::vec4(1.0f);
-
-	};
-
 	class ParticleInfoList : public IAsset
 	{
-		std::vector<std::shared_ptr<Buffer>> m_buffer;
-		std::vector<std::shared_ptr<DescriptorSet>> m_descriptorSet;
-
-		std::vector<bool> m_pendingUpdate;
+		std::shared_ptr<RangeDescriptor> m_rangeDescriptor;
 	public:
+		void OnCreate() override;
+		~ParticleInfoList() override;
 		void Serialize(YAML::Emitter& out) override;
 		void Deserialize(const YAML::Node& in) override;
-		void UploadData(bool force = false);
-		void SetPendingUpdate();
-		ParticleInfoList();
 		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth);
 		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth);
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
 			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth);
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
 			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth);
-;		std::vector<ParticleInfo> m_particleInfos;
+		void SetParticleInfos(const std::vector<ParticleInfo>& particleInfos);
+		const std::vector<ParticleInfo>& PeekParticleInfoList() const;
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 	};
 	
