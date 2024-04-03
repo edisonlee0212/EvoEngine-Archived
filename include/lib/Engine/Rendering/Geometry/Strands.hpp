@@ -42,6 +42,8 @@ namespace EvoEngine
 
         template<class T>
         static void CubicInterpolation(const T& v0, const T& v1, const T& v2, const T& v3, T& result, T& tangent, float u);
+        template<class T>
+        static T CubicInterpolation(const T& v0, const T& v1, const T& v2, const T& v3, float u);
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
 
@@ -80,5 +82,18 @@ namespace EvoEngine
             u = 0.999999f;
         const float v = 1.0f - u;
         tangent = 0.5f * v * v * p1 + 2.0f * v * u * p2 + 0.5f * u * u * p3;
+    }
+
+    template <class T>
+    T Strands::CubicInterpolation(const T& v0, const T& v1, const T& v2, const T& v3, float u)
+    {
+        const T p0 = (v2 + v0) / 6.0f + v1 * (4.0f / 6.0f);
+        const T p1 = v2 - v0;
+        const T p2 = v2 - v1;
+        const T p3 = v3 - v1;
+        const float uu = u * u;
+        const float u3 = 1.0f / 6.0f * uu * u;
+        const glm::vec3 q = glm::vec3(u3 + 0.5 * (u - uu), uu - 4.0 * u3, u3);
+        return p0 + q.x * p1 + q.y * p2 + q.z * p3;
     }
 }
