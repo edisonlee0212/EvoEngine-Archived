@@ -475,16 +475,17 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 	{
 		auto assetName = assetMetadataPath.filename();
 		assetName.replace_extension("").replace_extension("");
-		std::shared_ptr<AssetRecord> assetRecord;
+		auto assetExtension = assetMetadataPath.filename().replace_extension("").extension();
+		bool exist = false;
 		for (const auto& i : m_assetRecords)
 		{
-			if (i.second->m_assetFileName == assetName)
+			if (i.second->m_assetFileName == assetName && i.second->m_assetExtension == assetExtension)
 			{
-				assetRecord = i.second;
+				exist = true;
 			}
 		}
 
-		if (!assetRecord)
+		if (!exist)
 		{
 			auto newAssetRecord = std::make_shared<AssetRecord>();
 			newAssetRecord->m_folder = m_self.lock();
