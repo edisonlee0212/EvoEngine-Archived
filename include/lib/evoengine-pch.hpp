@@ -96,3 +96,4 @@
 
 #include "ImGuiFileDialogConfig.hpp"
 #include "ImGuiFileDialog.hpp"
+#include "imnodes_internal.hpp"

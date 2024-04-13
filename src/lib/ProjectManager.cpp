@@ -1110,9 +1110,9 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 					ImGui::EndPopup();
 				}
 
-				float panelWidth = ImGui::GetWindowContentRegionWidth();
-				int columnCount = glm::max(1, (int)(panelWidth / cellSize));
-				ImGui::Columns(columnCount, 0, false);
+				float panelWidth = ImGui::GetWindowContentRegionMax().x;
+				int columnCount = glm::max(1, static_cast<int>(panelWidth / cellSize));
+				ImGui::Columns(columnCount, nullptr, false);
 				if (!updated)
 				{
 					for (auto& i : currentFocusedFolder->m_children)

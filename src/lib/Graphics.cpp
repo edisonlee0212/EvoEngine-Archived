@@ -1112,6 +1112,16 @@ void Graphics::RecreateSwapChain()
 
 void Graphics::OnDestroy()
 {
+	const auto& windowLayer = Application::GetLayer<WindowLayer>();
+	const auto& editorLayer = Application::GetLayer<EditorLayer>();
+	if (windowLayer && editorLayer)
+	{
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImNodes::DestroyContext();
+		ImGui::DestroyContext();
+	}
+
 	vkDeviceWaitIdle(m_vkDevice);
 
 
@@ -1340,6 +1350,7 @@ void Graphics::Initialize()
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		ImNodes::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
@@ -1347,7 +1358,15 @@ void Graphics::Initialize()
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 		//io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 		ImGui::StyleColorsDark();
-		ImGui::CreateContext();
+
+		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
 		ImGui_ImplGlfw_InitForVulkan(windowLayer->GetGlfwWindow(), true);
 		ImGui_ImplVulkan_InitInfo init_info = {};
 		init_info.Instance = graphics.m_vkInstance;
@@ -1361,16 +1380,10 @@ void Graphics::Initialize()
 		init_info.ImageCount = graphics.m_swapchain->GetAllImageViews().size();
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		init_info.UseDynamicRendering = true;
-		init_info.ColorAttachmentFormat = graphics.m_swapchain->GetImageFormat();
+		//init_info.ColorAttachmentFormat = graphics.m_swapchain->GetImageFormat();
 
 		ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(Graphics::GetVkInstance(), function_name); });
-		ImGui_ImplVulkan_Init(&init_info, VK_NULL_HANDLE);
-		ImGui::StyleColorsDark();
-		ImmediateSubmit([&](const VkCommandBuffer cmd) {
-			ImGui_ImplVulkan_CreateFontsTexture(cmd);
-			});
-		//clear font textures from cpu data
-		ImGui_ImplVulkan_DestroyFontUploadObjects();
+		ImGui_ImplVulkan_Init(&init_info);
 	}
 
 	GeometryStorage::Initialize();
