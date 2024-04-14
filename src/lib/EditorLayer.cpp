@@ -865,11 +865,11 @@ void EditorLayer::SceneCameraWindow()
 				const auto windowPosPivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
 				ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, windowPosPivot);
 				ImGui::SetNextWindowBgAlpha(0.35f);
-				constexpr auto windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
-					ImGuiWindowFlags_AlwaysAutoResize |
+				constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
 					ImGuiWindowFlags_NoSavedSettings |
 					ImGuiWindowFlags_NoFocusOnAppearing;
-				if (ImGui::BeginChild("Info", ImVec2(200, 350), true, windowFlags)) {
+				constexpr ImGuiChildFlags childFlags = ImGuiChildFlags_None;
+				if (ImGui::BeginChild("Info", ImVec2(200, 350), childFlags, windowFlags)) {
 					ImGui::Text("Info & Settings");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					std::string drawCallInfo = {};
@@ -1117,12 +1117,11 @@ void EditorLayer::MainCameraWindow()
 				ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
 				ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
 				ImGui::SetNextWindowBgAlpha(0.35f);
-				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
-					ImGuiWindowFlags_AlwaysAutoResize |
+				constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking |
 					ImGuiWindowFlags_NoSavedSettings |
-					ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-
-				if (ImGui::BeginChild("Render Info", ImVec2(300, 150), true, window_flags)) {
+					ImGuiWindowFlags_NoFocusOnAppearing;
+				constexpr ImGuiChildFlags childFlags = ImGuiChildFlags_None;
+				if (ImGui::BeginChild("Render Info", ImVec2(300, 150), childFlags, windowFlags)) {
 					ImGui::Text("Info & Settings");
 					ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 					ImGui::PushItemWidth(100);
