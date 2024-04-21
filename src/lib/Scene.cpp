@@ -898,51 +898,26 @@ std::vector<std::reference_wrapper<DataComponentStorage>> Scene::QueryDataCompon
 	return QueryDataComponentStorages(entityQuery.m_index);
 }
 
-void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<Entity>& container, bool checkEnable)
+void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<Entity>& container, const bool checkEnable) const
 {
 	const size_t amount = storage.m_entityAliveCount;
 	if (amount == 0)
 		return;
 	if (checkEnable)
 	{
-		auto& workers = Jobs::Workers();
-		const auto capacity = storage.m_chunkCapacity;
+		constexpr size_t workerSize = 10;
+		std::vector<std::vector<Entity>> tempStorage;
+		tempStorage.resize(workerSize);
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = &chunkArray.m_entities;
-		std::vector<std::shared_future<void>> results;
-		const auto threadSize = workers.Size();
-		const auto threadLoad = amount / threadSize;
-		const auto loadReminder = amount % threadSize;
-		std::vector<std::vector<Entity>> tempStorage;
-		tempStorage.resize(threadSize);
-		for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
-		{
-			results.push_back(workers
-				.Push([=, &chunkArray, &entities, &tempStorage](int id) {
-					for (int i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-					{
-						const auto chunkIndex = i / capacity;
-						const auto remainder = i % capacity;
-						const auto entity = entities->at(i);
-						if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
-							continue;
-						tempStorage[threadIndex].push_back(entity);
-					}
-					if (threadIndex < loadReminder)
-					{
-						const int i = threadIndex + threadSize * threadLoad;
-						const auto chunkIndex = i / capacity;
-						const auto remainder = i % capacity;
-						const auto entity = entities->at(i);
-						if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
-							return;
-						tempStorage[threadIndex].push_back(entity);
-					}
-					})
-				.share());
-		}
-		for (const auto& i : results)
-			i.wait();
+		Jobs::ParallelFor(amount, [=, &entities, &tempStorage](const int i, const unsigned workerIndex) {
+			const auto entity = entities->at(i);
+			if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
+				return;
+			tempStorage[workerIndex].push_back(entity);
+			}, 
+			workerSize
+		);
 		for (auto& i : tempStorage)
 		{
 			container.insert(container.end(), i.begin(), i.end());
@@ -1161,47 +1136,14 @@ std::vector<Entity> Scene::CreateEntities(
 		storage.m_chunkArray.m_entities.end(),
 		m_sceneDataStorage.m_entities.begin() + originalSize,
 		m_sceneDataStorage.m_entities.end());
-	const int threadSize = Jobs::Workers().Size();
-	int perThreadAmount = remainAmount / threadSize;
-	if (perThreadAmount > 0)
-	{
-		std::vector<std::shared_future<void>> results;
-		for (int i = 0; i < threadSize; i++)
+	Jobs::ParallelFor(remainAmount, [&, originalSize](unsigned i)
 		{
-			results.push_back(Jobs::Workers()
-				.Push([&, i, perThreadAmount, originalSize](int id) {
-					const Transform transform;
-					const GlobalTransform globalTransform;
-					for (int index = originalSize + i * perThreadAmount;
-						index < originalSize + (i + 1) * perThreadAmount;
-						index++)
-					{
-						auto& entity = m_sceneDataStorage.m_entities.at(index);
-						SetDataComponent(entity, transform);
-						SetDataComponent(entity, globalTransform);
-						SetDataComponent(entity, TransformUpdateFlag());
-					}
-					})
-				.share());
+			const auto& entity = m_sceneDataStorage.m_entities.at(originalSize + i);
+			SetDataComponent(entity, transform);
+			SetDataComponent(entity, globalTransform);
+			SetDataComponent(entity, TransformUpdateFlag());
 		}
-		results.push_back(Jobs::Workers()
-			.Push([&, perThreadAmount, originalSize, remainAmount, threadSize](int id) {
-				const Transform transform;
-				const GlobalTransform globalTransform;
-				for (int index = originalSize + perThreadAmount * threadSize;
-					index < originalSize + remainAmount;
-					index++)
-				{
-					auto& entity = m_sceneDataStorage.m_entities.at(index);
-					SetDataComponent(entity, transform);
-					SetDataComponent(entity, globalTransform);
-					SetDataComponent(entity, TransformUpdateFlag());
-				}
-				})
-			.share());
-		for (const auto& i : results)
-			i.wait();
-	}
+	);
 
 	retVal.insert(
 		retVal.end(), m_sceneDataStorage.m_entities.begin() + originalSize, m_sceneDataStorage.m_entities.end());
@@ -1826,7 +1768,7 @@ bool Scene::HasPrivateComponent(const Entity& entity, const std::string& typeNam
 std::vector<std::reference_wrapper<DataComponentStorage>> Scene::QueryDataComponentStorages(
 	unsigned int entityQueryIndex)
 {
-	auto& queryInfos = Entities::GetInstance().m_entityQueryInfos.at(entityQueryIndex);
+	const auto& queryInfos = Entities::GetInstance().m_entityQueryInfos.at(entityQueryIndex);
 	auto& entityComponentStorage = m_sceneDataStorage.m_dataComponentStorages;
 	std::vector<std::reference_wrapper<DataComponentStorage>> queriedStorage;
 	// Select storage with every contained.

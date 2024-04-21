@@ -131,11 +131,11 @@ class ThreadPool
 
     // wait for all computing threads to finish and stop all threads
     // may be called asynchronously to not pause the calling thread while waiting
-    // if isWait == true, all the functions in the queue are run, otherwise the queue is cleared without running the
+    // if finishQueue == true, all the functions in the queue are run, otherwise the queue is cleared without running the
     // functions
-    void FinishAll(bool isWait = false)
+    void FinishAll(bool finishQueue = false)
     {
-        if (!isWait)
+        if (!finishQueue)
         {
             if (this->m_isStop)
                 return;

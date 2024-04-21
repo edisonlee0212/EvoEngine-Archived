@@ -314,7 +314,6 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		return;
 	}
 	InitializeRegistry();
-	Jobs::Initialize();
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();
