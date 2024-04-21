@@ -28,6 +28,12 @@ bool Worker::CheckLoop(const std::vector<WorkerHandle>& dependencies) const
 	return false;
 }
 
+Worker::Worker(const size_t threadSize, const WorkerHandle handle)
+{
+	m_handle = handle;
+	m_threads.Resize(threadSize);
+}
+
 void Worker::Wait()
 {
 	auto& jobs = Jobs::GetInstance();
@@ -42,7 +48,7 @@ void Worker::Wait()
 	m_tasks.clear();
 
 	m_scheduled = false;
-	jobs.m_availableWorker.emplace(m_handle);
+	jobs.m_availableWorker.at(m_threads.Size()).emplace(m_handle);
 }
 
 ThreadPool& Worker::RefThreadPool()
@@ -72,7 +78,6 @@ void Worker::ScheduleTask(const std::function<void()>& func)
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-	m_threads.Resize(1);
 	m_tasks.push_back(m_threads.Push([=](const int id)
 		{
 			func();
@@ -95,7 +100,6 @@ void Worker::ScheduleTask(const std::vector<WorkerHandle>& dependencies, const s
 	}
 #endif
 	m_dependencies = dependencies;
-	m_threads.Resize(1);
 	m_tasks.push_back(m_threads.Push([=](const int id)
 		{
 			const auto& jobs = Jobs::GetInstance();
@@ -125,7 +129,6 @@ void Worker::ScheduleParallelTasks(const size_t size, const std::function<void(u
 		return;
 	}
 	const auto threadSize = workerSize;
-	m_threads.Resize(workerSize);
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
@@ -165,7 +168,6 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 #endif
 
 	const auto threadSize = workerSize;
-	m_threads.Resize(workerSize);
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
@@ -209,7 +211,6 @@ void Worker::ScheduleParallelTasks(const size_t size, const std::function<void(u
 		return;
 	}
 	const auto threadSize = workerSize;
-	m_threads.Resize(workerSize);
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
@@ -249,7 +250,6 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 #endif
 
 	const auto threadSize = workerSize;
-	m_threads.Resize(workerSize);
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
@@ -285,20 +285,30 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 	m_scheduled = true;
 }
 
+void Jobs::Initialize(const size_t maxWorkerSize)
+{
+	auto& jobs = GetInstance();
+	jobs.m_availableWorker.resize(maxWorkerSize + 1);
+	jobs.m_maxWorkerSize = maxWorkerSize;
+}
+
 void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if(jobs.m_availableWorker.empty())
+	if(jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(size, func, workerSize);
@@ -308,18 +318,21 @@ void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i)>&
 void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(size, func, workerSize);
@@ -329,18 +342,21 @@ void Jobs::ParallelFor(const size_t size, const std::function<void(unsigned i, u
 WorkerHandle Jobs::AddParallelFor(const size_t size, const std::function<void(unsigned i)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(size, func, workerSize);
@@ -351,18 +367,21 @@ WorkerHandle Jobs::AddParallelFor(const size_t size, const std::function<void(un
 	const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(size, func, workerSize);
@@ -373,18 +392,21 @@ void Jobs::ParallelFor(const std::vector<WorkerHandle>& dependencies, const size
 	const std::function<void(unsigned i)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(dependencies, size, func, workerSize);
@@ -395,18 +417,21 @@ void Jobs::ParallelFor(const std::vector<WorkerHandle>& dependencies, const size
 	const std::function<void(unsigned i, unsigned threadIndex)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(dependencies, size, func, workerSize);
@@ -417,18 +442,21 @@ WorkerHandle Jobs::AddParallelFor(const std::vector<WorkerHandle>& dependencies,
 	const std::function<void(unsigned i)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(dependencies, size, func, workerSize);
@@ -439,18 +467,21 @@ WorkerHandle Jobs::AddParallelFor(const std::vector<WorkerHandle>& dependencies,
 	const std::function<void(unsigned i, unsigned threadIndex)>& func, const size_t workerSize)
 {
 	auto& jobs = GetInstance();
+	if (workerSize > jobs.m_maxWorkerSize)
+	{
+		EVOENGINE_ERROR("Jobs: Exceed max thread size!");
+	}
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(workerSize).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(workerSize, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(workerSize).front();
+		jobs.m_availableWorker.at(workerSize).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelTasks(dependencies, size, func, workerSize);
@@ -461,17 +492,16 @@ WorkerHandle Jobs::AddTask(const std::function<void()>& func)
 {
 	auto& jobs = GetInstance();
 	WorkerHandle workerHandle;
-	if (jobs.m_availableWorker.empty())
+	if (jobs.m_availableWorker.at(1).empty())
 	{
 		workerHandle = jobs.m_workers.size();
-		const auto newWorker = std::make_shared<Worker>();
+		const auto newWorker = std::make_shared<Worker>(1, workerHandle);
 		jobs.m_workers.emplace_back(newWorker);
-		jobs.m_workers.back()->m_handle = workerHandle;
 	}
 	else
 	{
-		workerHandle = jobs.m_availableWorker.front();
-		jobs.m_availableWorker.pop();
+		workerHandle = jobs.m_availableWorker.at(1).front();
+		jobs.m_availableWorker.at(1).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleTask(func);

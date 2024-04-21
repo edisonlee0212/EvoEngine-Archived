@@ -294,6 +294,7 @@ void Application::Reset()
 void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 {
 	auto& application = GetInstance();
+	
 	if (application.m_applicationStatus != ApplicationStatus::Uninitialized) {
 		EVOENGINE_ERROR("Application is not uninitialzed!")
 			return;
@@ -313,6 +314,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		EVOENGINE_ERROR("Project filepath must present when there's no EditorLayer or WindowLayer!");
 		return;
 	}
+	Jobs::Initialize();
 	InitializeRegistry();
 	Entities::Initialize();
 	TransformGraph::Initialize();

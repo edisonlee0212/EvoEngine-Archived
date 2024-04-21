@@ -17,6 +17,7 @@ namespace EvoEngine
 
 		friend class Jobs;
 	public:
+		Worker(size_t threadSize, WorkerHandle handle);
 		void Wait();
 		ThreadPool& RefThreadPool();
 		const ThreadPool& PeekThreadPool() const;
@@ -35,10 +36,14 @@ namespace EvoEngine
 	class Jobs final : ISingleton<Jobs>
 	{
 		std::vector<std::shared_ptr<Worker>> m_workers;
-		std::queue<WorkerHandle> m_availableWorker;
+
+		std::vector<std::queue<WorkerHandle>> m_availableWorker;
 
 		friend class Worker;
+
+		size_t m_maxWorkerSize = 16;
 	public:
+		static void Initialize(size_t maxWorkerSize = 16);
 		static void ParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t workerSize = 10);
 		static void ParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t workerSize = 10);
 		static WorkerHandle AddParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t workerSize = 10);
