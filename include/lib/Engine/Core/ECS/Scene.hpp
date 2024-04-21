@@ -898,10 +898,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -916,10 +917,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -934,10 +936,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -952,10 +955,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -970,10 +974,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -988,10 +993,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1006,10 +1012,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1024,10 +1031,11 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				for (const auto i : queriedStorages)
-				{
-					Jobs::Wait(ForEachStorage(dependencies, i.get(), func, checkEnable));
+				std::vector<WorkerHandle> jobs;
+				for (const auto i : queriedStorages) {
+					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1039,10 +1047,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1054,10 +1064,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1069,10 +1081,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1086,10 +1100,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1103,10 +1119,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1120,10 +1138,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for(const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1137,10 +1157,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
@@ -1154,10 +1176,12 @@ namespace EvoEngine
 		return Jobs::AddTask([&]()
 			{
 				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+				std::vector<WorkerHandle> jobs;
 				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 				{
-					Jobs::Wait(ForEachStorage(dependencies, *i, func, checkEnable));
+					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
 				}
+				for (const auto& i : jobs) Jobs::Wait(i);
 			}
 		);
 	}
