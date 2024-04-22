@@ -45,7 +45,6 @@ namespace EvoEngine
 	class Jobs final : ISingleton<Jobs>
 	{
 		std::vector<std::shared_ptr<Worker>> m_workers;
-
 		std::vector<std::queue<WorkerHandle>> m_availableWorker;
 
 		friend class Worker;
@@ -54,7 +53,10 @@ namespace EvoEngine
 		size_t m_defaultThreadSize = 8;
 
 		std::thread::id m_mainThreadId;
-		
+		std::mutex m_workerManagementMutex{};
+
+		WorkerHandle GetAvailableWorker(size_t threadSize);
+
 	public:
 		static size_t GetDefaultThreadSize();
 		static size_t GetMaxThreadSize();
