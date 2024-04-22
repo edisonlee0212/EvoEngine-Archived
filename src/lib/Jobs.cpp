@@ -4,10 +4,16 @@
 using namespace EvoEngine;
 
 
+size_t Worker::GetVersion() const
+{
+	return m_version;
+}
+
 Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 {
 	m_handle = handle;
 	m_threads.Resize(threadSize);
+	m_version = 0;
 }
 
 void Worker::Wait()
@@ -17,7 +23,7 @@ void Worker::Wait()
 	if(!m_scheduled) return;
 	for (const auto& dependency : m_dependencies)
 	{
-		jobs.m_workers.at(dependency)->Wait();
+		jobs.m_workers.at(dependency.m_workerHandle)->Wait(dependency.m_version);
 	}
 	m_dependencies.clear();
 	for (const auto& i : m_tasks) i.wait();
@@ -25,6 +31,26 @@ void Worker::Wait()
 
 	m_scheduled = false;
 	jobs.m_availableWorker.at(m_threads.Size()).emplace(m_handle);
+	m_version++;
+}
+
+void Worker::Wait(const size_t version)
+{
+	auto& jobs = Jobs::GetInstance();
+	std::lock_guard lock(m_mutex);
+	if (version != m_version) return;
+	if (!m_scheduled) return;
+	for (const auto& dependency : m_dependencies)
+	{
+		jobs.m_workers.at(dependency.m_workerHandle)->Wait(dependency.m_version);
+	}
+	m_dependencies.clear();
+	for (const auto& i : m_tasks) i.wait();
+	m_tasks.clear();
+
+	m_scheduled = false;
+	jobs.m_availableWorker.at(m_threads.Size()).emplace(m_handle);
+	m_version++;
 }
 
 ThreadPool& Worker::RefThreadPool()
@@ -54,7 +80,7 @@ void Worker::ScheduleTask(const std::function<void()>& func)
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-	m_tasks.push_back(m_threads.Push([=](const int id)
+	m_tasks.push_back(m_threads.Push([this, func](const int id)
 		{
 			func();
 		}).share());
@@ -68,12 +94,20 @@ void Worker::ScheduleTask(const std::vector<WorkerHandle>& dependencies, const s
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-	m_dependencies = dependencies;
-	m_tasks.push_back(m_threads.Push([=](const int id)
+	m_dependencies.clear();
+	const auto& jobs = Jobs::GetInstance();
+	for(const auto& dependency : dependencies)
+	{
+		WorkerDependency dep;
+		dep.m_version = jobs.m_workers.at(dependency)->m_version;
+		dep.m_workerHandle = dependency;
+		m_dependencies.emplace_back(dep);
+	}
+	m_tasks.push_back(m_threads.Push([this, func](const int id)
 		{
-			auto& jobs = Jobs::GetInstance();
-			for (auto& i : m_dependencies) {
-				jobs.m_workers.at(i)->Wait();
+			const auto& jobs = Jobs::GetInstance();
+			for (const auto& i : m_dependencies) {
+				jobs.m_workers.at(i.m_workerHandle)->Wait(i.m_version);
 			}
 			func();
 		}
@@ -94,7 +128,7 @@ void Worker::ScheduleParallelTasks(const size_t size, const std::function<void(u
 	for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
 	{
 		m_tasks.push_back(m_threads
-			.Push([=](const int id) {
+			.Push([this, func, threadIndex, threadSize, threadLoad, loadReminder](const int id) {
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
 					func(i, id);
@@ -120,15 +154,23 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 	}
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
-	m_dependencies = dependencies;
+	m_dependencies.clear();
+	const auto& jobs = Jobs::GetInstance();
+	for (const auto& dependency : dependencies)
+	{
+		WorkerDependency dep;
+		dep.m_version = jobs.m_workers.at(dependency)->m_version;
+		dep.m_workerHandle = dependency;
+		m_dependencies.emplace_back(dep);
+	}
 	m_tasks.reserve(threadSize);
 	for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
 	{
 		m_tasks.push_back(m_threads
-			.Push([=](const int id) {
+			.Push([this, func, threadIndex, threadSize, threadLoad, loadReminder](const int id) {
 				const auto& jobs = Jobs::GetInstance();
-				for (auto& i : m_dependencies) {
-					jobs.m_workers.at(i)->Wait();
+				for (const auto& i : m_dependencies) {
+					jobs.m_workers.at(i.m_workerHandle)->Wait(i.m_version);
 				}
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
@@ -158,7 +200,7 @@ void Worker::ScheduleParallelTasks(const size_t size, const std::function<void(u
 	for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
 	{
 		m_tasks.push_back(m_threads
-			.Push([=](const int id) {
+			.Push([this, func, threadIndex, threadSize, threadLoad, loadReminder](const int id) {
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
 					func(i);
@@ -182,17 +224,25 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-	m_dependencies = dependencies;
+	m_dependencies.clear();
+	const auto& jobs = Jobs::GetInstance();
+	for (const auto& dependency : dependencies)
+	{
+		WorkerDependency dep;
+		dep.m_version = jobs.m_workers.at(dependency)->m_version;
+		dep.m_workerHandle = dependency;
+		m_dependencies.emplace_back(dep);
+	}
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
 	for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
 	{
 		m_tasks.push_back(m_threads
-			.Push([=](const int id) {
+			.Push([this, func, threadIndex, threadSize, threadLoad, loadReminder](const int id) {
 				const auto& jobs = Jobs::GetInstance();
-				for (auto& i : m_dependencies) {
-					jobs.m_workers.at(i)->Wait();
+				for (const auto& i : m_dependencies) {
+					jobs.m_workers.at(i.m_workerHandle)->Wait();
 				}
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
@@ -546,7 +596,7 @@ WorkerHandle Jobs::PackTask(const std::vector<WorkerHandle>& dependencies)
 		jobs.m_availableWorker.at(1).pop();
 	}
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	worker->ScheduleTask(dependencies, [&](){});
+	worker->ScheduleTask(dependencies, [](){});
 	return workerHandle;
 }
 

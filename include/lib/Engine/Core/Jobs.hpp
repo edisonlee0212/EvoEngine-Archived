@@ -4,19 +4,30 @@
 namespace EvoEngine
 {
 	typedef int WorkerHandle;
+
+	struct WorkerDependency
+	{
+		WorkerHandle m_workerHandle = -1;
+		size_t m_version = 0;
+	};
+
 	class Worker
 	{
 		ThreadPool m_threads;
 		WorkerHandle m_handle = -1;
 		bool m_scheduled = false;
-		std::vector<WorkerHandle> m_dependencies;
+		std::vector<WorkerDependency> m_dependencies;
 		std::vector<std::shared_future<void>> m_tasks;
 
 		friend class Jobs;
 		std::mutex m_mutex{};
+
+		size_t m_version = 0;
 	public:
+		size_t GetVersion() const;
 		Worker(size_t threadSize, WorkerHandle handle);
 		void Wait();
+		void Wait(size_t version);
 		ThreadPool& RefThreadPool();
 		const ThreadPool& PeekThreadPool() const;
 		WorkerHandle GetHandle() const;
