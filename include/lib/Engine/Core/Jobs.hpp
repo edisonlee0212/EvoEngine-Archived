@@ -12,10 +12,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> m_dependencies;
 		std::vector<std::shared_future<void>> m_tasks;
 
-		static void CheckLoopHelper(std::vector<WorkerHandle>& collectedWorkers, WorkerHandle currentWorker);
-		bool CheckLoop(const std::vector<WorkerHandle>& dependencies) const;
-
 		friend class Jobs;
+		std::mutex m_mutex{};
 	public:
 		Worker(size_t threadSize, WorkerHandle handle);
 		void Wait();
@@ -45,6 +43,7 @@ namespace EvoEngine
 		size_t m_defaultThreadSize = 8;
 
 		std::thread::id m_mainThreadId;
+		
 	public:
 		static size_t GetDefaultThreadSize();
 		static size_t GetMaxThreadSize();

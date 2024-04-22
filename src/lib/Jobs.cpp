@@ -3,30 +3,6 @@
 #include "Console.hpp"
 using namespace EvoEngine;
 
-void Worker::CheckLoopHelper(std::vector<WorkerHandle>& collectedWorkers, const WorkerHandle currentWorker)
-{
-	collectedWorkers.emplace_back(currentWorker);
-	const auto& jobs = Jobs::GetInstance();
-	for(const auto& dependency : jobs.m_workers.at(currentWorker)->m_dependencies)
-	{
-		CheckLoopHelper(collectedWorkers, dependency);
-	}
-}
-
-bool Worker::CheckLoop(const std::vector<WorkerHandle>& dependencies) const
-{
-	std::vector<WorkerHandle> collectedWorker = dependencies;
-	for(const auto& i : collectedWorker)
-	{
-		CheckLoopHelper(collectedWorker, i);
-	}
-	
-	for (const auto& i : collectedWorker)
-	{
-		if (i == m_handle) return true;
-	}
-	return false;
-}
 
 Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 {
@@ -37,8 +13,8 @@ Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 void Worker::Wait()
 {
 	auto& jobs = Jobs::GetInstance();
+	std::lock_guard lock(m_mutex);
 	if(!m_scheduled) return;
-
 	for (const auto& dependency : m_dependencies)
 	{
 		jobs.m_workers.at(dependency)->Wait();
@@ -92,28 +68,12 @@ void Worker::ScheduleTask(const std::vector<WorkerHandle>& dependencies, const s
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-#ifdef _DEBUG
-	if (CheckLoop(dependencies))
-	{
-		EVOENGINE_ERROR("Worker: Loop!");
-		return;
-	}
-#endif
 	m_dependencies = dependencies;
 	m_tasks.push_back(m_threads.Push([=](const int id)
 		{
-			const auto& jobs = Jobs::GetInstance();
-			std::vector<std::shared_future<void>> pendingTasks;
-			for (auto& i : dependencies) {
-				auto& worker = jobs.m_workers.at(i);
-				for (auto& task : worker->m_tasks)
-				{
-					pendingTasks.emplace_back(task);
-				}
-			}
-			for (auto& task : pendingTasks)
-			{
-				task.wait();
+			auto& jobs = Jobs::GetInstance();
+			for (auto& i : m_dependencies) {
+				jobs.m_workers.at(i)->Wait();
 			}
 			func();
 		}
@@ -158,32 +118,17 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-#ifdef _DEBUG
-	if (CheckLoop(dependencies))
-	{
-		EVOENGINE_ERROR("Worker: Loop!");
-		return;
-	}
-#endif
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
+	m_dependencies = dependencies;
 	m_tasks.reserve(threadSize);
 	for (int threadIndex = 0; threadIndex < threadSize; threadIndex++)
 	{
 		m_tasks.push_back(m_threads
 			.Push([=](const int id) {
 				const auto& jobs = Jobs::GetInstance();
-				std::vector<std::shared_future<void>> pendingTasks;
-				for (auto& i : dependencies) {
-					auto& worker = jobs.m_workers.at(i);
-					for (auto& task : worker->m_tasks)
-					{
-						pendingTasks.emplace_back(task);
-					}
-				}
-				for (auto& task : pendingTasks)
-				{
-					task.wait();
+				for (auto& i : m_dependencies) {
+					jobs.m_workers.at(i)->Wait();
 				}
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
@@ -237,13 +182,7 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 		EVOENGINE_ERROR("Worker: Currently busy!");
 		return;
 	}
-#ifdef _DEBUG
-	if (CheckLoop(dependencies))
-	{
-		EVOENGINE_ERROR("Worker: Loop!");
-		return;
-	}
-#endif
+	m_dependencies = dependencies;
 	const auto threadLoad = size / threadSize;
 	const auto loadReminder = size % threadSize;
 	m_tasks.reserve(threadSize);
@@ -252,17 +191,8 @@ void Worker::ScheduleParallelTasks(const std::vector<WorkerHandle>& dependencies
 		m_tasks.push_back(m_threads
 			.Push([=](const int id) {
 				const auto& jobs = Jobs::GetInstance();
-				std::vector<std::shared_future<void>> pendingTasks;
-				for (auto& i : dependencies) {
-					auto& worker = jobs.m_workers.at(i);
-					for (auto& task : worker->m_tasks)
-					{
-						pendingTasks.emplace_back(task);
-					}
-				}
-				for (auto& task : pendingTasks)
-				{
-					task.wait();
+				for (auto& i : m_dependencies) {
+					jobs.m_workers.at(i)->Wait();
 				}
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{

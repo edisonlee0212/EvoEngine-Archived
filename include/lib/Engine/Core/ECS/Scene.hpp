@@ -898,7 +898,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if(jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -913,7 +914,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -928,7 +930,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -943,7 +946,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -958,7 +962,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -973,7 +978,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -988,7 +994,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1003,7 +1010,8 @@ namespace EvoEngine
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		std::vector<WorkerHandle> jobs;
 		for (const auto i : queriedStorages) {
-			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1016,7 +1024,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1029,7 +1038,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1042,7 +1052,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1057,7 +1068,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1072,7 +1084,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1087,7 +1100,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1102,7 +1116,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1117,7 +1132,8 @@ namespace EvoEngine
 		std::vector<WorkerHandle> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
 		}
 		return Jobs::PackTask(jobs);
 	}
