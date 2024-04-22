@@ -905,9 +905,9 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 		return;
 	if (checkEnable)
 	{
-		constexpr size_t workerSize = 10;
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		std::vector<std::vector<Entity>> tempStorage;
-		tempStorage.resize(workerSize);
+		tempStorage.resize(threadSize);
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = &chunkArray.m_entities;
 		Jobs::ParallelFor(amount, [=, &entities, &tempStorage](const int i, const unsigned workerIndex) {
@@ -916,7 +916,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 				return;
 			tempStorage[workerIndex].push_back(entity);
 			}, 
-			workerSize
+			threadSize
 		);
 		for (auto& i : tempStorage)
 		{
@@ -932,7 +932,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 	}
 }
 
-size_t Scene::SwapEntity(DataComponentStorage& storage, size_t index1, size_t index2)
+auto Scene::SwapEntity(DataComponentStorage& storage, const size_t index1, const size_t index2) -> size_t
 {
 	if (index1 == index2)
 		return -1;

@@ -314,7 +314,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		EVOENGINE_ERROR("Project filepath must present when there's no EditorLayer or WindowLayer!");
 		return;
 	}
-	Jobs::Initialize();
+	Jobs::Initialize(8, 16);
 	InitializeRegistry();
 	Entities::Initialize();
 	TransformGraph::Initialize();

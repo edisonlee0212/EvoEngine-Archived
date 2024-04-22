@@ -63,7 +63,7 @@ namespace EvoEngine
 	{
 		friend class Application;
 		friend class Entities;
-		
+
 		friend class EditorLayer;
 		friend class Serialization;
 		friend class SystemRef;
@@ -74,7 +74,7 @@ namespace EvoEngine
 		friend class EditorLayer;
 		friend class Input;
 		std::unordered_map<int, KeyActionType> m_pressedKeys = {};
-		
+
 		SceneDataStorage m_sceneDataStorage;
 		std::multimap<float, std::shared_ptr<ISystem>> m_systems;
 		std::map<size_t, std::shared_ptr<ISystem>> m_indexedSystems;
@@ -91,7 +91,7 @@ namespace EvoEngine
 		template <typename T = IDataComponent>
 		void GetDataComponentArrayStorage(const DataComponentStorage& storage, std::vector<T>& container, bool checkEnable);
 		void GetEntityStorage(const DataComponentStorage& storage, std::vector<Entity>& container, bool checkEnable) const;
-		size_t SwapEntity(DataComponentStorage& storage, size_t index1, size_t index2);
+		static size_t SwapEntity(DataComponentStorage& storage, size_t index1, size_t index2);
 		void SetEnableSingle(const Entity& entity, const bool& value);
 		void SetDataComponent(const unsigned& entityIndex, size_t id, size_t size, IDataComponent* data);
 		friend class Serialization;
@@ -337,7 +337,7 @@ namespace EvoEngine
 
 #pragma region For Each
 		template <typename T1 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle> &dependencies,
+		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&)>& func,
 			bool checkEnable = true);
@@ -895,16 +895,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		std::vector<WorkerHandle> jobs;
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2>
 	WorkerHandle Scene::ForEach(
@@ -914,16 +910,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3>
 	WorkerHandle Scene::ForEach(
@@ -933,16 +925,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4>
 	WorkerHandle Scene::ForEach(
@@ -952,16 +940,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5>
 	WorkerHandle Scene::ForEach(
@@ -971,16 +955,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 	WorkerHandle Scene::ForEach(
@@ -990,16 +970,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 	WorkerHandle Scene::ForEach(
@@ -1009,16 +985,12 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 	WorkerHandle Scene::ForEach(
@@ -1028,86 +1000,66 @@ namespace EvoEngine
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		return Jobs::AddTask([&]()
-			{
-				const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-				std::vector<WorkerHandle> jobs;
-				for (const auto i : queriedStorages) {
-					jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		std::vector<WorkerHandle> jobs;
+		for (const auto i : queriedStorages) {
+			jobs.emplace_back(ForEachStorage(dependencies, i.get(), func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1>
 	WorkerHandle Scene::ForEach(
 		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&)>& func, bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2>
 	WorkerHandle Scene::ForEach(
 		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&)>& func, bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3>
 	WorkerHandle Scene::ForEach(
 		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func, bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4>
 	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies, 
+		const std::vector<WorkerHandle>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 		bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5>
@@ -1116,17 +1068,13 @@ namespace EvoEngine
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 		bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
@@ -1135,17 +1083,13 @@ namespace EvoEngine
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 		bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for(const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
@@ -1154,17 +1098,13 @@ namespace EvoEngine
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 		bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
@@ -1173,17 +1113,13 @@ namespace EvoEngine
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 		bool checkEnable)
 	{
-		return Jobs::AddTask([&]()
-			{
-				auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-				std::vector<WorkerHandle> jobs;
-				for (auto i = storages.begin() + 1; i < storages.end(); ++i)
-				{
-					jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
-				}
-				for (const auto& i : jobs) Jobs::Wait(i);
-			}
-		);
+		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
+		std::vector<WorkerHandle> jobs;
+		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
+		{
+			jobs.emplace_back(ForEachStorage(dependencies, *i, func, checkEnable));
+		}
+		return Jobs::PackTask(jobs);
 	}
 
 #pragma endregion
@@ -1191,7 +1127,7 @@ namespace EvoEngine
 	void Scene::GetComponentDataArray(const EntityQuery& entityQuery, std::vector<T>& container, bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		for (const auto i : queriedStorages)
 		{
 			GetDataComponentArrayStorage(i.get(), container, checkEnable);
@@ -1213,33 +1149,22 @@ namespace EvoEngine
 		GetComponentDataArray(entityQuery, targetDataList, checkEnable);
 		if (targetDataList.size() != componentDataList.size())
 			return;
-		std::vector<std::shared_future<void>> futures;
 		size_t size = componentDataList.size();
 		std::vector<std::vector<T1>> collectedDataLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T1>());
 		}
-		for (int i = 0; i < collectedDataLists.size(); i++)
-		{
-			std::vector<T1>* collectedDataList = &collectedDataLists[i];
-			futures.push_back(
-				Jobs::Workers()
-				.Push(
-					[&targetDataList, &componentDataList, size, collectedDataList, i, filterFunc, threadSize](int id) {
-						for (int j = 0; j < size / threadSize; j++)
-						{
-							if (filterFunc(componentDataList[j * threadSize + i]))
-							{
-								collectedDataList->push_back(targetDataList[j * threadSize + i]);
-							}
-						}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [&targetDataList, &componentDataList, &collectedDataLists, filterFunc](unsigned i, unsigned threadIndex)
+			{
+			if (filterFunc(componentDataList[i]))
+			{
+				collectedDataLists[threadIndex].push_back(targetDataList[i]);
+			}
+			}, threadSize
+		);
+
 		for (int i = 0; i < collectedDataLists.size(); i++)
 		{
 			auto listSize = collectedDataLists[i].size();
@@ -1276,39 +1201,25 @@ namespace EvoEngine
 		GetComponentDataArray(entityQuery, targetDataList, checkEnable);
 		if (targetDataList.size() != componentDataList1.size() || componentDataList1.size() != componentDataList2.size())
 			return;
-		std::vector<std::shared_future<void>> futures;
 		size_t size = componentDataList1.size();
 		std::vector<std::vector<T1>> collectedDataLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T1>());
 		}
-		for (int i = 0; i < collectedDataLists.size(); i++)
-		{
-			std::vector<T1>* collectedDataList = &collectedDataLists[i];
-			futures.push_back(
-				Jobs::Workers()
-				.Push([&targetDataList,
-					&componentDataList1,
-					&componentDataList2,
-					size,
-					collectedDataList,
-					i,
-					filterFunc,
-					threadSize](int id) {
-						for (int j = 0; j < size / threadSize; j++)
-						{
-							if (filterFunc(componentDataList1[j * threadSize + i], componentDataList2[j * threadSize + i]))
-							{
-								collectedDataList->push_back(targetDataList[j * threadSize + i]);
-							}
-						}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [&targetDataList,
+			&componentDataList1,
+			&componentDataList2,
+			&collectedDataLists,
+			filterFunc](unsigned i, unsigned threadIndex)
+			{
+				if (filterFunc(componentDataList1[i], componentDataList2[i]))
+				{
+					collectedDataLists.at(threadIndex).push_back(targetDataList[i]);
+				}
+			}, threadSize
+		);
 		for (int i = 0; i < collectedDataLists.size(); i++)
 		{
 			auto listSize = collectedDataLists[i].size();
@@ -1343,29 +1254,21 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = componentDataList.size();
 		std::vector<std::vector<T2>> collectedDataLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T2>());
 		}
-		for (int i = 0; i < collectedDataLists.size(); i++)
-		{
-			std::vector<T2>* collectedDataList = &collectedDataLists[i];
-			futures.push_back(
-				Jobs::Workers()
-				.Push([&targetDataList, &componentDataList, size, filter, collectedDataList, i, threadSize](int id) {
-					for (int j = 0; j < size / threadSize; j++)
-					{
-						if (filter == componentDataList[j * threadSize + i])
-						{
-							collectedDataList->push_back(targetDataList[j * threadSize + i]);
-						}
-					}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [&targetDataList,
+			&targetDataList, &componentDataList, filter, &collectedDataLists](unsigned i, unsigned threadIndex)
+			{
+				if (filter == componentDataList[i])
+				{
+					collectedDataLists.at(threadIndex)->push_back(targetDataList[i]);
+				}
+			}, threadSize
+		);
+
 		for (int i = 0; i < collectedDataLists.size(); i++)
 		{
 			auto listSize = collectedDataLists[i].size();
@@ -1403,29 +1306,19 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
 		}
-		for (int i = 0; i < collectedEntityLists.size(); i++)
-		{
-			std::vector<Entity>* collectedEntityList = &collectedEntityLists[i];
-			futures.push_back(
-				Jobs::Workers()
-				.Push([&allEntities, &componentDataList, size, collectedEntityList, i, filterFunc, threadSize](int id) {
-					for (int j = 0; j < size / threadSize; j++)
-					{
-						if (filterFunc(allEntities[j * threadSize + i], componentDataList[j * threadSize + i]))
-						{
-							collectedEntityList->push_back(allEntities[j * threadSize + i]);
-						}
-					}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [&allEntities, &componentDataList, &collectedEntityLists, filterFunc](unsigned i, unsigned threadIndex)
+			{
+				if (filterFunc(allEntities[i], componentDataList[i]))
+				{
+					collectedEntityLists.at(threadIndex).push_back(allEntities[i]);
+				}
+			}, threadSize
+		);
 		for (int i = 0; i < collectedEntityLists.size(); i++)
 		{
 			const auto listSize = collectedEntityLists[i].size();
@@ -1465,31 +1358,22 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
 		}
-		for (int i = 0; i < collectedEntityLists.size(); i++)
-		{
-			std::vector<Entity>* collectedEntityList = &collectedEntityLists[i];
-			futures.push_back(Jobs::Workers()
-				.Push([=, &allEntities, &componentDataList1, &componentDataList2](int id) {
-					for (int j = 0; j < size / threadSize; j++)
-					{
-						if (filterFunc(
-							allEntities[j * threadSize + i],
-							componentDataList1[j * threadSize + i],
-							componentDataList2[j * threadSize + i]))
-						{
-							collectedEntityList->push_back(allEntities[j * threadSize + i]);
-						}
-					}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [=, &allEntities, &componentDataList1, &componentDataList2, &collectedEntityLists](unsigned i, unsigned threadIndex)
+			{
+				if (filterFunc(
+					allEntities[i],
+					componentDataList1[i],
+					componentDataList2[i]))
+				{
+					collectedEntityLists.at(threadIndex).push_back(allEntities[i]);
+				}
+			}, threadSize
+		);
 		for (int i = 0; i < collectedEntityLists.size(); i++)
 		{
 			const auto listSize = collectedEntityLists[i].size();
@@ -1525,29 +1409,20 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::Workers().Size();
+		const auto threadSize = Jobs::GetDefaultThreadSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
 		}
-		for (int i = 0; i < collectedEntityLists.size(); i++)
-		{
-			std::vector<Entity>* collectedEntityList = &collectedEntityLists[i];
-			futures.push_back(
-				Jobs::Workers()
-				.Push([&allEntities, &componentDataList, size, filter, collectedEntityList, i, threadSize](int id) {
-					for (int j = 0; j < size / threadSize; j++)
-					{
-						if (filter == componentDataList[j * threadSize + i])
-						{
-							collectedEntityList->push_back(allEntities[j * threadSize + i]);
-						}
-					}
-					})
-				.share());
-		}
-		for (const auto& i : futures)
-			i.wait();
+		Jobs::ParallelFor(size, [&allEntities, &componentDataList, filter, &collectedEntityLists](unsigned i, unsigned threadIndex)
+			{
+				if (filter == componentDataList[i])
+				{
+					collectedEntityLists.at(threadIndex).push_back(allEntities[i]);
+				}
+			}, threadSize
+		);
+		
 		for (int i = 0; i < collectedEntityLists.size(); i++)
 		{
 			const auto listSize = collectedEntityLists[i].size();
@@ -1572,7 +1447,7 @@ namespace EvoEngine
 	{
 		std::vector<std::pair<T*, size_t>> retVal;
 		assert(entityQuery.IsValid());
-		auto queriedStorages = QueryDataComponentStorages(entityQuery);
+		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		for (const auto storage : queriedStorages)
 		{
 			auto& i = storage.get();
@@ -1629,13 +1504,13 @@ namespace EvoEngine
 					return;
 				if (checkEnable)
 				{
-					constexpr size_t workerSize = 8;
+					const auto threadSize = Jobs::GetDefaultThreadSize();
 					std::vector<std::vector<T>> tempStorage;
-					tempStorage.resize(workerSize);
+					tempStorage.resize(threadSize);
 					const auto capacity = storage.m_chunkCapacity;
 					const auto& chunkArray = storage.m_chunkArray;
 					const auto& entities = chunkArray.m_entities;
-					Jobs::ParallelFor(amount, [&](unsigned i, unsigned workerIndex)
+					Jobs::ParallelFor(amount, [&](unsigned i, unsigned threadIndex)
 						{
 							const auto chunkIndex = i / capacity;
 							const auto remainder = i % capacity;
@@ -1644,7 +1519,7 @@ namespace EvoEngine
 							const auto entity = entities.at(i);
 							if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 								return;
-							tempStorage[workerIndex].push_back(address1[remainder]);
+							tempStorage[threadIndex].push_back(address1[remainder]);
 						}
 					);
 					for (auto& i : tempStorage)
@@ -1681,7 +1556,7 @@ namespace EvoEngine
 #pragma region ForEachStorage
 	template <typename T1>
 	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle> &dependencies,
+		const std::vector<WorkerHandle>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&)>& func,
 		bool checkEnable)
@@ -1711,8 +1586,8 @@ namespace EvoEngine
 				const auto entity = entities.at(i);
 				if (checkEnable && !m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 					return;
-				func(static_cast<int>(i), 
-					entity, 
+				func(static_cast<int>(i),
+					entity,
 					address1[remainder]);
 			}
 		);
@@ -1749,7 +1624,7 @@ namespace EvoEngine
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
 		return Jobs::AddParallelFor(dependencies, entityCount, [=, &chunkArray, &entities](unsigned i)
-		{
+			{
 				const auto chunkIndex = i / capacity;
 				const auto remainder = i % capacity;
 				auto* data = static_cast<char*>(chunkArray.m_chunks[chunkIndex].m_data);
@@ -1758,11 +1633,11 @@ namespace EvoEngine
 				const auto entity = entities.at(i);
 				if (checkEnable && !m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 					return;
-				func(static_cast<int>(i), 
+				func(static_cast<int>(i),
 					entity,
-					address1[remainder], 
+					address1[remainder],
 					address2[remainder]);
-		});
+			});
 	}
 	template <typename T1, typename T2, typename T3>
 	WorkerHandle Scene::ForEachStorage(
@@ -1813,10 +1688,10 @@ namespace EvoEngine
 				if (checkEnable && !m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 					return;
 				func(
-					static_cast<int>(i), 
-					entity, 
-					address1[remainder], 
-					address2[remainder], 
+					static_cast<int>(i),
+					entity,
+					address1[remainder],
+					address2[remainder],
 					address3[remainder]);
 			}
 		);
