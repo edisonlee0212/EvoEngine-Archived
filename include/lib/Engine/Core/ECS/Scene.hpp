@@ -110,17 +110,17 @@ namespace EvoEngine
 
 #pragma region ForEach
 		template <typename T1 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&)>& func,
 			bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&)>& func,
 			bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func,
 			bool checkEnable = true);
@@ -129,7 +129,7 @@ namespace EvoEngine
 			typename T2 = IDataComponent,
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 			bool checkEnable = true);
@@ -139,7 +139,7 @@ namespace EvoEngine
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 			bool checkEnable = true);
@@ -150,7 +150,7 @@ namespace EvoEngine
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 			bool checkEnable = true);
@@ -162,7 +162,7 @@ namespace EvoEngine
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 			bool checkEnable = true);
@@ -175,7 +175,7 @@ namespace EvoEngine
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent,
 			typename T8 = IDataComponent>
-		WorkerHandle ForEachStorage(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEachStorage(const std::vector<JobDependency>& dependencies,
 			const DataComponentStorage& storage,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 			bool checkEnable = true);
@@ -337,17 +337,17 @@ namespace EvoEngine
 
 #pragma region For Each
 		template <typename T1 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&)>& func,
 			bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&)>& func,
 			bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func,
 			bool checkEnable = true);
@@ -356,7 +356,7 @@ namespace EvoEngine
 			typename T2 = IDataComponent,
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 			bool checkEnable = true);
@@ -366,7 +366,7 @@ namespace EvoEngine
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 			bool checkEnable = true);
@@ -377,7 +377,7 @@ namespace EvoEngine
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 			bool checkEnable = true);
@@ -389,7 +389,7 @@ namespace EvoEngine
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 			bool checkEnable = true);
@@ -402,20 +402,20 @@ namespace EvoEngine
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent,
 			typename T8 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const EntityQuery& entityQuery,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 			bool checkEnable = true);
 		// For implicit parallel task dispatching
 		template <typename T1 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&)>& func, bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&)>& func,
 			bool checkEnable = true);
 		template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func,
 			bool checkEnable = true);
 		template <
@@ -423,7 +423,7 @@ namespace EvoEngine
 			typename T2 = IDataComponent,
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 			bool checkEnable = true);
 		template <
@@ -432,7 +432,7 @@ namespace EvoEngine
 			typename T3 = IDataComponent,
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 			bool checkEnable = true);
 		template <
@@ -442,7 +442,7 @@ namespace EvoEngine
 			typename T4 = IDataComponent,
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 			bool checkEnable = true);
 		template <
@@ -453,7 +453,7 @@ namespace EvoEngine
 			typename T5 = IDataComponent,
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 			bool checkEnable = true);
 		template <
@@ -465,7 +465,7 @@ namespace EvoEngine
 			typename T6 = IDataComponent,
 			typename T7 = IDataComponent,
 			typename T8 = IDataComponent>
-		WorkerHandle ForEach(const std::vector<WorkerHandle>& dependencies,
+		JobDependency ForEach(const std::vector<JobDependency>& dependencies,
 			const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 			bool checkEnable = true);
 #pragma endregion
@@ -888,252 +888,252 @@ namespace EvoEngine
 #pragma endregion
 #pragma region For Each
 	template <typename T1>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if(jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const EntityQuery& entityQuery,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 		bool checkEnable)
 	{
 		assert(entityQuery.IsValid());
 		const auto queriedStorages = QueryDataComponentStorages(entityQuery);
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (const auto i : queriedStorages) {
-			const auto jobHandle = ForEachStorage(dependencies, i.get(), func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, i.get(), func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&)>& func, bool checkEnable)
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies, const std::function<void(int i, Entity entity, T1&)>& func, bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&)>& func, bool checkEnable)
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&)>& func, bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func, bool checkEnable)
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies, const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func, bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 		bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 		bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 		bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 		bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
 
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	WorkerHandle Scene::ForEach(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEach(
+		const std::vector<JobDependency>& dependencies,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 		bool checkEnable)
 	{
 		auto& storages = m_sceneDataStorage.m_dataComponentStorages;
-		std::vector<WorkerHandle> jobs;
+		std::vector<JobDependency> jobs;
 		for (auto i = storages.begin() + 1; i < storages.end(); ++i)
 		{
-			const auto jobHandle = ForEachStorage(dependencies, *i, func, checkEnable);
-			if (jobHandle >= 0) jobs.emplace_back(jobHandle);
+			const auto job = ForEachStorage(dependencies, *i, func, checkEnable);
+			if (job.Valid()) jobs.emplace_back(job);
 		}
 		return Jobs::PackTask(jobs);
 	}
@@ -1174,10 +1174,10 @@ namespace EvoEngine
 		}
 		Jobs::ParallelFor(size, [&targetDataList, &componentDataList, &collectedDataLists, filterFunc](unsigned i, unsigned threadIndex)
 			{
-			if (filterFunc(componentDataList[i]))
-			{
-				collectedDataLists[threadIndex].push_back(targetDataList[i]);
-			}
+				if (filterFunc(componentDataList[i]))
+				{
+					collectedDataLists[threadIndex].push_back(targetDataList[i]);
+				}
 			}, threadSize
 		);
 
@@ -1438,7 +1438,7 @@ namespace EvoEngine
 				}
 			}, threadSize
 		);
-		
+
 		for (int i = 0; i < collectedEntityLists.size(); i++)
 		{
 			const auto listSize = collectedEntityLists[i].size();
@@ -1571,8 +1571,8 @@ namespace EvoEngine
 	}
 #pragma region ForEachStorage
 	template <typename T1>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&)>& func,
 		bool checkEnable)
@@ -1589,7 +1589,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1609,8 +1609,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&)>& func,
 		bool checkEnable)
@@ -1635,7 +1635,7 @@ namespace EvoEngine
 		}
 
 		if (!found1 || !found2)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1656,8 +1656,8 @@ namespace EvoEngine
 			});
 	}
 	template <typename T1, typename T2, typename T3>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&)>& func,
 		bool checkEnable)
@@ -1688,7 +1688,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1713,8 +1713,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2, typename T3, typename T4>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>& func,
 		bool checkEnable)
@@ -1752,7 +1752,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3 || !found4)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1779,8 +1779,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>& func,
 		bool checkEnable)
@@ -1825,7 +1825,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3 || !found4 || !found5)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1854,8 +1854,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>& func,
 		bool checkEnable)
@@ -1907,7 +1907,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3 || !found4 || !found5 || !found6)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -1938,8 +1938,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>& func,
 		bool checkEnable)
@@ -1998,7 +1998,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3 || !found4 || !found5 || !found6 || !found7)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
@@ -2031,8 +2031,8 @@ namespace EvoEngine
 		);
 	}
 	template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-	WorkerHandle Scene::ForEachStorage(
-		const std::vector<WorkerHandle>& dependencies,
+	JobDependency Scene::ForEachStorage(
+		const std::vector<JobDependency>& dependencies,
 		const DataComponentStorage& storage,
 		const std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>& func,
 		bool checkEnable)
@@ -2098,7 +2098,7 @@ namespace EvoEngine
 			}
 		}
 		if (!found1 || !found2 || !found3 || !found4 || !found5 || !found6 || !found7 || !found8)
-			return -1;
+			return JobDependency();
 		const auto capacity = storage.m_chunkCapacity;
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = chunkArray.m_entities;
