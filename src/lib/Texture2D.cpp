@@ -353,7 +353,7 @@ void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX, int 
 	imageBuffer.CopyFromImage(*m_image);
 	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
 	dst.resize(pixels.size());
-	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+	Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
 		{
 			dst[i] = pixels[i];
 		}
@@ -370,7 +370,7 @@ void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX, int r
 	imageBuffer.CopyFromImage(*m_image);
 	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
 	dst.resize(pixels.size());
-	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+	Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
 		{
 			dst[i] = glm::vec2(pixels[i].r, pixels[i].g);
 		}
@@ -387,7 +387,7 @@ void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resi
 	imageBuffer.CopyFromImage(*m_image);
 	imageBuffer.DownloadVector(pixels, resolutionX * resolutionY);
 	dst.resize(pixels.size());
-	Jobs::ParallelFor(pixels.size(), [&](unsigned i)
+	Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
 		{
 			dst[i] = pixels[i].r;
 		}
@@ -403,7 +403,7 @@ void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
-	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+	Jobs::RunParallelFor(imageData.size(), [&](unsigned i)
 		{
 			imageData[i] = glm::vec4(src[i], 1.0f);
 		}
@@ -415,7 +415,7 @@ void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::u
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
-	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+	Jobs::RunParallelFor(imageData.size(), [&](unsigned i)
 		{
 			imageData[i] = glm::vec4(src[i], 0.0f, 1.0f);
 		}
@@ -427,7 +427,7 @@ void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
-	Jobs::ParallelFor(imageData.size(), [&](unsigned i)
+	Jobs::RunParallelFor(imageData.size(), [&](unsigned i)
 		{
 			imageData[i] = glm::vec4(src[i], 0.0f, 0.0f, 1.0f);
 		}

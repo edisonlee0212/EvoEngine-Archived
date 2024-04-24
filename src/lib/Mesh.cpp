@@ -436,7 +436,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());
-	Jobs::ParallelFor(
+	Jobs::RunParallelFor(
 		rays.size(),
 		[&](unsigned i) {
 			auto& ray = rays[i];
@@ -456,7 +456,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());
-	Jobs::ParallelFor(
+	Jobs::RunParallelFor(
 		rays.size(),
 		[&](unsigned i) {
 			auto& ray = rays[i];
@@ -478,7 +478,7 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
-	Jobs::ParallelFor(
+	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
 			auto& start = starts[i];
@@ -501,7 +501,7 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
-	Jobs::ParallelFor(
+	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
 			auto& start = starts[i];

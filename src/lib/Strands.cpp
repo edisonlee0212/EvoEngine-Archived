@@ -34,7 +34,7 @@ std::vector<glm::uint>& Strands::UnsafeGetSegments() {
 
 void Strands::PrepareStrands(const StrandPointAttributes& strandPointAttributes) {
 	m_segments.resize(m_segmentRawIndices.size());
-	Jobs::ParallelFor(m_segmentRawIndices.size(), [&](unsigned i)
+	Jobs::RunParallelFor(m_segmentRawIndices.size(), [&](unsigned i)
 		{
 			m_segments[i].x = m_segmentRawIndices[i];
 			m_segments[i].y = m_segmentRawIndices[i] + 1;

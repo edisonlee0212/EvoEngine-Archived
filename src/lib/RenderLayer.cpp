@@ -913,7 +913,7 @@ void RenderLayer::ApplyAnimator() const
 	if (const auto* owners =
 		scene->UnsafeGetPrivateComponentOwnersList<Animator>())
 	{
-		Jobs::ParallelFor(owners->size(), [&](unsigned i)
+		Jobs::RunParallelFor(owners->size(), [&](unsigned i)
 			{
 				const auto entity = owners->at(i);
 				if (!scene->IsEntityEnabled(entity)) return;
@@ -925,7 +925,7 @@ void RenderLayer::ApplyAnimator() const
 	if (const auto* owners =
 		scene->UnsafeGetPrivateComponentOwnersList<SkinnedMeshRenderer>())
 	{
-		Jobs::ParallelFor(owners->size(), [&](unsigned i)
+		Jobs::RunParallelFor(owners->size(), [&](unsigned i)
 			{
 				const auto entity = owners->at(i);
 				if (!scene->IsEntityEnabled(entity)) return;

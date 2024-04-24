@@ -1,56 +1,62 @@
 #pragma once
 #include "ISingleton.hpp"
-#include "ThreadPool.hpp"
 namespace EvoEngine
 {
-	class Worker;
 	typedef int WorkerHandle;
 
-	class JobDependency
+	class JobHandle
 	{
 		WorkerHandle m_workerHandle = -1;
 		size_t m_version = 0;
 		friend class Jobs;
 	public:
-		size_t GetVersion() const;
-		WorkerHandle GetWorkerHandle() const;
-		bool Valid() const;
+		[[nodiscard]] size_t GetVersion() const;
+		[[nodiscard]] WorkerHandle GetWorkerHandle() const;
+		[[nodiscard]] bool Valid() const;
 	};
 
-	class Worker
-	{
-		ThreadPool m_threads;
-		WorkerHandle m_handle = -1;
-		bool m_scheduled = false;
-		std::vector<std::pair<std::shared_ptr<Worker>, size_t>> m_dependencies;
-		std::vector<std::shared_future<void>> m_tasks;
-
-		friend class Jobs;
-		std::mutex m_mutex{};
-
-		size_t m_version = 0;
-	public:
-		size_t GetVersion() const;
-		Worker(size_t threadSize, WorkerHandle handle);
-		void Wait();
-		void Wait(size_t version);
-
-		ThreadPool& RefThreadPool();
-		const ThreadPool& PeekThreadPool() const;
-		WorkerHandle GetHandle() const;
-		bool Scheduled() const;
-
-		void ScheduleTask(const std::function<void()>& func);
-		void ScheduleTask(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, const std::function<void()>& func);
-		void ScheduleParallelTasks(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize);
-		void ScheduleParallelTasks(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize);
-
-		void ScheduleParallelTasks(size_t size, const std::function<void(unsigned i)>& func, size_t threadSize);
-		void ScheduleParallelTasks(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, size_t size, const std::function<void(unsigned i)>& func, size_t threadSize);
-	};
 
 	class Jobs final : ISingleton<Jobs>
 	{
+		class Worker
+		{
+			std::vector<std::condition_variable> m_tasksCondition;
+			std::vector<std::unique_ptr<std::thread>> m_threads;
+
+			WorkerHandle m_handle = -1;
+			bool m_executing = false;
+			bool m_scheduled = false;
+			std::vector<std::pair<std::shared_ptr<Worker>, size_t>> m_dependencies;
+
+			std::vector<std::unique_ptr<std::function<void()>>> m_works;
+			std::vector<std::shared_future<void>> m_results;
+
+			friend class Jobs;
+			std::mutex m_schedulerMutex{};
+			std::mutex m_conditionVariableMutex{};
+			size_t m_threadSize = 0;
+
+			size_t m_version = 0;
+		public:
+			[[nodiscard]] size_t GetVersion() const;
+			Worker(size_t threadSize, WorkerHandle handle);
+
+			void Execute();
+			void Wait();
+			void Wait(size_t version);
+
+			[[nodiscard]] WorkerHandle GetHandle() const;
+			[[nodiscard]] bool Executing() const;
+			[[nodiscard]] bool Scheduled() const;
+
+			void ScheduleJob(const std::function<void()>& func);
+			void ScheduleJob(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, const std::function<void()>& func);
+			void ScheduleParallelJobs(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func);
+			void ScheduleParallelJobs(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func);
+
+			void ScheduleParallelJobs(size_t size, const std::function<void(unsigned i)>& func);
+			void ScheduleParallelJobs(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, size_t size, const std::function<void(unsigned i)>& func);
+		};
 		std::vector<std::shared_ptr<Worker>> m_workers;
 		std::vector<std::queue<WorkerHandle>> m_availableWorker;
 
@@ -68,19 +74,21 @@ namespace EvoEngine
 		static size_t GetDefaultThreadSize();
 		static size_t GetMaxThreadSize();
 		static void Initialize(size_t defaultThreadSize, size_t maxThreadSize);
-		static void ParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
-		static void ParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
-		static JobDependency AddParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
-		static JobDependency AddParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
+		static void RunParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
+		static void RunParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
+		static JobHandle ScheduleParallelFor(size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
+		static JobHandle ScheduleParallelFor(size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
 
-		static void ParallelFor(const std::vector<JobDependency>& dependencies, size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
-		static void ParallelFor(const std::vector<JobDependency>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
-		static JobDependency AddParallelFor(const std::vector<JobDependency>& dependencies, size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
-		static JobDependency AddParallelFor(const std::vector<JobDependency>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
+		static void RunParallelFor(const std::vector<JobHandle>& dependencies, size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
+		static void RunParallelFor(const std::vector<JobHandle>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
+		static JobHandle ScheduleParallelFor(const std::vector<JobHandle>& dependencies, size_t size, const std::function<void(unsigned i)>& func, size_t threadSize = 0);
+		static JobHandle ScheduleParallelFor(const std::vector<JobHandle>& dependencies, size_t size, const std::function<void(unsigned i, unsigned threadIndex)>& func, size_t threadSize = 0);
 
-		static JobDependency AddTask(const std::vector<JobDependency>& dependencies, const std::function<void()>& func);
-		static JobDependency AddTask(const std::function<void()>& func);
-		static JobDependency PackTask(const std::vector<JobDependency>& dependencies);
-		static void Wait(const JobDependency &jobDependency);
+		static JobHandle Run(const std::vector<JobHandle>& dependencies, const std::function<void()>& func);
+		static JobHandle Run(const std::function<void()>& func);
+		static JobHandle Combine(const std::vector<JobHandle>& dependencies);
+
+		static void Execute(const JobHandle& jobDependency);
+		static void Wait(const JobHandle &jobDependency);
 	};
 } // namespace EvoEngine

@@ -910,7 +910,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 		tempStorage.resize(threadSize);
 		const auto& chunkArray = storage.m_chunkArray;
 		const auto& entities = &chunkArray.m_entities;
-		Jobs::ParallelFor(amount, [=, &entities, &tempStorage](const int i, const unsigned workerIndex) {
+		Jobs::RunParallelFor(amount, [=, &entities, &tempStorage](const int i, const unsigned workerIndex) {
 			const auto entity = entities->at(i);
 			if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 				return;
@@ -1136,7 +1136,7 @@ std::vector<Entity> Scene::CreateEntities(
 		storage.m_chunkArray.m_entities.end(),
 		m_sceneDataStorage.m_entities.begin() + originalSize,
 		m_sceneDataStorage.m_entities.end());
-	Jobs::ParallelFor(remainAmount, [&, originalSize](unsigned i)
+	Jobs::RunParallelFor(remainAmount, [&, originalSize](unsigned i)
 		{
 			const auto& entity = m_sceneDataStorage.m_entities.at(originalSize + i);
 			SetDataComponent(entity, transform);
