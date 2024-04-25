@@ -314,7 +314,8 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		EVOENGINE_ERROR("Project filepath must present when there's no EditorLayer or WindowLayer!");
 		return;
 	}
-	Jobs::Initialize(8, 16);
+	const auto defaultThreadSize = std::thread::hardware_concurrency();
+	Jobs::Initialize(defaultThreadSize - 2, 32);
 	InitializeRegistry();
 	Entities::Initialize();
 	TransformGraph::Initialize();

@@ -30,26 +30,36 @@ Jobs::Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 	m_threadSize = threadSize;
 	m_threads.resize(m_threadSize);
 	m_works.resize(m_threadSize);
+	m_packagedWorks.resize(m_threadSize);
 	m_results.resize(m_threadSize);
 	m_tasksCondition = std::vector<std::condition_variable>(m_threadSize);
+	m_taskLock = std::vector<std::mutex>(m_threadSize);
 	for(unsigned threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
 		auto threadFunc = [this, threadIndex]()
 			{
 				bool newTaskAssigned = false;
+				size_t version = 0;
+				std::unique_ptr<std::function<void()>> work;
 				while(true)
 				{
 					if(newTaskAssigned)
 					{
-						(*m_works[threadIndex])();
-						m_works[threadIndex].reset();
+						(*work)();
+						work.reset();
 						newTaskAssigned = false;
+						version++;
 					}
 					std::unique_lock lock(this->m_conditionVariableMutex);
-					this->m_tasksCondition[threadIndex].wait(lock, [this, threadIndex, &newTaskAssigned]()
+					this->m_tasksCondition[threadIndex].wait(lock, [this, threadIndex, &newTaskAssigned, &work]()
 					{
-						newTaskAssigned = m_works[threadIndex].get();
-						return newTaskAssigned;
+							std::lock_guard taskLock(m_taskLock[threadIndex]);
+							if(m_packagedWorks[threadIndex])
+							{
+								work = std::move(m_packagedWorks[threadIndex]);
+								newTaskAssigned = true;
+							}
+							return true;
 					});
 				}
 			};
@@ -61,9 +71,15 @@ Jobs::Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 void Jobs::Worker::Execute()
 {
 	if(m_executing || !m_scheduled) return;
-	std::unique_lock lock(this->m_conditionVariableMutex);
+	
+	for(int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
+	{
+		
+		std::unique_lock lock(this->m_conditionVariableMutex);
+		m_tasksCondition[threadIndex].notify_one();
+		
+	}
 	m_executing = true;
-	for (auto& i : m_tasksCondition) i.notify_one();
 }
 
 void Jobs::Worker::Wait()
@@ -71,7 +87,10 @@ void Jobs::Worker::Wait()
 	if (!m_scheduled) return;
 	if (!m_executing) Execute();
 	std::lock_guard lock(m_schedulerMutex);
-	for (const auto& i : m_results) i.wait();
+	for (auto& i : m_results) {
+		i.wait();
+		i = {};
+	}
 	m_dependencies.clear();
 	
 	m_scheduled = false;
@@ -131,13 +150,16 @@ void Jobs::Worker::ScheduleJob(const std::function<void()>& func)
 		return;
 	}
 	assert(m_threadSize == 1);
-	const auto actualFunc = [this, func]()
+	m_works[0] = [this, func]()
 		{
 			func();
 		};
-	auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-	m_results[0] = pck->get_future().share();
-	m_works[0] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+	auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[0]));
+	{
+		std::lock_guard taskLock(m_taskLock[0]);
+		m_packagedWorks[0] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+	}
+	m_results[0] = pck->get_future();
 	m_scheduled = true;
 }
 
@@ -158,7 +180,7 @@ void Jobs::Worker::ScheduleJob(const std::vector<std::pair<std::shared_ptr<Worke
 	}
 
 	assert(m_threadSize == 1);
-	const auto actualFunc = [this, func]()
+	m_works[0] = [this, func]()
 		{
 			for (const auto& dependency : m_dependencies)
 			{
@@ -166,9 +188,13 @@ void Jobs::Worker::ScheduleJob(const std::vector<std::pair<std::shared_ptr<Worke
 			}
 			func();
 		};
-	auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-	m_results[0] = pck->get_future().share();
-	m_works[0] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+
+	auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[0]));
+	{
+		std::lock_guard taskLock(m_taskLock[0]);
+		m_packagedWorks[0] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+	}
+	m_results[0] = pck->get_future();
 	m_scheduled = true;
 }
 
@@ -189,7 +215,7 @@ void Jobs::Worker::ScheduleParallelJobs(const size_t size, const std::function<v
 
 	for (int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
-		const auto actualFunc = [this, func, threadIndex, threadLoad, loadReminder]()
+		m_works[threadIndex] = [this, func, threadIndex, threadLoad, loadReminder]()
 			{
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
@@ -201,9 +227,12 @@ void Jobs::Worker::ScheduleParallelJobs(const size_t size, const std::function<v
 					func(i, threadIndex);
 				}
 			};
-		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-		m_results[threadIndex] = pck->get_future().share();
-		m_works[threadIndex] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[threadIndex]));
+		{
+			std::lock_guard taskLock(m_taskLock[threadIndex]);
+			m_packagedWorks[threadIndex] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+		}
+		m_results[threadIndex] = pck->get_future();
 	}
 	m_scheduled = true;
 }
@@ -228,7 +257,7 @@ void Jobs::Worker::ScheduleParallelJobs(const std::vector<std::pair<std::shared_
 	}
 	for (int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
-		const auto actualFunc = [this, func, threadIndex, threadLoad, loadReminder]()
+		m_works[threadIndex] = [this, func, threadIndex, threadLoad, loadReminder]()
 			{
 				for (const auto& dependency : m_dependencies)
 				{
@@ -244,9 +273,12 @@ void Jobs::Worker::ScheduleParallelJobs(const std::vector<std::pair<std::shared_
 					func(i, threadIndex);
 				}
 			};
-		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-		m_results[threadIndex] = pck->get_future().share();
-		m_works[threadIndex] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[threadIndex]));
+		{
+			std::lock_guard taskLock(m_taskLock[threadIndex]);
+			m_packagedWorks[threadIndex] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+		}
+		m_results[threadIndex] = pck->get_future();
 	}
 	m_scheduled = true;
 }
@@ -267,7 +299,7 @@ void Jobs::Worker::ScheduleParallelJobs(const size_t size, const std::function<v
 	const auto loadReminder = size % m_threadSize;
 	for (int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
-		const auto actualFunc = [this, func, threadIndex, threadLoad, loadReminder]()
+		m_works[threadIndex] = [this, func, threadIndex, threadLoad, loadReminder]()
 			{
 				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
 				{
@@ -279,9 +311,12 @@ void Jobs::Worker::ScheduleParallelJobs(const size_t size, const std::function<v
 					func(i);
 				}
 			};
-		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-		m_results[threadIndex] = pck->get_future().share();
-		m_works[threadIndex] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[threadIndex]));
+		{
+			std::lock_guard taskLock(m_taskLock[threadIndex]);
+			m_packagedWorks[threadIndex] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+		}
+		m_results[threadIndex] = pck->get_future();
 	}
 	m_scheduled = true;
 }
@@ -306,7 +341,7 @@ void Jobs::Worker::ScheduleParallelJobs(const std::vector<std::pair<std::shared_
 	const auto loadReminder = size % m_threadSize;
 	for (int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
-		const auto actualFunc = [this, func, threadIndex, threadLoad, loadReminder]()
+		m_works[threadIndex] = [this, func, threadIndex, threadLoad, loadReminder]()
 			{
 				for (const auto& dependency : m_dependencies)
 				{
@@ -322,9 +357,12 @@ void Jobs::Worker::ScheduleParallelJobs(const std::vector<std::pair<std::shared_
 					func(i);
 				}
 			};
-		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(actualFunc));
-		m_results[threadIndex] = pck->get_future().share();
-		m_works[threadIndex] = std::make_unique<std::function<void()>>(std::function([pck]() {(*pck)(); }));
+		auto pck = std::make_shared<std::packaged_task<void()>>(std::forward<std::function<void()>>(m_works[threadIndex]));
+		{
+			std::lock_guard taskLock(m_taskLock[threadIndex]);
+			m_packagedWorks[threadIndex] = std::make_unique<std::function<void()>>(([pck]() { (*pck)(); }));
+		}
+		m_results[threadIndex] = pck->get_future();
 	}
 	m_scheduled = true;
 }
