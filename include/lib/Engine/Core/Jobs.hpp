@@ -20,22 +20,25 @@ namespace EvoEngine
 	{
 		class Worker
 		{
-			std::vector<std::condition_variable> m_tasksCondition;
+			std::vector<std::condition_variable> m_taskAllocationSignal;
+
+			std::condition_variable m_taskFinishSignal;
+
 			std::vector<std::unique_ptr<std::thread>> m_threads;
 			std::vector<std::mutex> m_taskLock;
 			WorkerHandle m_handle = -1;
+
 			bool m_executing = false;
-			bool m_scheduled = false;
 			std::vector<std::pair<std::shared_ptr<Worker>, size_t>> m_dependencies;
 
 			std::vector<std::unique_ptr<std::function<void()>>> m_packagedWorks;
-			std::vector<std::future<void>> m_results;
 
 			friend class Jobs;
-			std::mutex m_schedulerMutex{};
-			std::mutex m_conditionVariableMutex{};
+			std::mutex m_statusLock{};
+			std::mutex m_taskFinishLock{};
+			std::mutex m_taskAllocationLock{};
 			size_t m_threadSize = 0;
-
+			size_t m_idleThreadSize = 0;
 			size_t m_version = 0;
 		public:
 			[[nodiscard]] size_t GetVersion() const;
@@ -47,7 +50,6 @@ namespace EvoEngine
 
 			[[nodiscard]] WorkerHandle GetHandle() const;
 			[[nodiscard]] bool Executing() const;
-			[[nodiscard]] bool Scheduled() const;
 
 			void ScheduleJob(std::function<void()>&& func);
 			void ScheduleJob(const std::vector<std::pair<std::shared_ptr<Worker>, size_t>>& dependencies, std::function<void()>&& func);
