@@ -19,6 +19,26 @@ bool JobHandle::Valid() const
 	return m_workerHandle >= 0;
 }
 
+void TaskSemaphore::Reset(const size_t availability)
+{
+	m_availability = availability;
+}
+
+void TaskSemaphore::Acquire()
+{
+	std::unique_lock lk(m_updateMutex);
+	m_cv.wait(lk, [this]() { return m_availability > 0; });
+	m_availability--;
+}
+
+void TaskSemaphore::Release()
+{
+	std::unique_lock lk(m_updateMutex);
+	m_availability++;
+	m_cv.notify_one();
+}
+
+
 size_t Jobs::Worker::GetVersion() const
 {
 	return m_version;
@@ -27,7 +47,7 @@ size_t Jobs::Worker::GetVersion() const
 Jobs::Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 {
 	m_handle = handle;
-	m_idleThreadSize = m_threadSize = threadSize;
+	m_threadSize = threadSize;
 	m_threads.resize(m_threadSize);
 	m_packagedWorks.resize(m_threadSize);
 	m_taskAllocationSignal = std::vector<std::condition_variable>(m_threadSize);
@@ -45,16 +65,7 @@ Jobs::Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 						(*work)();
 						work.reset();
 						newTaskAssigned = false;
-						{
-							std::lock_guard statusLock(m_statusLock);
-							m_idleThreadSize++;
-							if (m_idleThreadSize == m_threadSize)
-							{
-								std::lock_guard taskFinishLock(m_taskFinishLock);
-								m_taskFinishSignal.notify_one();
-							}
-						}
-						
+						m_taskSemaphore.Release();
 					}
 					std::unique_lock taskAllocationLock(m_taskAllocationLock);
 					m_taskAllocationSignal[threadIndex].wait(taskAllocationLock, [this, threadIndex, &newTaskAssigned, &work]()
@@ -77,7 +88,7 @@ Jobs::Worker::Worker(const size_t threadSize, const WorkerHandle handle)
 void Jobs::Worker::Execute()
 {
 	if (m_executing) return;
-	m_idleThreadSize = 0;
+	m_taskSemaphore.Reset(0);
 	for(int threadIndex = 0; threadIndex < m_threadSize; threadIndex++)
 	{
 		std::unique_lock lock(m_taskAllocationLock);
@@ -86,30 +97,14 @@ void Jobs::Worker::Execute()
 	m_executing = true;
 }
 
-void Jobs::Worker::Wait()
-{
-	if (!m_executing) Execute();
-
-	std::unique_lock lock(m_taskFinishLock);
-	m_taskFinishSignal.wait(lock, [&]()
-		{
-			return m_idleThreadSize == m_threadSize;
-		});
-	m_dependencies.clear();
-	auto& jobs = GetInstance();
-	std::unique_lock workerManagementLock(jobs.m_workerManagementMutex);
-	jobs.m_availableWorker.at(m_threads.size()).emplace(m_handle);
-}
-
 void Jobs::Worker::Wait(const size_t version)
 {
 	if (version != m_version) return;
 	if (!m_executing) Execute();
-	std::unique_lock lock(m_taskFinishLock);
-	m_taskFinishSignal.wait(lock, [&]()
-		{
-			return m_idleThreadSize == m_threadSize;
-		});
+	for (int i = 0; i < m_threadSize; i++) {
+		m_taskSemaphore.Acquire();
+	}
+
 	m_dependencies.clear();
 	auto& jobs = GetInstance();
 	std::unique_lock workerManagementLock(jobs.m_workerManagementMutex);
@@ -324,7 +319,7 @@ void Jobs::RunParallelFor(const size_t size, std::function<void(unsigned i)>&& f
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelJobs(size, std::forward<std::function<void(unsigned i)>>(func));
-	worker->Wait();
+	worker->Wait(worker->m_version);
 }
 
 void Jobs::RunParallelFor(const size_t size, std::function<void(unsigned i, unsigned threadIndex)>&& func, size_t threadSize)
@@ -343,7 +338,7 @@ void Jobs::RunParallelFor(const size_t size, std::function<void(unsigned i, unsi
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
 	worker->ScheduleParallelJobs(size, std::forward<std::function<void(unsigned i, unsigned threadIndex)>>(func));
-	worker->Wait();
+	worker->Wait(worker->m_version);
 }
 
 JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(unsigned i)>&& func, size_t threadSize)
@@ -364,9 +359,10 @@ JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(unsign
 	if (threadSize == 0) threadSize = jobs.m_defaultThreadSize;
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
+	worker->ScheduleParallelJobs(size, std::forward<std::function<void(unsigned i)>>(func));
+
 	retVal.m_workerHandle = workerHandle;
 	retVal.m_version = worker->m_version;
-	worker->ScheduleParallelJobs(size, std::forward<std::function<void(unsigned i)>>(func));
 	return retVal;
 }
 
@@ -389,9 +385,11 @@ JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(unsign
 	if (threadSize == 0) threadSize = jobs.m_defaultThreadSize;
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	retVal.m_workerHandle = workerHandle;
-	retVal.m_version = worker->m_version;
+	
 	worker->ScheduleParallelJobs(size, std::forward<std::function<void(unsigned i, unsigned threadIndex)>>(func));
+
+	retVal.m_workerHandle = workerHandle;
+	retVal.m_version = worker->m_version;
 	return retVal;
 }
 
@@ -418,7 +416,7 @@ void Jobs::RunParallelFor(const std::vector<JobHandle>& dependencies, const size
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleParallelJobs(actualDependencies, size, std::forward<std::function<void(unsigned i)>>(func));
-	worker->Wait();
+	worker->Wait(worker->m_version);
 }
 
 void Jobs::RunParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
@@ -444,7 +442,7 @@ void Jobs::RunParallelFor(const std::vector<JobHandle>& dependencies, const size
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleParallelJobs(actualDependencies, size, std::forward<std::function<void(unsigned i, unsigned threadIndex)>>(func));
-	worker->Wait();
+	worker->Wait(worker->m_version);
 }
 
 JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
@@ -466,8 +464,6 @@ JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, 
 	if (threadSize == 0) threadSize = jobs.m_defaultThreadSize;
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	retVal.m_workerHandle = workerHandle;
-	retVal.m_version = worker->m_version;
 	std::vector<std::pair<std::shared_ptr<Worker>, size_t>> actualDependencies{};
 	actualDependencies.resize(dependencies.size());
 	for (int i = 0; i < dependencies.size(); i++)
@@ -475,6 +471,9 @@ JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, 
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleParallelJobs(actualDependencies, size, std::forward<std::function<void(unsigned i)>>(func));
+
+	retVal.m_workerHandle = workerHandle;
+	retVal.m_version = worker->m_version;
 	return retVal;
 }
 
@@ -497,8 +496,6 @@ JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, 
 	if (threadSize == 0) threadSize = jobs.m_defaultThreadSize;
 	const auto workerHandle = jobs.GetAvailableWorker(threadSize);
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	retVal.m_workerHandle = workerHandle;
-	retVal.m_version = worker->m_version;
 	std::vector<std::pair<std::shared_ptr<Worker>, size_t>> actualDependencies{};
 	actualDependencies.resize(dependencies.size());
 	for (int i = 0; i < dependencies.size(); i++)
@@ -506,6 +503,9 @@ JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, 
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleParallelJobs(actualDependencies, size, std::forward<std::function<void(unsigned i, unsigned threadIndex)>>(func));
+
+	retVal.m_workerHandle = workerHandle;
+	retVal.m_version = worker->m_version;
 	return retVal;
 }
 
@@ -522,8 +522,7 @@ JobHandle Jobs::Run(const std::vector<JobHandle>& dependencies, std::function<vo
 	}
 	const auto workerHandle = jobs.GetAvailableWorker(1);
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	retVal.m_workerHandle = workerHandle;
-	retVal.m_version = worker->m_version;
+	
 	std::vector<std::pair<std::shared_ptr<Worker>, size_t>> actualDependencies{};
 	actualDependencies.resize(dependencies.size());
 	for (int i = 0; i < dependencies.size(); i++)
@@ -531,6 +530,9 @@ JobHandle Jobs::Run(const std::vector<JobHandle>& dependencies, std::function<vo
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleJob(actualDependencies, std::forward<std::function<void()>>(func));
+
+	retVal.m_workerHandle = workerHandle;
+	retVal.m_version = worker->m_version;
 	return retVal;
 }
 
@@ -547,9 +549,10 @@ JobHandle Jobs::Run(std::function<void()>&& func)
 	}
 	const auto workerHandle = jobs.GetAvailableWorker(1);
 	const auto& worker = jobs.m_workers.at(workerHandle);
+	worker->ScheduleJob(std::forward<std::function<void()>>(func));
+
 	retVal.m_workerHandle = workerHandle;
 	retVal.m_version = worker->m_version;
-	worker->ScheduleJob(std::forward<std::function<void()>>(func));
 	return retVal;
 }
 
@@ -566,8 +569,7 @@ JobHandle Jobs::Combine(const std::vector<JobHandle>& dependencies)
 	}
 	const auto workerHandle = jobs.GetAvailableWorker(1);
 	const auto& worker = jobs.m_workers.at(workerHandle);
-	retVal.m_workerHandle = workerHandle;
-	retVal.m_version = worker->m_version;
+	
 
 	std::vector<std::pair<std::shared_ptr<Worker>, size_t>> actualDependencies{};
 	actualDependencies.resize(dependencies.size());
@@ -576,6 +578,8 @@ JobHandle Jobs::Combine(const std::vector<JobHandle>& dependencies)
 		actualDependencies[i] = std::make_pair(jobs.m_workers.at(dependencies.at(i).m_workerHandle), dependencies.at(i).m_version);
 	}
 	worker->ScheduleJob(actualDependencies, []() {});
+	retVal.m_workerHandle = workerHandle;
+	retVal.m_version = worker->m_version;
 	return retVal;
 }
 
@@ -608,5 +612,5 @@ void Jobs::Wait(const JobHandle & jobDependency)
 	{
 		return;
 	}
-	worker->Wait();
+	worker->Wait(worker->m_version);
 }

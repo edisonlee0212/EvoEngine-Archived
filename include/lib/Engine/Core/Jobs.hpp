@@ -15,6 +15,16 @@ namespace EvoEngine
 		[[nodiscard]] bool Valid() const;
 	};
 
+	class TaskSemaphore {
+		size_t m_availability = 0;
+		std::mutex m_updateMutex;
+		std::condition_variable m_cv;
+
+	public:
+		void Reset(size_t availability = 1);
+		void Acquire();
+		void Release();
+	};
 
 	class Jobs final : ISingleton<Jobs>
 	{
@@ -30,22 +40,19 @@ namespace EvoEngine
 
 			bool m_executing = false;
 			std::vector<std::pair<std::shared_ptr<Worker>, size_t>> m_dependencies;
-
 			std::vector<std::unique_ptr<std::function<void()>>> m_packagedWorks;
-
 			friend class Jobs;
-			std::mutex m_statusLock{};
-			std::mutex m_taskFinishLock{};
-			std::mutex m_taskAllocationLock{};
+			TaskSemaphore m_taskSemaphore;
+
+			std::mutex m_taskAllocationLock;
+
 			size_t m_threadSize = 0;
-			size_t m_idleThreadSize = 0;
 			size_t m_version = 0;
 		public:
 			[[nodiscard]] size_t GetVersion() const;
 			Worker(size_t threadSize, WorkerHandle handle);
 
 			void Execute();
-			void Wait();
 			void Wait(size_t version);
 
 			[[nodiscard]] WorkerHandle GetHandle() const;
