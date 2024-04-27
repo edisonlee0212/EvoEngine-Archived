@@ -6,10 +6,8 @@ namespace EvoEngine
 	class JobHandle
 	{
 		int m_index = -1;
-		size_t m_version = 0;
 		friend class Jobs;
 	public:
-		[[nodiscard]] size_t GetVersion() const;
 		[[nodiscard]] int GetIndex() const;
 		[[nodiscard]] bool Valid() const;
 	};
@@ -33,9 +31,9 @@ namespace EvoEngine
 			bool m_finished = false;
 			TaskSemaphore m_taskSemaphore;
 			std::mutex m_statusLock;
-			std::vector<JobHandle> m_dependencies;
+			std::vector<int> m_dependencies;
+			std::vector<int> m_triggers;
 			std::unique_ptr<std::function<void()>> m_job;
-			size_t m_version = 0;
 			friend class Jobs;
 			int m_index;
 		public:
@@ -55,11 +53,11 @@ namespace EvoEngine
 		void SetThread(size_t i);
 		TaskSemaphore m_availableJobHolderSemaphore;
 		std::vector<std::shared_ptr<JobHolder>> m_jobHolders;
+
+		void ReportFinish(const JobHandle& jobHandle);
 		JobHandle PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func);
 
-		std::shared_ptr<JobHolder> GetJobHolder(const JobHandle& jobHandle);
-
-		void WakeJob(const JobHandle& jobHandle);
+		void WakeJob(int jobIndex);
 		std::unique_ptr<std::function<void()>> TryPopJob(JobHandle& jobHandle);
 
 	public:

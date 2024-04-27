@@ -4,10 +4,6 @@
 using namespace EvoEngine;
 
 
-size_t JobHandle::GetVersion() const
-{
-	return m_version;
-}
 
 int JobHandle::GetIndex() const
 {
@@ -45,6 +41,25 @@ void Jobs::JobHolder::Wait()
 	
 }
 
+void Jobs::ReportFinish(const JobHandle& jobHandle)
+{
+	std::lock_guard lock(m_managementMutex);
+	const auto& jobHolder = m_jobHolders.at(jobHandle.GetIndex());
+	for(const auto& triggerIndex : jobHolder->m_triggers)
+	{
+		const auto trigger = m_jobHolders.at(triggerIndex);
+		for(int index = 0; index < trigger->m_dependencies.size(); index++)
+		{
+			if(trigger->m_dependencies.at(index) == trigger->m_index)
+			{
+				trigger->m_dependencies.at(index) = trigger->m_dependencies.back();
+				trigger->m_dependencies.pop_back();
+				break;
+			}
+		}
+	}
+}
+
 JobHandle Jobs::PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func)
 {
 	std::lock_guard lock(m_managementMutex);
@@ -70,34 +85,23 @@ JobHandle Jobs::PushJob(const std::vector<JobHandle>& dependencies, std::functio
 		jobHolder->m_index = index;
 
 	}
-
-	jobHolder->m_dependencies = dependencies;
+	for(const auto& dependencyHandle : dependencies)
+	{
+		const auto& dependency = m_jobHolders.at(dependencyHandle.GetIndex());
+		jobHolder->m_dependencies.emplace_back(dependencyHandle.m_index);
+		dependency->m_triggers.emplace_back(jobHolder->m_index);
+	}
 	jobHolder->m_sleeping = true;
 	jobHolder->m_finished = false;
 	jobHolder->m_job = std::make_unique<std::function<void()>>(std::forward<std::function<void()>>(func));
-
-	jobHolder->m_version++;
 	JobHandle retVal;
-	retVal.m_version = jobHolder->m_version;
 	retVal.m_index = jobHolder->m_index;
 	return retVal;
 }
 
-std::shared_ptr<Jobs::JobHolder> Jobs::GetJobHolder(const JobHandle& jobHandle)
+void Jobs::WakeJob(const int jobIndex)
 {
-	std::lock_guard lock(m_managementMutex);
-	if (jobHandle.m_index < 0 
-		|| jobHandle.m_index > m_jobHolders.size() 
-		|| m_jobHolders.at(jobHandle.m_index)->m_version != jobHandle.m_version) return {};
-	return m_jobHolders.at(jobHandle.m_index);
-}
-
-void Jobs::WakeJob(const JobHandle& jobHandle)
-{
-	if (jobHandle.m_index < 0
-		|| jobHandle.m_index > m_jobHolders.size()) return;
-	const auto& jobHolder = m_jobHolders.at(jobHandle.m_index);
-	if (jobHolder->m_version != jobHandle.m_version) return;
+	const auto& jobHolder = m_jobHolders.at(jobIndex);
 	for (const auto& dep : jobHolder->m_dependencies) WakeJob(dep);
 	std::lock_guard lock(m_managementMutex);
 	
@@ -117,23 +121,9 @@ std::unique_ptr<std::function<void()>> Jobs::TryPopJob(JobHandle& jobHandle)
 		if(candidate->m_finished) continue;
 		if (candidate->m_sleeping) continue;
 		if (!candidate->m_job) continue;
-		for(int dependencyIndex = 0; dependencyIndex < candidate->m_dependencies.size(); dependencyIndex++)
-		{
-			const auto dependencyJobHandle = candidate->m_dependencies.at(dependencyIndex);
-			const auto dependency = m_jobHolders.at(dependencyJobHandle.m_index);
-			bool depFinished = false;
-			if (dependency->m_version != candidate->m_dependencies.at(dependencyIndex).m_version) depFinished = true;
-			if (!depFinished && dependency->m_finished) depFinished = true;
-
-			if (depFinished) {
-				candidate->m_dependencies.at(dependencyIndex) = candidate->m_dependencies.back();
-				candidate->m_dependencies.pop_back();
-			}
-		}
 		if(candidate->m_dependencies.empty())
 		{
 			jobHandle.m_index = candidate->m_index;
-			jobHandle.m_version = candidate->m_version;
 			return std::forward<std::unique_ptr<std::function<void()>>>(candidate->m_job);
 		}
 	}
@@ -159,6 +149,7 @@ void Jobs::SetThread(const size_t i)
 				(*job)();
 				job.reset();
 				const auto& jobHolder = m_jobHolders.at(jobHandle.GetIndex());
+				ReportFinish(jobHandle);
 				jobHolder->m_taskSemaphore.Release();
 				m_availableJobHolderSemaphore.Release();
 				if (_flag)
@@ -522,7 +513,7 @@ void Jobs::Execute(const JobHandle& jobHandle)
 		EVOENGINE_ERROR("Jobs: Not on main thread!");
 		return;
 	}
-	jobs.WakeJob(jobHandle);
+	jobs.WakeJob(jobHandle.GetIndex());
 	std::unique_lock lock(jobs.m_mutex);
 	jobs.m_threadPoolCondition.notify_one();
 }
@@ -536,5 +527,5 @@ void Jobs::Wait(const JobHandle & jobHandle)
 		return;
 	}
 	Execute(jobHandle);
-	jobs.GetJobHolder(jobHandle)->Wait();
+	jobs.m_jobHolders.at(jobHandle.GetIndex())->Wait();
 }
