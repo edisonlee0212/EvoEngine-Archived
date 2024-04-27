@@ -905,7 +905,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 		return;
 	if (checkEnable)
 	{
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		std::vector<std::vector<Entity>> tempStorage;
 		tempStorage.resize(threadSize);
 		const auto& chunkArray = storage.m_chunkArray;

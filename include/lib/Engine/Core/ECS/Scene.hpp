@@ -1166,7 +1166,7 @@ namespace EvoEngine
 			return;
 		size_t size = componentDataList.size();
 		std::vector<std::vector<T1>> collectedDataLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T1>());
@@ -1217,7 +1217,7 @@ namespace EvoEngine
 			return;
 		size_t size = componentDataList1.size();
 		std::vector<std::vector<T1>> collectedDataLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T1>());
@@ -1267,7 +1267,7 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = componentDataList.size();
 		std::vector<std::vector<T2>> collectedDataLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedDataLists.push_back(std::vector<T2>());
@@ -1318,7 +1318,7 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
@@ -1369,7 +1369,7 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
@@ -1420,7 +1420,7 @@ namespace EvoEngine
 		std::vector<std::shared_future<void>> futures;
 		size_t size = allEntities.size();
 		std::vector<std::vector<Entity>> collectedEntityLists;
-		const auto threadSize = Jobs::GetDefaultThreadSize();
+		const auto threadSize = Jobs::GetWorkerSize();
 		for (int i = 0; i < threadSize; i++)
 		{
 			collectedEntityLists.push_back(std::vector<Entity>());
@@ -1515,7 +1515,7 @@ namespace EvoEngine
 					return;
 				if (checkEnable)
 				{
-					const auto threadSize = Jobs::GetDefaultThreadSize();
+					const auto threadSize = Jobs::GetWorkerSize();
 					std::vector<std::vector<T>> tempStorage;
 					tempStorage.resize(threadSize);
 					const auto capacity = storage.m_chunkCapacity;

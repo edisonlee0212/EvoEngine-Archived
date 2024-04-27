@@ -315,7 +315,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		return;
 	}
 	const auto defaultThreadSize = std::thread::hardware_concurrency();
-	Jobs::Initialize(defaultThreadSize - 2, 32);
+	Jobs::Initialize(defaultThreadSize - 2);
 	InitializeRegistry();
 	Entities::Initialize();
 	TransformGraph::Initialize();
