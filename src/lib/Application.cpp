@@ -294,6 +294,7 @@ void Application::Reset()
 void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 {
 	auto& application = GetInstance();
+	
 	if (application.m_applicationStatus != ApplicationStatus::Uninitialized) {
 		EVOENGINE_ERROR("Application is not uninitialzed!")
 			return;
@@ -313,8 +314,9 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 		EVOENGINE_ERROR("Project filepath must present when there's no EditorLayer or WindowLayer!");
 		return;
 	}
+	const auto defaultThreadSize = std::thread::hardware_concurrency();
+	Jobs::Initialize(defaultThreadSize - 2);
 	InitializeRegistry();
-	Jobs::Initialize();
 	Entities::Initialize();
 	TransformGraph::Initialize();
 	Graphics::Initialize();

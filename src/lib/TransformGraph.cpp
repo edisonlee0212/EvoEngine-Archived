@@ -57,8 +57,7 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
 	auto& transformGraph = GetInstance();
 	const auto& entityInfos = scene->m_sceneDataStorage.m_entityMetadataList;
 	//ProfilerLayer::StartEvent("TransformManager");
-	scene->ForEach<Transform, GlobalTransform, TransformUpdateFlag>(
-		Jobs::Workers(),
+	Jobs::Wait(scene->ForEach<Transform, GlobalTransform, TransformUpdateFlag>({},
 		transformGraph.m_transformQuery,
 		[&](int i,
 			Entity entity,
@@ -84,7 +83,8 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
 				}
 				transformGraph.CalculateTransformGraph(scene, entityInfos, globalTransform, entity);
 		},
-		false);
+		false));
+
 	transformGraph.m_physicsSystemOverride = false;
 	//ProfilerLayer::EndEvent("TransformManager");
 }
