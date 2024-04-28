@@ -88,7 +88,7 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
 	transformGraph.m_physicsSystemOverride = false;
 	//ProfilerLayer::EndEvent("TransformManager");
 }
-void TransformGraph::CalculateTransformGraphForDescendents(const std::shared_ptr<Scene>& scene, const Entity& entity)
+void TransformGraph::CalculateTransformGraphForDescendants(const std::shared_ptr<Scene>& scene, const Entity& entity)
 {
 	if (!scene)
 		return;

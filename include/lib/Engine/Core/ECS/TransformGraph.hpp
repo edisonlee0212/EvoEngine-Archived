@@ -14,7 +14,7 @@ namespace EvoEngine
         static void CalculateTransformGraph(const std::shared_ptr<Scene>& scene, const std::vector<EntityMetadata>& entityInfos, const GlobalTransform& parentGlobalTransform, const Entity& parent);
         static void Initialize();
     public:
-        static void CalculateTransformGraphForDescendents(const std::shared_ptr<Scene>& scene, const Entity& entity);
+        static void CalculateTransformGraphForDescendants(const std::shared_ptr<Scene>& scene, const Entity& entity);
         static void CalculateTransformGraphs(const std::shared_ptr<Scene>& scene, bool checkStatic = true);
     };
 } // namespace UniEngine
