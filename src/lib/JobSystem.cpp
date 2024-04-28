@@ -105,6 +105,7 @@ void JobSystem::InitializeWorker(const size_t workerIndex)
 				//if (flagPtr)
 				//	return; // the thread is wanted to stop, return even if the queue is not empty yet
 				isPop = m_availableJobPool.Pop(task);
+				if(!isPop) task = {};
 			}
 			// the queue is empty here, wait for the next command
 			std::unique_lock lock(m_jobAvailabilityMutex);
