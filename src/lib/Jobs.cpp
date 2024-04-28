@@ -111,8 +111,14 @@ void Jobs::JobSystem::CollectDescendants(std::vector<JobHandle>& jobs, const Job
 JobHandle Jobs::JobSystem::PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func)
 {
 	std::lock_guard jobManagementMutex(m_jobManagementMutex);
+	std::vector<JobHandle> filteredDependencies;
+	for (const auto& dependency : dependencies)
+	{
+		if (!dependency.Valid()) continue;
+		filteredDependencies.emplace_back(dependency);
+	}
 	std::vector<JobHandle> descendants;
-	for(const auto& dependency : dependencies)
+	for(const auto& dependency : filteredDependencies)
 	{
 		CollectDescendants(descendants, dependency);
 	}
@@ -138,12 +144,13 @@ JobHandle Jobs::JobSystem::PushJob(const std::vector<JobHandle>& dependencies, s
 	const auto& newJob = m_jobs.at(newJobHandle.GetIndex());
 	newJob->m_task = std::make_unique<std::function<void()>>(std::forward< std::function<void()>>(func));
 	newJob->m_wake = false;
-	newJob->m_children = dependencies;
+	newJob->m_children = filteredDependencies;
 	newJob->m_recycled = false;
 	newJob->m_finished = false;
 	
-	for(const auto& childHandle : dependencies)
+	for(const auto& childHandle : filteredDependencies)
 	{
+		if (!childHandle.Valid()) continue;
 		const auto& childJob = m_jobs.at(childHandle.GetIndex());
 		childJob->m_parents.emplace_back(newJobHandle);
 	}
@@ -152,12 +159,15 @@ JobHandle Jobs::JobSystem::PushJob(const std::vector<JobHandle>& dependencies, s
 
 void Jobs::JobSystem::ExecuteJob(const JobHandle& jobHandle)
 {
+	if (!jobHandle.Valid()) return;
+
 	std::lock_guard jobManagementMutex(m_jobManagementMutex);
 	if (!m_jobs[jobHandle.GetIndex()]->m_parents.empty())
 	{
 		EVOENGINE_ERROR("Not root!");
 		return;
 	}
+	
 	std::vector<JobHandle> jobHandles;
 	CollectDescendants(jobHandles, jobHandle);
 	for(const auto& walker : jobHandles)
@@ -176,6 +186,8 @@ void Jobs::JobSystem::ExecuteJob(const JobHandle& jobHandle)
 
 void Jobs::JobSystem::Wait(const JobHandle& jobHandle)
 {
+	if (!jobHandle.Valid()) return;
+
 	const auto& job = m_jobs[jobHandle.GetIndex()];
 	if(!job->m_parents.empty())
 	{
@@ -540,6 +552,7 @@ void Jobs::Execute(const JobHandle& jobHandle)
 		EVOENGINE_ERROR("Jobs: Not on main thread!");
 		return;
 	}
+	if(!jobHandle.Valid()) return;
 	jobs.m_jobSystem.ExecuteJob(jobHandle);
 }
 
@@ -551,6 +564,7 @@ void Jobs::Wait(const JobHandle & jobHandle)
 		EVOENGINE_ERROR("Jobs: Not on main thread!");
 		return;
 	}
+	if (!jobHandle.Valid()) return;
 	jobs.m_jobSystem.ExecuteJob(jobHandle);
 	jobs.m_jobSystem.Wait(jobHandle);
 }
