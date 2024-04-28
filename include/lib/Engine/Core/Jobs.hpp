@@ -12,7 +12,7 @@ namespace EvoEngine
 		[[nodiscard]] bool Valid() const;
 	};
 
-	class TaskSemaphore {
+	class JobSystemSemaphore {
 		size_t m_availability = 0;
 		std::mutex m_updateMutex;
 		std::condition_variable m_cv;
@@ -25,40 +25,43 @@ namespace EvoEngine
 
 	class Jobs final : ISingleton<Jobs>
 	{
-		class JobHolder
+		class JobSystem
 		{
-			bool m_sleeping = true;
-			bool m_finished = false;
-			TaskSemaphore m_taskSemaphore;
-			std::mutex m_statusLock;
-			std::vector<int> m_dependencies;
-			std::vector<int> m_triggers;
-			std::unique_ptr<std::function<void()>> m_job;
-			friend class Jobs;
-			int m_index;
+			struct Job
+			{
+				std::vector<JobHandle> m_parents;
+				std::vector<JobHandle> m_children;
+				JobHandle m_handle;
+				JobSystemSemaphore m_finishedSemaphore;
+				bool m_recycled = false;
+				bool m_finished = false;
+				bool m_wake = false;
+				std::unique_ptr<std::function<void()>> m_task;
+			};
+
+			std::vector<std::shared_ptr<Job>> m_jobs;
+			std::queue<JobHandle> m_recycledJobs;
+			EvoEngine::JobSystem::ThreadQueue<JobHandle> m_availableJobPool;
+
+			std::mutex m_jobManagementMutex;
+			void ReportFinish(const JobHandle& jobHandle);
+			void InitializeWorker(size_t workerIndex);
+
+			void CollectDescendants(std::vector<JobHandle>& jobs, const JobHandle& walker);
 		public:
-			void Wait();
+			JobHandle PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func);
+			void ExecuteJob(const JobHandle& jobHandle);
+			void Wait(const JobHandle& jobHandle);
+			std::atomic<int> m_waitingThreadAmount; // how many threads are waiting
+			std::vector<std::unique_ptr<std::thread>> m_workers;
+			std::vector<std::shared_ptr<std::atomic<bool>>> m_flags;
+
+			std::mutex m_jobAvailabilityMutex;
+			std::condition_variable m_jobAvailableCondition;
+			void Initialize(size_t workerSize);
+			std::thread::id m_mainThreadId;
 		};
-		std::queue<int> m_availableTaskHolders;
-		std::mutex m_managementMutex;
-		std::thread::id m_mainThreadId;
-		std::vector<std::unique_ptr<std::thread>> m_threads;
-		std::vector<std::shared_ptr<std::atomic<bool>>> m_flags;
-		std::atomic<bool> m_isDone;
-		std::atomic<bool> m_isStop;
-		std::atomic<int> m_waitingThreadAmount; // how many threads are waiting
-
-		std::mutex m_mutex;
-		std::condition_variable m_threadPoolCondition;
-		void SetThread(size_t i);
-		TaskSemaphore m_availableJobHolderSemaphore;
-		std::vector<std::shared_ptr<JobHolder>> m_jobHolders;
-
-		void ReportFinish(const JobHandle& jobHandle);
-		JobHandle PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func);
-
-		void WakeJob(int jobIndex);
-		std::unique_ptr<std::function<void()>> TryPopJob(JobHandle& jobHandle);
+		JobSystem m_jobSystem;
 
 	public:
 		static size_t GetWorkerSize();
