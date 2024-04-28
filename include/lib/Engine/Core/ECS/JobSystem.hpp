@@ -31,16 +31,16 @@ namespace EvoEngine
 			bool m_recycled = false;
 			bool m_finished = false;
 			bool m_wake = false;
-			std::unique_ptr<std::function<void()>> m_task;
+			std::function<void()> m_task;
 		};
 		class JobPool {
 		public:
-			void Push(const JobHandle& jobHandle);
+			void Push(std::pair<JobHandle, std::function<void()>>&& job);
 			// deletes the retrieved element, do not use for non integral types
-			[[nodiscard]] bool Pop(JobHandle& jobHandle);
+			[[nodiscard]] bool Pop(std::pair<JobHandle, std::function<void()>>& job);
 			[[nodiscard]] bool Empty();
 		private:
-			std::queue<JobHandle> m_queue;
+			std::queue<std::pair<JobHandle, std::function<void()>>> m_queue;
 			std::mutex m_mutex;
 		};
 		std::vector<std::shared_ptr<Job>> m_jobs;

@@ -33,18 +33,18 @@ void JobSystem::JobSystemSemaphore::Release()
 	m_cv.notify_one();
 }
 
-inline void JobSystem::JobPool::Push(JobHandle const& jobHandle)
+inline void JobSystem::JobPool::Push(std::pair<JobHandle, std::function<void()>>&& job)
 {
 	std::unique_lock lock(m_mutex);
-	m_queue.push(jobHandle);
+	m_queue.push(std::forward<std::pair<JobHandle, std::function<void()>>>(job));
 }
 
-inline bool JobSystem::JobPool::Pop(JobHandle& jobHandle)
+inline bool JobSystem::JobPool::Pop(std::pair<JobHandle, std::function<void()>>& job)
 {
 	std::unique_lock lock(m_mutex);
 	if (m_queue.empty())
 		return false;
-	jobHandle = m_queue.front();
+	job = std::forward<std::pair<JobHandle, std::function<void()>>>(m_queue.front());
 	m_queue.pop();
 	return true;
 }
@@ -71,7 +71,7 @@ void JobSystem::CheckJobAvailableHelper(const JobHandle& jobHandle)
 	}
 	if (jobReadyToRun)
 	{
-		m_availableJobPool.Push(jobHandle);
+		m_availableJobPool.Push(std::make_pair(jobHandle, std::forward<std::function<void()>>(job->m_task)));
 		std::unique_lock lock(this->m_jobAvailabilityMutex);
 		m_jobAvailableCondition.notify_one();
 	}
@@ -94,25 +94,23 @@ void JobSystem::InitializeWorker(const size_t workerIndex)
 	std::shared_ptr flag(m_flags[workerIndex]); // a copy of the shared ptr to the flag
 	auto threadFunc = [this, flag /* a copy of the shared ptr to the flag */]() {
 		std::atomic<bool>& flagPtr = *flag;
-		JobHandle jobHandle;
-		bool isPop = m_availableJobPool.Pop(jobHandle);
+		std::pair<JobHandle, std::function<void()>> task;
+		bool isPop = m_availableJobPool.Pop(task);
 		while (true)
 		{
 			while (isPop)
 			{ // if there is anything in the queue
-				const auto& job = m_jobs.at(jobHandle.GetIndex());
-				(*job->m_task)();
-				job->m_task.reset();
-				ReportFinish(jobHandle);
+				task.second();
+				ReportFinish(task.first);
 				//if (flagPtr)
 				//	return; // the thread is wanted to stop, return even if the queue is not empty yet
-				isPop = m_availableJobPool.Pop(jobHandle);
+				isPop = m_availableJobPool.Pop(task);
 			}
 			// the queue is empty here, wait for the next command
 			std::unique_lock lock(m_jobAvailabilityMutex);
 			++m_idleThreadAmount;
-			m_jobAvailableCondition.wait(lock, [this, &isPop, &jobHandle, &flagPtr]() {
-				isPop = m_availableJobPool.Pop(jobHandle);
+			m_jobAvailableCondition.wait(lock, [this, &isPop, &task, &flagPtr]() {
+				isPop = m_availableJobPool.Pop(task);
 				return isPop || m_isDone || flagPtr;
 				});
 			--m_idleThreadAmount;
@@ -142,8 +140,6 @@ void JobSystem::CollectDescendantsHelper(std::vector<JobHandle>& jobs, const Job
 	}
 }
 
-
-
 JobHandle JobSystem::PushJob(const std::vector<JobHandle>& dependencies, std::function<void()>&& func)
 {
 	if (!MainThreadCheck()) return {};
@@ -159,14 +155,6 @@ JobHandle JobSystem::PushJob(const std::vector<JobHandle>& dependencies, std::fu
 	{
 		CollectDescendantsHelper(descendants, dependency);
 	}
-	for (const auto& jobHandle : descendants)
-	{
-		if (m_jobs.at(jobHandle.GetIndex())->m_wake)
-		{
-			EVOENGINE_ERROR("Descendants already started!");
-			return {};
-		}
-	}
 	JobHandle newJobHandle;
 	if (!m_recycledJobs.empty())
 	{
@@ -180,7 +168,7 @@ JobHandle JobSystem::PushJob(const std::vector<JobHandle>& dependencies, std::fu
 		m_jobs.back()->m_handle = newJobHandle;
 	}
 	const auto& newJob = m_jobs.at(newJobHandle.GetIndex());
-	newJob->m_task = std::make_unique<std::function<void()>>(std::forward< std::function<void()>>(func));
+	newJob->m_task = std::forward<std::function<void()>>(func);
 	newJob->m_wake = false;
 	newJob->m_children = filteredDependencies;
 	newJob->m_recycled = false;
