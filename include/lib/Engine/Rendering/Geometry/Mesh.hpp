@@ -30,9 +30,11 @@ namespace EvoEngine
 		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth);
 		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth);
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
-			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth);
+			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth) const;
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
-			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth);
+			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth) const;
+		void ApplyConnections(const std::vector<glm::vec3>& starts,
+			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, const std::vector<float>& rayWidths) const;
 		void SetParticleInfos(const std::vector<ParticleInfo>& particleInfos);
 		const std::vector<ParticleInfo>& PeekParticleInfoList() const;
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;

@@ -474,15 +474,15 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
-	const glm::vec4& color, float rayWidth)
+	const glm::vec4& color, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
 	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
-			auto& start = starts[i];
-			auto& end = ends[i];
+			const auto& start = starts[i];
+			const auto& end = ends[i];
 			const auto direction = glm::normalize(end - start);
 			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
 			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
@@ -497,21 +497,45 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
-	const std::vector<glm::vec4>& colors, float rayWidth)
+	const std::vector<glm::vec4>& colors, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
 	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
-			auto& start = starts[i];
-			auto& end = ends[i];
+			const auto& start = starts[i];
+			const auto& end = ends[i];
 			const auto direction = glm::normalize(end - start);
 			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
 			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
 			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
 			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
 				glm::scale(glm::vec3(rayWidth, glm::distance(end, start), rayWidth));
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = colors[i];
+		}
+	);
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
+}
+
+void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
+	const std::vector<glm::vec4>& colors, const std::vector<float>& rayWidths) const
+{
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(starts.size());
+	Jobs::RunParallelFor(
+		starts.size(),
+		[&](unsigned i) {
+			const auto& start = starts[i];
+			const auto& end = ends[i];
+			const auto& width = rayWidths[i];
+			const auto direction = glm::normalize(end - start);
+			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
+				glm::scale(glm::vec3(width, glm::distance(end, start), width));
 			particleInfos[i].m_instanceMatrix.m_value = model;
 			particleInfos[i].m_instanceColor = colors[i];
 		}
