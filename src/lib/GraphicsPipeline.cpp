@@ -217,12 +217,13 @@ void GraphicsPipeline::PreparePipeline()
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 	Graphics::CheckVk(vkCreateGraphicsPipelines(Graphics::GetVkDevice(), VK_NULL_HANDLE, 1,
 		&pipelineInfo, nullptr, &m_vkGraphicsPipeline));
+	m_states.ResetAllStates(1);
 }
 
 
 bool GraphicsPipeline::PipelineReady() const
 {
-	return m_vkGraphicsPipeline != VK_NULL_HANDLE;;
+	return m_vkGraphicsPipeline != VK_NULL_HANDLE;
 }
 
 void GraphicsPipeline::Bind(const VkCommandBuffer commandBuffer)
