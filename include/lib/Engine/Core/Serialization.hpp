@@ -403,8 +403,8 @@ class Serialization : public ISingleton<Serialization>
     static std::shared_ptr<IDataComponent> ProduceDataComponent(
         const std::string &typeName, size_t &hashCode, size_t &size);
     static void ClonePrivateComponent(
-        std::shared_ptr<IPrivateComponent> target, const std::shared_ptr<IPrivateComponent> &source);
-    static void CloneSystem(std::shared_ptr<ISystem> target, const std::shared_ptr<ISystem> &source);
+	    const std::shared_ptr<IPrivateComponent>& target, const std::shared_ptr<IPrivateComponent> &source);
+    static void CloneSystem(const std::shared_ptr<ISystem>& target, const std::shared_ptr<ISystem> &source);
     static std::shared_ptr<ISerializable> ProduceSerializable(const std::string &typeName, size_t &hashCode);
     static std::shared_ptr<ISerializable> ProduceSerializable(
         const std::string &typeName, size_t &hashCode, const Handle &handle);
@@ -416,6 +416,14 @@ class Serialization : public ISingleton<Serialization>
     static bool HasComponentDataType(const std::string &typeName);
     static size_t GetSerializableTypeId(const std::string &typeName);
     static size_t GetDataComponentTypeId(const std::string &typeName);
+
+    static void SaveAssetList(const std::string& name, const std::vector<AssetRef>& target, YAML::Emitter& out);
+    static void LoadAssetList(const std::string& name, std::vector<AssetRef>& target, const YAML::Node& in);
+
+    template <typename T>
+    static void SerializeVector(const std::string& name, const std::vector<T>& target, YAML::Emitter& out);
+    template <typename T>
+    static void DeserializeVector(const std::string& name, std::vector<T>& target, const YAML::Node& in);
 };
 
 template <typename T> std::string Serialization::GetDataComponentTypeName()
@@ -426,6 +434,28 @@ template <typename T> std::string Serialization::GetSerializableTypeName()
 {
     return GetInstance().m_serializableNames.find(typeid(T).hash_code())->second;
 }
+
+template <typename T>
+void Serialization::SerializeVector(const std::string& name, const std::vector<T>& target, YAML::Emitter& out)
+{
+    if (!target.empty())
+    {
+        out << YAML::Key << name << YAML::Value
+            << YAML::Binary(reinterpret_cast<const unsigned char*>(target.data()), target.size() * sizeof(T));
+    }
+}
+
+template <typename T>
+void Serialization::DeserializeVector(const std::string& name, std::vector<T>& target, const YAML::Node& in)
+{
+    if (in[name])
+    {
+        const auto& data = in[name].as<YAML::Binary>();
+        target.resize(data.size() / sizeof(T));
+        std::memcpy(target.data(), data.data(), data.size());
+    }
+}
+
 template <typename T> bool Serialization::RegisterDataComponentType(const std::string &name)
 {
     return RegisterDataComponentType(name, typeid(T).hash_code(), [](size_t &hashCode, size_t &size) {

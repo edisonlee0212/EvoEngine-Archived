@@ -25,7 +25,7 @@ namespace EvoEngine
 		void Initialize(uint32_t resolution, uint32_t mipLevels = 1);
 		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
 		void ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>& targetTexture);
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] const std::shared_ptr<Image>& GetImage() const;
 		[[nodiscard]] const std::shared_ptr<ImageView>& GetImageView() const;
 		[[nodiscard]] const std::shared_ptr<Sampler>& GetSampler() const;

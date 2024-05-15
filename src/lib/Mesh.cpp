@@ -7,7 +7,7 @@
 #include "GeometryStorage.hpp"
 using namespace EvoEngine;
 
-bool Mesh::SaveInternal(const std::filesystem::path& path)
+bool Mesh::SaveInternal(const std::filesystem::path& path) const
 {
 	if (path.extension() == ".evemesh") {
 		return IAsset::SaveInternal(path);
@@ -78,8 +78,9 @@ bool Mesh::SaveInternal(const std::filesystem::path& path)
 	return false;
 }
 
-void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	ImGui::Text(("Vertices size: " + std::to_string(m_vertices.size())).c_str());
 	ImGui::Text(("Triangle amount: " + std::to_string(m_triangles.size())).c_str());
 	if (!m_vertices.empty()) {
@@ -121,6 +122,7 @@ void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 	}
 	*/
+	return changed;
 }
 
 void Mesh::OnCreate()
@@ -337,7 +339,7 @@ Bound Mesh::GetBound() const
 }
 
 
-void Mesh::Serialize(YAML::Emitter& out)
+void Mesh::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_vertexAttributes" << YAML::BeginMap;
 	m_vertexAttributes.Serialize(out);
@@ -410,29 +412,22 @@ ParticleInfoList::~ParticleInfoList()
 }
 
 
-void ParticleInfoList::Serialize(YAML::Emitter& out)
+void ParticleInfoList::Serialize(YAML::Emitter& out) const
 {
-	const auto particleInfos = GeometryStorage::PeekParticleInfoList(m_rangeDescriptor);
-	if (!particleInfos.empty())
-	{
-		out << YAML::Key << "m_particleInfos" << YAML::Value
-			<< YAML::Binary(reinterpret_cast<const unsigned char*>(particleInfos.data()), particleInfos.size() * sizeof(ParticleInfo));
-	}
+	Serialization::SerializeVector("m_particleInfos", GeometryStorage::PeekParticleInfoList(m_rangeDescriptor), out);
 }
 
 void ParticleInfoList::Deserialize(const YAML::Node& in)
 {
 	if (in["m_particleInfos"])
 	{
-		const auto& vertexData = in["m_particleInfos"].as<YAML::Binary>();
 		std::vector<ParticleInfo> particleInfos;
-		particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
-		std::memcpy(particleInfos.data(), vertexData.data(), vertexData.size());
+		Serialization::DeserializeVector("m_particleInfos", particleInfos, in);
 		GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 	}
 }
 
-void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());
@@ -452,7 +447,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
-void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());

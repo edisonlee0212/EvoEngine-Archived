@@ -220,13 +220,13 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
 	return false;
 }
 
-void Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
+bool Strands::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 	bool changed = false;
 	ImGui::Text(("Point size: " + std::to_string(m_strandPoints.size())).c_str());
-	if (changed) m_saved = false;
+	return changed;
 }
 
-void Strands::Serialize(YAML::Emitter& out) {
+void Strands::Serialize(YAML::Emitter& out) const {
 
 	if (!m_segmentRawIndices.empty() && !m_strandPoints.empty()) {
 		out << YAML::Key << "m_segmentRawIndices" << YAML::Value

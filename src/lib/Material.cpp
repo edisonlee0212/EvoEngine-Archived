@@ -245,7 +245,7 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
     materialInfoBlock.m_emissionVal = m_materialProperties.m_emission;
 }
 
-void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
+bool Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
     bool changed = false;
     
     if (ImGui::Checkbox("Vertex color only", &m_vertexColorOnly)) {
@@ -334,12 +334,11 @@ void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
     }
     if (changed) {
         m_needUpdate = true;
-        m_saved = false;
-        m_version++;
     }
+    return changed;
 }
 
-void Material::Serialize(YAML::Emitter& out) {
+void Material::Serialize(YAML::Emitter& out) const {
     m_albedoTexture.Save("m_albedoTexture", out);
     m_normalTexture.Save("m_normalTexture", out);
     m_metallicTexture.Save("m_metallicTexture", out);

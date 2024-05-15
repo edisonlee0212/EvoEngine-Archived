@@ -10,7 +10,7 @@ class UnknownPrivateComponent : public IPrivateComponent
     friend class Scene;
     friend class PrivateComponentHolder;
   public:
-    void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+    bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 };
 
 }

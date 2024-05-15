@@ -90,7 +90,7 @@ void Texture2D::SetData(const void* data, const glm::uvec2& resolution)
 	TextureStorage::RegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(GetSelf()));
 }
 
-bool Texture2D::SaveInternal(const std::filesystem::path& path)
+bool Texture2D::SaveInternal(const std::filesystem::path& path) const
 {
 	if (path.extension() == ".png") {
 		StoreToPng(path.string());
@@ -152,8 +152,9 @@ Texture2D::~Texture2D()
 	if(const auto self = GetSelf()) TextureStorage::UnRegisterTexture2D(std::dynamic_pointer_cast<Texture2D>(self));
 }
 
-void Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	if (m_imTextureId) {
 		static float debugSacle = 0.25f;
 		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
@@ -163,6 +164,8 @@ void Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			ImVec2(0, 1),
 			ImVec2(1, 0));
 	}
+
+	return changed;
 }
 
 glm::vec2 Texture2D::GetResolution() const

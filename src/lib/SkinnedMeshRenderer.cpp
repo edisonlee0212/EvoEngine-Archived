@@ -95,12 +95,13 @@ void SkinnedMeshRenderer::DebugBoneRender(const glm::vec4& color, const float& s
 		*/
 }
 
-void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	editorLayer->DragAndDropButton<Animator>(m_animator, "Animator");
-	ImGui::Checkbox("Cast shadow##SkinnedMeshRenderer", &m_castShadow);
-	editorLayer->DragAndDropButton<Material>(m_material, "Material");
-	editorLayer->DragAndDropButton<SkinnedMesh>(m_skinnedMesh, "Skinned Mesh");
+	bool changed = false;
+	if(editorLayer->DragAndDropButton<Animator>(m_animator, "Animator")) changed = true;
+	if(ImGui::Checkbox("Cast shadow##SkinnedMeshRenderer", &m_castShadow)) changed = true;
+	if(editorLayer->DragAndDropButton<Material>(m_material, "Material")) changed = true;
+	if(editorLayer->DragAndDropButton<SkinnedMesh>(m_skinnedMesh, "Skinned Mesh")) changed = true;
 	if (m_skinnedMesh.Get<SkinnedMesh>())
 	{
 		if (ImGui::TreeNode("Skinned Mesh:##SkinnedMeshRenderer"))
@@ -133,6 +134,7 @@ void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 			if (m_ragDoll) {
 				SetRagDoll(m_ragDoll);
 			}
+			changed = true;
 		}
 		if (m_ragDoll)
 		{
@@ -146,15 +148,17 @@ void SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 					{
 						auto entity = m_boundEntities[i].Get();
 						SetRagDollBoundEntity(i, entity);
+						changed = true;
 					}
 				}
 				ImGui::TreePop();
 			}
 		}
 	}
+	return changed;
 }
 
-void SkinnedMeshRenderer::Serialize(YAML::Emitter& out)
+void SkinnedMeshRenderer::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_castShadow" << m_castShadow;
 

@@ -32,7 +32,7 @@ namespace EvoEngine
         DataComponentType m_type;
         std::shared_ptr<IDataComponent> m_data;
 
-        void Serialize(YAML::Emitter& out);
+        void Serialize(YAML::Emitter& out) const;
         bool Deserialize(const YAML::Node& in);
     };
 
@@ -41,7 +41,7 @@ namespace EvoEngine
         bool m_enabled;
         std::shared_ptr<IPrivateComponent> m_data;
 
-        void Serialize(YAML::Emitter& out);
+        void Serialize(YAML::Emitter& out) const;
         void Deserialize(const YAML::Node& in);
     };
 
@@ -95,9 +95,9 @@ namespace EvoEngine
 
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
-        bool SaveInternal(const std::filesystem::path& path) override;
+        bool SaveInternal(const std::filesystem::path& path) const override;
         void LoadModelInternal(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
-        void SaveModelInternal(const std::filesystem::path& path);
+        void SaveModelInternal(const std::filesystem::path& path) const;
     public:
         Handle m_entityHandle = Handle();
         std::vector<DataComponentHolder> m_dataComponents;
@@ -111,8 +111,8 @@ namespace EvoEngine
         void LoadModel(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
 
         void FromEntity(const Entity& entity);
-        void CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& map);
-        void Serialize(YAML::Emitter& out) override;
+        void CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& map) const;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
     };
 

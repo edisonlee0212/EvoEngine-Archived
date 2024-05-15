@@ -32,7 +32,7 @@ std::shared_ptr<IAsset> IAsset::GetSelf() const
     return m_self.lock();
 }
 
-bool IAsset::SaveInternal(const std::filesystem::path &path)
+bool IAsset::SaveInternal(const std::filesystem::path &path) const
 {
     try
     {
@@ -100,6 +100,7 @@ bool IAsset::Import(const std::filesystem::path &path)
 void IAsset::SetUnsaved()
 {
     m_saved = true;
+    m_version++;
 }
 bool IAsset::Saved() const
 {

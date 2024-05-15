@@ -74,7 +74,7 @@ struct Bone
         const glm::mat4 &parentTransform,
         const glm::mat4 &rootTransform,
         std::vector<glm::mat4> &results);
-    void OnInspect();
+    bool OnInspect();
 
     void Serialize(YAML::Emitter &out) const;
     void Deserialize(const YAML::Node &in);
@@ -91,7 +91,7 @@ class Animation : public IAsset
     size_t m_boneSize = 0;
     [[nodiscard]] std::shared_ptr<Bone>& UnsafeGetRootBone();
     [[nodiscard]] std::map<std::string, float>&UnsafeGetAnimationLengths();
-    void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+    bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
     void Animate(
         const std::string &name,
         const float &animationTime,
@@ -101,7 +101,7 @@ class Animation : public IAsset
     [[nodiscard]] float GetAnimationLength(const std::string& animationName) const;
     [[nodiscard]] bool HasAnimation(const std::string& animationName) const;
     [[nodiscard]] bool IsEmpty() const;
-    void Serialize(YAML::Emitter &out) override;
+    void Serialize(YAML::Emitter &out) const override;
     void Deserialize(const YAML::Node &in) override;
 };
 } // namespace EvoEngine

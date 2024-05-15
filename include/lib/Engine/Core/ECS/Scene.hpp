@@ -41,7 +41,7 @@ namespace EvoEngine
 		float m_ambientLightIntensity = 0.8f;
 		EnvironmentType m_environmentType = EnvironmentType::EnvironmentalMap;
 		float m_backgroundIntensity = 1.0f;
-		void Serialize(YAML::Emitter& out);
+		void Serialize(YAML::Emitter& out) const;
 		void Deserialize(const YAML::Node& in);
 	};
 
@@ -59,7 +59,7 @@ namespace EvoEngine
 			const std::shared_ptr<Scene>& newScene);
 	};
 
-	class Scene : public IAsset
+	class Scene final : public IAsset
 	{
 		friend class Application;
 		friend class Entities;
@@ -80,8 +80,8 @@ namespace EvoEngine
 		std::map<size_t, std::shared_ptr<ISystem>> m_indexedSystems;
 		std::map<Handle, std::shared_ptr<ISystem>> m_mappedSystems;
 		Bound m_worldBound;
-		void SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out);
-		void SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitter& out);
+		void SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out) const;
+		static void SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitter& out);
 #pragma region Entity Management
 		void DeleteEntityInternal(unsigned entityIndex);
 
@@ -246,8 +246,8 @@ namespace EvoEngine
 		void Start() const;
 		void Update() const;
 		void LateUpdate() const;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-		void Serialize(YAML::Emitter& out) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 
 #pragma region Entity Management

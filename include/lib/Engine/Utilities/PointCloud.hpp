@@ -22,13 +22,13 @@ class PointCloud : public IAsset
     void OnCreate() override;
     void Load(const std::filesystem::path &path);
     void Save(const std::filesystem::path &path);
-    void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+    bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
     void Compress(std::vector<glm::dvec3>& points);
     void ApplyCompressed();
     void ApplyOriginal();
     void RecalculateBoundingBox();
     void Crop(std::vector<glm::dvec3>& points, const glm::dvec3& min, const glm::dvec3& max);
-    void Serialize(YAML::Emitter &out) override;
+    void Serialize(YAML::Emitter &out) const override;
     void Deserialize(const YAML::Node &in) override;
     
 };

@@ -185,17 +185,43 @@ YAML::Emitter &EvoEngine::operator<<(YAML::Emitter &out, const glm::uvec4 &v)
 size_t Serialization::GetDataComponentTypeId(const std::string &typeName)
 {
     auto& serializationManager = GetInstance();
-    if(serializationManager.HasComponentDataType(typeName)){
+    if(HasComponentDataType(typeName)){
         return serializationManager.m_dataComponentIds[typeName];
-    }else return 0;
+    }
+    return 0;
+}
+
+void Serialization::SaveAssetList(const std::string& name, const std::vector<AssetRef>& target, YAML::Emitter& out)
+{
+    if (target.empty()) return;
+    out << YAML::Key << name << YAML::Value << YAML::BeginSeq;
+    for (auto& i : target) {
+        out << YAML::BeginMap;
+        i.Serialize(out);
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+}
+
+void Serialization::LoadAssetList(const std::string& name, std::vector<AssetRef>& target, const YAML::Node& in)
+{
+    if (in[name]) {
+        target.clear();
+        for (const auto& i : in[name]) {
+            AssetRef instance;
+            instance.Deserialize(i);
+            target.push_back(instance);
+        }
+    }
 }
 
 size_t Serialization::GetSerializableTypeId(const std::string &typeName)
 {
     auto& serializationManager = GetInstance();
-    if(serializationManager.HasSerializableType(typeName)){
+    if(HasSerializableType(typeName)){
         return serializationManager.m_serializableIds[typeName];
-    }else return 0;
+    }
+    return 0;
 }
 bool Serialization::HasSerializableType(const std::string &typeName)
 {
@@ -206,19 +232,18 @@ bool Serialization::HasComponentDataType(const std::string &typeName)
     return GetInstance().m_dataComponentIds.find(typeName) != GetInstance().m_dataComponentIds.end();
 }
 
-void Serialization::ClonePrivateComponent(std::shared_ptr<IPrivateComponent> target, const std::shared_ptr<IPrivateComponent>& source)
+void Serialization::ClonePrivateComponent(const std::shared_ptr<IPrivateComponent>& target, const std::shared_ptr<IPrivateComponent>& source)
 {
-    auto targetTypeName = target->GetTypeName();
-    auto sourceTypeName = source->GetTypeName();
+    const auto targetTypeName = target->GetTypeName();
+    const auto sourceTypeName = source->GetTypeName();
     assert(targetTypeName == sourceTypeName);
-    auto& serializationManager = GetInstance();
-    if(serializationManager.HasSerializableType(targetTypeName)){
+    if(auto& serializationManager = GetInstance(); serializationManager.HasSerializableType(targetTypeName)){
         serializationManager.m_privateComponentCloners[targetTypeName](target, source);
     }else {
         EVOENGINE_ERROR("PrivateComponent " + targetTypeName + "is not registered!");
     }
 }
-void Serialization::CloneSystem(std::shared_ptr<ISystem> target, const std::shared_ptr<ISystem> &source)
+void Serialization::CloneSystem(const std::shared_ptr<ISystem>& target, const std::shared_ptr<ISystem> &source)
 {
     auto targetTypeName = target->GetTypeName();
     auto sourceTypeName = source->GetTypeName();

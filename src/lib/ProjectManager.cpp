@@ -1425,7 +1425,7 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 					false);
 
 				ImGui::Separator();
-				asset->OnInspect(editorLayer);
+				if (asset->OnInspect(editorLayer)) asset->SetUnsaved();
 			}
 			else
 			{

@@ -203,8 +203,9 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 
 }
 
-void ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	if (!m_cubemap->m_imTextureIds.empty()) {
 		static float debugSacle = 0.25f;
 		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
@@ -216,4 +217,6 @@ void ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				ImVec2(1, 0));
 		}
 	}
+
+	return changed;
 }

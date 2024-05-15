@@ -32,15 +32,18 @@ void PostProcessingStack::OnCreate()
 	m_SSRCombineDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("SSR_COMBINE_LAYOUT"));
 }
 
-void PostProcessingStack::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool PostProcessingStack::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	if(m_SSR && ImGui::TreeNode("SSR Settings"))
 	{
-		ImGui::DragFloat("Step size", &m_SSRSettings.m_step, 0.1, 0.1, 10.0f);
-		ImGui::DragInt("Max steps", &m_SSRSettings.m_maxSteps, 1, 1, 32);
-		ImGui::DragInt("Binary search steps", &m_SSRSettings.m_numBinarySearchSteps, 1, 1, 16);
+		if(ImGui::DragFloat("Step size", &m_SSRSettings.m_step, 0.1, 0.1, 10.0f)) changed = false;
+		if (ImGui::DragInt("Max steps", &m_SSRSettings.m_maxSteps, 1, 1, 32)) changed = false;
+		if (ImGui::DragInt("Binary search steps", &m_SSRSettings.m_numBinarySearchSteps, 1, 1, 16)) changed = false;
 		ImGui::TreePop();
 	}
+
+	return changed;
 }
 
 void PostProcessingStack::Process(const std::shared_ptr<Camera>& targetCamera)

@@ -13,7 +13,7 @@ namespace EvoEngine
 
 		float m_speed = 1.0f;
 		std::vector<EntityRef> m_entities;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void OnCreate() override;
 		void OnDestroy() override;
 		void Update() override;

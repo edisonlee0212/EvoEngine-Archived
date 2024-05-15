@@ -26,13 +26,13 @@ namespace EvoEngine
 		void SetData(const void* data, const glm::uvec2& resolution);
 
 	protected:
-		bool SaveInternal(const std::filesystem::path& path) override;
+		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
 		
 		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
 		~Texture2D() override;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] glm::vec2 GetResolution() const;
 		void StoreToPng(
 			const std::string& path,

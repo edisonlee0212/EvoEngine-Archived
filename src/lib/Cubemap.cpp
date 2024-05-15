@@ -258,19 +258,22 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 	);
 
 }
-void Cubemap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Cubemap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	if (!m_imTextureIds.empty()) {
-		static float debugSacle = 0.25f;
-		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
-		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
+		static float debugScale = 0.25f;
+		ImGui::DragFloat("Scale", &debugScale, 0.01f, 0.1f, 1.0f);
+		debugScale = glm::clamp(debugScale, 0.1f, 1.0f);
 		for (int i = 0; i < 6; i++) {
 			ImGui::Image(m_imTextureIds[i],
-				ImVec2(m_image->GetExtent().width * debugSacle, m_image->GetExtent().height * debugSacle),
+				ImVec2(m_image->GetExtent().width * debugScale, m_image->GetExtent().height * debugScale),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 		}
 	}
+
+	return changed;
 }
 
 const std::shared_ptr<Image>& Cubemap::GetImage() const

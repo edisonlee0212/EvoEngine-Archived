@@ -24,7 +24,7 @@ namespace EvoEngine
 		 * Function is virtual so user can define their own serialization procedure.
 		 * @param path The file path for saving the asset, may or may not be the local stored path.
 		 */
-		virtual bool SaveInternal(const std::filesystem::path& path);
+		virtual bool SaveInternal(const std::filesystem::path& path) const;
 		/**
 		 * The function that handles deserialization. May be invoked by Load() or ProjectManager. Function is
 		 * virtual so user can define their own deserialization procedure.
@@ -50,11 +50,11 @@ namespace EvoEngine
 		virtual void OnCreate();
 
 		/**
-		 * SaveInternal the asset to its file path, nothing happens if the path if empty.
+		 * SaveInternal the asset to its file path, nothing happens if the path is empty.
 		 */
 		bool Save();
 		/**
-		 * Load the asset from its file path, nothing happens if the path if empty.
+		 * Load the asset from its file path, nothing happens if the path is empty.
 		 */
 		bool Load();
 		/**
@@ -72,8 +72,9 @@ namespace EvoEngine
 
 		/**
 		 * The GUI of the asset when inspected in the editor.
+		 * * @return If the asset is modified during inspection.
 		 */
-		virtual void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {}
+		virtual bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) { return false; }
 		/**
 		 * During the serialization of the prefab and scene, user should mark all the AssetRef member in the class so they
 		 * will be serialized and correctly restored during deserialization.

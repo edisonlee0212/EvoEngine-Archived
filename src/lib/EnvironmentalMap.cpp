@@ -27,17 +27,20 @@ void EnvironmentalMap::ConstructFromRenderTexture(const std::shared_ptr<RenderTe
 {
 }
 
-void EnvironmentalMap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool EnvironmentalMap::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+    bool changed = false;
     static AssetRef targetTexture;
 
     if (editorLayer->DragAndDropButton<Cubemap>(targetTexture, "Convert from cubemap")) {
-        auto tex = targetTexture.Get<Cubemap>();
-        if (tex)
+	    if (const auto tex = targetTexture.Get<Cubemap>()) {
             ConstructFromCubemap(tex);
-        targetTexture.Clear();
+            changed = true;
+        }targetTexture.Clear();
     }
 
-    editorLayer->DragAndDropButton<LightProbe>(m_lightProbe, "LightProbe");
-    editorLayer->DragAndDropButton<LightProbe>(m_reflectionProbe, "ReflectionProbe");
+    if (editorLayer->DragAndDropButton<LightProbe>(m_lightProbe, "LightProbe")) changed = true;
+    if (editorLayer->DragAndDropButton<LightProbe>(m_reflectionProbe, "ReflectionProbe")) changed = true;
+
+    return changed;
 }

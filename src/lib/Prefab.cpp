@@ -786,7 +786,7 @@ void Prefab::FromEntity(const Entity& entity)
 }
 
 #pragma endregion
-void DataComponentHolder::Serialize(YAML::Emitter& out)
+void DataComponentHolder::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_type.m_name" << YAML::Value << m_type.m_name;
     out << YAML::Key << "m_data" << YAML::Value << YAML::Binary((const unsigned char*)m_data.get(), m_type.m_size);
@@ -804,7 +804,7 @@ bool DataComponentHolder::Deserialize(const YAML::Node& in)
     }
     return true;
 }
-void Prefab::Serialize(YAML::Emitter& out)
+void Prefab::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_name" << YAML::Value << m_name;
     out << YAML::Key << "m_enabled" << YAML::Value << m_enabled;
@@ -883,7 +883,7 @@ void Prefab::Deserialize(const YAML::Node& in)
         }
     }
 }
-void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& map)
+void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& map) const
 {
     std::vector<AssetRef> list;
     for (auto& i : m_privateComponents)
@@ -921,7 +921,7 @@ void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& 
     for (auto& i : m_children)
         i->CollectAssets(map);
 }
-bool Prefab::SaveInternal(const std::filesystem::path& path)
+bool Prefab::SaveInternal(const std::filesystem::path& path) const
 {
     if (path.extension() == ".eveprefab")
     {
@@ -972,7 +972,7 @@ void Prefab::LoadModel(const std::filesystem::path& path, bool optimize, unsigne
     LoadModelInternal(ProjectManager::GetProjectPath().parent_path() / path, optimize, flags);
 }
 
-void Prefab::SaveModelInternal(const std::filesystem::path& path)
+void Prefab::SaveModelInternal(const std::filesystem::path& path) const
 {
     Assimp::Exporter exporter;
     aiScene* scene = new aiScene();
@@ -1041,7 +1041,7 @@ void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     }
     return;
 }
-void PrivateComponentHolder::Serialize(YAML::Emitter& out)
+void PrivateComponentHolder::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_enabled" << YAML::Value << m_enabled;
     out << YAML::Key << "m_typeName" << YAML::Value << m_data->GetTypeName();

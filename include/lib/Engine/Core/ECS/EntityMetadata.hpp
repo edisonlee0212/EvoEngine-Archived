@@ -20,7 +20,7 @@ struct EntityMetadata
     size_t m_dataComponentStorageIndex = 0;
     size_t m_chunkArrayIndex = 0;
     Handle m_handle;
-    void Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene);
+    void Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const;
     void Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene);
     void Clone(const std::unordered_map<Handle, Handle> &entityMap, const EntityMetadata &source, const std::shared_ptr<Scene> &scene);
 };

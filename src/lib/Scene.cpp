@@ -175,39 +175,40 @@ void Scene::FixedUpdate() const
 
 }
 static const char* EnvironmentTypes[]{ "Environmental Map", "Color" };
-void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool modified = false;
 	if (this == Application::GetActiveScene().get())
 		if (editorLayer->DragAndDropButton<Camera>(m_mainCamera, "Main Camera", true))
-			m_saved = false;
+			modified = true;
 	if (ImGui::TreeNodeEx("Environment Settings", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		static int type = static_cast<int>(m_environment.m_environmentType);
 		if (ImGui::Combo("Environment type", &type, EnvironmentTypes, IM_ARRAYSIZE(EnvironmentTypes)))
 		{
 			m_environment.m_environmentType = static_cast<EnvironmentType>(type);
-			m_saved = false;
+			modified = true;
 		}
 		switch (m_environment.m_environmentType)
 		{
 		case EnvironmentType::EnvironmentalMap: {
 			if (editorLayer->DragAndDropButton<EnvironmentalMap>(
 				m_environment.m_environmentalMap, "Environmental Map"))
-				m_saved = false;
+				modified = true;
 		}
 											  break;
 		case EnvironmentType::Color: {
 			if (ImGui::ColorEdit3("Background Color", &m_environment.m_backgroundColor.x))
-				m_saved = false;
+				modified = true;
 		}
 								   break;
 		}
 		if (ImGui::DragFloat(
 			"Environmental light intensity", &m_environment.m_ambientLightIntensity, 0.01f, 0.0f, 10.0f))
-			m_saved = false;
+			modified = true;
 		if (ImGui::DragFloat("Environmental light gamma", &m_environment.m_environmentGamma, 0.01f, 0.0f, 10.0f))
 		{
-			m_saved = false;
+			modified = true;
 		}
 		ImGui::TreePop();
 	}
@@ -238,10 +239,12 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 						if (enabled)
 						{
 							i.second->Enable();
+							modified = true;
 						}
 						else
 						{
 							i.second->Disable();
+							modified = true;
 						}
 					}
 				}
@@ -250,7 +253,7 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 		ImGui::TreePop();
 	}
-
+	return modified;
 }
 
 std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName, float order)
@@ -269,7 +272,7 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName,
 	return std::dynamic_pointer_cast<ISystem>(ptr);
 }
 
-void Scene::Serialize(YAML::Emitter& out)
+void Scene::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_environment" << YAML::Value << YAML::BeginMap;
 	m_environment.Serialize(out);
@@ -593,7 +596,7 @@ void Scene::Deserialize(const YAML::Node& in)
 		}
 	}
 }
-void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out)
+void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out) const
 {
 	out << YAML::BeginMap;
 	{
@@ -634,8 +637,7 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
 				out << YAML::BeginMap;
 				out << YAML::Key << "Data" << YAML::Value
 					<< YAML::Binary(
-						(const unsigned char*)chunk.GetDataPointer(static_cast<size_t>(
-							type.m_offset * dataComponentStorage.m_chunkCapacity + chunkPointer * type.m_size)),
+						(const unsigned char*)chunk.GetDataPointer(type.m_offset * dataComponentStorage.m_chunkCapacity + chunkPointer * type.m_size),
 						type.m_size);
 				out << YAML::EndMap;
 			}
@@ -727,12 +729,12 @@ std::shared_ptr<ReflectionProbe> Environment::GetReflectionProbe(const glm::vec3
 	return nullptr;
 }
 
-void Environment::Serialize(YAML::Emitter& out)
+void Environment::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_backgroundColor" << YAML::Value << m_backgroundColor;
 	out << YAML::Key << "m_environmentGamma" << YAML::Value << m_environmentGamma;
 	out << YAML::Key << "m_ambientLightIntensity" << YAML::Value << m_ambientLightIntensity;
-	out << YAML::Key << "m_environmentType" << YAML::Value << (unsigned)m_environmentType;
+	out << YAML::Key << "m_environmentType" << YAML::Value << static_cast<unsigned>(m_environmentType);
 	m_environmentalMap.Save("m_environment", out);
 }
 void Environment::Deserialize(const YAML::Node& in)

@@ -36,11 +36,11 @@ class Animator final : public IPrivateComponent
 
     void OnDestroy() override;
     void Setup(const std::shared_ptr<Animation> &targetAnimation);
-    void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+    bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
     void PostCloneAction(const std::shared_ptr<IPrivateComponent> &target) override;
     std::shared_ptr<Animation> GetAnimation();
-    void Serialize(YAML::Emitter &out) override;
+    void Serialize(YAML::Emitter &out) const override;
     void Deserialize(const YAML::Node &in) override;
     void CollectAssetRef(std::vector<AssetRef> &list) override;
 };

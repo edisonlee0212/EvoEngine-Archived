@@ -222,16 +222,16 @@ void PointCloud::OnCreate()
 {
 }
 
-void PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	float speed = 0.1f;
+	bool changed = false;
 	ImGui::Text("Has Colors: %s", (m_hasColors ? "True" : "False"));
 	ImGui::Text("Has Positions: %s", (m_hasPositions ? "True" : "False"));
 	ImGui::Text("Has Normals: %s", (m_hasNormals ? "True" : "False"));
-	ImGui::DragScalarN("Offset", ImGuiDataType_Double, &m_offset.x, 3);
+	if(ImGui::DragScalarN("Offset", ImGuiDataType_Double, &m_offset.x, 3)) changed = true;
 	ImGui::Text(("Original amount: " + std::to_string(m_points.size())).c_str());
-	ImGui::DragFloat("Point size", &m_pointSize, 0.01f, 0.01f, 100.0f);
-	ImGui::DragFloat("Compress factor", &m_compressFactor, 0.001f, 0.0001f, 10.0f);
+	if (ImGui::DragFloat("Point size", &m_pointSize, 0.01f, 0.01f, 100.0f)) changed = true;
+	if (ImGui::DragFloat("Compress factor", &m_compressFactor, 0.001f, 0.0001f, 10.0f)) changed = true;
 
 	if (ImGui::Button("Apply compressed"))
 	{
@@ -267,8 +267,12 @@ void PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				EVOENGINE_ERROR("Failed to save to " + filePath.string());
 			}
 		}, false);
-	if (ImGui::Button("Clear all points"))
+	if (ImGui::Button("Clear all points")) {
 		m_points.clear();
+		changed = true;
+	}
+
+	return changed;
 }
 void PointCloud::ApplyCompressed()
 {
@@ -387,7 +391,7 @@ void PointCloud::RecalculateBoundingBox()
 	}
 	m_offset = -m_min;
 }
-void PointCloud::Serialize(YAML::Emitter &out)
+void PointCloud::Serialize(YAML::Emitter &out) const
 {
 	out << YAML::Key << "m_offset" << m_offset;
 	out << YAML::Key << "m_pointSize" << m_pointSize;

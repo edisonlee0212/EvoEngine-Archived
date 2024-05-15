@@ -7,20 +7,23 @@
 using namespace EvoEngine;
 
 
-void SpotLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool SpotLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    ImGui::Checkbox("Cast Shadow", &m_castShadow);
-    ImGui::ColorEdit3("Color", &m_diffuse[0]);
-    ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f);
-    ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f);
+    bool changed = false;
+    if(ImGui::Checkbox("Cast Shadow", &m_castShadow)) changed = false;
+    if (ImGui::ColorEdit3("Color", &m_diffuse[0])) changed = false;
+    if (ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f)) changed = false;
 
-    ImGui::DragFloat("Constant", &m_constant, 0.01f, 0.0f, 999.0f);
-    ImGui::DragFloat("Linear", &m_linear, 0.001f, 0, 1, "%.3f");
-    ImGui::DragFloat("Quadratic", &m_quadratic, 0.001f, 0, 10, "%.4f");
+    if (ImGui::DragFloat("Constant", &m_constant, 0.01f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Linear", &m_linear, 0.001f, 0, 1, "%.3f")) changed = false;
+    if (ImGui::DragFloat("Quadratic", &m_quadratic, 0.001f, 0, 10, "%.4f")) changed = false;
 
-    ImGui::DragFloat("Inner Degrees", &m_innerDegrees, 0.1f, 0.0f, m_outerDegrees);
-    ImGui::DragFloat("Outer Degrees", &m_outerDegrees, 0.1f, m_innerDegrees, 180.0f);
-    ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f);
+    if (ImGui::DragFloat("Inner Degrees", &m_innerDegrees, 0.1f, 0.0f, m_outerDegrees)) changed = false;
+    if (ImGui::DragFloat("Outer Degrees", &m_outerDegrees, 0.1f, m_innerDegrees, 180.0f)) changed = false;
+    if (ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f)) changed = false;
+
+    return changed;
 }
 
 void SpotLight::OnCreate()
@@ -28,7 +31,7 @@ void SpotLight::OnCreate()
     SetEnabled(true);
 }
 
-void SpotLight::Serialize(YAML::Emitter& out)
+void SpotLight::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_innerDegrees" << YAML::Value << m_innerDegrees;
@@ -70,19 +73,21 @@ float SpotLight::GetFarPlane() const
         / (2 * m_quadratic);
 }
 
-void PointLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool PointLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    ImGui::Checkbox("Cast Shadow", &m_castShadow);
-    ImGui::ColorEdit3("Color", &m_diffuse[0]);
-    ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f);
-    ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f);
+    bool changed = false;
+    if(ImGui::Checkbox("Cast Shadow", &m_castShadow)) changed = false;
+    if (ImGui::ColorEdit3("Color", &m_diffuse[0])) changed = false;
+    if (ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f)) changed = false;
 
-    ImGui::DragFloat("Constant", &m_constant, 0.01f, 0.0f, 999.0f);
-    ImGui::DragFloat("Linear", &m_linear, 0.0001f, 0, 1, "%.4f");
-    ImGui::DragFloat("Quadratic", &m_quadratic, 0.00001f, 0, 10, "%.5f");
+    if (ImGui::DragFloat("Constant", &m_constant, 0.01f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Linear", &m_linear, 0.0001f, 0, 1, "%.4f")) changed = false;
+    if (ImGui::DragFloat("Quadratic", &m_quadratic, 0.00001f, 0, 10, "%.5f")) changed = false;
 
-    // ImGui::InputFloat("Normal Offset", &dl->normalOffset, 0.01f);
-    ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f);
+    if (ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f)) changed = false;
+
+    return changed;
 }
 
 void PointLight::OnCreate()
@@ -90,7 +95,7 @@ void PointLight::OnCreate()
     SetEnabled(true);
 }
 
-void PointLight::Serialize(YAML::Emitter& out)
+void PointLight::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_constant" << YAML::Value << m_constant;
@@ -119,17 +124,19 @@ void DirectionalLight::OnCreate()
     SetEnabled(true);
 }
 
-void DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-    ImGui::Checkbox("Cast Shadow", &m_castShadow);
-    ImGui::ColorEdit3("Color", &m_diffuse[0]);
-    ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f);
-    ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f);
-    ImGui::DragFloat("Normal Offset", &m_normalOffset, 0.001f, 0.0f, 999.0f);
-    ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f);
+    bool changed = false;
+    if(ImGui::Checkbox("Cast Shadow", &m_castShadow)) changed = false;
+    if (ImGui::ColorEdit3("Color", &m_diffuse[0])) changed = false;
+    if (ImGui::DragFloat("Intensity", &m_diffuseBrightness, 0.1f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Bias", &m_bias, 0.001f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Normal Offset", &m_normalOffset, 0.001f, 0.0f, 999.0f)) changed = false;
+    if (ImGui::DragFloat("Light Size", &m_lightSize, 0.01f, 0.0f, 999.0f)) changed = false;
+    return changed;
 }
 
-void DirectionalLight::Serialize(YAML::Emitter& out)
+void DirectionalLight::Serialize(YAML::Emitter& out) const
 {
     out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_bias" << YAML::Value << m_bias;

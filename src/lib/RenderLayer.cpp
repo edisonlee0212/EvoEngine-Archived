@@ -549,7 +549,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 				GlobalTransform sceneCameraGT;
 				sceneCameraGT.SetValue(editorCamera.m_position, editorCamera.m_rotation, glm::vec3(1.0f));
 				editorCamera.m_camera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
-				RegisterCameraIndex(cameraHandle, cameraInfoBlock);
+				const auto index = RegisterCameraIndex(cameraHandle, cameraInfoBlock);
 
 				cameras.emplace_back(sceneCameraGT, editorCamera.m_camera);
 			}
@@ -567,7 +567,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 			cameraPairs.emplace_back(camera, cameraGlobalTransform.GetPosition());
 			CameraInfoBlock cameraInfoBlock;
 			camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraGlobalTransform);
-			RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
+			const auto index = RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
 
 			cameras.emplace_back(cameraGlobalTransform, camera);
 		}

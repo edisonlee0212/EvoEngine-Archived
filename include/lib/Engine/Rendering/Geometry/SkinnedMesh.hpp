@@ -50,7 +50,7 @@ namespace EvoEngine
 		std::vector<std::shared_ptr<Bone>> m_bones;
 		friend class Prefab;
 	protected:
-		bool SaveInternal(const std::filesystem::path& path) override;
+		bool SaveInternal(const std::filesystem::path& path) const override;
 	public:
 		~SkinnedMesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
@@ -58,7 +58,7 @@ namespace EvoEngine
 		void FetchIndices();
 		//Need serialize
 		std::vector<unsigned> m_boneAnimatorIndices;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] glm::vec3 GetCenter() const;
 		[[nodiscard]] Bound GetBound() const;
 		void SetVertices(const SkinnedVertexAttributes& skinnedVertexAttributes, const std::vector<SkinnedVertex>& skinnedVertices, const std::vector<unsigned>& indices);
@@ -70,7 +70,7 @@ namespace EvoEngine
 		[[nodiscard]] std::vector<SkinnedVertex>& UnsafeGetSkinnedVertices();
 		[[nodiscard]] std::vector<glm::uvec3>& UnsafeGetTriangles();
 
-		void Serialize(YAML::Emitter& out) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 	};
 } // namespace EvoEngine

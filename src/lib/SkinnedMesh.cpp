@@ -61,8 +61,9 @@ void BoneMatrices::UploadData()
 }
 
 
-void SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	ImGui::Text(("Vertices size: " + std::to_string(m_skinnedVertices.size())).c_str());
 	ImGui::Text(("Triangle amount: " + std::to_string(m_skinnedTriangles.size())).c_str());
 
@@ -74,8 +75,9 @@ void SkinnedMesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			[&](const std::filesystem::path& path) { Export(path); },
 			false);
 	}
+	return changed;
 }
-bool SkinnedMesh::SaveInternal(const std::filesystem::path& path)
+bool SkinnedMesh::SaveInternal(const std::filesystem::path& path) const
 {
 	if (path.extension() == ".eveskinnedmesh") {
 		return IAsset::SaveInternal(path);
@@ -337,7 +339,7 @@ std::vector<SkinnedVertex>& SkinnedMesh::UnsafeGetSkinnedVertices()
 	return m_skinnedVertices;
 }
 
-void SkinnedMesh::Serialize(YAML::Emitter& out)
+void SkinnedMesh::Serialize(YAML::Emitter& out) const 
 {
 	if (!m_boneAnimatorIndices.empty())
 	{

@@ -231,7 +231,8 @@ namespace EvoEngine
 		template <typename T = IAsset>  bool RenameAsset(const std::shared_ptr<T>& target);
 		[[nodiscard]] bool RenameEntity(const Entity& entity) const;
 
-		template <typename T = IAsset>  bool Remove(AssetRef& target) const;
+		template <typename T = IAsset>
+		static bool Remove(AssetRef& target);
 		template <typename T = IPrivateComponent>  bool Remove(PrivateComponentRef& target) const;
 		[[nodiscard]] bool Remove(EntityRef& entityRef);
 
@@ -555,7 +556,7 @@ namespace EvoEngine
 	{
 		return RenameAsset(target.Get<IAsset>());
 	}
-	template <typename T> bool EditorLayer::Remove(AssetRef& target) const
+	template <typename T> bool EditorLayer::Remove(AssetRef& target)
 	{
 		bool statusChanged = false;
 		if (const auto ptr = target.Get<IAsset>())
