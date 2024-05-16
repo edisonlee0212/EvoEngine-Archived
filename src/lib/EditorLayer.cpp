@@ -1291,7 +1291,7 @@ glm::vec2 EditorLayer::GetMouseSceneCameraPosition() const
 	return m_mouseSceneWindowPosition;
 }
 
-KeyActionType EditorLayer::GetKey(const int key) const
+KeyActionType EditorLayer::GetKey(const int key)
 {
 	return Input::GetKey(key);
 }
@@ -1594,7 +1594,7 @@ Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCa
 	return retVal;
 }
 
-bool EditorLayer::RenameEntity(const Entity& entity) const
+bool EditorLayer::RenameEntity(const Entity& entity)
 {
 	bool statusChanged = false;
 	auto scene = Application::GetActiveScene();

@@ -13,11 +13,10 @@ namespace EvoEngine
 		std::weak_ptr<IPrivateComponent> m_value;
 		Handle m_entityHandle = Handle(0);
 		std::weak_ptr<Scene> m_scene;
-		std::string m_privateComponentTypeName;
+		std::string m_privateComponentTypeName{};
 		bool Update();
 
 	public:
-		PrivateComponentRef& operator=(const PrivateComponentRef& other);
 		void Serialize(YAML::Emitter& out) const override
 		{
 			out << YAML::Key << "m_entityHandle" << YAML::Value << m_entityHandle;
@@ -44,6 +43,7 @@ namespace EvoEngine
 			m_privateComponentTypeName = "";
 			m_scene.reset();
 		}
+
 		template <typename T = IPrivateComponent> PrivateComponentRef(const std::shared_ptr<T>& other)
 		{
 			Set(other);
@@ -59,15 +59,6 @@ namespace EvoEngine
 			return *this;
 		}
 
-		bool operator==(const PrivateComponentRef& rhs) const
-		{
-			return m_entityHandle == rhs.m_entityHandle;
-		}
-		bool operator!=(const PrivateComponentRef& rhs) const
-		{
-			return m_entityHandle != rhs.m_entityHandle;
-		}
-
 		void Relink(const std::unordered_map<Handle, Handle>& map, const std::shared_ptr<Scene>& scene)
 		{
 			auto search = map.find(m_entityHandle);
@@ -79,13 +70,13 @@ namespace EvoEngine
 			}
 			else
 				Clear();
-		};
+		}
 
 		void ResetScene(const std::shared_ptr<Scene>& scene)
 		{
 			m_value.reset();
 			m_scene = scene;
-		};
+		}
 
 		template <typename T = IPrivateComponent> [[nodiscard]] std::shared_ptr<T> Get()
 		{
@@ -104,7 +95,7 @@ namespace EvoEngine
 				m_privateComponentTypeName = privateComponent->GetTypeName();
 				m_entityHandle = privateComponent->GetScene()->GetEntityHandle(privateComponent->GetOwner());
 				m_value = privateComponent;
-
+				m_handle = privateComponent->GetHandle();
 			}
 			else
 			{

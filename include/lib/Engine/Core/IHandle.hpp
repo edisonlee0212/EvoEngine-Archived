@@ -44,6 +44,7 @@ class IHandle{
     friend class Serialization;
     friend class IAsset;
     friend class AssetRef;
+    friend class PrivateComponentRef;
     friend class Scene;
     friend class AssetRecord;
     friend class Folder;

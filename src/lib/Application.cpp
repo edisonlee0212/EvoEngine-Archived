@@ -22,6 +22,7 @@
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
 #include "LightProbe.hpp"
+#include "LODGroup.hpp"
 #include "PlayerController.hpp"
 #include "ReflectionProbe.hpp"
 #include "Particles.hpp"
@@ -476,6 +477,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterPrivateComponent<SpotLight>("SpotLight");
 	ClassRegistry::RegisterPrivateComponent<DirectionalLight>("DirectionalLight");
 	ClassRegistry::RegisterPrivateComponent<WayPoints>("WayPoints");
+	ClassRegistry::RegisterPrivateComponent<LodGroup>("LodGroup");
 	ClassRegistry::RegisterPrivateComponent<UnknownPrivateComponent>("UnknownPrivateComponent");
 
 	ClassRegistry::RegisterAsset<PostProcessingStack>("PostProcessingStack", { ".evepostprocessingstack" });

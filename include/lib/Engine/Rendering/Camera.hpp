@@ -77,7 +77,7 @@ namespace EvoEngine
         [[nodiscard]] bool Rendered() const;
         void SetRequireRendering(bool value);
         float m_nearDistance = 0.1f;
-        float m_farDistance = 500.0f;
+        float m_farDistance = 200.0f;
         float m_fov = 120;
         bool m_useClearColor = false;
         glm::vec3 m_clearColor = glm::vec3(0.0f);

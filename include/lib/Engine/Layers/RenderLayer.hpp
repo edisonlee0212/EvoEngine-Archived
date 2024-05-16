@@ -5,6 +5,7 @@
 #include "Mesh.hpp"
 #include "IGeometry.hpp"
 #include "Lights.hpp"
+#include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "Strands.hpp"
 
@@ -160,6 +161,19 @@ namespace EvoEngine
 		void PrepareEnvironmentalBrdfLut();
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<MeshRenderer>& meshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<SkinnedMeshRenderer>& skinnedMeshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<Particles>& particles, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<StrandsRenderer>& strandsRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+
 	public:
 		bool m_wireFrame = false;
 
@@ -205,6 +219,9 @@ namespace EvoEngine
 		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
 
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
+
+		void CalculateLodFactor(const glm::vec3& center, float maxDistance) const;
+
 		[[nodiscard]] bool CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();
