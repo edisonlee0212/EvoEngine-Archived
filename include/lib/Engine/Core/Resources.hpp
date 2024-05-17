@@ -9,11 +9,14 @@ namespace EvoEngine
 		Handle m_currentMaxHandle = Handle(1);
 		std::unordered_map<std::string, std::unordered_map<Handle, std::shared_ptr<IAsset>>> m_typedResources;
 		std::unordered_map<std::string, std::shared_ptr<IAsset>> m_namedResources;
+
+		std::unordered_map<std::string, std::vector<AssetRef>> m_sharedAssets;
+
 		std::unordered_map<Handle, std::string> m_resourceNames;
 		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_resources;
 		void LoadShaders();
 		void LoadPrimitives() const;
-		bool m_showAssets = false;
+		bool m_showAssets = true;
 		static void Initialize();
 		static void InitializeEnvironmentalMap();
 		[[nodiscard]] Handle GenerateNewHandle();

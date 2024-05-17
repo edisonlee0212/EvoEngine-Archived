@@ -81,7 +81,7 @@ namespace EvoEngine
 		std::shared_ptr<Texture2D> m_icon;
 	};
 
-	class  ProjectManager : public ISingleton<ProjectManager>
+	class ProjectManager : public ISingleton<ProjectManager>
 	{
 		friend class Application;
 		
@@ -95,7 +95,7 @@ namespace EvoEngine
 		std::optional<std::function<void(const std::shared_ptr<Scene>&)>> m_scenePostLoadFunction;
 		std::optional<std::function<void(const std::shared_ptr<Scene>&)>> m_newSceneCustomizer;
 		std::weak_ptr<Folder> m_currentFocusedFolder;
-		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_residentAsset;
+		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_loadedAssets;
 		std::unordered_map<Handle, std::weak_ptr<IAsset>> m_assetRegistry;
 		std::unordered_map<Handle, std::weak_ptr<AssetRecord>> m_assetRecordRegistry;
 		std::unordered_map<Handle, std::weak_ptr<Folder>> m_folderRegistry;
@@ -127,7 +127,6 @@ namespace EvoEngine
 		[[nodiscard]] static std::shared_ptr<IAsset> DuplicateAsset(const std::shared_ptr<IAsset>& target);
 		std::shared_ptr<IAsset> m_inspectingAsset;
 		bool m_showProjectWindow = true;
-		bool m_showAssetInspectorWindow = true;
 		[[nodiscard]] static std::weak_ptr<Scene> GetStartScene();
 		static void SetStartScene(const std::shared_ptr<Scene>& scene);
 		static void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer);

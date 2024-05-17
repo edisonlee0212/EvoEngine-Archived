@@ -24,7 +24,7 @@ void Resources::LoadShaders()
 		/ meshSubgroupSize;
 
 	uint32_t taskSubgroupSize = Graphics::GetInstance().m_vkPhysicalDeviceVulkan11Properties.subgroupSize;
-	uint32_t taskSubgroupCount = 
+	uint32_t taskSubgroupCount =
 		(taskWorkGroupInvocations + taskSubgroupSize - 1) / taskSubgroupSize;
 
 	taskSubgroupSize = glm::max(taskSubgroupSize, 1u);
@@ -32,7 +32,7 @@ void Resources::LoadShaders()
 	taskSubgroupCount = glm::max(taskSubgroupCount, 1u);
 	meshSubgroupCount = glm::max(meshSubgroupCount, 1u);
 	add += "\n#define MAX_DIRECTIONAL_LIGHT_SIZE " + std::to_string(Graphics::Settings::MAX_DIRECTIONAL_LIGHT_SIZE)
-		 + "\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::Constants::MAX_KERNEL_AMOUNT)
+		+ "\n#define MAX_KERNEL_AMOUNT " + std::to_string(Graphics::Constants::MAX_KERNEL_AMOUNT)
 		+ "\n#define MESHLET_MAX_VERTICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
 		+ "\n#define MESHLET_MAX_TRIANGLES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE)
 		+ "\n#define MESHLET_MAX_INDICES_SIZE " + std::to_string(Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3)
@@ -43,9 +43,9 @@ void Resources::LoadShaders()
 		+ "\n#define EXT_MESH_SUBGROUP_COUNT " + std::to_string(meshSubgroupCount)
 
 		+ "\n#define EXT_MESHLET_PER_TASK " + std::to_string(taskWorkGroupInvocations)
-		
 
-	+ "\n";
+
+		+ "\n";
 
 	Graphics::GetInstance().m_shaderBasic = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/Basic.glsl");
 	Graphics::GetInstance().m_shaderBasicConstants = add + FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Include/BasicConstants.glsl");
@@ -154,7 +154,7 @@ void Resources::LoadShaders()
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferredLightingSceneCamera.frag");
 		fragShader = CreateResource<Shader>("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA_FRAG");
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
-		
+
 		fragShaderCode = std::string("#version 460\n") + Graphics::GetInstance().m_shaderBasicConstants + "\n" + Graphics::GetInstance().m_shaderBasic + "\n" +
 			FileUtils::LoadFileAsString(
 				std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Standard/StandardDeferred.frag");
@@ -168,7 +168,7 @@ void Resources::LoadShaders()
 		fragShader->Set(ShaderType::Fragment, fragShaderCode);
 	}
 #pragma endregion
-	
+
 #pragma region PostProcessing
 	{
 		auto fragShaderCode =
@@ -368,7 +368,7 @@ void Resources::LoadShaders()
 #pragma region Environmental
 	{
 		auto vertShaderCode =
-			std::string("#version 460\n") + 
+			std::string("#version 460\n") +
 			FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Vertex/Lighting/EquirectangularMapToCubemap.vert");
 		auto vertShader = CreateResource<Shader>("EQUIRECTANGULAR_MAP_TO_CUBEMAP_VERT");
 		vertShader->Set(ShaderType::Vertex, vertShaderCode);
@@ -497,7 +497,7 @@ void Resources::LoadShaders()
 void Resources::LoadPrimitives() const
 {
 	{
-		VertexAttributes attributes {};
+		VertexAttributes attributes{};
 		attributes.m_texCoord = true;
 		Vertex vertex{};
 		std::vector<Vertex> vertices;
@@ -533,17 +533,17 @@ void Resources::LoadPrimitives() const
 		vertex.m_position = { 1, 1, -1 };
 		vertices.emplace_back(vertex);//1: 
 
-		vertex.m_position = { 1, -1, -1};
+		vertex.m_position = { 1, -1, -1 };
 		vertices.emplace_back(vertex);//2: 
 
-		vertex.m_position = { -1, 1, -1};
+		vertex.m_position = { -1, 1, -1 };
 		vertices.emplace_back(vertex);//3: 
 
 
 		vertex.m_position = { -1, -1, 1 };
 		vertices.emplace_back(vertex);//4: 
 
-		vertex.m_position = {1, -1,1 };
+		vertex.m_position = { 1, -1,1 };
 		vertices.emplace_back(vertex);//5: 
 
 		vertex.m_position = { 1, 1, 1 };
@@ -608,7 +608,7 @@ void Resources::Initialize()
 	resources.m_currentMaxHandle = Handle(1);
 
 	resources.LoadShaders();
-	
+
 
 	const auto missingTexture = CreateResource<Texture2D>("TEXTURE_MISSING");
 	missingTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/texture-missing.png");
@@ -621,7 +621,7 @@ void Resources::InitializeEnvironmentalMap()
 	GeometryStorage::DeviceSync();
 	const auto defaultEnvironmentalMapTexture = CreateResource<Texture2D>("DEFAULT_ENVIRONMENTAL_MAP_TEXTURE");
 	defaultEnvironmentalMapTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_3k.hdr");
-	
+
 	const auto defaultSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_TEXTURE");
 	defaultSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_Env.hdr");
 	const auto defaultSkybox = CreateResource<Cubemap>("DEFAULT_SKYBOX");
@@ -640,6 +640,7 @@ Handle Resources::GenerateNewHandle()
 void Resources::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	auto& resources = GetInstance();
+	auto& projectManager = ProjectManager::GetInstance();
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("View"))
@@ -649,25 +650,121 @@ void Resources::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 		ImGui::EndMainMenuBar();
 	}
-	auto& projectManager = ProjectManager::GetInstance();
-
-	if (resources.m_showAssets)
-	{
+	if (resources.m_showAssets) {
 		ImGui::Begin("Assets");
 		if (ImGui::BeginTabBar(
-			"##Assets", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
+			"##Assets", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
 		{
-			if (ImGui::BeginTabItem("Loaded Assets"))
+			if (ImGui::BeginTabItem("Inspection"))
 			{
-				if (ImGui::CollapsingHeader("Loaded Assets"))
+				if (projectManager.m_inspectingAsset)
 				{
-					for (auto& asset : projectManager.m_residentAsset)
+					auto& asset = projectManager.m_inspectingAsset;
+					ImGui::Text("Type:");
+					ImGui::SameLine();
+					ImGui::Text(asset->GetTypeName().c_str());
+					ImGui::Separator();
+					ImGui::Text("Name:");
+					ImGui::SameLine();
+					ImGui::Button(asset->GetTitle().c_str());
+					editorLayer->DraggableAsset(asset);
+					if (!asset->IsTemporary())
 					{
-						if (asset.second->IsTemporary()) continue;
-						ImGui::Button(asset.second->GetTitle().c_str());
-						editorLayer->DraggableAsset(asset.second);
+						if (ImGui::Button("Save"))
+						{
+							asset->Save();
+						}
+					}
+					else
+					{
+						FileUtils::SaveFile(
+							"Allocate path & save",
+							asset->GetTypeName(),
+							projectManager.m_assetExtensions[asset->GetTypeName()],
+							[&](const std::filesystem::path& path) {
+								asset->SetPathAndSave(std::filesystem::relative(path, projectManager.m_projectPath));
+							},
+							true);
+					}
+					ImGui::SameLine();
+					FileUtils::SaveFile(
+						"Export...",
+						asset->GetTypeName(),
+						projectManager.m_assetExtensions[asset->GetTypeName()],
+						[&](const std::filesystem::path& path) { asset->Export(path); },
+						false);
+					ImGui::SameLine();
+					FileUtils::OpenFile(
+						"Import...",
+						asset->GetTypeName(),
+						projectManager.m_assetExtensions[asset->GetTypeName()],
+						[&](const std::filesystem::path& path) { asset->Import(path); },
+						false);
+
+					ImGui::Separator();
+					if (asset->OnInspect(editorLayer)) asset->SetUnsaved();
+				}
+				else
+				{
+					ImGui::Text("None");
+				}
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Shared Assets"))
+			{
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset"))
+					{
+						IM_ASSERT(payload->DataSize == sizeof(Handle));
+						Handle handle = *(Handle*)payload->Data;
+
+						if (const auto asset = ProjectManager::GetAsset(handle))
+						{
+							AssetRef ref;
+							ref.Set(asset);
+							resources.m_sharedAssets[asset->GetTypeName()].emplace_back(ref);
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				for (auto& collection : resources.m_sharedAssets)
+				{
+					if (ImGui::CollapsingHeader(collection.first.c_str()))
+					{
+						for (auto it = collection.second.begin(); it != collection.second.end(); ++it)
+						{
+							auto assetRef = *it;
+							const auto ptr = assetRef.Get<IAsset>();
+							ImGui::Button(ptr->GetTitle().c_str());
+
+							EditorLayer::Rename(assetRef);
+							if (EditorLayer::Remove(assetRef))
+							{
+								collection.second.erase(it);
+								break;
+							}
+							if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+							{
+								projectManager.m_inspectingAsset = ptr;
+							}
+							EditorLayer::Draggable(assetRef);
+						}
 					}
 				}
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Loaded Assets"))
+			{
+
+				for (auto& asset : projectManager.m_loadedAssets)
+				{
+					if (asset.second->IsTemporary()) continue;
+					ImGui::Button(asset.second->GetTitle().c_str());
+					editorLayer->DraggableAsset(asset.second);
+				}
+
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Resources"))

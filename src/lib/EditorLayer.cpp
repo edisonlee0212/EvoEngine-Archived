@@ -20,7 +20,7 @@ void EditorLayer::OnCreate()
 {
 	if (Application::GetLayer<WindowLayer>())
 	{
-		std::runtime_error("EditorLayer requires WindowLayer!");
+		throw std::runtime_error("EditorLayer requires WindowLayer!");
 	}
 
 	m_basicEntityArchetype = Entities::CreateEntityArchetype("General", GlobalTransform(), Transform());
