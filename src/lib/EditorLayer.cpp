@@ -18,7 +18,7 @@ using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
 {
-	if (Application::GetLayer<WindowLayer>())
+	if (!Application::GetLayer<WindowLayer>())
 	{
 		throw std::runtime_error("EditorLayer requires WindowLayer!");
 	}

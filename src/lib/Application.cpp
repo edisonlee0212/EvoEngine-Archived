@@ -324,7 +324,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	Resources::Initialize();
 	Graphics::PostResourceLoadingInitialization();
 	Resources::InitializeEnvironmentalMap();
-
+	
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
