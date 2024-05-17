@@ -268,7 +268,7 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName,
 	m_mappedSystems[system->m_handle] = system;
 	system->m_started = false;
 	system->OnCreate();
-	m_saved = false;
+	SetUnsaved();
 	return std::dynamic_pointer_cast<ISystem>(ptr);
 }
 
@@ -995,7 +995,7 @@ Entity Scene::CreateEntity(const std::string& name)
 Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& name, const Handle& handle)
 {
 	assert(archetype.IsValid());
-	m_saved = false;
+
 	Entity retVal;
 	auto search = GetDataComponentStorage(archetype);
 	DataComponentStorage& storage = search->first;
@@ -1055,6 +1055,7 @@ Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& 
 	SetDataComponent(retVal, Transform());
 	SetDataComponent(retVal, GlobalTransform());
 	SetDataComponent(retVal, TransformUpdateFlag());
+	SetUnsaved();
 	return retVal;
 }
 
@@ -1063,7 +1064,6 @@ std::vector<Entity> Scene::CreateEntities(
 {
 	assert(archetype.IsValid());
 	std::vector<Entity> retVal;
-	m_saved = false;
 	auto search = GetDataComponentStorage(archetype);
 	DataComponentStorage& storage = search->first;
 	auto remainAmount = amount;
@@ -1149,6 +1149,7 @@ std::vector<Entity> Scene::CreateEntities(
 
 	retVal.insert(
 		retVal.end(), m_sceneDataStorage.m_entities.begin() + originalSize, m_sceneDataStorage.m_entities.end());
+	SetUnsaved();
 	return retVal;
 }
 
@@ -1163,7 +1164,6 @@ void Scene::DeleteEntity(const Entity& entity)
 	{
 		return;
 	}
-	m_saved = false;
 	const size_t entityIndex = entity.m_index;
 	auto children = m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_children;
 	for (const auto& child : children)
@@ -1173,6 +1173,7 @@ void Scene::DeleteEntity(const Entity& entity)
 	if (m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_parent.m_index != 0)
 		RemoveChild(entity, m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_parent);
 	DeleteEntityInternal(entity.m_index);
+	SetUnsaved();
 }
 
 std::string Scene::GetEntityName(const Entity& entity)
@@ -1196,21 +1197,20 @@ void Scene::SetEntityName(const Entity& entity, const std::string& name)
 		EVOENGINE_ERROR("Child already deleted!");
 		return;
 	}
-	m_saved = false;
 	if (name.length() != 0)
 	{
 		m_sceneDataStorage.m_entityMetadataList.at(index).m_name = name;
 		return;
 	}
 	m_sceneDataStorage.m_entityMetadataList.at(index).m_name = "Unnamed";
+	SetUnsaved();
 }
 void Scene::SetEntityStatic(const Entity& entity, bool value)
 {
 	assert(IsEntityValid(entity));
-	const size_t childIndex = entity.m_index;
 	auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(GetRoot(entity).m_index);
 	entityInfo.m_static = value;
-	m_saved = false;
+	SetUnsaved();
 }
 void Scene::SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform)
 {
@@ -1223,7 +1223,6 @@ void Scene::SetParent(const Entity& child, const Entity& parent, const bool& rec
 		if (i == child)
 			return;
 	}
-	m_saved = false;
 	auto& childEntityInfo = m_sceneDataStorage.m_entityMetadataList.at(childIndex);
 	if (childEntityInfo.m_parent.GetIndex() != 0)
 	{
@@ -1260,16 +1259,17 @@ void Scene::SetParent(const Entity& child, const Entity& parent, const bool& rec
 	parentEntityInfo.m_children.push_back(child);
 	if (parentEntityInfo.m_ancestorSelected)
 	{
-		const auto descendents = GetDescendants(child);
-		for (const auto& i : descendents)
+		const auto descendants = GetDescendants(child);
+		for (const auto& i : descendants)
 		{
 			GetEntityMetadata(i).m_ancestorSelected = true;
 		}
 		childEntityInfo.m_ancestorSelected = true;
 	}
+	SetUnsaved();
 }
 
-Entity Scene::GetParent(const Entity& entity)
+Entity Scene::GetParent(const Entity& entity) const
 {
 	assert(IsEntityValid(entity));
 	const size_t entityIndex = entity.m_index;
@@ -1322,13 +1322,12 @@ void Scene::RemoveChild(const Entity& child, const Entity& parent)
 	{
 		EVOENGINE_ERROR("No child by the parent!");
 	}
-	m_saved = false;
 	childEntityMetadata.m_parent = Entity();
 	childEntityMetadata.m_root = child;
 	if (parentEntityMetadata.m_ancestorSelected)
 	{
-		const auto descendents = GetDescendants(child);
-		for (const auto& i : descendents)
+		const auto descendants = GetDescendants(child);
+		for (const auto& i : descendants)
 		{
 			GetEntityMetadata(i).m_ancestorSelected = false;
 		}
@@ -1349,6 +1348,7 @@ void Scene::RemoveChild(const Entity& child, const Entity& parent)
 	Transform childTransform;
 	childTransform.m_value = childGlobalTransform.m_value;
 	SetDataComponent(child, childTransform);
+	SetUnsaved();
 }
 
 void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)
@@ -1421,12 +1421,11 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)
 		.m_chunkArray.m_entities[newEntityInfo.m_chunkArrayIndex] = newEntity;
 	DeleteEntity(newEntity);
 #pragma endregion
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size, IDataComponent* data)
 {
-	m_saved = false;
 	auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(entityIndex);
 	auto& dataComponentStorage = m_sceneDataStorage.m_dataComponentStorages[entityInfo.m_dataComponentStorageIndex];
 	const auto chunkIndex = entityInfo.m_chunkArrayIndex / dataComponentStorage.m_chunkCapacity;
@@ -1479,6 +1478,7 @@ void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size
 		}
 		EVOENGINE_LOG("ComponentData doesn't exist");
 	}
+	SetUnsaved();
 }
 IDataComponent* Scene::GetDataComponentPointer(unsigned entityIndex, const size_t& id)
 {
@@ -1567,7 +1567,7 @@ void Scene::SetPrivateComponent(const Entity& entity, const std::shared_ptr<IPri
 	auto id = Serialization::GetSerializableTypeId(typeName);
 	m_sceneDataStorage.m_entityPrivateComponentStorage.SetPrivateComponent(entity, id);
 	elements.emplace_back(id, ptr, entity, std::dynamic_pointer_cast<Scene>(GetSelf()));
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::ForEachDescendantHelper(const Entity& target, const std::function<void(const Entity& entity)>& func)
@@ -1607,7 +1607,7 @@ void Scene::RemovePrivateComponent(const Entity& entity, size_t typeId)
 			m_sceneDataStorage.m_entityPrivateComponentStorage.RemovePrivateComponent(
 				entity, typeId, privateComponentElements[i].m_privateComponentData);
 			privateComponentElements.erase(privateComponentElements.begin() + i);
-			m_saved = false;
+			SetUnsaved();
 			break;
 		}
 	}
@@ -1636,7 +1636,7 @@ void Scene::SetEnable(const Entity& entity, const bool& value)
 	{
 		SetEnable(i, value);
 	}
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::SetEnableSingle(const Entity& entity, const bool& value)

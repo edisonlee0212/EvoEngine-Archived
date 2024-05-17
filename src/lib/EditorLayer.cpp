@@ -594,7 +594,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							if (ImGui::TreeNodeEx(
 								("Component Settings##" + std::to_string(i)).c_str(),
 								ImGuiTreeNodeFlags_DefaultOpen)) {
-								data.m_privateComponentData->OnInspect(editorLayer);
+								if (data.m_privateComponentData->OnInspect(editorLayer)) scene->SetUnsaved();
 								ImGui::TreePop();
 							}
 						}

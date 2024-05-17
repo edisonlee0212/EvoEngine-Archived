@@ -267,7 +267,7 @@ namespace EvoEngine
 		void SetEntityStatic(const Entity& entity, bool value);
 
 		void SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform = false);
-		Entity GetParent(const Entity& entity);
+		Entity GetParent(const Entity& entity) const;
 		std::vector<Entity> GetChildren(const Entity& entity);
 		Entity GetChild(const Entity& entity, int index) const;
 		size_t GetChildrenAmount(const Entity& entity) const;
@@ -518,7 +518,7 @@ namespace EvoEngine
 		m_mappedSystems[system->m_handle] = system;
 		system->m_started = false;
 		system->OnCreate();
-		m_saved = false;
+		SetUnsaved();
 		return ptr;
 	}
 
@@ -545,7 +545,6 @@ namespace EvoEngine
 				return;
 			}
 		}
-		m_saved = false;
 #pragma endregion
 #pragma region If not exist, we first need to create a new archetype
 		EntityArchetypeInfo newArchetypeInfo;
@@ -614,6 +613,7 @@ namespace EvoEngine
 			.m_chunkArray.m_entities[newEntityInfo.m_chunkArrayIndex] = newEntity;
 		DeleteEntity(newEntity);
 #pragma endregion
+		SetUnsaved();
 	}
 
 	template <typename T> void Scene::RemoveDataComponent(const Entity& entity)
@@ -634,7 +634,6 @@ namespace EvoEngine
 				"components!");
 			return;
 		}
-		m_saved = false;
 #pragma region Create new archetype
 		EntityArchetypeInfo newArchetypeInfo;
 		newArchetypeInfo.m_name = "New archetype";
@@ -689,7 +688,7 @@ namespace EvoEngine
 			.m_chunkArray.m_entities[newEntityInfo.m_chunkArrayIndex] = newEntity;
 		DeleteEntity(newEntity);
 #pragma endregion
-		return;
+		SetUnsaved();
 	}
 
 	template <typename T> void Scene::SetDataComponent(const Entity& entity, const T& value)
@@ -850,7 +849,7 @@ namespace EvoEngine
 		}
 		auto ptr = m_sceneDataStorage.m_entityPrivateComponentStorage.GetOrSetPrivateComponent<T>(entity);
 		elements.emplace_back(typeid(T).hash_code(), ptr, entity, std::dynamic_pointer_cast<Scene>(GetSelf()));
-		m_saved = false;
+		SetUnsaved();
 		return std::move(ptr);
 	}
 	template <typename T> void Scene::RemovePrivateComponent(const Entity& entity)
@@ -865,7 +864,7 @@ namespace EvoEngine
 				m_sceneDataStorage.m_entityPrivateComponentStorage.RemovePrivateComponent<T>(
 					entity, elements[i].m_privateComponentData);
 				elements.erase(elements.begin() + i);
-				m_saved = false;
+				SetUnsaved();
 				return;
 			}
 		}

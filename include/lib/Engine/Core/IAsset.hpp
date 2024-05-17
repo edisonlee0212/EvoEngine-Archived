@@ -62,7 +62,7 @@ namespace EvoEngine
 		 * @param path The target path of the asset, must be absolute path and outside project folder.
 		 * @return If the asset is successfully exported.
 		 */
-		bool Export(const std::filesystem::path& path);
+		bool Export(const std::filesystem::path& path) const;
 		/**
 		 * Import current asset. Will not affect the path member of the asset.
 		 * @param path The target path of the asset, must be absolute path and outside project folder.
