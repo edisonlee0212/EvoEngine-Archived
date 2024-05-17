@@ -1467,7 +1467,8 @@ void RenderLayer::CalculateLodFactor(const glm::vec3& center, const float maxDis
 			{
 				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
 				const auto distance = glm::distance(gt.GetPosition(), center);
-				lodGroup->m_lodFactor = glm::clamp(distance / maxDistance, 0.f, 1.f);
+				const auto distanceFactor = glm::clamp(distance / maxDistance, 0.f, 1.f);
+				lodGroup->m_lodFactor = glm::clamp(distanceFactor * distanceFactor, 0.f, 1.f);
 			}
 		}
 	}
