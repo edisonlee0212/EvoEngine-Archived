@@ -644,19 +644,32 @@ void Resources::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	{
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::Checkbox("Loaded Assets", &resources.m_showLoadedAssets);
+			ImGui::Checkbox("Assets", &resources.m_showAssets);
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
 	auto& projectManager = ProjectManager::GetInstance();
 
-	if (resources.m_showLoadedAssets)
+	if (resources.m_showAssets)
 	{
-		ImGui::Begin("Loaded Assets");
+		ImGui::Begin("Assets");
 		if (ImGui::BeginTabBar(
-			"##LoadedAssets", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
+			"##Assets", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
 		{
+			if (ImGui::BeginTabItem("Loaded Assets"))
+			{
+				if (ImGui::CollapsingHeader("Loaded Assets"))
+				{
+					for (auto& asset : projectManager.m_residentAsset)
+					{
+						if (asset.second->IsTemporary()) continue;
+						ImGui::Button(asset.second->GetTitle().c_str());
+						editorLayer->DraggableAsset(asset.second);
+					}
+				}
+				ImGui::EndTabItem();
+			}
 			if (ImGui::BeginTabItem("Resources"))
 			{
 				for (auto& collection : resources.m_typedResources)
@@ -668,20 +681,6 @@ void Resources::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							ImGui::Button(resources.m_resourceNames[i.second->GetHandle()].c_str());
 							editorLayer->DraggableAsset(i.second);
 						}
-					}
-				}
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Assets"))
-			{
-				if (ImGui::CollapsingHeader("Assets"))
-				{
-					for (auto& asset : projectManager.m_residentAsset)
-					{
-						if (asset.second->IsTemporary()) continue;
-						ImGui::Button(asset.second->GetTitle().c_str());
-						editorLayer->DraggableAsset(asset.second);
 					}
 				}
 				ImGui::EndTabItem();

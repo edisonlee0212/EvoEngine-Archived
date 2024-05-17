@@ -509,15 +509,16 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 		auto typeName = ProjectManager::GetTypeName(extension);
 		if (!HasAsset(filename, extension))
 		{
-			std::shared_ptr<AssetRecord> binaryRecord = std::make_shared<AssetRecord>();
-			binaryRecord->m_folder = m_self.lock();
-			binaryRecord->m_assetTypeName = typeName;
-			binaryRecord->m_assetExtension = extension;
-			binaryRecord->m_assetFileName = filename;
-			binaryRecord->m_assetHandle = Handle();
-			binaryRecord->m_self = binaryRecord;
-			m_assetRecords[binaryRecord->m_assetHandle] = binaryRecord;
-			binaryRecord->Save();
+			std::shared_ptr<AssetRecord> newAssetRecord = std::make_shared<AssetRecord>();
+			newAssetRecord->m_folder = m_self.lock();
+			newAssetRecord->m_assetTypeName = typeName;
+			newAssetRecord->m_assetExtension = extension;
+			newAssetRecord->m_assetFileName = filename;
+			newAssetRecord->m_assetHandle = Handle();
+			newAssetRecord->m_self = newAssetRecord;
+			m_assetRecords[newAssetRecord->m_assetHandle] = newAssetRecord;
+			projectManager.m_assetRecordRegistry[newAssetRecord->m_assetHandle] = newAssetRecord;
+			newAssetRecord->Save();
 		}
 	}
 	/**
@@ -772,7 +773,7 @@ std::shared_ptr<IAsset> ProjectManager::GetAsset(const Handle& handle)
 	auto search2 = projectManager.m_assetRecordRegistry.find(handle);
 	if (search2 != projectManager.m_assetRecordRegistry.end())
 		return search2->second.lock()->GetAsset();
-
+	
 	if(Resources::IsResource(handle))
 	{
 		return Resources::GetResource<IAsset>(handle);

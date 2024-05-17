@@ -13,7 +13,7 @@ namespace EvoEngine
 		std::unordered_map<Handle, std::shared_ptr<IAsset>> m_resources;
 		void LoadShaders();
 		void LoadPrimitives() const;
-		bool m_showLoadedAssets = false;
+		bool m_showAssets = false;
 		static void Initialize();
 		static void InitializeEnvironmentalMap();
 		[[nodiscard]] Handle GenerateNewHandle();
