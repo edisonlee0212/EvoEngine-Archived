@@ -6,7 +6,7 @@
 using namespace EvoEngine;
 
 static const char* PolygonMode[]{ "Point", "Line", "Fill" };
-static const char* CullingMode[]{ "Front", "Back", "FrontAndBack" };
+static const char* CullingMode[]{ "Front", "Back", "FrontAndBack", "None" };
 static const char* BlendingFactor[]{ "Zero", "One", "SrcColor", "OneMinusSrcColor", "DstColor", "OneMinusDstColor",
                                     "SrcAlpha", "OneMinusSrcAlpha",
                                     "DstAlpha", "OneMinusDstAlpha", "ConstantColor", "OneMinusConstantColor",
@@ -42,6 +42,7 @@ bool DrawSettings::OnInspect() {
         case 0: m_polygonMode = VK_POLYGON_MODE_POINT; break;
         case 1: m_polygonMode = VK_POLYGON_MODE_LINE; break;
         case 2: m_polygonMode = VK_POLYGON_MODE_FILL; break;
+        
         }
     }
     if (m_polygonMode == VK_POLYGON_MODE_LINE)
@@ -54,6 +55,7 @@ bool DrawSettings::OnInspect() {
     case VK_CULL_MODE_FRONT_BIT: cullFaceMode = 0; break;
     case VK_CULL_MODE_BACK_BIT: cullFaceMode = 1; break;
     case VK_CULL_MODE_FRONT_AND_BACK: cullFaceMode = 2; break;
+    case VK_CULL_MODE_NONE: cullFaceMode = 3; break;
     }
     if (ImGui::Combo(
         "Cull Face Mode",
@@ -66,6 +68,7 @@ bool DrawSettings::OnInspect() {
         case 0: m_cullMode = VK_CULL_MODE_FRONT_BIT; break;
         case 1: m_cullMode = VK_CULL_MODE_BACK_BIT; break;
         case 2: m_cullMode = VK_CULL_MODE_FRONT_AND_BACK; break;
+        case 3: m_cullMode = VK_CULL_MODE_NONE; break;
         }
     }
 
