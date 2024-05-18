@@ -127,8 +127,7 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	stbi_hdr_to_ldr_gamma(actualGamma);
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
-	void* data;
-	data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+	void* data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
 	if (data)
 	{
 		SetData(data, { width, height });

@@ -24,8 +24,8 @@ namespace EvoEngine
         bool m_hasMesh;
 
         bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap);
-        void AttachToAnimator(std::shared_ptr<Animation>& animation, size_t& index);
-        void AttachChild(std::shared_ptr<Bone>& parent, size_t& index);
+        void AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const;
+        void AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const;
     };
     struct DataComponentHolder
     {
@@ -50,35 +50,35 @@ namespace EvoEngine
         std::string m_name;
         bool m_enabled = true;
 #pragma region Model Loading
-        void AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle);
+        static void AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle);
 
-        std::shared_ptr<Texture2D> CollectTexture(
+        static std::shared_ptr<Texture2D> CollectTexture(
             const std::string& directory,
             const std::string& path,
             std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures);
 
-        void ApplyBoneIndices(Prefab* node);
-        void ReadAnimations(
+        static void ApplyBoneIndices(Prefab* node);
+        static void ReadAnimations(
             const aiScene* importerScene,
-            std::shared_ptr<Animation>& animator,
+            const std::shared_ptr<Animation>& animator,
             std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap);
-        void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel);
-        std::shared_ptr<Material> ReadMaterial(
+        static void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel);
+        static std::shared_ptr<Material> ReadMaterial(
             const std::string& directory,
             std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-            aiMaterial* importerMaterial);
-        bool ProcessNode(
+            const aiMaterial* importerMaterial);
+        static bool ProcessNode(
             const std::string& directory,
             Prefab* modelNode,
             std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
             std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
             std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
-            aiNode* importerNode,
-            std::shared_ptr<AssimpNode> assimpNode,
+            const aiNode* importerNode,
+            const std::shared_ptr<AssimpNode>& assimpNode,
             const aiScene* importerScene,
             const std::shared_ptr<Animation>& animation);
-        std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh);
-        std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
+        static std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh);
+        static std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
             std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh);
         void AttachChildren(const std::shared_ptr<Scene>& scene,
             const std::shared_ptr<Prefab>& modelNode,
@@ -90,15 +90,25 @@ namespace EvoEngine
             const std::shared_ptr<Prefab>& modelNode,
             const Entity& parentEntity,
             const std::unordered_map<Handle, Handle>& map) const;
-        void RelinkChildren(const std::shared_ptr<Scene>& scene, const Entity& parentEntity, const std::unordered_map<Handle, Handle>& map) const;
+        static void RelinkChildren(const std::shared_ptr<Scene>& scene, const Entity& parentEntity, const std::unordered_map<Handle, Handle>& map);
 #pragma endregion
 
+        static bool OnInspectComponents(const std::shared_ptr<Prefab>& walker);
+        static bool OnInspectWalker(const std::shared_ptr<Prefab>& walker);
+        static void GatherAssetsWalker(const std::shared_ptr<Prefab>& walker, std::unordered_map<Handle, AssetRef>& assets);
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
         bool SaveInternal(const std::filesystem::path& path) const override;
         void LoadModelInternal(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
-        void SaveModelInternal(const std::filesystem::path& path) const;
+        static void SaveModelInternal(const std::filesystem::path& path);
+
+
     public:
+        void GatherAssets();
+
+    	std::unordered_map<Handle, AssetRef> m_assets;
+
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
         Handle m_entityHandle = Handle();
         std::vector<DataComponentHolder> m_dataComponents;
         std::vector<PrivateComponentHolder> m_privateComponents;

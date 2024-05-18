@@ -29,7 +29,7 @@ namespace EvoEngine
 
 	struct DrawSettings {
 		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_NONE;
 		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 
 		bool m_blending = false;
@@ -64,9 +64,6 @@ namespace EvoEngine
 		[[nodiscard]] std::shared_ptr<Texture2D> GetMetallicTexture();
 		[[nodiscard]] std::shared_ptr<Texture2D> GetRoughnessTexture();
 		[[nodiscard]] std::shared_ptr<Texture2D> GetAoTexture();
-		void OnCreate() override;
-		~Material() override;
-		
 
 		bool m_vertexColorOnly = false;
 		MaterialProperties m_materialProperties;

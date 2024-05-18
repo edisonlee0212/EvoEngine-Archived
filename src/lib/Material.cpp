@@ -188,15 +188,6 @@ std::shared_ptr<Texture2D> Material::GetAoTexture()
     return m_aoTexture.Get<Texture2D>();
 }
 
-
-void Material::OnCreate()
-{
-}
-
-Material::~Material()
-{
-}
-
 void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 {
 	if (const auto albedoTexture = m_albedoTexture.Get<Texture2D>(); albedoTexture && albedoTexture->GetVkSampler())

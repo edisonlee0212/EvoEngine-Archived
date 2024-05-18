@@ -468,7 +468,8 @@ namespace EvoEngine
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.5f, 0, 1));
 		if (ptr)
 		{
-			ImGui::Button(ptr->GetTitle().c_str());
+			const std::string tag = "##" + ptr->GetTypeName() + std::to_string(ptr->GetHandle());
+			ImGui::Button((ptr->GetTitle() + tag).c_str());
 			Draggable(target);
 			if (modifiable)
 			{

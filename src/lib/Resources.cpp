@@ -737,7 +737,8 @@ void Resources::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 						{
 							auto assetRef = *it;
 							const auto ptr = assetRef.Get<IAsset>();
-							ImGui::Button(ptr->GetTitle().c_str());
+							const std::string tag = "##" + ptr->GetTypeName() + std::to_string(ptr->GetHandle());
+							ImGui::Button((ptr->GetTitle() + tag).c_str());
 
 							EditorLayer::Rename(assetRef);
 							if (EditorLayer::Remove(assetRef))
