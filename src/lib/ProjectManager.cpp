@@ -416,10 +416,6 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 		{
 			childFolderList.push_back(entry.path());
 		}
-		else if (entry.path().extension() == ".eveproj")
-		{
-			continue;
-		}
 		else if (entry.path().extension() == ".evefoldermeta")
 		{
 			childFolderMetadataList.push_back(entry.path());
@@ -428,7 +424,7 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 		{
 			assetMetadataList.push_back(entry.path());
 		}
-		else
+		else if(entry.path().filename() != "" && entry.path().filename() != "." && entry.path().filename() != ".." && entry.path().extension() != ".eveproj")
 		{
 			fileList.push_back(entry.path());
 		}
