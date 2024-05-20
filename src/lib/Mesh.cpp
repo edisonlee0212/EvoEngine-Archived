@@ -204,7 +204,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 
 	if (m_version != 0) GeometryStorage::FreeMesh(GetHandle());
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
-	
+
 	m_version++;
 	m_saved = false;
 }
@@ -323,6 +323,31 @@ void Mesh::RecalculateTangent()
 	}
 }
 
+float Mesh::CalculateTriangleArea(const glm::uvec3& triangle) const
+{
+	const auto& p0 = m_vertices[triangle.x].m_position;
+	const auto& p1 = m_vertices[triangle.y].m_position;
+	const auto& p2 = m_vertices[triangle.z].m_position;
+	const float a = glm::length(p0 - p1);
+	const float b = glm::length(p2 - p1);
+	const float c = glm::length(p0 - p2);
+	const float d = (a + b + c) / 2;
+	return glm::sqrt(d * (d - a) * (d - b) * (d - c));
+}
+
+glm::vec3 Mesh::CalculateCentroid(const glm::uvec3& triangle) const
+{
+	const auto& a = m_vertices[triangle.x].m_position;
+	const auto& b = m_vertices[triangle.y].m_position;
+	const auto& c = m_vertices[triangle.z].m_position;
+
+	return {
+		(a.x + b.x + c.x) / 3,
+			(a.y + b.y + c.y) / 3,
+			(a.z + b.z + c.z) / 3
+	};
+}
+
 std::vector<Vertex>& Mesh::UnsafeGetVertices()
 {
 	return m_vertices;
@@ -368,7 +393,7 @@ void Mesh::Deserialize(const YAML::Node& in)
 		m_vertexAttributes.m_texCoord = true;
 		m_vertexAttributes.m_color = true;
 	}
-	
+
 	if (in["m_vertices"] && in["m_triangles"])
 	{
 		auto vertexData = in["m_vertices"].as<YAML::Binary>();
@@ -538,7 +563,7 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
-void ParticleInfoList::SetParticleInfos(const std::vector<ParticleInfo>& particleInfos)
+void ParticleInfoList::SetParticleInfos(const std::vector<ParticleInfo>& particleInfos) const
 {
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }

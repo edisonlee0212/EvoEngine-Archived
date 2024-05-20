@@ -109,7 +109,7 @@ namespace EvoEngine
     	std::unordered_map<Handle, AssetRef> m_assets;
 
         bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-        Handle m_entityHandle = Handle();
+        Handle m_entityHandle = 0;
         std::vector<DataComponentHolder> m_dataComponents;
         std::vector<PrivateComponentHolder> m_privateComponents;
         std::vector<std::shared_ptr<Prefab>> m_children;
