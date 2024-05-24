@@ -289,7 +289,7 @@ void EditorLayer::PreUpdate()
 	}
 
 
-	m_mouseSceneWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	m_mouseSceneWindowPosition = glm::vec2(FLT_MAX, -FLT_MAX);
 	if (m_showSceneWindow) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		if (ImGui::Begin("Scene")) {
@@ -308,7 +308,7 @@ void EditorLayer::PreUpdate()
 		ImGui::PopStyleVar();
 	}
 
-	m_mouseCameraWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	m_mouseCameraWindowPosition = glm::vec2(FLT_MAX, -FLT_MAX);
 	if (m_showCameraWindow) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		if (ImGui::Begin("Camera")) {

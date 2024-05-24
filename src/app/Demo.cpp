@@ -28,7 +28,7 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo);
 #pragma endregion
 
 int main() {
-	DemoSetup demoSetup = DemoSetup::Empty;
+	DemoSetup demoSetup = DemoSetup::Rendering;
 	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();

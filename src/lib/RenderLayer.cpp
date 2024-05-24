@@ -100,21 +100,21 @@ void RenderLayer::PreUpdate()
 	glm::vec3 lodCenter = glm::vec3(0.f);
 	float lodMaxDistance = FLT_MAX;
 	bool lodSet = false;
-	if(const auto mainCamera = scene->m_mainCamera.Get<Camera>())
+	if (const auto mainCamera = scene->m_mainCamera.Get<Camera>())
 	{
 		const auto mainCameraOwner = mainCamera->GetOwner();
-		if(scene->IsEntityValid(mainCameraOwner))
+		if (scene->IsEntityValid(mainCameraOwner))
 		{
 			lodCenter = scene->GetDataComponent<GlobalTransform>(mainCameraOwner).GetPosition();
 			lodMaxDistance = mainCamera->m_farDistance;
 			lodSet = true;
 		}
 	}
-	if(!lodSet)
+	if (!lodSet)
 	{
-		if(const auto editorLayer = Application::GetLayer<EditorLayer>())
+		if (const auto editorLayer = Application::GetLayer<EditorLayer>())
 		{
-			if(const auto sceneCamera = editorLayer->GetSceneCamera())
+			if (const auto sceneCamera = editorLayer->GetSceneCamera())
 			{
 				lodCenter = editorLayer->GetSceneCameraPosition();
 				lodMaxDistance = sceneCamera->m_farDistance;
@@ -1486,12 +1486,12 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 	maxBound = glm::vec3(FLT_MIN);
 
 	bool hasRenderInstance = false;
-	std::unordered_set<Handle> lodGroupRenderers {};
+	std::unordered_set<Handle> lodGroupRenderers{};
 	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<LodGroup>()) {
 		for (auto owner : *owners)
 		{
 			const auto lodGroup = scene->GetOrSetPrivateComponent<LodGroup>(owner).lock();
-			for(auto it = lodGroup->m_lods.begin(); it != lodGroup->m_lods.end(); ++it)
+			for (auto it = lodGroup->m_lods.begin(); it != lodGroup->m_lods.end(); ++it)
 			{
 				auto& lod = *it;
 				bool renderCurrentLevel = true;
@@ -1499,23 +1499,24 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				{
 					renderCurrentLevel = false;
 				}
-				if(renderCurrentLevel && it != lodGroup->m_lods.begin() && lodGroup->m_lodFactor < (it - 1)->m_lodOffset)
+				if (renderCurrentLevel && it != lodGroup->m_lods.begin() && lodGroup->m_lodFactor < (it - 1)->m_lodOffset)
 				{
 					renderCurrentLevel = false;
 				}
-				for(auto& renderer : lod.m_renderers)
+				for (auto& renderer : lod.m_renderers)
 				{
-					if(const auto meshRenderer = renderer.Get<MeshRenderer>())
+					if (const auto meshRenderer = renderer.Get<MeshRenderer>())
 					{
 						lodGroupRenderers.insert(meshRenderer->GetHandle());
 						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(meshRenderer->GetOwner()) && meshRenderer->IsEnabled())
 						{
-							if(TryRegisterRenderer(scene, owner, meshRenderer, minBound, maxBound, enableSelectionHighLight))
+							if (TryRegisterRenderer(scene, owner, meshRenderer, minBound, maxBound, enableSelectionHighLight))
 							{
 								hasRenderInstance = true;
 							}
 						}
-					}else if (const auto skinnedMeshRenderer = renderer.Get<SkinnedMeshRenderer>())
+					}
+					else if (const auto skinnedMeshRenderer = renderer.Get<SkinnedMeshRenderer>())
 					{
 						lodGroupRenderers.insert(skinnedMeshRenderer->GetHandle());
 						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(skinnedMeshRenderer->GetOwner()) && skinnedMeshRenderer->IsEnabled())
@@ -1525,7 +1526,8 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 								hasRenderInstance = true;
 							}
 						}
-					}else if (const auto particles = renderer.Get<Particles>())
+					}
+					else if (const auto particles = renderer.Get<Particles>())
 					{
 						lodGroupRenderers.insert(particles->GetHandle());
 						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(particles->GetOwner()) && particles->IsEnabled())
@@ -1535,7 +1537,8 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 								hasRenderInstance = true;
 							}
 						}
-					}else if (const auto strandsRenderer = renderer.Get<StrandsRenderer>())
+					}
+					else if (const auto strandsRenderer = renderer.Get<StrandsRenderer>())
 					{
 						lodGroupRenderers.insert(strandsRenderer->GetHandle());
 						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(strandsRenderer->GetOwner()) && strandsRenderer->IsEnabled())
@@ -1559,7 +1562,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				if (!scene->IsEntityEnabled(owner))
 					continue;
 				auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
-				if(lodGroupRenderers.find(meshRenderer->GetHandle()) != lodGroupRenderers.end()) continue;
+				if (lodGroupRenderers.find(meshRenderer->GetHandle()) != lodGroupRenderers.end()) continue;
 				if (TryRegisterRenderer(scene, owner, meshRenderer, minBound, maxBound, enableSelectionHighLight))
 				{
 					hasRenderInstance = true;
@@ -1699,6 +1702,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 {
 	m_environmentalBRDFLut.reset();
 	m_environmentalBRDFLut = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	auto& environmentalBRDFLutTextureStorage = m_environmentalBRDFLut->RefTexture2DStorage();
 	auto brdfLutResolution = 512;
 	{
 		VkImageCreateInfo imageInfo{};
@@ -1716,7 +1720,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		m_environmentalBRDFLut->m_image = std::make_unique<Image>(imageInfo);
+		environmentalBRDFLutTextureStorage.m_image = std::make_unique<Image>(imageInfo);
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1729,7 +1733,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		m_environmentalBRDFLut->m_imageView = std::make_unique<ImageView>(viewInfo);
+		environmentalBRDFLutTextureStorage.m_imageView = std::make_unique<ImageView>(viewInfo);
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1746,12 +1750,12 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		m_environmentalBRDFLut->m_sampler = std::make_unique<Sampler>(samplerInfo);
+		environmentalBRDFLutTextureStorage.m_sampler = std::make_unique<Sampler>(samplerInfo);
 	}
-	TextureStorage::RegisterTexture2D(m_environmentalBRDFLut);
+	TextureStorage::DeviceSync();
 	auto environmentalBrdfPipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		environmentalBRDFLutTextureStorage.m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
@@ -1782,7 +1786,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 			attachment.clearValue = { 0, 0, 0, 1 };
-			attachment.imageView = m_environmentalBRDFLut->m_imageView->GetVkImageView();
+			attachment.imageView = environmentalBRDFLutTextureStorage.m_imageView->GetVkImageView();
 
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1806,7 +1810,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
-		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		environmentalBRDFLutTextureStorage.m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 }
@@ -2555,7 +2559,7 @@ bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const
 }
 
 void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material,
-                           glm::mat4 model, bool castShadow)
+	glm::mat4 model, bool castShadow)
 {
 	auto scene = Application::GetActiveScene();
 	MaterialInfoBlock materialInfoBlock;

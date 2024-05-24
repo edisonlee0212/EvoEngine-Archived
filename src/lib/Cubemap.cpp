@@ -16,8 +16,7 @@ struct EquirectangularToCubemapConstant
 
 Cubemap::~Cubemap()
 {
-	const auto self = GetSelf();
-	if(self) TextureStorage::UnRegisterCubemap(std::dynamic_pointer_cast<Cubemap>(self));
+	TextureStorage::UnRegisterCubemap(m_textureStorageIndex);
 }
 
 void Cubemap::Initialize(uint32_t resolution, uint32_t mipLevels)
@@ -119,7 +118,7 @@ void Cubemap::ConvertFromEquirectangularTexture(const std::shared_ptr<Texture2D>
 {
 	if (!m_image) Initialize(1024);
 
-	if (!targetTexture->m_image) {
+	if (!targetTexture->GetImage()) {
 		EVOENGINE_ERROR("Target texture doesn't contain any content!");
 		return;
 	}

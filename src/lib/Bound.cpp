@@ -31,7 +31,7 @@ void Bound::ApplyTransform(const glm::mat4& transform)
 	std::vector<glm::vec3> corners;
 	PopulateCorners(corners);
 	m_min = glm::vec3(FLT_MAX);
-	m_max = glm::vec3(FLT_MIN);
+	m_max = glm::vec3(-FLT_MAX);
 
 	// Transform all of the corners, and keep track of the greatest and least
 	// values we see on each coordinate axis.
@@ -299,4 +299,9 @@ float Plane::CalculateTriangleMinDistance(const std::vector<Vertex>& vertices, c
 	const auto d2 = CalculatePointDistance(p2);
 
 	return glm::min(d0, glm::min(d1, d2));
+}
+
+glm::vec3 Plane::GetNormal() const
+{
+	return glm::normalize(glm::vec3(m_a, m_b, m_c));
 }

@@ -54,6 +54,7 @@ namespace EvoEngine
 		AssetRef m_roughnessTexture;
 		AssetRef m_aoTexture;
 	public:
+		~Material() override;
 		void SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetNormalTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetMetallicTexture(const std::shared_ptr<Texture2D>& texture);

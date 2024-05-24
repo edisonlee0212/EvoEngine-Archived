@@ -133,6 +133,15 @@ void DrawSettings::Load(const std::string& name, const YAML::Node& in) {
     }
 }
 
+Material::~Material()
+{
+    m_albedoTexture.Clear();
+    m_normalTexture.Clear();
+    m_metallicTexture.Clear();
+    m_roughnessTexture.Clear();
+    m_aoTexture.Clear();
+}
+
 void Material::SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture)
 {
     m_albedoTexture = texture;

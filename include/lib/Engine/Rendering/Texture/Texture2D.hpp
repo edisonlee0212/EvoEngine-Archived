@@ -1,8 +1,12 @@
 #pragma once
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
+
 namespace EvoEngine
 {
+	class Texture2DStorage;
+	struct TextureStorageHandle;
+
 	enum class TextureColorType {
 		Red = 1,
 		RG = 2,
@@ -17,19 +21,25 @@ namespace EvoEngine
 		friend class Cubemap;
 		friend class TextureStorage;
 		friend class RenderLayer;
-		std::shared_ptr<Image> m_image = {};
-		std::shared_ptr<ImageView> m_imageView = {};
-		std::shared_ptr<Sampler> m_sampler = {};
-		ImTextureID m_imTextureId = VK_NULL_HANDLE;
+		
+		std::shared_ptr<TextureStorageHandle> m_textureStorageHandle;
+		void SetData(const void* data, const glm::uvec2& resolution) const;
 
-		uint32_t m_textureStorageIndex = UINT32_MAX;
-		void SetData(const void* data, const glm::uvec2& resolution);
+
 
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
-		
+		Texture2D();
+		const Texture2DStorage& PeekTexture2DStorage() const;
+		Texture2DStorage& RefTexture2DStorage() const;
+		[[nodiscard]] VkImageLayout GetLayout() const;
+		[[nodiscard]] VkImage GetVkImage() const;
+		[[nodiscard]] VkImageView GetVkImageView() const;
+		[[nodiscard]] VkSampler GetVkSampler() const;
+		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
+		ImTextureID GetImTextureId() const;
 		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
 		~Texture2D() override;
 		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
@@ -42,13 +52,7 @@ namespace EvoEngine
 		void StoreToJpg(const std::string& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
 		void StoreToHdr(const std::string& path, int resizeX = -1, int resizeY = -1,
 			bool alphaChannel = false, unsigned quality = 100) const;
-		ImTextureID GetImTextureId() const;
-
-		[[nodiscard]] VkImageLayout GetLayout() const;
-		[[nodiscard]] VkImage GetVkImage() const;
-		[[nodiscard]] VkImageView GetVkImageView() const;
-		[[nodiscard]] VkSampler GetVkSampler() const;
-		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
+		
 		void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
