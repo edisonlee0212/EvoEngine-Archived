@@ -133,8 +133,8 @@ void RenderLayer::PreUpdate()
 	else
 	{
 		worldBound.m_min = worldBound.m_max = glm::vec3(0.0f);
-		worldBound.m_min - glm::vec3(0.1f);
-		worldBound.m_max + glm::vec3(0.1f);
+		worldBound.m_min - glm::vec3(1.f);
+		worldBound.m_max + glm::vec3(1.f);
 		scene->SetBound(worldBound);
 	}
 	CollectDirectionalLights(m_cameras);
@@ -1483,7 +1483,7 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(FLT_MAX);
-	maxBound = glm::vec3(FLT_MIN);
+	maxBound = glm::vec3(-FLT_MAX);
 
 	bool hasRenderInstance = false;
 	std::unordered_set<Handle> lodGroupRenderers{};
