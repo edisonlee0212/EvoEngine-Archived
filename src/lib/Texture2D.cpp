@@ -10,7 +10,7 @@
 
 using namespace EvoEngine;
 
-void Texture2D::SetData(const void* data, const glm::uvec2& resolution) const
+void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const
 {
 	auto& textureStorage = TextureStorage::RefTexture2DStorage(m_textureStorageHandle);
 	textureStorage.SetData(data, resolution);
@@ -45,9 +45,13 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	stbi_ldr_to_hdr_gamma(actualGamma);
 
 	void* data = stbi_loadf(path.string().c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+
 	if (data)
 	{
-		SetData(data, { width, height });
+		std::vector<glm::vec4> imageData;
+		imageData.resize(width * height);
+		memcpy(imageData.data(), data, sizeof(glm::vec4) * width * height);
+		SetData(imageData, { width, height });
 	}
 	else
 	{
@@ -345,12 +349,12 @@ void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resi
 	);
 }
 
-void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution)
+void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution) const
 {
-	SetData(src.data(), resolution);
+	SetData(src, resolution);
 }
 
-void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution)
+void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution) const
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -359,10 +363,10 @@ void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::
 			imageData[i] = glm::vec4(src[i], 1.0f);
 		}
 	);
-	SetData(imageData.data(), resolution);
+	SetData(imageData, resolution);
 }
 
-void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution)
+void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution) const
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -371,10 +375,10 @@ void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::u
 			imageData[i] = glm::vec4(src[i], 0.0f, 1.0f);
 		}
 	);
-	SetData(imageData.data(), resolution);
+	SetData(imageData, resolution);
 }
 
-void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution)
+void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution) const
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -383,5 +387,5 @@ void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec
 			imageData[i] = glm::vec4(src[i], 0.0f, 0.0f, 1.0f);
 		}
 	);
-	SetData(imageData.data(), resolution);
+	SetData(imageData, resolution);
 }

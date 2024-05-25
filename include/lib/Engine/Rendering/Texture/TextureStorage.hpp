@@ -11,7 +11,11 @@ namespace EvoEngine
 
 	class Texture2DStorage
 	{
-
+		friend class TextureStorage;
+		friend class Cubemap;
+		std::vector<glm::vec4> m_newData;
+		glm::uvec2 m_newResolution{};
+		void UploadData();
 	public:
 		bool m_pendingDelete = false;
 
@@ -27,8 +31,8 @@ namespace EvoEngine
 		[[nodiscard]] VkImageView GetVkImageView() const;
 		[[nodiscard]] VkSampler GetVkSampler() const;
 		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
-
-		void SetData(const void* data, const glm::uvec2& resolution);
+		
+		void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
 		void Clear();
 	};
 	class CubemapStorage

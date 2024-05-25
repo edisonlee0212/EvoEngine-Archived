@@ -1752,7 +1752,6 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 
 		environmentalBRDFLutTextureStorage.m_sampler = std::make_unique<Sampler>(samplerInfo);
 	}
-	TextureStorage::DeviceSync();
 	auto environmentalBrdfPipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
 		environmentalBRDFLutTextureStorage.m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);

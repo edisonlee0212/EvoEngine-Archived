@@ -42,27 +42,17 @@ std::shared_ptr<Image> Texture2DStorage::GetImage() const
 	return m_image;
 }
 
-void Texture2DStorage::Clear()
-{
-	if (m_imTextureId != nullptr) {
-		ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(m_imTextureId));
-		m_imTextureId = nullptr;
-	}
-	m_sampler.reset();
-	m_imageView.reset();
-	m_image.reset();
-}
-void Texture2DStorage::SetData(const void* data, const glm::uvec2& resolution)
+void Texture2DStorage::UploadData()
 {
 	Clear();
 
-	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(resolution.x, resolution.y)))) + 1;
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(m_newResolution.x, m_newResolution.y)))) + 1;
 	mipLevels = 1;
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = resolution.x;
-	imageInfo.extent.height = resolution.y;
+	imageInfo.extent.width = m_newResolution.x;
+	imageInfo.extent.height = m_newResolution.y;
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = mipLevels;
 	imageInfo.arrayLayers = 1;
@@ -74,7 +64,7 @@ void Texture2DStorage::SetData(const void* data, const glm::uvec2& resolution)
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	m_image = std::make_shared<Image>(imageInfo);
-	const auto imageSize = resolution.x * resolution.y * sizeof(glm::vec4);
+	const auto imageSize = m_newResolution.x * m_newResolution.y * sizeof(glm::vec4);
 	VkBufferCreateInfo stagingBufferCreateInfo{};
 	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	stagingBufferCreateInfo.size = imageSize;
@@ -86,7 +76,7 @@ void Texture2DStorage::SetData(const void* data, const glm::uvec2& resolution)
 	Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
 	void* deviceData = nullptr;
 	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
-	memcpy(deviceData, data, imageSize);
+	memcpy(deviceData, m_newData.data(), imageSize);
 	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
@@ -131,8 +121,28 @@ void Texture2DStorage::SetData(const void* data, const glm::uvec2& resolution)
 
 	m_sampler = std::make_shared<Sampler>(samplerInfo);
 	EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
+
+	m_newData.clear();
+	m_newResolution = {};
 }
 
+void Texture2DStorage::Clear()
+{
+	if (m_imTextureId != nullptr) {
+		ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(m_imTextureId));
+		m_imTextureId = nullptr;
+	}
+	m_sampler.reset();
+	m_imageView.reset();
+	m_image.reset();
+}
+
+void Texture2DStorage::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
+{
+	m_newData = data;
+	m_newResolution = resolution;
+	UploadData();
+}
 
 void TextureStorage::DeviceSync()
 {
@@ -143,18 +153,21 @@ void TextureStorage::DeviceSync()
 
 	for(int textureIndex = 0; textureIndex < storage.m_texture2Ds.size(); textureIndex++)
 	{
-		if(storage.m_texture2Ds.at(textureIndex).m_pendingDelete)
+		auto& textureStorage = storage.m_texture2Ds[textureIndex];
+		if(textureStorage.m_pendingDelete)
 		{
-			storage.m_texture2Ds.at(textureIndex) = storage.m_texture2Ds.back();
-			storage.m_texture2Ds.at(textureIndex).m_handle->m_value = textureIndex;
+			storage.m_texture2Ds[textureIndex] = storage.m_texture2Ds.back();
+			storage.m_texture2Ds[textureIndex].m_handle->m_value = textureIndex;
 			storage.m_texture2Ds.pop_back();
 			textureIndex--;
+			EVOENGINE_LOG("Texture removed!");
 		}else
 		{
+			if(!textureStorage.m_newData.empty()) textureStorage.UploadData();
 			VkDescriptorImageInfo imageInfo;
-			imageInfo.imageLayout = storage.m_texture2Ds[textureIndex].GetLayout();
-			imageInfo.imageView = storage.m_texture2Ds[textureIndex].GetVkImageView();
-			imageInfo.sampler = storage.m_texture2Ds[textureIndex].GetVkSampler();
+			imageInfo.imageLayout = textureStorage.GetLayout();
+			imageInfo.imageView = textureStorage.GetVkImageView();
+			imageInfo.sampler = textureStorage.GetVkSampler();
 			renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
 		}
 	}
@@ -205,6 +218,7 @@ void TextureStorage::UnRegisterCubemap(const uint32_t index)
 	if (index != UINT32_MAX)
 	{
 		storage.m_cubemaps[index] = storage.m_cubemaps.back();
+		storage.m_cubemaps[index].lock()->m_textureStorageIndex = index;
 		storage.m_cubemaps.pop_back();
 		for (int i = 0; i < maxFrameInFlight; i++)
 		{

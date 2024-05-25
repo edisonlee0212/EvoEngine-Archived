@@ -23,9 +23,9 @@ namespace EvoEngine
 		friend class RenderLayer;
 		
 		std::shared_ptr<TextureStorageHandle> m_textureStorageHandle;
-		void SetData(const void* data, const glm::uvec2& resolution) const;
+		
 
-
+		void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const;
 
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) const override;
@@ -58,9 +58,9 @@ namespace EvoEngine
 		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRedChannelData(std::vector<float>& dst, int resizeX = -1, int resizeY = -1) const;
 
-		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
-		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
-		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
-		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
+		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution) const;
+		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution) const;
+		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution) const;
+		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution) const;
 	};
 }
