@@ -305,3 +305,8 @@ glm::vec3 Plane::GetNormal() const
 {
 	return glm::normalize(glm::vec3(m_a, m_b, m_c));
 }
+
+float Plane::GetDistance() const
+{
+	return m_d / glm::length(glm::vec3(m_a, m_b, m_c));
+}

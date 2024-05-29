@@ -39,6 +39,7 @@ namespace EvoEngine
 		[[nodiscard]] float CalculateTriangleMaxDistance(const std::vector<Vertex> &vertices, const glm::uvec3& triangle) const;
 		[[nodiscard]] float CalculateTriangleMinDistance(const std::vector<Vertex> &vertices, const glm::uvec3& triangle) const;
 		[[nodiscard]] glm::vec3 GetNormal() const;
+		[[nodiscard]] float GetDistance() const;
 		[[nodiscard]] float CalculatePointDistance(const glm::vec3& point) const;
 	};
 }

@@ -23,7 +23,7 @@ void main()
 	vec4 albedo = materialProperties.EE_PBR_ALBEDO;
 	if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) 
 		albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], texCoord);
-	if (albedo.a < 0.1) discard;
+	if (albedo.a <= 0.5) discard;
 
 	vec3 normal = fs_in.Normal;
 	if (materialProperties.EE_NORMAL_MAP_INDEX != -1){

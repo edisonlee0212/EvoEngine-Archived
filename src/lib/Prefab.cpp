@@ -127,9 +127,9 @@ bool Prefab::LoadInternal(const std::filesystem::path& path)
 		stringStream << stream.rdbuf();
 		YAML::Node in = YAML::Load(stringStream.str());
 #pragma region Assets
+		std::vector<std::shared_ptr<IAsset>> localAssets;
 		if (const auto& inLocalAssets = in["LocalAssets"])
 		{
-			std::vector<std::shared_ptr<IAsset>> localAssets;
 			for (const auto& i : inLocalAssets)
 			{
 				Handle handle = i["Handle"].as<uint64_t>();

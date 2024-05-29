@@ -798,7 +798,8 @@ std::shared_ptr<IAsset> ProjectManager::CreateTemporaryAsset(const std::string& 
 {
 	size_t hashCode;
 	auto retVal = std::dynamic_pointer_cast<IAsset>(Serialization::ProduceSerializable(typeName, hashCode, Handle()));
-	GetInstance().m_assetRegistry[retVal->GetHandle()] = retVal;
+	auto& projectManager = GetInstance();
+	projectManager.m_assetRegistry[retVal->GetHandle()] = retVal;
 	retVal->m_self = retVal;
 	retVal->OnCreate();
 	return retVal;
@@ -810,7 +811,8 @@ std::shared_ptr<IAsset> ProjectManager::CreateTemporaryAsset(const std::string& 
 	if (!retVal) {
 		return nullptr;
 	}
-	GetInstance().m_assetRegistry[retVal->GetHandle()] = retVal;
+	auto& projectManager = GetInstance();
+	projectManager.m_assetRegistry[retVal->GetHandle()] = retVal;
 	retVal->m_self = retVal;
 	retVal->OnCreate();
 	return retVal;
