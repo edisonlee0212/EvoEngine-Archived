@@ -67,34 +67,6 @@ void SkinnedMeshRenderer::UpdateBoneMatrices()
 	}
 }
 
-void SkinnedMeshRenderer::DebugBoneRender(const glm::vec4& color, const float& size)
-{
-	/*
-	auto scene = GetScene();
-	auto owner = GetOwner();
-	const auto selfScale = scene->GetDataComponent<GlobalTransform>(owner).GetScale();
-	auto animator = m_animator.Get<Animator>();
-	if (!animator) return;
-	std::vector<glm::mat4> debugRenderingMatrices;
-	GlobalTransform ltw;
-	if (!m_ragDoll)
-	{
-		debugRenderingMatrices = animator->m_transformChain;
-		ltw = scene->GetDataComponent<GlobalTransform>(owner);
-	}
-	else {
-		debugRenderingMatrices = m_ragDollTransformChain;
-	}
-	for (int index = 0; index < debugRenderingMatrices.size(); index++)
-	{
-		debugRenderingMatrices[index] =
-			debugRenderingMatrices[index] * glm::inverse(animator->m_offsetMatrices[index]) * glm::inverse(glm::scale(selfScale));
-	}
-	Gizmos::DrawGizmoMeshInstanced(
-		DefaultResources::Primitives::Sphere, color, debugRenderingMatrices, ltw.m_value, size);
-		*/
-}
-
 bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	bool changed = false;
@@ -120,14 +92,47 @@ bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 	if (const auto animator = m_animator.Get<Animator>())
 	{
 		static bool debugRenderBones = true;
-		static float debugRenderBonesSize = 0.5f;
-		static glm::vec4 debugRenderBonesColor = glm::vec4(1, 1, 0, 0.5);
+		static float debugRenderBonesSize = 0.1f;
+		static glm::vec4 debugRenderBonesColor = glm::vec4(1, 0, 0, 0.5);
 		ImGui::Checkbox("Display bones", &debugRenderBones);
-		if (debugRenderBones)
+		if (animator && debugRenderBones)
 		{
 			ImGui::DragFloat("Size", &debugRenderBonesSize, 0.01f, 0.01f, 3.0f);
 			ImGui::ColorEdit4("Color", &debugRenderBonesColor.x);
-			DebugBoneRender(debugRenderBonesColor, debugRenderBonesSize);
+			auto scene = GetScene();
+			auto owner = GetOwner();
+			const auto selfScale = scene->GetDataComponent<GlobalTransform>(owner).GetScale();
+			std::vector<ParticleInfo> debugRenderingMatrices;
+			GlobalTransform ltw;
+
+			static std::shared_ptr<ParticleInfoList> particleInfoList;
+			if(!particleInfoList) particleInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
+			if (!m_ragDoll)
+			{
+				debugRenderingMatrices.resize(animator->m_transformChain.size());
+				Jobs::RunParallelFor(animator->m_transformChain.size(), [&](unsigned i)
+				{
+					debugRenderingMatrices.at(i).m_instanceMatrix.m_value = animator->m_transformChain.at(i);
+					debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
+				});
+				
+				ltw = scene->GetDataComponent<GlobalTransform>(owner);
+			}
+			else {
+				debugRenderingMatrices.resize(m_ragDollTransformChain.size());
+				Jobs::RunParallelFor(m_ragDollTransformChain.size(), [&](unsigned i)
+				{
+					debugRenderingMatrices.at(i).m_instanceMatrix.m_value = m_ragDollTransformChain.at(i);
+					debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
+				});
+			}
+			for (int index = 0; index < debugRenderingMatrices.size(); index++)
+			{
+				debugRenderingMatrices[index].m_instanceMatrix.m_value =
+					debugRenderingMatrices[index].m_instanceMatrix.m_value * glm::inverse(animator->m_offsetMatrices[index]) * glm::inverse(glm::scale(selfScale));
+			}
+			particleInfoList->SetParticleInfos(debugRenderingMatrices);
+			editorLayer->DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), particleInfoList, ltw.m_value, debugRenderBonesSize);
 		}
 
 		if (ImGui::Checkbox("RagDoll", &m_ragDoll)) {

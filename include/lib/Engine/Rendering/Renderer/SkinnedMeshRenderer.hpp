@@ -16,7 +16,6 @@ namespace EvoEngine
 		bool m_ragDoll = false;
 		std::vector<glm::mat4> m_ragDollTransformChain;
 		std::vector<EntityRef> m_boundEntities;
-		void DebugBoneRender(const glm::vec4& color, const float& size);
 	public:
 		void UpdateBoneMatrices();
 		bool m_ragDollFreeze = false;
