@@ -27,7 +27,7 @@ class Animator final : public IPrivateComponent
      */
     void Setup(const std::vector<std::string> &name, const std::vector<glm::mat4> &offsetMatrices);
     void ApplyOffsetMatrices();
-    glm::mat4 GetReverseTransform(const int &index, const Entity &entity);
+    [[nodiscard]] glm::mat4 GetReverseTransform(int boneIndex) const;
 
     [[nodiscard]] float GetCurrentAnimationTimePoint() const;
     [[nodiscard]] std::string GetCurrentAnimationName();
@@ -39,7 +39,7 @@ class Animator final : public IPrivateComponent
     bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
     void PostCloneAction(const std::shared_ptr<IPrivateComponent> &target) override;
-    std::shared_ptr<Animation> GetAnimation();
+    [[nodiscard]] std::shared_ptr<Animation> GetAnimation();
     void Serialize(YAML::Emitter &out) const override;
     void Deserialize(const YAML::Node &in) override;
     void CollectAssetRef(std::vector<AssetRef> &list) override;

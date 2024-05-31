@@ -43,6 +43,7 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
 		auto ptr = std::static_pointer_cast<IPrivateComponent>(
 			Serialization::ProduceSerializable(i.m_data->GetTypeName(), id));
 		Serialization::ClonePrivateComponent(ptr, i.m_data);
+		ptr->m_handle = Handle();
 		ptr->m_scene = scene;
 		scene->SetPrivateComponent(entity, ptr);
 	}

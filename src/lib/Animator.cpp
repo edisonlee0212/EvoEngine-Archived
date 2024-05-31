@@ -173,7 +173,8 @@ void Animator::Animate(const float time)
 }
 void Animator::Apply()
 {
-	if (const auto animation = m_animation.Get<Animation>(); !animation->IsEmpty())
+	const auto animation = m_animation.Get<Animation>();
+	if (animation && !animation->IsEmpty())
 	{
 		if (!animation->HasAnimation(m_currentActivatedAnimation))
 		{
@@ -215,9 +216,9 @@ void Animator::ApplyOffsetMatrices()
 	}
 }
 
-glm::mat4 Animator::GetReverseTransform(const int& index, const Entity& entity)
+glm::mat4 Animator::GetReverseTransform(const int boneIndex) const
 {
-	return m_transformChain[index] * glm::inverse(m_bones[index]->m_offsetMatrix.m_value);
+	return m_transformChain[boneIndex] * glm::inverse(m_bones[boneIndex]->m_offsetMatrix.m_value);
 }
 void Animator::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target)
 {
