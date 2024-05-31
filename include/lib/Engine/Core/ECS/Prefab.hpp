@@ -83,7 +83,6 @@ namespace EvoEngine
         void AttachChildren(const std::shared_ptr<Scene>& scene,
             const std::shared_ptr<Prefab>& modelNode,
             Entity parentEntity,
-            const std::string& parentName,
             std::unordered_map<Handle, Handle>& map) const;
 
         void AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,

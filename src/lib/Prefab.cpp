@@ -33,7 +33,7 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
 	int index = 0;
 	for (const auto& i : m_children)
 	{
-		AttachChildren(scene, i, entity, m_name + "_" + std::to_string(index), entityMap);
+		AttachChildren(scene, i, entity, entityMap);
 		index++;
 	}
 
@@ -60,7 +60,6 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
 void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
 	const std::shared_ptr<Prefab>& modelNode,
 	Entity parentEntity,
-	const std::string& parentName,
 	std::unordered_map<Handle, Handle>& map) const
 {
 	std::vector<DataComponentType> types;
@@ -69,7 +68,7 @@ void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
 		types.emplace_back(i.m_type);
 	}
 	auto archetype = Entities::CreateEntityArchetype("", types);
-	auto entity = scene->CreateEntity(archetype, m_name);
+	auto entity = scene->CreateEntity(archetype, modelNode->m_name);
 	map[modelNode->m_entityHandle] = scene->GetEntityHandle(entity);
 	scene->SetParent(entity, parentEntity);
 	for (auto& i : modelNode->m_dataComponents)
@@ -79,7 +78,7 @@ void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
 	int index = 0;
 	for (auto& i : modelNode->m_children)
 	{
-		AttachChildren(scene, i, entity, (parentName + "_" + std::to_string(index)), map);
+		AttachChildren(scene, i, entity, map);
 		index++;
 	}
 }
