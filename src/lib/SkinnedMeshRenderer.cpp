@@ -91,7 +91,7 @@ bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 	if (const auto animator = m_animator.Get<Animator>())
 	{
 		static bool debugRenderBones = true;
-		static float debugRenderBonesSize = 0.1f;
+		static float debugRenderBonesSize = 0.01f;
 		static glm::vec4 debugRenderBonesColor = glm::vec4(1, 0, 0, 0.5);
 		ImGui::Checkbox("Display bones", &debugRenderBones);
 		if (animator && debugRenderBones)
