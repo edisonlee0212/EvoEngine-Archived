@@ -45,8 +45,7 @@ void SkinnedMeshRenderer::UpdateBoneMatrices()
 			auto entity = m_boundEntities[i].Get();
 			if (entity.GetIndex() != 0)
 			{
-				m_ragDollTransformChain[i] = scene->GetDataComponent<GlobalTransform>(entity).m_value;
-				m_ragDollTransformChain[i] *= animator->m_offsetMatrices[i];
+				m_ragDollTransformChain[i] = scene->GetDataComponent<GlobalTransform>(entity).m_value * animator->m_offsetMatrices[i];
 			}
 		}
 		for (int i = 0; i < skinnedMesh->m_boneAnimatorIndices.size(); i++)
@@ -70,10 +69,10 @@ void SkinnedMeshRenderer::UpdateBoneMatrices()
 bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	bool changed = false;
-	if(editorLayer->DragAndDropButton<Animator>(m_animator, "Animator")) changed = true;
-	if(ImGui::Checkbox("Cast shadow##SkinnedMeshRenderer", &m_castShadow)) changed = true;
-	if(editorLayer->DragAndDropButton<Material>(m_material, "Material")) changed = true;
-	if(editorLayer->DragAndDropButton<SkinnedMesh>(m_skinnedMesh, "Skinned Mesh")) changed = true;
+	if (editorLayer->DragAndDropButton<Animator>(m_animator, "Animator")) changed = true;
+	if (ImGui::Checkbox("Cast shadow##SkinnedMeshRenderer", &m_castShadow)) changed = true;
+	if (editorLayer->DragAndDropButton<Material>(m_material, "Material")) changed = true;
+	if (editorLayer->DragAndDropButton<SkinnedMesh>(m_skinnedMesh, "Skinned Mesh")) changed = true;
 	if (m_skinnedMesh.Get<SkinnedMesh>())
 	{
 		if (ImGui::TreeNode("Skinned Mesh:##SkinnedMeshRenderer"))
@@ -106,25 +105,25 @@ bool SkinnedMeshRenderer::OnInspect(const std::shared_ptr<EditorLayer>& editorLa
 			GlobalTransform ltw;
 
 			static std::shared_ptr<ParticleInfoList> particleInfoList;
-			if(!particleInfoList) particleInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
+			if (!particleInfoList) particleInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
 			if (!m_ragDoll)
 			{
 				debugRenderingMatrices.resize(animator->m_transformChain.size());
 				Jobs::RunParallelFor(animator->m_transformChain.size(), [&](unsigned i)
-				{
-					debugRenderingMatrices.at(i).m_instanceMatrix.m_value = animator->m_transformChain.at(i);
-					debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
-				});
-				
+					{
+						debugRenderingMatrices.at(i).m_instanceMatrix.m_value = animator->m_transformChain.at(i);
+						debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
+					});
+
 				ltw = scene->GetDataComponent<GlobalTransform>(owner);
 			}
 			else {
 				debugRenderingMatrices.resize(m_ragDollTransformChain.size());
 				Jobs::RunParallelFor(m_ragDollTransformChain.size(), [&](unsigned i)
-				{
-					debugRenderingMatrices.at(i).m_instanceMatrix.m_value = m_ragDollTransformChain.at(i);
-					debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
-				});
+					{
+						debugRenderingMatrices.at(i).m_instanceMatrix.m_value = m_ragDollTransformChain.at(i);
+						debugRenderingMatrices.at(i).m_instanceColor = debugRenderBonesColor;
+					});
 			}
 			for (int index = 0; index < debugRenderingMatrices.size(); index++)
 			{
@@ -281,9 +280,9 @@ void SkinnedMeshRenderer::SetRagDollBoundEntity(int index, const Entity& entity,
 	}
 	if (const auto scene = GetScene(); scene->IsEntityValid(entity))
 	{
-		if (resetTransform)
+		if (const auto animator = m_animator.Get<Animator>())
 		{
-			if (const auto animator = m_animator.Get<Animator>())
+			if (resetTransform)
 			{
 				GlobalTransform globalTransform;
 				globalTransform.m_value = m_ragDollTransformChain[index] * glm::inverse(animator->m_offsetMatrices[index]);
