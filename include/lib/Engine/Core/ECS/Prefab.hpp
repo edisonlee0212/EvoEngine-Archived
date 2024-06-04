@@ -80,10 +80,10 @@ namespace EvoEngine
         static std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh);
         static std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
             std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh);
-        void AttachChildren(const std::shared_ptr<Scene>& scene,
-            const std::shared_ptr<Prefab>& modelNode,
-            Entity parentEntity,
-            std::unordered_map<Handle, Handle>& map) const;
+        static void AttachChildren(const std::shared_ptr<Scene>& scene,
+                                   const std::shared_ptr<Prefab>& modelNode,
+                                   Entity parentEntity,
+                                   std::unordered_map<Handle, Handle>& map);
 
         void AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,
             const std::shared_ptr<Prefab>& modelNode,
@@ -98,8 +98,8 @@ namespace EvoEngine
     protected:
         bool LoadInternal(const std::filesystem::path& path) override;
         bool SaveInternal(const std::filesystem::path& path) const override;
-        void LoadModelInternal(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
-        static void SaveModelInternal(const std::filesystem::path& path);
+        bool LoadModelInternal(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
+        bool SaveModelInternal(const std::filesystem::path& path) const;
 
 
     public:

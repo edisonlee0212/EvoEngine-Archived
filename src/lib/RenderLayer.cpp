@@ -151,7 +151,7 @@ void RenderLayer::LateUpdate()
 		{
 			for (const auto& i : m_cameras)
 			{
-				auto renderTexture = i.second->GetRenderTexture();
+				const auto renderTexture = i.second->GetRenderTexture();
 				if (renderTexture) renderTexture->Clear(commandBuffer);
 			}
 		}

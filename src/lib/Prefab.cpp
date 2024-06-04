@@ -61,7 +61,7 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
 void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
 	const std::shared_ptr<Prefab>& modelNode,
 	Entity parentEntity,
-	std::unordered_map<Handle, Handle>& map) const
+	std::unordered_map<Handle, Handle>& map)
 {
 	std::vector<DataComponentType> types;
 	for (auto& i : modelNode->m_dataComponents)
@@ -127,9 +127,9 @@ bool Prefab::LoadInternal(const std::filesystem::path& path)
 		stringStream << stream.rdbuf();
 		YAML::Node in = YAML::Load(stringStream.str());
 #pragma region Assets
-		std::vector<std::shared_ptr<IAsset>> localAssets;
 		if (const auto& inLocalAssets = in["LocalAssets"])
 		{
+			std::vector<std::shared_ptr<IAsset>> localAssets;
 			for (const auto& i : inLocalAssets)
 			{
 				Handle handle = i["Handle"].as<uint64_t>();
@@ -144,13 +144,11 @@ bool Prefab::LoadInternal(const std::filesystem::path& path)
 
 #pragma endregion
 		Deserialize(in);
+		return true;
 	}
-	else
-	{
-		LoadModelInternal(path);
-	}
-	return true;
+	return LoadModelInternal(path);	
 }
+
 void Prefab::AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle)
 {
 	if (const auto skinnedMeshRenderer = parent->GetPrivateComponent<SkinnedMeshRenderer>())
@@ -314,8 +312,15 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 	{
 		return search->second;
 	}
-
-	auto texture2D = std::dynamic_pointer_cast<Texture2D>(ProjectManager::GetOrCreateAsset(ProjectManager::GetPathRelativeToProject(fullPath)));
+	std::shared_ptr<Texture2D> texture2D;
+	if(ProjectManager::IsInProjectFolder(fullPath))
+	{
+		texture2D = std::dynamic_pointer_cast<Texture2D>(ProjectManager::GetOrCreateAsset(ProjectManager::GetPathRelativeToProject(fullPath)));
+	}else
+	{
+		texture2D = ProjectManager::CreateTemporaryAsset<Texture2D>();
+		texture2D->Import(fullPath);
+	}
 	loadedTextures[fullPath] = texture2D;
 	return texture2D;
 }
@@ -985,12 +990,11 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const
 		std::ofstream fout(path.string());
 		fout << out.c_str();
 		fout.flush();
+		return true;
 	}
-	else if (path.extension() == ".obj")
-	{
-		SaveModelInternal(path);
-	}
-	return true;
+	
+	return SaveModelInternal(path);
+	
 }
 void Prefab::RelinkChildren(const std::shared_ptr<Scene>& scene, const Entity& parentEntity, const std::unordered_map<Handle, Handle>& map)
 {
@@ -1010,12 +1014,14 @@ void Prefab::LoadModel(const std::filesystem::path& path, const bool optimize, c
 	LoadModelInternal(ProjectManager::GetProjectPath().parent_path() / path, optimize, flags);
 }
 
-void Prefab::SaveModelInternal(const std::filesystem::path& path)
+bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 {
 	Assimp::Exporter exporter;
 	aiScene* scene = new aiScene();
 
+	
 	delete scene;
+	return true;
 }
 
 void Prefab::GatherAssets()
@@ -1128,7 +1134,7 @@ bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	return changed;
 }
 
-void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize, unsigned int flags)
+bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize, unsigned int flags)
 {
 	flags = flags | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate;
 	if (optimize)
@@ -1142,7 +1148,7 @@ void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	{
 		EVOENGINE_LOG("Assimp: " + std::string(importer.GetErrorString()));
-		return;
+		return false;
 	}
 	// retrieve the directory path of the filepath
 	auto temp = path;
@@ -1169,7 +1175,7 @@ void Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 		animation))
 	{
 		EVOENGINE_ERROR("Model is empty!");
-		return;
+		return false;
 	}
 	if (!bonesMap.empty() || scene->HasAnimations())
 	{
