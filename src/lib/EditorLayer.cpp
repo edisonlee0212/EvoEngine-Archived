@@ -976,7 +976,7 @@ void EditorLayer::SceneCameraWindow()
 
 		}
 #pragma region Gizmos and Entity Selection
-		bool mouseSelectEntity = true;
+		m_usingGizmo = false;
 		if (m_enableGizmos) {
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
@@ -1011,7 +1011,7 @@ void EditorLayer::SceneCameraWindow()
 					scene->SetDataComponent(m_selectedEntity, transform);
 					transform.Decompose(
 						m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
-					mouseSelectEntity = false;
+					m_usingGizmo = true;
 				}
 			}
 			if (m_enableViewGizmos) {
@@ -1540,12 +1540,11 @@ void EditorLayer::MouseEntitySelection()
 			viewPortSize = ImGui::GetWindowSize();
 		}
 #pragma region Gizmos and Entity Selection
-		bool mouseSelectEntity = true;
 		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
 		{
 			SetSelectedEntity(Entity());
 		}
-		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && !m_usingGizmo
 			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
 			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
 				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {

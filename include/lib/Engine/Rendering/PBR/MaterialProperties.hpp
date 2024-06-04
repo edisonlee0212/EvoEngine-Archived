@@ -7,7 +7,7 @@ namespace EvoEngine
         glm::vec3 m_subsurfaceColor = glm::vec3(1.0f);
         float m_subsurfaceFactor = 0.0f;
         glm::vec3 m_subsurfaceRadius = glm::vec3(1.0f, 0.2f, 0.1f);
-        float m_metallic = 0.3f;
+        float m_metallic = 0.1f;
         float m_specular = 0.5f;
         float m_specularTint = 0.0f;
         float m_roughness = 0.3f;

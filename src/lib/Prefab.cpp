@@ -308,6 +308,22 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 	{
 		fullPath = std::filesystem::absolute(directory + "\\" + std::filesystem::path(path).filename().string()).string();
 	}
+
+	if (!std::filesystem::exists(fullPath))
+	{
+		auto baseDir = std::filesystem::absolute(directory);
+		fullPath = std::filesystem::absolute(baseDir.parent_path() / std::filesystem::path(path).filename().string()).string();
+	}
+	if (!std::filesystem::exists(fullPath))
+	{
+		auto baseDir = std::filesystem::absolute(directory);
+		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path()/ "textures" / std::filesystem::path(path).filename().string()).string();
+	}
+	if (!std::filesystem::exists(fullPath))
+	{
+		auto baseDir = std::filesystem::absolute(directory);
+		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "texture" / std::filesystem::path(path).filename().string()).string();
+	}
 	if (const auto search = loadedTextures.find(fullPath); search != loadedTextures.end())
 	{
 		return search->second;
@@ -391,7 +407,8 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 			std::vector<glm::vec4> colorData;
 			albedoTexture->GetRgbaChannelData(colorData);
 			std::vector<glm::vec4> alphaData;
-			opacityTexture->GetRgbaChannelData(alphaData);
+			const auto resolution = albedoTexture->GetResolution();
+			opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
 			Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
 				{
 					colorData[i].a = alphaData[i].r;
@@ -977,6 +994,7 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const
 			out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
 			for (auto& i : assetMap)
 			{
+				if(!i.second->Saved()) i.second->Save();
 				out << YAML::BeginMap;
 				out << YAML::Key << "TypeName" << YAML::Value << i.second->GetTypeName();
 				out << YAML::Key << "Handle" << YAML::Value << i.first.GetValue();

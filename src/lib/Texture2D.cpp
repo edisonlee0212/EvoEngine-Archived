@@ -106,7 +106,7 @@ bool Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	return changed;
 }
 
-glm::vec2 Texture2D::GetResolution() const
+glm::ivec2 Texture2D::GetResolution() const
 {
 	const auto textureStorage = PeekTexture2DStorage();
 	return { textureStorage.m_image->GetExtent().width, textureStorage.m_image->GetExtent().height };
@@ -115,7 +115,7 @@ glm::vec2 Texture2D::GetResolution() const
 void Texture2D::StoreToPng(const std::string& path, int resizeX, int resizeY,
 	unsigned compressionLevel) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	stbi_write_png_compression_level = static_cast<int>(compressionLevel);
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
@@ -163,7 +163,7 @@ void Texture2D::StoreToPng(const std::string& path, int resizeX, int resizeY,
 
 void Texture2D::StoreToJpg(const std::string& path, int resizeX, int resizeY, unsigned quality) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
 	std::vector<float> dst;
@@ -211,7 +211,7 @@ void Texture2D::StoreToJpg(const std::string& path, int resizeX, int resizeY, un
 
 void Texture2D::StoreToHdr(const std::string& path, int resizeX, int resizeY, bool alphaChannel, unsigned quality) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
 	const size_t channels = 4;
@@ -238,19 +238,19 @@ void Texture2D::StoreToHdr(const std::string& path, int resizeX, int resizeY, bo
 
 ImTextureID Texture2D::GetImTextureId() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	return textureStorage.m_imTextureId;
 }
 
 VkImageLayout Texture2D::GetLayout() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	return textureStorage.m_image->GetLayout();
 }
 
 VkImage Texture2D::GetVkImage() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	if (textureStorage.m_image)
 	{
 		return textureStorage.m_image->GetVkImage();
@@ -260,7 +260,7 @@ VkImage Texture2D::GetVkImage() const
 
 VkImageView Texture2D::GetVkImageView() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	if (textureStorage.m_imageView)
 	{
 		return textureStorage.m_imageView->GetVkImageView();
@@ -270,7 +270,7 @@ VkImageView Texture2D::GetVkImageView() const
 
 VkSampler Texture2D::GetVkSampler() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	if (textureStorage.m_sampler)
 	{
 		return textureStorage.m_sampler->GetVkSampler();
@@ -280,24 +280,35 @@ VkSampler Texture2D::GetVkSampler() const
 
 std::shared_ptr<Image> Texture2D::GetImage() const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	return textureStorage.m_image;
 }
 
-void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX, int resizeY) const
+void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, const int resizeX, const int resizeY) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
-	dst.resize(resolutionX * resolutionY);
+	if((resizeX == -1 && resizeY == -1) || (resolutionX == resizeX && resolutionY == resizeY))
+	{
+		Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+		imageBuffer.CopyFromImage(*textureStorage.m_image);
+		imageBuffer.DownloadVector(dst, resolutionX * resolutionY);
+		return;
+	}
+	std::vector<glm::vec4> src;
+	src.resize(resolutionX * resolutionY);
 	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
 	imageBuffer.CopyFromImage(*textureStorage.m_image);
-	imageBuffer.DownloadVector(dst, resolutionX * resolutionY);
+	imageBuffer.DownloadVector(src, resolutionX * resolutionY);
+
+	dst.resize(resizeX * resizeY);
+	stbir_resize_float(reinterpret_cast<float*>(src.data()), resolutionX, resolutionY, 0, reinterpret_cast<float*>(dst.data()), resizeX, resizeY, 0, 4);
 }
 
 void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX, int resizeY) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
 	std::vector<glm::vec4> pixels;
@@ -315,7 +326,7 @@ void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX, int 
 
 void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX, int resizeY) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
 	std::vector<glm::vec4> pixels;
@@ -333,7 +344,7 @@ void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX, int r
 
 void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resizeY) const
 {
-	const auto textureStorage = PeekTexture2DStorage();
+	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
 	std::vector<glm::vec4> pixels;

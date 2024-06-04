@@ -43,7 +43,7 @@ namespace EvoEngine
 		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
 		~Texture2D() override;
 		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-		[[nodiscard]] glm::vec2 GetResolution() const;
+		[[nodiscard]] glm::ivec2 GetResolution() const;
 		void StoreToPng(
 			const std::string& path,
 			int resizeX = -1,

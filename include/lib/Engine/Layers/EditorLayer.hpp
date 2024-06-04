@@ -316,7 +316,7 @@ namespace EvoEngine
 #pragma endregion
 	private:
 		int m_selectionAlpha = 0;
-
+		bool m_usingGizmo = false;
 		glm::detail::hdata* m_mappedEntityIndexData;
 		std::unique_ptr<Buffer> m_entityIndexReadBuffer;
 		void MouseEntitySelection();
