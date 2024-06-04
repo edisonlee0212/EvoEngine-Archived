@@ -92,8 +92,17 @@ void RenderLayer::PreUpdate()
 {
 	const auto scene = GetScene();
 	if (!scene) return;
+	std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
+	CollectCameras(cameras);
 
-	
+	Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer)
+		{
+			for (const auto& i : cameras)
+			{
+				if (const auto renderTexture = i.second->GetRenderTexture()) renderTexture->Clear(commandBuffer);
+			}
+		}
+	);
 }
 
 void RenderLayer::LateUpdate()
@@ -154,15 +163,7 @@ void RenderLayer::LateUpdate()
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
 	CollectSpotLights();
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
-		{
-			for (const auto& i : m_cameras)
-			{
-				const auto renderTexture = i.second->GetRenderTexture();
-				if (renderTexture) renderTexture->Clear(commandBuffer);
-			}
-		}
-	);
+	
 
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	auto& graphics = Graphics::GetInstance();
@@ -434,7 +435,7 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::Checkbox("Enable Particles", &m_enableParticles);
 		ImGui::Checkbox("Enable StrandsRenderer", &m_enableStrandsRenderer);
 
-		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
+		ImGui::Checkbox("Count dc for shadows", &m_countShadowRenderingDrawCalls);
 		ImGui::Checkbox("Wireframe", &m_wireFrame);
 		if (Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
 		if (!Graphics::Settings::USE_MESH_SHADER) ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
