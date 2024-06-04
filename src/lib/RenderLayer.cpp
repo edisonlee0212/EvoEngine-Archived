@@ -93,6 +93,13 @@ void RenderLayer::PreUpdate()
 	const auto scene = GetScene();
 	if (!scene) return;
 
+	
+}
+
+void RenderLayer::LateUpdate()
+{
+	const auto scene = GetScene();
+	if (!scene) return;
 	CollectCameras(m_cameras);
 	Bound worldBound{};
 	m_totalMeshTriangles = 0;
@@ -137,16 +144,16 @@ void RenderLayer::PreUpdate()
 		worldBound.m_max + glm::vec3(1.f);
 		scene->SetBound(worldBound);
 	}
+
+
+	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
+	{
+		editorLayer->MouseEntitySelection();
+	}
+
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
 	CollectSpotLights();
-}
-
-void RenderLayer::LateUpdate()
-{
-	const auto scene = GetScene();
-	if (!scene) return;
-
 	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
 		{
 			for (const auto& i : m_cameras)

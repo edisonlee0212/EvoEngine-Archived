@@ -319,6 +319,7 @@ namespace EvoEngine
 
 		glm::detail::hdata* m_mappedEntityIndexData;
 		std::unique_ptr<Buffer> m_entityIndexReadBuffer;
+		void MouseEntitySelection();
 		[[nodiscard]] Entity MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const;
 
 		EntityArchetype m_basicEntityArchetype;

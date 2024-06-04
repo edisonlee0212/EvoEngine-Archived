@@ -1022,42 +1022,7 @@ void EditorLayer::SceneCameraWindow()
 				}
 			}
 		}
-		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
-		{
-			SetSelectedEntity(Entity());
-		}
-
-		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
-			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
-			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
-				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
-			if (const auto focusedEntity = MouseEntitySelection(sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
-				SetSelectedEntity(Entity());
-			}
-			else {
-				Entity walker = focusedEntity;
-				bool found = false;
-				while (walker.GetIndex() != 0) {
-					if (walker == m_selectedEntity) {
-						found = true;
-						break;
-					}
-					walker = scene->GetParent(walker);
-				}
-				if (found) {
-					walker = scene->GetParent(walker);
-					if (walker.GetIndex() == 0) {
-						SetSelectedEntity(focusedEntity);
-					}
-					else {
-						SetSelectedEntity(walker);
-					}
-				}
-				else {
-					SetSelectedEntity(focusedEntity);
-				}
-			}
-		}
+		
 #pragma endregion
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_sceneCameraWindowFocused = true;
@@ -1558,6 +1523,65 @@ bool EditorLayer::Remove(EntityRef& entityRef)
 		}
 	}
 	return statusChanged;
+}
+
+void EditorLayer::MouseEntitySelection()
+{
+	const auto scene = GetScene();
+	auto windowLayer = Application::GetLayer<WindowLayer>();
+	auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
+#pragma region Scene Window
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	if (ImGui::Begin("Scene")) {
+		ImVec2 viewPortSize;
+		// Using a Child allow to fill all the space of the window.
+		// It also allows customization
+		if (ImGui::BeginChild("SceneCameraRenderer", ImVec2(0, 0), false)) {
+			viewPortSize = ImGui::GetWindowSize();
+		}
+#pragma region Gizmos and Entity Selection
+		bool mouseSelectEntity = true;
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
+		{
+			SetSelectedEntity(Entity());
+		}
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
+			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
+			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
+				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
+			if (const auto focusedEntity = MouseEntitySelection(sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
+				SetSelectedEntity(Entity());
+			}
+			else {
+				Entity walker = focusedEntity;
+				bool found = false;
+				while (walker.GetIndex() != 0) {
+					if (walker == m_selectedEntity) {
+						found = true;
+						break;
+					}
+					walker = scene->GetParent(walker);
+				}
+				if (found) {
+					walker = scene->GetParent(walker);
+					if (walker.GetIndex() == 0) {
+						SetSelectedEntity(focusedEntity);
+					}
+					else {
+						SetSelectedEntity(walker);
+					}
+				}
+				else {
+					SetSelectedEntity(focusedEntity);
+				}
+			}
+		}
+#pragma endregion
+		ImGui::EndChild();
+	}
+	ImGui::End();
+	ImGui::PopStyleVar();
+#pragma endregion
 }
 
 Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const
