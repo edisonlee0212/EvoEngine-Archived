@@ -380,7 +380,7 @@ std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterTexture2D()
 	storage.m_texture2Ds.emplace_back();
 	auto& newTexture2DStorage = storage.m_texture2Ds.back();
 	newTexture2DStorage.m_handle = retVal;
-
+	storage.m_texture2Ds.back().Initialize({1, 1});
 	return retVal;
 }
 
@@ -392,6 +392,7 @@ std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterCubemap()
 	storage.m_cubemaps.emplace_back();
 	auto& newCubemapStorage = storage.m_cubemaps.back();
 	newCubemapStorage.m_handle = retVal;
+	storage.m_cubemaps.back().Initialize(1, 1);
 	return retVal;
 }
 

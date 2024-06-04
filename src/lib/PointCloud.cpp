@@ -14,11 +14,31 @@
 using namespace EvoEngine;
 using namespace tinyply;
 
-void PointCloud::Load(const std::filesystem::path &path)
+bool PointCloud::LoadInternal(const std::filesystem::path& path)
+{
+	if (path.extension() == ".ply")
+	{
+		return Load({}, path);
+	}
+
+	return IAsset::LoadInternal(path);
+
+}
+
+bool PointCloud::SaveInternal(const std::filesystem::path& path) const
+{
+	if (path.extension() == ".ply")
+	{
+		return Save({}, path);
+	}
+	return IAsset::SaveInternal(path);
+
+}
+
+bool PointCloud::Load(const PointCloudLoadSettings& settings, const std::filesystem::path& path)
 {
 	std::unique_ptr<std::istream> file_stream;
 	std::vector<uint8_t> byte_buffer;
-
 	try
 	{
 		file_stream.reset(new std::ifstream(path.string(), std::ios::binary));
@@ -34,18 +54,18 @@ void PointCloud::Load(const std::filesystem::path &path)
 		file.parse_header(*file_stream);
 
 		std::cout << "\t[ply_header] Type: " << (file.is_binary_file() ? "binary" : "ascii") << std::endl;
-		for (const auto &c : file.get_comments())
+		for (const auto& c : file.get_comments())
 			std::cout << "\t[ply_header] Comment: " << c << std::endl;
-		for (const auto &c : file.get_info())
+		for (const auto& c : file.get_info())
 			std::cout << "\t[ply_header] Info: " << c << std::endl;
 
-		for (const auto &e : file.get_elements())
+		for (const auto& e : file.get_elements())
 		{
 			std::cout << "\t[ply_header] element: " << e.name << " (" << e.size << ")" << std::endl;
-			for (const auto &p : e.properties)
+			for (const auto& p : e.properties)
 			{
 				std::cout << "\t[ply_header] \tproperty: " << p.name
-						  << " (type=" << tinyply::PropertyTable[p.propertyType].str << ")";
+					<< " (type=" << tinyply::PropertyTable[p.propertyType].str << ")";
 				if (p.isList)
 					std::cout << " (list_type=" << tinyply::PropertyTable[p.listType].str << ")";
 				std::cout << std::endl;
@@ -61,45 +81,45 @@ void PointCloud::Load(const std::filesystem::path &path)
 		// like vertex position are hard-coded:
 		try
 		{
-			vertices = file.request_properties_from_element("vertex", {"x", "y", "z"});
+			vertices = file.request_properties_from_element("vertex", { "x", "y", "z" });
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
 
 		try
 		{
-			normals = file.request_properties_from_element("vertex", {"nx", "ny", "nz"});
+			normals = file.request_properties_from_element("vertex", { "nx", "ny", "nz" });
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
 
 		try
 		{
-			colors = file.request_properties_from_element("vertex", {"red", "green", "blue"});
+			colors = file.request_properties_from_element("vertex", { "red", "green", "blue" });
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
 
 		try
 		{
-			colors = file.request_properties_from_element("vertex", {"r", "g", "b", "a"});
+			colors = file.request_properties_from_element("vertex", { "r", "g", "b", "a" });
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
 
 		try
 		{
-			texcoords = file.request_properties_from_element("vertex", {"u", "v"});
+			texcoords = file.request_properties_from_element("vertex", { "u", "v" });
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
@@ -108,9 +128,9 @@ void PointCloud::Load(const std::filesystem::path &path)
 		// arbitrary ply files, it is best to leave this 0.
 		try
 		{
-			faces = file.request_properties_from_element("face", {"vertex_indices"}, 3);
+			faces = file.request_properties_from_element("face", { "vertex_indices" }, 3);
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
@@ -119,9 +139,9 @@ void PointCloud::Load(const std::filesystem::path &path)
 		// are specifically in the file, which is unlikely);
 		try
 		{
-			tripstrip = file.request_properties_from_element("tristrips", {"vertex_indices"}, 0);
+			tripstrip = file.request_properties_from_element("tristrips", { "vertex_indices" }, 0);
 		}
-		catch (const std::exception &e)
+		catch (const std::exception& e)
 		{
 			std::cerr << "tinyply exception: " << e.what() << std::endl;
 		}
@@ -130,22 +150,25 @@ void PointCloud::Load(const std::filesystem::path &path)
 		{
 			m_hasPositions = true;
 			std::cout << "\tRead " << vertices->count << " total vertices " << std::endl;
-		}else{
+		}
+		else {
 			m_hasPositions = false;
 		}
 		if (normals)
 		{
 			std::cout << "\tRead " << normals->count << " total vertex normals " << std::endl;
 			m_hasNormals = true;
-		}else m_hasNormals = false;
+		}
+		else m_hasNormals = false;
 		if (colors)
 		{
 			std::cout << "\tRead " << colors->count << " total vertex colors " << std::endl;
 			m_hasColors = true;
-		}else{
+		}
+		else {
 			m_hasColors = false;
 		}
-		if(m_hasPositions)
+		if (m_hasPositions)
 		{
 			// Example One: converting to your own application types
 			const size_t numVerticesBytes = vertices->buffer.size_bytes();
@@ -177,7 +200,7 @@ void PointCloud::Load(const std::filesystem::path &path)
 				}
 			}
 		}
-		if(m_hasColors)
+		if (m_hasColors)
 		{
 			const size_t numVerticesBytes = colors->buffer.size_bytes();
 			if (colors->t == tinyply::Type::UINT8)
@@ -212,10 +235,13 @@ void PointCloud::Load(const std::filesystem::path &path)
 		}
 		RecalculateBoundingBox();
 	}
-	catch (const std::exception &e)
+	catch (const std::exception& e)
 	{
 		std::cerr << "Caught tinyply exception: " << e.what() << std::endl;
+
+		return false;
 	}
+	return true;
 }
 
 void PointCloud::OnCreate()
@@ -228,7 +254,7 @@ bool PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	ImGui::Text("Has Colors: %s", (m_hasColors ? "True" : "False"));
 	ImGui::Text("Has Positions: %s", (m_hasPositions ? "True" : "False"));
 	ImGui::Text("Has Normals: %s", (m_hasNormals ? "True" : "False"));
-	if(ImGui::DragScalarN("Offset", ImGuiDataType_Double, &m_offset.x, 3)) changed = true;
+	if (ImGui::DragScalarN("Offset", ImGuiDataType_Double, &m_offset.x, 3)) changed = true;
 	ImGui::Text(("Original amount: " + std::to_string(m_points.size())).c_str());
 	if (ImGui::DragFloat("Point size", &m_pointSize, 0.01f, 0.01f, 100.0f)) changed = true;
 	if (ImGui::DragFloat("Compress factor", &m_compressFactor, 0.001f, 0.0001f, 10.0f)) changed = true;
@@ -244,25 +270,25 @@ bool PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	}
 
 	FileUtils::OpenFile(
-		("Load PLY file##Particles"), "PointCloud", {".ply"}, [&](const std::filesystem::path &filePath) {
+		("Load PLY file##Particles"), "PointCloud", { ".ply" }, [&](const std::filesystem::path& filePath) {
 			try
 			{
-				Load(filePath);
+				Load({}, filePath);
 				EVOENGINE_LOG("Loaded from " + filePath.string());
 			}
-			catch (std::exception &e)
+			catch (std::exception& e)
 			{
 				EVOENGINE_ERROR("Failed to load from " + filePath.string());
 			}
 		}, false);
 	FileUtils::SaveFile(
-		("Save Compressed to PLY##Particles"), "PointCloud", {".ply"}, [&](const std::filesystem::path &filePath) {
+		("Save Compressed to PLY##Particles"), "PointCloud", { ".ply" }, [&](const std::filesystem::path& filePath) {
 			try
 			{
-				Save(filePath);
+				Save({}, filePath);
 				EVOENGINE_LOG("Saved to " + filePath.string());
 			}
-			catch (std::exception &e)
+			catch (std::exception& e)
 			{
 				EVOENGINE_ERROR("Failed to save to " + filePath.string());
 			}
@@ -295,7 +321,7 @@ void PointCloud::ApplyCompressed()
 	}
 	particleInfoList->SetParticleInfos(particleInfos);
 }
-void PointCloud::Compress(std::vector<glm::dvec3> &points)
+void PointCloud::Compress(std::vector<glm::dvec3>& points)
 {
 	RecalculateBoundingBox();
 	if (m_compressFactor == 0)
@@ -337,7 +363,7 @@ void PointCloud::Compress(std::vector<glm::dvec3> &points)
 	voxels.resize(voxelSize);
 	memset(voxels.data(), 0, voxelSize * sizeof(int));
 
-	for (const auto &i : m_points)
+	for (const auto& i : m_points)
 	{
 		int posX = (int)(((i.x - m_min.x) / (double)m_compressFactor));
 		int posY = (int)(((i.y - m_min.y) / (double)m_compressFactor));
@@ -376,7 +402,7 @@ void PointCloud::RecalculateBoundingBox()
 	}
 	auto minBound = glm::dvec3(static_cast<int>(INT_MAX));
 	auto maxBound = glm::dvec3(static_cast<int>(INT_MIN));
-	for (const auto &i : m_points)
+	for (const auto& i : m_points)
 	{
 		minBound = glm::vec3((glm::min)(minBound.x, i.x), (glm::min)(minBound.y, i.y), (glm::min)(minBound.z, i.z));
 		maxBound = glm::vec3((glm::max)(maxBound.x, i.x), (glm::max)(maxBound.y, i.y), (glm::max)(maxBound.z, i.z));
@@ -385,13 +411,13 @@ void PointCloud::RecalculateBoundingBox()
 	m_min = minBound;
 
 	auto avg = glm::dvec3(0);
-	for (const auto &i : m_points)
+	for (const auto& i : m_points)
 	{
 		avg += i / (double)m_points.size();
 	}
 	m_offset = -m_min;
 }
-void PointCloud::Serialize(YAML::Emitter &out) const
+void PointCloud::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_offset" << m_offset;
 	out << YAML::Key << "m_pointSize" << m_pointSize;
@@ -401,20 +427,20 @@ void PointCloud::Serialize(YAML::Emitter &out) const
 	if (!m_points.empty())
 	{
 		out << YAML::Key << "m_scatteredPoints" << YAML::Value
-			<< YAML::Binary((const unsigned char *)m_points.data(), m_points.size() * sizeof(glm::dvec3));
+			<< YAML::Binary((const unsigned char*)m_points.data(), m_points.size() * sizeof(glm::dvec3));
 	}
 	if (!m_normals.empty())
 	{
 		out << YAML::Key << "m_normals" << YAML::Value
-			<< YAML::Binary((const unsigned char *)m_normals.data(), m_normals.size() * sizeof(glm::dvec3));
+			<< YAML::Binary((const unsigned char*)m_normals.data(), m_normals.size() * sizeof(glm::dvec3));
 	}
 	if (!m_colors.empty())
 	{
 		out << YAML::Key << "m_colors" << YAML::Value
-			<< YAML::Binary((const unsigned char *)m_colors.data(), m_colors.size() * sizeof(glm::vec3));
+			<< YAML::Binary((const unsigned char*)m_colors.data(), m_colors.size() * sizeof(glm::vec3));
 	}
 }
-void PointCloud::Deserialize(const YAML::Node &in)
+void PointCloud::Deserialize(const YAML::Node& in)
 {
 	if (in["m_offset"])
 		m_offset = in["m_offset"].as<glm::dvec3>();
@@ -430,7 +456,8 @@ void PointCloud::Deserialize(const YAML::Node &in)
 		auto vertexData = in["m_scatteredPoints"].as<YAML::Binary>();
 		m_points.resize(vertexData.size() / sizeof(glm::dvec3));
 		std::memcpy(m_points.data(), vertexData.data(), vertexData.size());
-	}else{
+	}
+	else {
 		m_hasPositions = false;
 	}
 
@@ -440,7 +467,8 @@ void PointCloud::Deserialize(const YAML::Node &in)
 		auto vertexData = in["m_colors"].as<YAML::Binary>();
 		m_colors.resize(vertexData.size() / sizeof(glm::vec3));
 		std::memcpy(m_colors.data(), vertexData.data(), vertexData.size());
-	}else{
+	}
+	else {
 		m_hasColors = false;
 	}
 }
@@ -463,66 +491,80 @@ void PointCloud::ApplyOriginal()
 	particleInfoList->SetParticleInfos(particleInfos);
 }
 
-void PointCloud::Save(const std::filesystem::path &path)
+bool PointCloud::Save(const PointCloudSaveSettings& settings, const std::filesystem::path& path) const
 {
-	std::filebuf fb_binary;
-	fb_binary.open(path.string(), std::ios::out | std::ios::binary);
-	std::ostream outstream_binary(&fb_binary);
-	if (outstream_binary.fail())
-		throw std::runtime_error("failed to open " + path.string());
-	/*
-	std::filebuf fb_ascii;
-	fb_ascii.open(filename + "-ascii.ply", std::ios::out);
-	std::ostream outstream_ascii(&fb_ascii);
-	if (outstream_ascii.fail()) throw std::runtime_error("failed to open " + filename);
-	*/
-	PlyFile cube_file;
-	if(m_hasPositions)
+	try {
+		PlyFile cube_file;
+		if (m_hasPositions)
+		{
+			if (settings.m_doublePrecision) {
+				cube_file.add_properties_to_element(
+					"vertex",
+					{ "x", "y", "z" },
+					Type::FLOAT64,
+					m_points.size(),
+					(uint8_t*)m_points.data(),
+					Type::INVALID,
+					0);
+			}else
+			{
+				std::vector<glm::vec3> points;
+				points.resize(m_points.size());
+				Jobs::RunParallelFor(m_points.size(), [&](const unsigned index)
+				{
+					points[index] = glm::vec3(m_points[index]);
+				});
+				cube_file.add_properties_to_element(
+					"vertex",
+					{ "x", "y", "z" },
+					Type::FLOAT32,
+					points.size(),
+					(uint8_t*)points.data(),
+					Type::INVALID,
+					0);
+			}
+		}
+		if (m_hasColors) {
+			cube_file.add_properties_to_element(
+				"vertex",
+				{ "red", "green", "blue" },
+				Type::FLOAT32,
+				m_colors.size(),
+				(uint8_t*)(m_colors.data()),
+				Type::INVALID,
+				0);
+		}
+		if (settings.m_binary)
+		{
+			// Write a binary file
+			std::filebuf fb_binary;
+			fb_binary.open(path.string(), std::ios::out | std::ios::binary);
+			std::ostream outstream_binary(&fb_binary);
+			if (outstream_binary.fail())
+				throw std::runtime_error("failed to open " + path.string());
+			cube_file.write(outstream_binary, true);
+		}
+		else {
+			std::filebuf fb_ascii;
+			fb_ascii.open(path.string(), std::ios::out);
+			std::ostream outstream_ascii(&fb_ascii);
+			if (outstream_ascii.fail()) throw std::runtime_error("failed to open " + path.string());
+			// Write an ASCII file
+			cube_file.write(outstream_ascii, false);
+		}
+	}
+	catch (const std::exception& e)
 	{
-		cube_file.add_properties_to_element(
-			"vertex",
-			{"x", "z", "y"},
-			Type::FLOAT64,
-			m_points.size(),
-			reinterpret_cast<uint8_t *>(m_points.data()),
-			Type::INVALID,
-			0);
+		EVOENGINE_ERROR(e.what());
+		return false;
 	}
-	if(m_hasColors){
-		cube_file.add_properties_to_element(
-			"vertex",
-			{"red", "green", "blue"},
-			Type::FLOAT32,
-			m_colors.size(),
-			reinterpret_cast<uint8_t *>(m_colors.data()),
-			Type::INVALID,
-			0);
-	}
-	/*
-	cube_file.add_properties_to_element("vertex", { "nx", "ny", "nz" },
-										Type::FLOAT32, cube.normals.size(),
-	reinterpret_cast<uint8_t*>(cube.normals.data()), Type::INVALID, 0);
+	return true;
 
-	cube_file.add_properties_to_element("vertex", { "u", "v" },
-										Type::FLOAT32, cube.texcoords.size() ,
-	reinterpret_cast<uint8_t*>(cube.texcoords.data()), Type::INVALID, 0);
-
-	cube_file.add_properties_to_element("face", { "vertex_indices" },
-										Type::UINT32, cube.triangles.size(),
-	reinterpret_cast<uint8_t*>(cube.triangles.data()), Type::UINT8, 3);
-
-	cube_file.get_comments().push_back("generated by tinyply 2.3");
-
-	// Write an ASCII file
-	cube_file.write(outstream_ascii, false);
-	*/
-	// Write a binary file
-	cube_file.write(outstream_binary, true);
 }
 void PointCloud::Crop(std::vector<glm::dvec3>& points, const glm::dvec3& min, const glm::dvec3& max)
 {
-	for(const auto& i : m_points){
-		if(i.x >= min.x && i.y >= min.y && i.z >= min.z && i.x <= max.x && i.y <= max.y && i.z <= max.z){
+	for (const auto& i : m_points) {
+		if (i.x >= min.x && i.y >= min.y && i.z >= min.z && i.x <= max.x && i.y <= max.y && i.z <= max.z) {
 			points.push_back(i);
 		}
 	}
