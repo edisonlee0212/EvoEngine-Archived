@@ -110,7 +110,7 @@ namespace EvoEngine
 		alignas(4) int m_pcfSampleAmount = 32;
 		alignas(4) int m_blockerSearchAmount = 8;
 		alignas(4) float m_seamFixRatio = 0.1f;
-		alignas(4) float m_gamma = 2.2f;
+		alignas(4) float m_gamma = 1.f;
 
 		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
 		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;

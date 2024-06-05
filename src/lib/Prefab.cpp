@@ -66,11 +66,14 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool autoAdjustSize
 		glm::vec3 scale = glm::vec3(1.f);
 		while(size.x > 10.f || size.y > 10.f || size.z > 10.f)
 		{
-			scale /= 10.f;
-			size /= 10.f;
+			scale /= 2.f;
+			size /= 2.f;
 		}
-		GlobalTransform gt;
-		gt.m_value = glm::scale(scale);
+		Transform t{};
+		GlobalTransform gt {};
+		gt.SetScale(scale);
+		t.SetScale(scale);
+		scene->SetDataComponent(entity, t);
 		scene->SetDataComponent(entity, gt);
 		TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
 	}
