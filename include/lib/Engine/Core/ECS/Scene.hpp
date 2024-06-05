@@ -304,6 +304,8 @@ namespace EvoEngine
 		void ForEachPrivateComponent(const Entity& entity, const std::function<void(PrivateComponentElement& data)>& func);
 		void GetAllEntities(std::vector<Entity>& target);
 		void ForAllEntities(const std::function<void(int i, Entity entity)>& func) const;
+
+		Bound GetEntityBoundingBox(const Entity& entity);
 #pragma endregion
 		std::vector<std::reference_wrapper<DataComponentStorage>> QueryDataComponentStorages(
 			const EntityQuery& entityQuery);

@@ -7,6 +7,7 @@
 #include "SkinnedMeshRenderer.hpp"
 #include "Utilities.hpp"
 #include "ClassRegistry.hpp"
+#include "TransformGraph.hpp"
 #include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 void Prefab::OnCreate()
@@ -14,7 +15,7 @@ void Prefab::OnCreate()
 	m_name = "New Prefab";
 }
 
-Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
+Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool autoAdjustSize) const
 {
 	std::unordered_map<Handle, Handle> entityMap;
 	std::vector<DataComponentType> types;
@@ -56,6 +57,23 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene) const
 	RelinkChildren(scene, entity, entityMap);
 
 	scene->SetEnable(entity, m_enabled);
+
+	TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
+
+	if(autoAdjustSize){
+		const auto bound = scene->GetEntityBoundingBox(entity);
+		auto size = bound.Size();
+		glm::vec3 scale = glm::vec3(1.f);
+		while(size.x > 10.f || size.y > 10.f || size.z > 10.f)
+		{
+			scale /= 10.f;
+			size /= 10.f;
+		}
+		GlobalTransform gt;
+		gt.m_value = glm::scale(scale);
+		scene->SetDataComponent(entity, gt);
+		TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
+	}
 	return entity;
 }
 void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
@@ -324,6 +342,9 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 		auto baseDir = std::filesystem::absolute(directory);
 		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "texture" / std::filesystem::path(path).filename().string()).string();
 	}
+	if(!std::filesystem::exists(fullPath)){
+		return Resources::GetResource<Texture2D>("TEXTURE_MISSING");
+	}
 	if (const auto search = loadedTextures.find(fullPath); search != loadedTextures.end())
 	{
 		return search->second;
@@ -408,21 +429,65 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 			const auto albedoTexture = targetMaterial->GetAlbedoTexture();
 
 			opacityMaps.emplace_back(albedoTexture, opacityTexture);
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_TRANSMISSION) > 0)
+		{
+			aiString str;
+			importerMaterial->GetTexture(aiTextureType_TRANSMISSION, 0, &str);
+			const auto opacityTexture = CollectTexture(directory, str.C_Str(), loadedTextures);
+			const auto albedoTexture = targetMaterial->GetAlbedoTexture();
 
-			/*
-			std::vector<glm::vec4> colorData;
-			albedoTexture->GetRgbaChannelData(colorData);
-			std::vector<glm::vec4> alphaData;
-			const auto resolution = albedoTexture->GetResolution();
-			opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
-			Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
-				{
-					colorData[i].a = alphaData[i].r;
-				}
-			);
-			std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
-			replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
-			targetMaterial->SetAlbedoTexture(replacementTexture);*/
+			opacityMaps.emplace_back(albedoTexture, opacityTexture);
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_LIGHTMAP) > 0)
+		{
+			aiString str;
+			importerMaterial->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
+			targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)
+		{
+			aiString str;
+			importerMaterial->GetTexture(aiTextureType_AMBIENT, 0, &str);
+			targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+		}
+		int unknownTextureSize = 0;
+		if (importerMaterial->GetTextureCount(aiTextureType_EMISSIVE) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_SHININESS) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_DISPLACEMENT) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_LIGHTMAP) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_REFLECTION) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_EMISSION_COLOR) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_SHEEN) > 0)
+		{
+			unknownTextureSize++;
+		}
+		if (importerMaterial->GetTextureCount(aiTextureType_CLEARCOAT) > 0)
+		{
+			unknownTextureSize++;
+		}
+
+		if (importerMaterial->GetTextureCount(aiTextureType_UNKNOWN) > 0)
+		{
+			unknownTextureSize++;
 		}
 
 		aiColor3D color;
@@ -1093,7 +1158,8 @@ void Prefab::GatherAssets()
 bool Prefab::OnInspectWalker(const std::shared_ptr<Prefab>& walker)
 {
 	bool changed = false;
-	ImGui::Text(walker->m_name.c_str());
+	ImGui::Text(("Name: " + walker->m_name).c_str());
+
 	if (OnInspectComponents(walker)) changed = true;
 
 	if (!walker->m_children.empty()) {
@@ -1145,7 +1211,10 @@ bool Prefab::OnInspectComponents(const std::shared_ptr<Prefab>& walker)
 bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	bool changed = false;
-
+	if(ImGui::Button("Instantiate"))
+	{
+		ToEntity(Application::GetActiveScene());
+	}
 	if (m_assets.empty() && ImGui::Button("Collect assets")) GatherAssets();
 	if (!m_assets.empty())
 	{

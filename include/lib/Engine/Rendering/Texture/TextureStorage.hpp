@@ -15,7 +15,7 @@ namespace EvoEngine
 		friend class Cubemap;
 		std::vector<glm::vec4> m_newData;
 		glm::uvec2 m_newResolution{};
-		
+		void UploadData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
 	public:
 		bool m_pendingDelete = false;
 
@@ -32,7 +32,7 @@ namespace EvoEngine
 		[[nodiscard]] VkSampler GetVkSampler() const;
 		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
 		void Initialize(const glm::uvec2& resolution);
-		void UploadData();
+		void SetDataImmediately(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
 		void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
 		void Clear();
 	};
@@ -63,6 +63,7 @@ namespace EvoEngine
 
 		friend class RenderLayer;
 		friend class Graphics;
+		friend class Resources;
 		static void DeviceSync();
 	public:
 		static const Texture2DStorage& PeekTexture2DStorage(const std::shared_ptr<TextureStorageHandle>& handle);

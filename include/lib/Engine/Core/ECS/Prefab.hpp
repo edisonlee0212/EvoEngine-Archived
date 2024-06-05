@@ -117,7 +117,7 @@ namespace EvoEngine
         template <typename T = IPrivateComponent> std::shared_ptr<T> GetPrivateComponent();
         void OnCreate() override;
 
-        [[nodiscard]] Entity ToEntity(const std::shared_ptr<Scene>& scene) const;
+        [[maybe_unused]] Entity ToEntity(const std::shared_ptr<Scene>& scene, bool autoAdjustSize = false) const;
 
         void LoadModel(const std::filesystem::path& path, bool optimize = false, unsigned flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals);
 

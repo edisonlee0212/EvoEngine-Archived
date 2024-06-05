@@ -5,6 +5,8 @@
 #include "EntityMetadata.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
+#include "MeshRenderer.hpp"
+#include "SkinnedMeshRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 
@@ -917,7 +919,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 			if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 				return;
 			tempStorage[workerIndex].push_back(entity);
-			}, 
+			},
 			threadSize
 		);
 		for (auto& i : tempStorage)
@@ -1673,6 +1675,61 @@ void Scene::ForAllEntities(const std::function<void(int i, Entity entity)>& func
 			func(index, m_sceneDataStorage.m_entities.at(index));
 		}
 	}
+}
+
+Bound Scene::GetEntityBoundingBox(const Entity& entity)
+{
+	auto descendants = GetDescendants(entity);
+	descendants.emplace_back(entity);
+
+	Bound retVal{};
+
+	for (const auto& walker : descendants)
+	{
+		auto gt = GetDataComponent<GlobalTransform>(walker);
+		if (HasPrivateComponent<MeshRenderer>(walker))
+		{
+			auto meshRenderer = GetOrSetPrivateComponent<MeshRenderer>(walker).lock();
+			if (const auto mesh = meshRenderer->m_mesh.Get<Mesh>())
+			{
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(gt.m_value);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				retVal.m_min = glm::vec3(
+					(glm::min)(retVal.m_min.x, center.x - size.x),
+					(glm::min)(retVal.m_min.y, center.y - size.y),
+					(glm::min)(retVal.m_min.z, center.z - size.z));
+				retVal.m_max = glm::vec3(
+					(glm::max)(retVal.m_max.x, center.x + size.x),
+					(glm::max)(retVal.m_max.y, center.y + size.y),
+					(glm::max)(retVal.m_max.z, center.z + size.z));
+			}
+		}
+		else if (HasPrivateComponent<SkinnedMeshRenderer>(walker))
+		{
+			auto meshRenderer = GetOrSetPrivateComponent<SkinnedMeshRenderer>(walker).lock();
+			if (const auto mesh = meshRenderer->m_skinnedMesh.Get<SkinnedMesh>())
+			{
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(gt.m_value);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				retVal.m_min = glm::vec3(
+					(glm::min)(retVal.m_min.x, center.x - size.x),
+					(glm::min)(retVal.m_min.y, center.y - size.y),
+					(glm::min)(retVal.m_min.z, center.z - size.z));
+				retVal.m_max = glm::vec3(
+					(glm::max)(retVal.m_max.x, center.x + size.x),
+					(glm::max)(retVal.m_max.y, center.y + size.y),
+					(glm::max)(retVal.m_max.z, center.z + size.z));
+			}
+		}
+	}
+
+	return retVal;
 }
 
 void Scene::GetEntityArray(const EntityQuery& entityQuery, std::vector<Entity>& container, bool checkEnable)

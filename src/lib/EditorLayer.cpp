@@ -1791,7 +1791,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 		}
 
 		else if (asset->GetTypeName() == "Prefab") {
-			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene);
+			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene, true);
 			scene->SetEntityName(entity, asset->GetTitle());
 		}
 		else if (asset->GetTypeName() == "Mesh") {

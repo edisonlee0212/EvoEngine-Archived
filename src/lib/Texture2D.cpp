@@ -26,7 +26,8 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path) const
 	}
 	else if (path.extension() == ".hdr") {
 		StoreToHdr(path.string());
-	}else if(path.extension() == ".evetexture2d")
+	}
+	else if (path.extension() == ".evetexture2d")
 	{
 		auto directory = path;
 		directory.remove_filename();
@@ -74,7 +75,9 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		std::vector<glm::vec4> imageData;
 		imageData.resize(width * height);
 		memcpy(imageData.data(), data, sizeof(glm::vec4) * width * height);
-		SetData(imageData, { width, height });
+		//SetData(imageData, { width, height });
+		auto& textureStorage = TextureStorage::RefTexture2DStorage(m_textureStorageHandle);
+		textureStorage.SetDataImmediately(imageData, { width, height });
 	}
 	else
 	{
@@ -85,25 +88,43 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	return true;
 }
 
+void Texture2D::ApplyOpacityMap(const std::shared_ptr<Texture2D>& target)
+{
+	std::vector<glm::vec4> colorData;
+	if (!target) return;
+	GetRgbaChannelData(colorData);
+	std::vector<glm::vec4> alphaData;
+	const auto resolution = GetResolution();
+	target->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
+	Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
+		{
+			colorData[i].a = alphaData[i].r;
+		}
+	);
+	SetRgbaChannelData(colorData, target->GetResolution());
+	SetUnsaved();
+}
+
 void Texture2D::Serialize(YAML::Emitter& out) const
 {
 	std::vector<glm::vec4> pixels;
 	GetRgbaChannelData(pixels);
 	out << YAML::Key << "m_hdr" << YAML::Value << m_hdr;
 	out << YAML::Key << "m_resolution" << YAML::Value << GetResolution();
-	if(m_hdr){
+	if (m_hdr) {
 		Serialization::SerializeVector("m_pixels", pixels, out);
-	}else
+	}
+	else
 	{
 		std::vector<glm::u8vec4> transferredPixels;
 		transferredPixels.resize(pixels.size());
 		Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
-		{
-			transferredPixels[i].r = static_cast<char>(glm::clamp(pixels[i].r * 256.f, 0.f, 255.f));
-			transferredPixels[i].g = static_cast<char>(glm::clamp(pixels[i].g * 256.f, 0.f, 255.f));
-			transferredPixels[i].b = static_cast<char>(glm::clamp(pixels[i].b * 256.f, 0.f, 255.f));
-			transferredPixels[i].a = static_cast<char>(glm::clamp(pixels[i].a * 256.f, 0.f, 255.f));
-		});
+			{
+				transferredPixels[i].r = static_cast<char>(glm::clamp(pixels[i].r * 256.f, 0.f, 255.f));
+				transferredPixels[i].g = static_cast<char>(glm::clamp(pixels[i].g * 256.f, 0.f, 255.f));
+				transferredPixels[i].b = static_cast<char>(glm::clamp(pixels[i].b * 256.f, 0.f, 255.f));
+				transferredPixels[i].a = static_cast<char>(glm::clamp(pixels[i].a * 256.f, 0.f, 255.f));
+			});
 		Serialization::SerializeVector("m_pixels", transferredPixels, out);
 	}
 }
@@ -113,27 +134,28 @@ void Texture2D::Deserialize(const YAML::Node& in)
 	std::vector<glm::vec4> pixels;
 	glm::ivec2 resolution = glm::ivec2(0);
 
-	if(in["m_hdr"]) m_hdr = in["m_hdr"].as<bool>();
-	if(in["m_resolution"]) resolution = in["m_resolution"].as<glm::ivec2>();
+	if (in["m_hdr"]) m_hdr = in["m_hdr"].as<bool>();
+	if (in["m_resolution"]) resolution = in["m_resolution"].as<glm::ivec2>();
 
-	if(m_hdr){
+	if (m_hdr) {
 		Serialization::DeserializeVector("m_pixels", pixels, in);
-		if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
-	}else
+		if (!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
+	}
+	else
 	{
 		std::vector<glm::u8vec4> transferredPixels;
 		Serialization::DeserializeVector("m_pixels", transferredPixels, in);
 		pixels.resize(transferredPixels.size());
 
 		Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
-		{
-			pixels[i].r = glm::clamp(transferredPixels[i].r / 256.f, 0.f, 1.f);
-			pixels[i].g = glm::clamp(transferredPixels[i].g / 256.f, 0.f, 1.f);
-			pixels[i].b = glm::clamp(transferredPixels[i].b / 256.f, 0.f, 1.f);
-			pixels[i].a = glm::clamp(transferredPixels[i].a / 256.f, 0.f, 1.f);
-		});
+			{
+				pixels[i].r = glm::clamp(transferredPixels[i].r / 256.f, 0.f, 1.f);
+				pixels[i].g = glm::clamp(transferredPixels[i].g / 256.f, 0.f, 1.f);
+				pixels[i].b = glm::clamp(transferredPixels[i].b / 256.f, 0.f, 1.f);
+				pixels[i].a = glm::clamp(transferredPixels[i].a / 256.f, 0.f, 1.f);
+			});
 
-		if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
+		if (!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
 	}
 }
 
@@ -167,13 +189,21 @@ bool Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	bool changed = false;
 
 	const auto textureStorage = PeekTexture2DStorage();
-
+	static AssetRef temp;
+	if(EditorLayer::DragAndDropButton<Texture2D>(temp, "Apply Opacity..."))
+	{
+		if(const auto tex = temp.Get<Texture2D>())
+		{
+			ApplyOpacityMap(tex);
+			temp.Clear();
+		}
+	}
 	if (textureStorage.m_imTextureId) {
-		static float debugSacle = 0.25f;
-		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
-		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
+		static float debugScale = 0.25f;
+		ImGui::DragFloat("Scale", &debugScale, 0.01f, 0.1f, 10.0f);
+		debugScale = glm::clamp(debugScale, 0.1f, 1.0f);
 		ImGui::Image(textureStorage.m_imTextureId,
-			ImVec2(textureStorage.m_image->GetExtent().width * debugSacle, textureStorage.m_image->GetExtent().height * debugSacle),
+			ImVec2(textureStorage.m_image->GetExtent().width * debugScale, textureStorage.m_image->GetExtent().height * debugScale),
 			ImVec2(0, 1),
 			ImVec2(1, 0));
 	}
@@ -364,7 +394,7 @@ void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, const int resize
 	const auto& textureStorage = PeekTexture2DStorage();
 	const auto resolutionX = textureStorage.m_image->GetExtent().width;
 	const auto resolutionY = textureStorage.m_image->GetExtent().height;
-	if((resizeX == -1 && resizeY == -1) || (resolutionX == resizeX && resolutionY == resizeY))
+	if ((resizeX == -1 && resizeY == -1) || (resolutionX == resizeX && resolutionY == resizeY))
 	{
 		Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
 		imageBuffer.CopyFromImage(*textureStorage.m_image);

@@ -31,6 +31,8 @@ namespace EvoEngine
 		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
+		void ApplyOpacityMap(const std::shared_ptr<Texture2D>& target);
+
 		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 		bool m_hdr = false;

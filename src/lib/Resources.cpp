@@ -7,6 +7,7 @@
 #include "EditorLayer.hpp"
 #include "GeometryStorage.hpp"
 #include "Shader.hpp"
+#include "TextureStorage.hpp"
 using namespace EvoEngine;
 
 void Resources::LoadShaders()
@@ -624,6 +625,9 @@ void Resources::InitializeEnvironmentalMap()
 
 	const auto defaultSkyboxTexture = CreateResource<Texture2D>("DEFAULT_SKYBOX_TEXTURE");
 	defaultSkyboxTexture->LoadInternal(std::filesystem::path("./DefaultResources") / "Textures/Cubemaps/GrandCanyon/GCanyon_C_YumaPoint_Env.hdr");
+
+	TextureStorage::DeviceSync();
+
 	const auto defaultSkybox = CreateResource<Cubemap>("DEFAULT_SKYBOX");
 	defaultSkybox->Initialize(256);
 	defaultSkybox->ConvertFromEquirectangularTexture(defaultSkyboxTexture);

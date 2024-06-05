@@ -216,10 +216,15 @@ void Texture2DStorage::Initialize(const glm::uvec2& resolution)
 	m_sampler = std::make_shared<Sampler>(samplerInfo);
 }
 
-void Texture2DStorage::UploadData()
+void Texture2DStorage::SetDataImmediately(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
 {
-	Initialize(m_newResolution);
-	const auto imageSize = m_newResolution.x * m_newResolution.y * sizeof(glm::vec4);
+	UploadData(data, resolution);
+}
+
+void Texture2DStorage::UploadData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
+{
+	Initialize(resolution);
+	const auto imageSize = resolution.x * resolution.y * sizeof(glm::vec4);
 	VkBufferCreateInfo stagingBufferCreateInfo{};
 	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	stagingBufferCreateInfo.size = imageSize;
@@ -232,7 +237,7 @@ void Texture2DStorage::UploadData()
 	Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
 	void* deviceData = nullptr;
 	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
-	memcpy(deviceData, m_newData.data(), imageSize);
+	memcpy(deviceData, data.data(), imageSize);
 	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
 
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
@@ -246,8 +251,7 @@ void Texture2DStorage::UploadData()
 	
 	EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
 
-	m_newData.clear();
-	m_newResolution = {};
+	
 }
 
 void Texture2DStorage::Clear()
@@ -279,7 +283,6 @@ void Texture2DStorage::SetData(const std::vector<glm::vec4>& data, const glm::uv
 {
 	m_newData = data;
 	m_newResolution = resolution;
-	UploadData();
 }
 
 void TextureStorage::DeviceSync()
@@ -304,12 +307,16 @@ void TextureStorage::DeviceSync()
 	for (int textureIndex = 0; textureIndex < storage.m_texture2Ds.size(); textureIndex++)
 	{
 		auto& textureStorage = storage.m_texture2Ds[textureIndex];
-		if (!textureStorage.m_newData.empty()) textureStorage.UploadData();
+		if (!textureStorage.m_newData.empty()){
+			textureStorage.UploadData(textureStorage.m_newData, textureStorage.m_newResolution);
+			textureStorage.m_newData.clear();
+			textureStorage.m_newResolution = {};
+		}
 		VkDescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = textureStorage.GetLayout();
 		imageInfo.imageView = textureStorage.GetVkImageView();
 		imageInfo.sampler = textureStorage.GetVkSampler();
-		renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
+		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
 	}
 
 	for (int textureIndex = 0; textureIndex < storage.m_cubemaps.size(); textureIndex++)
@@ -332,7 +339,7 @@ void TextureStorage::DeviceSync()
 		imageInfo.imageLayout = textureStorage.GetLayout();
 		imageInfo.imageView = textureStorage.GetVkImageView();
 		imageInfo.sampler = textureStorage.GetVkSampler();
-		renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, textureIndex);
+		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, textureIndex);
 	}
 }
 
