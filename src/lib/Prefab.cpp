@@ -1238,6 +1238,7 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 		std::vector<glm::vec4> colorData;
 		const auto& albedoTexture = pair.first;
 		const auto& opacityTexture = pair.second;
+		if(!albedoTexture || !opacityTexture) continue;
 		albedoTexture->GetRgbaChannelData(colorData);
 		std::vector<glm::vec4> alphaData;
 		const auto resolution = albedoTexture->GetResolution();
