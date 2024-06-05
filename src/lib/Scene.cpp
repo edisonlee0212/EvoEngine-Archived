@@ -5,6 +5,7 @@
 #include "EntityMetadata.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
+#include "Lights.hpp"
 #include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
@@ -13,7 +14,10 @@ using namespace EvoEngine;
 void Scene::Purge()
 {
 	m_pressedKeys.clear();
+	m_mainCamera.Clear();
+
 	m_sceneDataStorage.m_entityPrivateComponentStorage = PrivateComponentStorage();
+	m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 	m_sceneDataStorage.m_entities.clear();
 	m_sceneDataStorage.m_entityMetadataList.clear();
 	for (int index = 1; index < m_sceneDataStorage.m_dataComponentStorages.size(); index++)
@@ -381,6 +385,7 @@ void Scene::Serialize(YAML::Emitter& out) const
 }
 void Scene::Deserialize(const YAML::Node& in)
 {
+	Purge();
 	auto scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 	m_sceneDataStorage.m_entities.clear();
 	m_sceneDataStorage.m_entityMetadataList.clear();
@@ -388,6 +393,7 @@ void Scene::Deserialize(const YAML::Node& in)
 	m_sceneDataStorage.m_entities.emplace_back();
 	m_sceneDataStorage.m_entityMetadataList.emplace_back();
 	m_sceneDataStorage.m_dataComponentStorages.emplace_back();
+
 #pragma region EntityMetadata
 	auto inEntityMetadataList = in["m_entityMetadataList"];
 	int currentIndex = 1;
@@ -670,6 +676,38 @@ void Scene::OnCreate()
 	m_sceneDataStorage.m_entityMetadataList.emplace_back();
 	m_sceneDataStorage.m_dataComponentStorages.emplace_back();
 	m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
+	
+#pragma region Main Camera
+	const auto mainCameraEntity = CreateEntity("Main Camera");
+	Transform ltw;
+	ltw.SetPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+	ltw.SetScale(glm::vec3(1, 1, 1));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
+	SetDataComponent(mainCameraEntity, ltw);
+	auto mainCameraComponent = GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
+	m_mainCamera = mainCameraComponent;
+	mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
+#pragma endregion
+
+#pragma region Directional Light
+	const auto directionalLightEntity = CreateEntity("Directional Light");
+	ltw.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(90, 0, 0)));
+	SetDataComponent(directionalLightEntity, ltw);
+	auto directionLight = GetOrSetPrivateComponent<DirectionalLight>(directionalLightEntity).lock();
+#pragma endregion
+
+#pragma region Ground
+	const auto groundEntity = CreateEntity("Ground");
+	ltw.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	ltw.SetScale(glm::vec3(10, 1, 10));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
+	SetDataComponent(groundEntity, ltw);
+	auto groundMeshRendererComponent = GetOrSetPrivateComponent<MeshRenderer>(groundEntity).lock();
+	groundMeshRendererComponent->m_material = ProjectManager::CreateTemporaryAsset<Material>();
+	groundMeshRendererComponent->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_QUAD");
+#pragma endregion
+
 }
 
 

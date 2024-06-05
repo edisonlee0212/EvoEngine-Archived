@@ -3,6 +3,8 @@
 #include "Application.hpp"
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
+#include "Lights.hpp"
+#include "MeshRenderer.hpp"
 #include "Prefab.hpp"
 #include "Resources.hpp"
 #include "TransformGraph.hpp"
@@ -706,16 +708,6 @@ void ProjectManager::GetOrCreateProject(const std::filesystem::path& path)
 		SetStartScene(scene);
 		Application::Attach(scene);
 
-#pragma region Main Camera
-		const auto mainCameraEntity = scene->CreateEntity("Main Camera");
-		Transform cameraLtw;
-		cameraLtw.SetPosition(glm::vec3(0.0f, 5.0f, 10.0f));
-		cameraLtw.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
-		scene->SetDataComponent(mainCameraEntity, cameraLtw);
-		auto mainCameraComponent = scene->GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
-		scene->m_mainCamera = mainCameraComponent;
-		mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
-#pragma endregion
 		if (projectManager.m_newSceneCustomizer.has_value()) {
 			projectManager.m_newSceneCustomizer.value()(scene);
 			TransformGraph::CalculateTransformGraphs(scene);
