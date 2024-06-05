@@ -26,14 +26,14 @@ namespace EvoEngine
 		
 
 		void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const;
-
+		
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
 		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
-
+		bool m_hdr = false;
 		Texture2D();
 		const Texture2DStorage& PeekTexture2DStorage() const;
 		Texture2DStorage& RefTexture2DStorage() const;

@@ -57,7 +57,8 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 		Deserialize(in);
 		return true;
 	}
-
+	m_hdr = false;
+	if (path.extension() == ".hdr") m_hdr = true;
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
 
@@ -88,19 +89,52 @@ void Texture2D::Serialize(YAML::Emitter& out) const
 {
 	std::vector<glm::vec4> pixels;
 	GetRgbaChannelData(pixels);
-
+	out << YAML::Key << "m_hdr" << YAML::Value << m_hdr;
 	out << YAML::Key << "m_resolution" << YAML::Value << GetResolution();
-
-	Serialization::SerializeVector("m_pixels", pixels, out);
+	if(m_hdr){
+		Serialization::SerializeVector("m_pixels", pixels, out);
+	}else
+	{
+		std::vector<glm::u8vec4> transferredPixels;
+		transferredPixels.resize(pixels.size());
+		Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
+		{
+			transferredPixels[i].r = static_cast<char>(glm::clamp(pixels[i].r * 256.f, 0.f, 255.f));
+			transferredPixels[i].g = static_cast<char>(glm::clamp(pixels[i].g * 256.f, 0.f, 255.f));
+			transferredPixels[i].b = static_cast<char>(glm::clamp(pixels[i].b * 256.f, 0.f, 255.f));
+			transferredPixels[i].a = static_cast<char>(glm::clamp(pixels[i].a * 256.f, 0.f, 255.f));
+		});
+		Serialization::SerializeVector("m_pixels", transferredPixels, out);
+	}
 }
 
 void Texture2D::Deserialize(const YAML::Node& in)
 {
 	std::vector<glm::vec4> pixels;
 	glm::ivec2 resolution = glm::ivec2(0);
+
+	if(in["m_hdr"]) m_hdr = in["m_hdr"].as<bool>();
 	if(in["m_resolution"]) resolution = in["m_resolution"].as<glm::ivec2>();
-	Serialization::DeserializeVector("m_pixels", pixels, in);
-	if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
+
+	if(m_hdr){
+		Serialization::DeserializeVector("m_pixels", pixels, in);
+		if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
+	}else
+	{
+		std::vector<glm::u8vec4> transferredPixels;
+		Serialization::DeserializeVector("m_pixels", transferredPixels, in);
+		pixels.resize(transferredPixels.size());
+
+		Jobs::RunParallelFor(pixels.size(), [&](unsigned i)
+		{
+			pixels[i].r = glm::clamp(transferredPixels[i].r / 256.f, 0.f, 1.f);
+			pixels[i].g = glm::clamp(transferredPixels[i].g / 256.f, 0.f, 1.f);
+			pixels[i].b = glm::clamp(transferredPixels[i].b / 256.f, 0.f, 1.f);
+			pixels[i].a = glm::clamp(transferredPixels[i].a / 256.f, 0.f, 1.f);
+		});
+
+		if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
+	}
 }
 
 Texture2D::Texture2D()
