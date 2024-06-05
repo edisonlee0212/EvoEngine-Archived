@@ -65,13 +65,15 @@ namespace EvoEngine
         static void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel);
         static std::shared_ptr<Material> ReadMaterial(
             const std::string& directory,
-            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures,
+            std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
             const aiMaterial* importerMaterial);
         static bool ProcessNode(
             const std::string& directory,
             Prefab* modelNode,
             std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
             std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+            std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
             std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
             const aiNode* importerNode,
             const std::shared_ptr<AssimpNode>& assimpNode,

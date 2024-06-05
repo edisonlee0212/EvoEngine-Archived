@@ -26,6 +26,18 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path) const
 	}
 	else if (path.extension() == ".hdr") {
 		StoreToHdr(path.string());
+	}else if(path.extension() == ".evetexture2d")
+	{
+		auto directory = path;
+		directory.remove_filename();
+		std::filesystem::create_directories(directory);
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		Serialize(out);
+		std::ofstream fout(path.string());
+		fout << out.c_str();
+		fout.flush();
+		return true;
 	}
 	else {
 		EVOENGINE_ERROR("Not implemented!");
@@ -36,6 +48,16 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path) const
 
 bool Texture2D::LoadInternal(const std::filesystem::path& path)
 {
+	if (path.extension() == ".evetexture2d")
+	{
+		std::ifstream stream(path.string());
+		std::stringstream stringStream;
+		stringStream << stream.rdbuf();
+		YAML::Node in = YAML::Load(stringStream.str());
+		Deserialize(in);
+		return true;
+	}
+
 	stbi_set_flip_vertically_on_load(true);
 	int width, height, nrComponents;
 
@@ -60,6 +82,25 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path)
 	}
 	stbi_image_free(data);
 	return true;
+}
+
+void Texture2D::Serialize(YAML::Emitter& out) const
+{
+	std::vector<glm::vec4> pixels;
+	GetRgbaChannelData(pixels);
+
+	out << YAML::Key << "m_resolution" << YAML::Value << GetResolution();
+
+	Serialization::SerializeVector("m_pixels", pixels, out);
+}
+
+void Texture2D::Deserialize(const YAML::Node& in)
+{
+	std::vector<glm::vec4> pixels;
+	glm::ivec2 resolution = glm::ivec2(0);
+	if(in["m_resolution"]) resolution = in["m_resolution"].as<glm::ivec2>();
+	Serialization::DeserializeVector("m_pixels", pixels, in);
+	if(!pixels.empty() && resolution.x != 0 && resolution.y != 0) SetRgbaChannelData(pixels, resolution);
 }
 
 Texture2D::Texture2D()
@@ -360,12 +401,13 @@ void Texture2D::GetRedChannelData(std::vector<float>& dst, int resizeX, int resi
 	);
 }
 
-void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution) const
+void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution)
 {
 	SetData(src, resolution);
+	SetUnsaved();
 }
 
-void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution) const
+void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution)
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -375,9 +417,10 @@ void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::
 		}
 	);
 	SetData(imageData, resolution);
+	SetUnsaved();
 }
 
-void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution) const
+void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution)
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -387,9 +430,10 @@ void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::u
 		}
 	);
 	SetData(imageData, resolution);
+	SetUnsaved();
 }
 
-void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution) const
+void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution)
 {
 	std::vector<glm::vec4> imageData;
 	imageData.resize(resolution.x * resolution.y);
@@ -399,4 +443,5 @@ void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec
 		}
 	);
 	SetData(imageData, resolution);
+	SetUnsaved();
 }

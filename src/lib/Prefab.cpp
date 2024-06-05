@@ -146,7 +146,7 @@ bool Prefab::LoadInternal(const std::filesystem::path& path)
 		Deserialize(in);
 		return true;
 	}
-	return LoadModelInternal(path);	
+	return LoadModelInternal(path);
 }
 
 void Prefab::AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle)
@@ -317,7 +317,7 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 	if (!std::filesystem::exists(fullPath))
 	{
 		auto baseDir = std::filesystem::absolute(directory);
-		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path()/ "textures" / std::filesystem::path(path).filename().string()).string();
+		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "textures" / std::filesystem::path(path).filename().string()).string();
 	}
 	if (!std::filesystem::exists(fullPath))
 	{
@@ -329,10 +329,11 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 		return search->second;
 	}
 	std::shared_ptr<Texture2D> texture2D;
-	if(ProjectManager::IsInProjectFolder(fullPath))
+	if (ProjectManager::IsInProjectFolder(fullPath))
 	{
 		texture2D = std::dynamic_pointer_cast<Texture2D>(ProjectManager::GetOrCreateAsset(ProjectManager::GetPathRelativeToProject(fullPath)));
-	}else
+	}
+	else
 	{
 		texture2D = ProjectManager::CreateTemporaryAsset<Texture2D>();
 		texture2D->Import(fullPath);
@@ -342,7 +343,8 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 }
 std::shared_ptr<Material> Prefab::ReadMaterial(
 	const std::string& directory,
-	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures,
+	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
 	const aiMaterial* importerMaterial)
 {
 	auto targetMaterial = ProjectManager::CreateTemporaryAsset<Material>();
@@ -353,57 +355,61 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &str);
-			targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &str);
-			targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		if (importerMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_NORMALS, 0, &str);
-			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		else if (importerMaterial->GetTextureCount(aiTextureType_HEIGHT) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_HEIGHT, 0, &str);
-			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		else if (importerMaterial->GetTextureCount(aiTextureType_NORMAL_CAMERA) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &str);
-			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 
 		if (importerMaterial->GetTextureCount(aiTextureType_METALNESS) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_METALNESS, 0, &str);
-			targetMaterial->SetMetallicTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetMetallicTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &str);
-			targetMaterial->SetRoughnessTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetRoughnessTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		if (importerMaterial->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &str);
-			targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), texture2DsLoaded));
+			targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
 		}
 		if (importerMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)
 		{
 			aiString str;
 			importerMaterial->GetTexture(aiTextureType_OPACITY, 0, &str);
-			const auto opacityTexture = CollectTexture(directory, str.C_Str(), texture2DsLoaded);
+			const auto opacityTexture = CollectTexture(directory, str.C_Str(), loadedTextures);
 			const auto albedoTexture = targetMaterial->GetAlbedoTexture();
+
+			opacityMaps.emplace_back(albedoTexture, opacityTexture);
+
+			/*
 			std::vector<glm::vec4> colorData;
 			albedoTexture->GetRgbaChannelData(colorData);
 			std::vector<glm::vec4> alphaData;
@@ -414,7 +420,9 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 					colorData[i].a = alphaData[i].r;
 				}
 			);
-			albedoTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
+			std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
+			replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
+			targetMaterial->SetAlbedoTexture(replacementTexture);*/
 		}
 
 		aiColor3D color;
@@ -447,6 +455,7 @@ bool Prefab::ProcessNode(
 	Prefab* modelNode,
 	std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
 	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
 	std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
 	const aiNode* importerNode,
 	const std::shared_ptr<AssimpNode>& assimpNode,
@@ -473,7 +482,7 @@ bool Prefab::ProcessNode(
 				importerMesh->mMaterialIndex < importerScene->mNumMaterials)
 				importerMaterial = importerScene->mMaterials[importerMesh->mMaterialIndex];
 			material = ReadMaterial(
-				directory, texture2DsLoaded,
+				directory, texture2DsLoaded, opacityMaps,
 				importerMaterial);
 			loadedMaterials[importerMesh->mMaterialIndex] = material;
 		}
@@ -531,7 +540,7 @@ bool Prefab::ProcessNode(
 			directory,
 			childNode.get(),
 			loadedMaterials,
-			texture2DsLoaded,
+			texture2DsLoaded, opacityMaps,
 			bonesMap,
 			importerNode->mChildren[i],
 			childAssimpNode,
@@ -865,6 +874,10 @@ void Prefab::Serialize(YAML::Emitter& out) const
 	out << YAML::Key << "m_name" << YAML::Value << m_name;
 	out << YAML::Key << "m_enabled" << YAML::Value << m_enabled;
 	out << YAML::Key << "m_entityHandle" << YAML::Value << m_entityHandle.GetValue();
+
+
+
+
 	if (!m_dataComponents.empty())
 	{
 		out << YAML::Key << "m_dataComponents" << YAML::BeginSeq;
@@ -918,6 +931,28 @@ void Prefab::Deserialize(const YAML::Node& in)
 			}
 		}
 	}
+
+	std::vector<std::pair<int, std::shared_ptr<IAsset>>> localAssets;
+	if (const auto inLocalAssets = in["LocalAssets"])
+	{
+		int index = 0;
+		for (const auto& i : inLocalAssets)
+		{
+			// First, find the asset in assetregistry
+			if (const auto typeName = i["TypeName"].as<std::string>(); Serialization::HasSerializableType(typeName)) {
+				auto asset =
+					ProjectManager::CreateTemporaryAsset(typeName, i["Handle"].as<uint64_t>());
+				localAssets.emplace_back(index, asset);
+			}
+			index++;
+		}
+
+		for (const auto& i : localAssets)
+		{
+			i.second->Deserialize(inLocalAssets[i.first]);
+		}
+	}
+
 	if (in["m_privateComponents"])
 	{
 		for (const auto& i : in["m_privateComponents"])
@@ -994,7 +1029,7 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const
 			out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
 			for (auto& i : assetMap)
 			{
-				if(!i.second->Saved()) i.second->Save();
+				if (!i.second->Saved()) i.second->Save();
 				out << YAML::BeginMap;
 				out << YAML::Key << "TypeName" << YAML::Value << i.second->GetTypeName();
 				out << YAML::Key << "Handle" << YAML::Value << i.first.GetValue();
@@ -1010,9 +1045,9 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const
 		fout.flush();
 		return true;
 	}
-	
+
 	return SaveModelInternal(path);
-	
+
 }
 void Prefab::RelinkChildren(const std::shared_ptr<Scene>& scene, const Entity& parentEntity, const std::unordered_map<Handle, Handle>& map)
 {
@@ -1037,7 +1072,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 	Assimp::Exporter exporter;
 	aiScene* scene = new aiScene();
 
-	
+
 	delete scene;
 	return true;
 }
@@ -1171,9 +1206,10 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 	// retrieve the directory path of the filepath
 	auto temp = path;
 	const std::string directory = temp.remove_filename().string();
-	std::unordered_map<std::string, std::shared_ptr<Texture2D>> texture2DsLoaded;
+	std::unordered_map<std::string, std::shared_ptr<Texture2D>> loadedTextures;
 	m_name = path.filename().string();
 	std::unordered_map<unsigned, std::shared_ptr<Material>> loadedMaterials;
+	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>> opacityMaps;
 	std::unordered_map<std::string, std::shared_ptr<Bone>> bonesMap;
 	std::shared_ptr<Animation> animation;
 	if (!bonesMap.empty() || scene->HasAnimations())
@@ -1185,7 +1221,8 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 		directory,
 		this,
 		loadedMaterials,
-		texture2DsLoaded,
+		loadedTextures,
+		opacityMaps,
 		bonesMap,
 		scene->mRootNode,
 		rootAssimpNode,
@@ -1195,6 +1232,38 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 		EVOENGINE_ERROR("Model is empty!");
 		return false;
 	}
+
+	for (auto& pair : opacityMaps)
+	{
+		std::vector<glm::vec4> colorData;
+		const auto& albedoTexture = pair.first;
+		const auto& opacityTexture = pair.second;
+		albedoTexture->GetRgbaChannelData(colorData);
+		std::vector<glm::vec4> alphaData;
+		const auto resolution = albedoTexture->GetResolution();
+		opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
+		Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
+			{
+				colorData[i].a = alphaData[i].r;
+			}
+		);
+		std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
+		replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
+		pair.second = replacementTexture;
+	}
+
+	for(const auto& material : loadedMaterials)
+	{
+		const auto albedoTexture = material.second->GetAlbedoTexture();
+		for(const auto& pair : opacityMaps)
+		{
+			if(albedoTexture->GetHandle() == pair.first->GetHandle())
+			{
+				material.second->SetAlbedoTexture(pair.second);
+			}
+		}
+	}
+
 	if (!bonesMap.empty() || scene->HasAnimations())
 	{
 		rootAssimpNode->NecessaryWalker(bonesMap);

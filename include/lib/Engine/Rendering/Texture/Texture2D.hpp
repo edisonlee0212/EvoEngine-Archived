@@ -31,6 +31,9 @@ namespace EvoEngine
 		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
+		void Serialize(YAML::Emitter& out) const override;
+		void Deserialize(const YAML::Node& in) override;
+
 		Texture2D();
 		const Texture2DStorage& PeekTexture2DStorage() const;
 		Texture2DStorage& RefTexture2DStorage() const;
@@ -58,9 +61,9 @@ namespace EvoEngine
 		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRedChannelData(std::vector<float>& dst, int resizeX = -1, int resizeY = -1) const;
 
-		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution) const;
-		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution) const;
-		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution) const;
-		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution) const;
+		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
+		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
+		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
+		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
 	};
 }

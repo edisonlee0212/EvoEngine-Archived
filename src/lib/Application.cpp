@@ -493,7 +493,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands", ".hair" });
 	ClassRegistry::RegisterAsset<Prefab>("Prefab", 
 		{ ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
-	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
+	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".evetexture2d", ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });
 	ClassRegistry::RegisterAsset<ParticleInfoList>("ParticleInfoList", { ".eveparticleinfolist" });
 	ClassRegistry::RegisterAsset<Animation>("Animation", { ".eveanimation" });
