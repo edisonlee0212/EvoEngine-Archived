@@ -28,6 +28,7 @@
 #include "Particles.hpp"
 #include "PointCloud.hpp"
 #include "PostProcessingStack.hpp"
+#include "RenderLayer.hpp"
 #include "StrandsRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
 #include "Strands.hpp"
@@ -94,6 +95,11 @@ void Application::PreUpdateInternal()
 			EVOENGINE_WARNING("Fixed update timeout!");
 		} break;
 	}
+
+	if (const auto renderLayer = GetLayer<RenderLayer>())
+	{
+		renderLayer->ClearAllCameras();
+	}
 }
 
 void Application::UpdateInternal()
@@ -139,7 +145,7 @@ void Application::LateUpdateInternal()
 		ImGuizmo::BeginFrame();
 		const auto windowLayer = GetLayer<WindowLayer>();
 		if (windowLayer)
-		{			
+		{
 			ImGuiFileDialog::Instance()->OpenDialog("ChooseProjectKey", "Choose Project", ".eveproj", ".");
 #pragma region Dock
 			static bool opt_fullscreen_persistant = true;
@@ -252,7 +258,10 @@ void Application::LateUpdateInternal()
 		application.m_applicationExecutionStatus = ApplicationExecutionStatus::LateUpdate;
 		for (const auto& i : application.m_externalLateUpdateFunctions)
 			i();
-
+		if (const auto renderLayer = GetLayer<RenderLayer>())
+		{
+			renderLayer->RenderAllCameras();
+		}
 		if (application.m_applicationStatus == ApplicationStatus::Playing || application.m_applicationStatus == ApplicationStatus::Step)
 		{
 			application.m_activeScene->LateUpdate();
@@ -295,7 +304,7 @@ void Application::Reset()
 void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 {
 	auto& application = GetInstance();
-	
+
 	if (application.m_applicationStatus != ApplicationStatus::Uninitialized) {
 		EVOENGINE_ERROR("Application is not uninitialzed!")
 			return;
@@ -324,7 +333,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	Resources::Initialize();
 	Graphics::PostResourceLoadingInitialization();
 	Resources::InitializeEnvironmentalMap();
-	
+
 	for (const auto& layer : application.m_layers)
 	{
 		layer->OnCreate();
@@ -345,7 +354,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	}
 	else
 	{
-		application.m_applicationStatus = ApplicationStatus::NoProject; 
+		application.m_applicationStatus = ApplicationStatus::NoProject;
 		if (windowLayer) {
 			windowLayer->ResizeWindow(800, 600);
 		}
@@ -491,7 +500,7 @@ void Application::InitializeRegistry()
 	ClassRegistry::RegisterAsset<Shader>("Shader", { ".eveshader" });
 	ClassRegistry::RegisterAsset<Mesh>("Mesh", { ".evemesh" });
 	ClassRegistry::RegisterAsset<Strands>("Strands", { ".evestrands", ".hair" });
-	ClassRegistry::RegisterAsset<Prefab>("Prefab", 
+	ClassRegistry::RegisterAsset<Prefab>("Prefab",
 		{ ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" });
 	ClassRegistry::RegisterAsset<Texture2D>("Texture2D", { ".evetexture2d", ".png", ".jpg", ".jpeg", ".tga", ".hdr" });
 	ClassRegistry::RegisterAsset<Scene>("Scene", { ".evescene" });

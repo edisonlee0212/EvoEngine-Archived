@@ -150,10 +150,9 @@ namespace EvoEngine
 		friend class Material;
 		friend class Lighting;
 		friend class PostProcessingStack;
+		friend class Application;
 		void OnCreate() override;
 		void OnDestroy() override;
-		void PreUpdate() override;
-		void LateUpdate() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
 		void PreparePointAndSpotLightShadowMap() const;
@@ -174,6 +173,8 @@ namespace EvoEngine
 			const std::shared_ptr<Scene>& scene, const Entity& owner,
 			const std::shared_ptr<StrandsRenderer>& strandsRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
 
+		void ClearAllCameras();
+		void RenderAllCameras();
 	public:
 		bool m_wireFrame = false;
 

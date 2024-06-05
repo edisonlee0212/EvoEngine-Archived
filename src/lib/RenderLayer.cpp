@@ -88,7 +88,7 @@ void RenderLayer::OnDestroy()
 	m_instanceInfoDescriptorBuffers.clear();
 }
 
-void RenderLayer::PreUpdate()
+void RenderLayer::ClearAllCameras()
 {
 	const auto scene = GetScene();
 	if (!scene) return;
@@ -105,7 +105,7 @@ void RenderLayer::PreUpdate()
 	);
 }
 
-void RenderLayer::LateUpdate()
+void RenderLayer::RenderAllCameras()
 {
 	const auto scene = GetScene();
 	if (!scene) return;
