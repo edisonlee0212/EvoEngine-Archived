@@ -83,11 +83,9 @@ struct Bone
 #pragma endregion
 class Animation : public IAsset
 {
-    friend class Prefab;
-    friend class AssimpNode;
+  public:
     std::map<std::string, float> m_animationLength;
     std::shared_ptr<Bone> m_rootBone;
-  public:
     size_t m_boneSize = 0;
     [[nodiscard]] std::shared_ptr<Bone>& UnsafeGetRootBone();
     [[nodiscard]] std::map<std::string, float>&UnsafeGetAnimationLengths();

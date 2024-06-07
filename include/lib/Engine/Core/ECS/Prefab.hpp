@@ -12,21 +12,7 @@
 
 namespace EvoEngine
 {
-    struct AssimpNode
-    {
-        aiNode* m_correspondingNode = nullptr;
-        std::string m_name;
-        Transform m_localTransform;
-        AssimpNode(aiNode* node);
-        std::shared_ptr<AssimpNode> m_parent;
-        std::vector<std::shared_ptr<AssimpNode>> m_children;
-        std::shared_ptr<Bone> m_bone;
-        bool m_hasMesh;
-
-        bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap);
-        void AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const;
-        void AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const;
-    };
+   
     struct DataComponentHolder
     {
         DataComponentType m_type;
@@ -47,41 +33,11 @@ namespace EvoEngine
 
     class Prefab : public IAsset
     {
-        std::string m_name;
+       
         bool m_enabled = true;
 #pragma region Model Loading
         static void AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle);
-
-        static std::shared_ptr<Texture2D> CollectTexture(
-            const std::string& directory,
-            const std::string& path,
-            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures);
-
         static void ApplyBoneIndices(Prefab* node);
-        static void ReadAnimations(
-            const aiScene* importerScene,
-            const std::shared_ptr<Animation>& animator,
-            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap);
-        static void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel);
-        static std::shared_ptr<Material> ReadMaterial(
-            const std::string& directory,
-            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures,
-            std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
-            const aiMaterial* importerMaterial);
-        static bool ProcessNode(
-            const std::string& directory,
-            Prefab* modelNode,
-            std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
-            std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-            std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
-            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
-            const aiNode* importerNode,
-            const std::shared_ptr<AssimpNode>& assimpNode,
-            const aiScene* importerScene,
-            const std::shared_ptr<Animation>& animation);
-        static std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh);
-        static std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
-            std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh);
         static void AttachChildren(const std::shared_ptr<Scene>& scene,
                                    const std::shared_ptr<Prefab>& modelNode,
                                    Entity parentEntity,
@@ -105,6 +61,7 @@ namespace EvoEngine
 
 
     public:
+    	std::string m_name;
         void GatherAssets();
 
     	std::unordered_map<Handle, AssetRef> m_assets;

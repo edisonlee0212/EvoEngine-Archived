@@ -1810,6 +1810,7 @@ size_t Scene::GetEntityAmount(EntityQuery entityQuery, bool checkEnable)
 std::vector<Entity> Scene::GetDescendants(const Entity& entity)
 {
 	std::vector<Entity> retVal;
+	if(!IsEntityValid(entity)) return retVal;
 	GetDescendantsHelper(entity, retVal);
 	return retVal;
 }

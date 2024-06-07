@@ -15,189 +15,62 @@ void Prefab::OnCreate()
 	m_name = "New Prefab";
 }
 
-Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool autoAdjustSize) const
+#pragma region Assimp Import
+struct AssimpImportNode
 {
-	std::unordered_map<Handle, Handle> entityMap;
-	std::vector<DataComponentType> types;
-	types.reserve(m_dataComponents.size());
-	for (auto& i : m_dataComponents)
-	{
-		types.emplace_back(i.m_type);
-	}
-	auto archetype = Entities::CreateEntityArchetype("", types);
-	const Entity entity = scene->CreateEntity(archetype, m_name);
-	entityMap[m_entityHandle] = scene->GetEntityHandle(entity);
-	for (auto& i : m_dataComponents)
-	{
-		scene->SetDataComponent(entity.GetIndex(), i.m_type.m_typeId, i.m_type.m_size, i.m_data.get());
-	}
-	int index = 0;
-	for (const auto& i : m_children)
-	{
-		AttachChildren(scene, i, entity, entityMap);
-		index++;
-	}
+	aiNode* m_correspondingNode = nullptr;
+	std::string m_name;
+	Transform m_localTransform;
+	AssimpImportNode(aiNode* node);
+	std::shared_ptr<AssimpImportNode> m_parent;
+	std::vector<std::shared_ptr<AssimpImportNode>> m_children;
+	std::shared_ptr<Bone> m_bone;
+	bool m_hasMesh;
 
-	for (auto& i : m_privateComponents)
-	{
-		size_t id;
-		auto ptr = std::static_pointer_cast<IPrivateComponent>(
-			Serialization::ProduceSerializable(i.m_data->GetTypeName(), id));
-		Serialization::ClonePrivateComponent(ptr, i.m_data);
-		ptr->m_handle = Handle();
-		ptr->m_scene = scene;
-		scene->SetPrivateComponent(entity, ptr);
-	}
-	for (const auto& i : m_children)
-	{
-		AttachChildrenPrivateComponent(scene, i, entity, entityMap);
-		index++;
-	}
-
-	RelinkChildren(scene, entity, entityMap);
-
-	scene->SetEnable(entity, m_enabled);
-
-	TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
-
-	if(autoAdjustSize){
-		const auto bound = scene->GetEntityBoundingBox(entity);
-		auto size = bound.Size();
-		glm::vec3 scale = glm::vec3(1.f);
-		while(size.x > 10.f || size.y > 10.f || size.z > 10.f)
-		{
-			scale /= 2.f;
-			size /= 2.f;
-		}
-		Transform t{};
-		GlobalTransform gt {};
-		gt.SetScale(scale);
-		t.SetScale(scale);
-		scene->SetDataComponent(entity, t);
-		scene->SetDataComponent(entity, gt);
-		TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
-	}
-	return entity;
-}
-void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
-	const std::shared_ptr<Prefab>& modelNode,
-	Entity parentEntity,
-	std::unordered_map<Handle, Handle>& map)
-{
-	std::vector<DataComponentType> types;
-	for (auto& i : modelNode->m_dataComponents)
-	{
-		types.emplace_back(i.m_type);
-	}
-	auto archetype = Entities::CreateEntityArchetype("", types);
-	auto entity = scene->CreateEntity(archetype, modelNode->m_name);
-	map[modelNode->m_entityHandle] = scene->GetEntityHandle(entity);
-	scene->SetParent(entity, parentEntity);
-	for (auto& i : modelNode->m_dataComponents)
-	{
-		scene->SetDataComponent(entity.GetIndex(), i.m_type.m_typeId, i.m_type.m_size, i.m_data.get());
-	}
-	int index = 0;
-	for (auto& i : modelNode->m_children)
-	{
-		AttachChildren(scene, i, entity, map);
-		index++;
-	}
-}
-
-void Prefab::AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,
-	const std::shared_ptr<Prefab>& modelNode,
-	const Entity& parentEntity,
-	const std::unordered_map<Handle, Handle>& map) const
-{
-	Entity entity;
-	auto children = scene->GetChildren(parentEntity);
-	for (auto& i : children)
-	{
-		auto a = scene->GetEntityHandle(i).GetValue();
-		auto b = map.at(modelNode->m_entityHandle).GetValue();
-		if (a == b)
-			entity = i;
-	}
-	if (entity.GetIndex() == 0)
-		return;
-	for (auto& i : modelNode->m_privateComponents)
-	{
-		size_t id;
-		auto ptr = std::static_pointer_cast<IPrivateComponent>(
-			Serialization::ProduceSerializable(i.m_data->GetTypeName(), id));
-		Serialization::ClonePrivateComponent(ptr, i.m_data);
-		ptr->m_scene = scene;
-		scene->SetPrivateComponent(entity, ptr);
-	}
-	int index = 0;
-	for (auto& i : modelNode->m_children)
-	{
-		AttachChildrenPrivateComponent(scene, i, entity, map);
-		index++;
-	}
-	scene->SetEnable(entity, m_enabled);
-}
-#pragma region Model Loading
-bool Prefab::LoadInternal(const std::filesystem::path& path)
-{
-	if (path.extension() == ".eveprefab")
-	{
-		std::ifstream stream(path.string());
-		std::stringstream stringStream;
-		stringStream << stream.rdbuf();
-		YAML::Node in = YAML::Load(stringStream.str());
-#pragma region Assets
-		if (const auto& inLocalAssets = in["LocalAssets"])
-		{
-			std::vector<std::shared_ptr<IAsset>> localAssets;
-			for (const auto& i : inLocalAssets)
-			{
-				Handle handle = i["Handle"].as<uint64_t>();
-				localAssets.push_back(ProjectManager::CreateTemporaryAsset(i["TypeName"].as<std::string>(), handle));
-			}
-			int index = 0;
-			for (const auto& i : inLocalAssets)
-			{
-				localAssets[index++]->Deserialize(i);
-			}
-		}
-
-#pragma endregion
-		Deserialize(in);
-		return true;
-	}
-	return LoadModelInternal(path);
-}
-
-void Prefab::AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle)
-{
-	if (const auto skinnedMeshRenderer = parent->GetPrivateComponent<SkinnedMeshRenderer>())
-	{
-		skinnedMeshRenderer->m_animator.m_entityHandle = animatorEntityHandle;
-		skinnedMeshRenderer->m_animator.m_privateComponentTypeName = "Animator";
-	}
-	for (auto& i : parent->m_children)
-	{
-		AttachAnimator(i.get(), animatorEntityHandle);
-	}
-}
+	bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap);
+	void AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const;
+	void AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const;
+};
 glm::mat4 mat4_cast(const aiMatrix4x4& m)
 {
 	return glm::transpose(glm::make_mat4(&m.a1));
+}
+aiMatrix4x4 mat4_cast(const glm::mat4& m)
+{
+	aiMatrix4x4 retVal;
+	retVal.a1 = m[0][0];
+	retVal.a2 = m[1][0];
+	retVal.a3 = m[2][0];
+	retVal.a4 = m[3][0];
+
+	retVal.b1 = m[0][1];
+	retVal.b2 = m[1][1];
+	retVal.b3 = m[2][1];
+	retVal.b4 = m[3][1];
+
+	retVal.c1 = m[0][2];
+	retVal.c2 = m[1][2];
+	retVal.c3 = m[2][2];
+	retVal.c4 = m[3][2];
+
+	retVal.d1 = m[0][3];
+	retVal.d2 = m[1][3];
+	retVal.d3 = m[2][3];
+	retVal.d4 = m[3][3];
+	return retVal;
 }
 glm::mat4 mat4_cast(const aiMatrix3x3& m)
 {
 	return glm::transpose(glm::make_mat3(&m.a1));
 }
-AssimpNode::AssimpNode(aiNode* node)
+AssimpImportNode::AssimpImportNode(aiNode* node)
 {
 	m_correspondingNode = node;
 	if (node->mParent)
 		m_localTransform.m_value = mat4_cast(node->mTransformation);
 	m_name = node->mName.C_Str();
 }
-void AssimpNode::AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const
+void AssimpImportNode::AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const
 {
 	animation->m_rootBone = m_bone;
 	animation->m_rootBone->m_index = index;
@@ -207,7 +80,7 @@ void AssimpNode::AttachToAnimator(const std::shared_ptr<Animation>& animation, s
 		i->AttachChild(m_bone, index);
 	}
 }
-void AssimpNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const
+void AssimpImportNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const
 {
 	m_bone->m_index = index;
 	parent->m_children.push_back(m_bone);
@@ -217,7 +90,7 @@ void AssimpNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index)
 		i->AttachChild(m_bone, index);
 	}
 }
-bool AssimpNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap)
+bool AssimpImportNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap)
 {
 	bool necessary = false;
 	for (int i = 0; i < m_children.size(); i++)
@@ -246,7 +119,7 @@ bool AssimpNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr
 
 	return necessary;
 }
-void Prefab::ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel)
+void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel)
 {
 	const auto numPositions = channel->mNumPositionKeys;
 	boneAnimation.m_positions.resize(numPositions);
@@ -287,7 +160,7 @@ void Prefab::ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channe
 		boneAnimation.m_maxTimeStamp = glm::max(boneAnimation.m_maxTimeStamp, timeStamp);
 	}
 }
-void Prefab::ReadAnimations(
+void ReadAnimations(
 	const aiScene* importerScene,
 	const std::shared_ptr<Animation>& animator,
 	std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap)
@@ -314,7 +187,7 @@ void Prefab::ReadAnimations(
 		animator->m_animationLength[animationName] = maxAnimationTimeStamp;
 	}
 }
-std::shared_ptr<Texture2D> Prefab::CollectTexture(
+std::shared_ptr<Texture2D> CollectTexture(
 	const std::string& directory,
 	const std::string& path,
 	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures)
@@ -345,7 +218,7 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 		auto baseDir = std::filesystem::absolute(directory);
 		fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "texture" / std::filesystem::path(path).filename().string()).string();
 	}
-	if(!std::filesystem::exists(fullPath)){
+	if (!std::filesystem::exists(fullPath)) {
 		return Resources::GetResource<Texture2D>("TEXTURE_MISSING");
 	}
 	if (const auto search = loadedTextures.find(fullPath); search != loadedTextures.end())
@@ -365,7 +238,7 @@ std::shared_ptr<Texture2D> Prefab::CollectTexture(
 	loadedTextures[fullPath] = texture2D;
 	return texture2D;
 }
-std::shared_ptr<Material> Prefab::ReadMaterial(
+std::shared_ptr<Material> ReadMaterial(
 	const std::string& directory,
 	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures,
 	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
@@ -518,112 +391,7 @@ std::shared_ptr<Material> Prefab::ReadMaterial(
 	}
 	return targetMaterial;
 }
-bool Prefab::ProcessNode(
-	const std::string& directory,
-	Prefab* modelNode,
-	std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
-	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
-	std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
-	const aiNode* importerNode,
-	const std::shared_ptr<AssimpNode>& assimpNode,
-	const aiScene* importerScene,
-	const std::shared_ptr<Animation>& animation)
-{
-	bool addedMeshRenderer = false;
-	for (unsigned i = 0; i < importerNode->mNumMeshes; i++)
-	{
-		// the modelNode object only contains indices to index the actual objects in the scene.
-		// the scene contains all the data, modelNode is just to keep stuff organized (like relations between nodes).
-		aiMesh* importerMesh = importerScene->mMeshes[importerNode->mMeshes[i]];
-		if (!importerMesh)
-			continue;
-		auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
-		childNode->m_name = std::string(importerMesh->mName.C_Str());
-		const auto search = loadedMaterials.find(importerMesh->mMaterialIndex);
-		bool isSkinnedMesh = importerMesh->mNumBones != 0xffffffff && importerMesh->mBones;
-		std::shared_ptr<Material> material;
-		if (search == loadedMaterials.end())
-		{
-			aiMaterial* importerMaterial = nullptr;
-			if (importerMesh->mMaterialIndex != 0xffffffff &&
-				importerMesh->mMaterialIndex < importerScene->mNumMaterials)
-				importerMaterial = importerScene->mMaterials[importerMesh->mMaterialIndex];
-			material = ReadMaterial(
-				directory, texture2DsLoaded, opacityMaps,
-				importerMaterial);
-			loadedMaterials[importerMesh->mMaterialIndex] = material;
-		}
-		else
-		{
-			material = search->second;
-		}
-
-		if (isSkinnedMesh)
-		{
-			auto skinnedMeshRenderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
-			skinnedMeshRenderer->m_material.Set<Material>(material);
-			skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(ReadSkinnedMesh(bonesMap, importerMesh));
-			if (!skinnedMeshRenderer->m_skinnedMesh.Get())
-				continue;
-			addedMeshRenderer = true;
-			PrivateComponentHolder holder;
-			holder.m_enabled = true;
-			holder.m_data = std::static_pointer_cast<IPrivateComponent>(skinnedMeshRenderer);
-			childNode->m_privateComponents.push_back(holder);
-		}
-		else
-		{
-			auto meshRenderer = Serialization::ProduceSerializable<MeshRenderer>();
-			meshRenderer->m_material.Set<Material>(material);
-			meshRenderer->m_mesh.Set<Mesh>(ReadMesh(importerMesh));
-			if (!meshRenderer->m_mesh.Get())
-				continue;
-			addedMeshRenderer = true;
-			PrivateComponentHolder holder;
-			holder.m_enabled = true;
-			holder.m_data = std::static_pointer_cast<IPrivateComponent>(meshRenderer);
-			childNode->m_privateComponents.push_back(holder);
-		}
-		auto transform = std::make_shared<Transform>();
-		transform->m_value = mat4_cast(importerNode->mTransformation);
-		if (!importerNode->mParent)
-			transform->m_value = Transform().m_value;
-
-		DataComponentHolder holder;
-		holder.m_type = Typeof<Transform>();
-		holder.m_data = transform;
-		childNode->m_dataComponents.push_back(holder);
-
-		modelNode->m_children.push_back(std::move(childNode));
-	}
-
-	for (unsigned i = 0; i < importerNode->mNumChildren; i++)
-	{
-		auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
-		childNode->m_name = std::string(importerNode->mChildren[i]->mName.C_Str());
-		auto childAssimpNode = std::make_shared<AssimpNode>(importerNode->mChildren[i]);
-		childAssimpNode->m_parent = assimpNode;
-		const bool childAdd = ProcessNode(
-			directory,
-			childNode.get(),
-			loadedMaterials,
-			texture2DsLoaded, opacityMaps,
-			bonesMap,
-			importerNode->mChildren[i],
-			childAssimpNode,
-			importerScene,
-			animation);
-		if (childAdd)
-		{
-			modelNode->m_children.push_back(std::move(childNode));
-		}
-		addedMeshRenderer = addedMeshRenderer | childAdd;
-		assimpNode->m_children.push_back(std::move(childAssimpNode));
-	}
-	return addedMeshRenderer;
-}
-std::shared_ptr<Mesh> Prefab::ReadMesh(aiMesh* importerMesh)
+std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh)
 {
 	VertexAttributes attributes;
 	std::vector<Vertex> vertices;
@@ -706,7 +474,7 @@ std::shared_ptr<Mesh> Prefab::ReadMesh(aiMesh* importerMesh)
 	mesh->SetVertices(attributes, vertices, indices);
 	return mesh;
 }
-std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
+std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
 	std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, aiMesh* importerMesh)
 {
 	SkinnedVertexAttributes skinnedVertexAttributes{};
@@ -860,6 +628,186 @@ std::shared_ptr<SkinnedMesh> Prefab::ReadSkinnedMesh(
 	skinnedMesh->SetVertices(skinnedVertexAttributes, vertices, indices);
 	return skinnedMesh;
 }
+
+bool ProcessNode(
+	const std::string& directory,
+	Prefab* modelNode,
+	std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
+	std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
+	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
+	std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
+	const aiNode* importerNode,
+	const std::shared_ptr<AssimpImportNode>& assimpNode,
+	const aiScene* importerScene,
+	const std::shared_ptr<Animation>& animation)
+{
+	bool addedMeshRenderer = false;
+	for (unsigned i = 0; i < importerNode->mNumMeshes; i++)
+	{
+		// the modelNode object only contains indices to index the actual objects in the scene.
+		// the scene contains all the data, modelNode is just to keep stuff organized (like relations between nodes).
+		aiMesh* importerMesh = importerScene->mMeshes[importerNode->mMeshes[i]];
+		if (!importerMesh)
+			continue;
+		auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
+		childNode->m_name = std::string(importerMesh->mName.C_Str());
+		const auto search = loadedMaterials.find(importerMesh->mMaterialIndex);
+		bool isSkinnedMesh = importerMesh->mNumBones != 0xffffffff && importerMesh->mBones;
+		std::shared_ptr<Material> material;
+		if (search == loadedMaterials.end())
+		{
+			aiMaterial* importerMaterial = nullptr;
+			if (importerMesh->mMaterialIndex != 0xffffffff &&
+				importerMesh->mMaterialIndex < importerScene->mNumMaterials)
+				importerMaterial = importerScene->mMaterials[importerMesh->mMaterialIndex];
+			material = ReadMaterial(
+				directory, texture2DsLoaded, opacityMaps,
+				importerMaterial);
+			loadedMaterials[importerMesh->mMaterialIndex] = material;
+		}
+		else
+		{
+			material = search->second;
+		}
+
+		if (isSkinnedMesh)
+		{
+			auto skinnedMeshRenderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
+			skinnedMeshRenderer->m_material.Set<Material>(material);
+			skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(ReadSkinnedMesh(bonesMap, importerMesh));
+			if (!skinnedMeshRenderer->m_skinnedMesh.Get())
+				continue;
+			addedMeshRenderer = true;
+			PrivateComponentHolder holder;
+			holder.m_enabled = true;
+			holder.m_data = std::static_pointer_cast<IPrivateComponent>(skinnedMeshRenderer);
+			childNode->m_privateComponents.push_back(holder);
+		}
+		else
+		{
+			auto meshRenderer = Serialization::ProduceSerializable<MeshRenderer>();
+			meshRenderer->m_material.Set<Material>(material);
+			meshRenderer->m_mesh.Set<Mesh>(ReadMesh(importerMesh));
+			if (!meshRenderer->m_mesh.Get())
+				continue;
+			addedMeshRenderer = true;
+			PrivateComponentHolder holder;
+			holder.m_enabled = true;
+			holder.m_data = std::static_pointer_cast<IPrivateComponent>(meshRenderer);
+			childNode->m_privateComponents.push_back(holder);
+		}
+		auto transform = std::make_shared<Transform>();
+		transform->m_value = mat4_cast(importerNode->mTransformation);
+		if (!importerNode->mParent)
+			transform->m_value = Transform().m_value;
+
+		DataComponentHolder holder;
+		holder.m_type = Typeof<Transform>();
+		holder.m_data = transform;
+		childNode->m_dataComponents.push_back(holder);
+
+		modelNode->m_children.push_back(std::move(childNode));
+	}
+
+	for (unsigned i = 0; i < importerNode->mNumChildren; i++)
+	{
+		auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
+		childNode->m_name = std::string(importerNode->mChildren[i]->mName.C_Str());
+		auto childAssimpNode = std::make_shared<AssimpImportNode>(importerNode->mChildren[i]);
+		childAssimpNode->m_parent = assimpNode;
+		const bool childAdd = ProcessNode(
+			directory,
+			childNode.get(),
+			loadedMaterials,
+			texture2DsLoaded, opacityMaps,
+			bonesMap,
+			importerNode->mChildren[i],
+			childAssimpNode,
+			importerScene,
+			animation);
+		if (childAdd)
+		{
+			modelNode->m_children.push_back(std::move(childNode));
+		}
+		addedMeshRenderer = addedMeshRenderer | childAdd;
+		assimpNode->m_children.push_back(std::move(childAssimpNode));
+	}
+	return addedMeshRenderer;
+}
+#pragma endregion
+
+#pragma region Model Loading
+void Prefab::AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,
+	const std::shared_ptr<Prefab>& modelNode,
+	const Entity& parentEntity,
+	const std::unordered_map<Handle, Handle>& map) const
+{
+	Entity entity;
+	auto children = scene->GetChildren(parentEntity);
+	for (auto& i : children)
+	{
+		auto a = scene->GetEntityHandle(i).GetValue();
+		auto b = map.at(modelNode->m_entityHandle).GetValue();
+		if (a == b)
+			entity = i;
+	}
+	if (entity.GetIndex() == 0)
+		return;
+	for (auto& i : modelNode->m_privateComponents)
+	{
+		size_t id;
+		auto ptr = std::static_pointer_cast<IPrivateComponent>(
+			Serialization::ProduceSerializable(i.m_data->GetTypeName(), id));
+		Serialization::ClonePrivateComponent(ptr, i.m_data);
+		ptr->m_scene = scene;
+		scene->SetPrivateComponent(entity, ptr);
+	}
+	int index = 0;
+	for (auto& i : modelNode->m_children)
+	{
+		AttachChildrenPrivateComponent(scene, i, entity, map);
+		index++;
+	}
+	scene->SetEnable(entity, m_enabled);
+}
+void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene,
+	const std::shared_ptr<Prefab>& modelNode,
+	Entity parentEntity,
+	std::unordered_map<Handle, Handle>& map)
+{
+	std::vector<DataComponentType> types;
+	for (auto& i : modelNode->m_dataComponents)
+	{
+		types.emplace_back(i.m_type);
+	}
+	auto archetype = Entities::CreateEntityArchetype("", types);
+	auto entity = scene->CreateEntity(archetype, modelNode->m_name);
+	map[modelNode->m_entityHandle] = scene->GetEntityHandle(entity);
+	scene->SetParent(entity, parentEntity);
+	for (auto& i : modelNode->m_dataComponents)
+	{
+		scene->SetDataComponent(entity.GetIndex(), i.m_type.m_typeId, i.m_type.m_size, i.m_data.get());
+	}
+	int index = 0;
+	for (auto& i : modelNode->m_children)
+	{
+		AttachChildren(scene, i, entity, map);
+		index++;
+	}
+}
+
+void Prefab::AttachAnimator(Prefab* parent, const Handle& animatorEntityHandle)
+{
+	if (const auto skinnedMeshRenderer = parent->GetPrivateComponent<SkinnedMeshRenderer>())
+	{
+		skinnedMeshRenderer->m_animator.m_entityHandle = animatorEntityHandle;
+		skinnedMeshRenderer->m_animator.m_privateComponentTypeName = "Animator";
+	}
+	for (auto& i : parent->m_children)
+	{
+		AttachAnimator(i.get(), animatorEntityHandle);
+	}
+}
 void Prefab::ApplyBoneIndices(Prefab* node)
 {
 	if (const auto skinnedMeshRenderer = node->GetPrivateComponent<SkinnedMeshRenderer>())
@@ -917,8 +865,485 @@ void Prefab::FromEntity(const Entity& entity)
 		m_children.back()->FromEntity(i);
 	}
 }
+bool Prefab::LoadInternal(const std::filesystem::path& path)
+{
+	if (path.extension() == ".eveprefab")
+	{
+		std::ifstream stream(path.string());
+		std::stringstream stringStream;
+		stringStream << stream.rdbuf();
+		YAML::Node in = YAML::Load(stringStream.str());
+#pragma region Assets
+		if (const auto& inLocalAssets = in["LocalAssets"])
+		{
+			std::vector<std::shared_ptr<IAsset>> localAssets;
+			for (const auto& i : inLocalAssets)
+			{
+				Handle handle = i["Handle"].as<uint64_t>();
+				localAssets.push_back(ProjectManager::CreateTemporaryAsset(i["TypeName"].as<std::string>(), handle));
+			}
+			int index = 0;
+			for (const auto& i : inLocalAssets)
+			{
+				localAssets[index++]->Deserialize(i);
+			}
+		}
 
 #pragma endregion
+		Deserialize(in);
+		return true;
+	}
+	return LoadModelInternal(path);
+}
+bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize, unsigned int flags)
+{
+	flags = flags | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate;
+	if (optimize)
+	{
+		flags = flags | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
+	}
+	// read file via ASSIMP
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(path.string(), flags);
+	// check for errors
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+	{
+		EVOENGINE_LOG("Assimp: " + std::string(importer.GetErrorString()));
+		return false;
+	}
+	// retrieve the directory path of the filepath
+	auto temp = path;
+	const std::string directory = temp.remove_filename().string();
+	std::unordered_map<std::string, std::shared_ptr<Texture2D>> loadedTextures;
+	m_name = path.filename().string();
+	std::unordered_map<unsigned, std::shared_ptr<Material>> loadedMaterials;
+	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>> opacityMaps;
+	std::unordered_map<std::string, std::shared_ptr<Bone>> bonesMap;
+	std::shared_ptr<Animation> animation;
+	if (!bonesMap.empty() || scene->HasAnimations())
+	{
+		animation = ProjectManager::CreateTemporaryAsset<Animation>();
+	}
+	std::shared_ptr<AssimpImportNode> rootAssimpNode = std::make_shared<AssimpImportNode>(scene->mRootNode);
+	if (!ProcessNode(
+		directory,
+		this,
+		loadedMaterials,
+		loadedTextures,
+		opacityMaps,
+		bonesMap,
+		scene->mRootNode,
+		rootAssimpNode,
+		scene,
+		animation))
+	{
+		EVOENGINE_ERROR("Model is empty!");
+		return false;
+	}
+
+	for (auto& pair : opacityMaps)
+	{
+		std::vector<glm::vec4> colorData;
+		const auto& albedoTexture = pair.first;
+		const auto& opacityTexture = pair.second;
+		if (!albedoTexture || !opacityTexture) continue;
+		albedoTexture->GetRgbaChannelData(colorData);
+		std::vector<glm::vec4> alphaData;
+		const auto resolution = albedoTexture->GetResolution();
+		opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
+		Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
+			{
+				colorData[i].a = alphaData[i].r;
+			}
+		);
+		std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
+		replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
+		pair.second = replacementTexture;
+	}
+
+	for (const auto& material : loadedMaterials)
+	{
+		const auto albedoTexture = material.second->GetAlbedoTexture();
+		for (const auto& pair : opacityMaps)
+		{
+			if (albedoTexture->GetHandle() == pair.first->GetHandle())
+			{
+				material.second->SetAlbedoTexture(pair.second);
+			}
+		}
+	}
+
+	if (!bonesMap.empty() || scene->HasAnimations())
+	{
+		rootAssimpNode->NecessaryWalker(bonesMap);
+		size_t index = 0;
+		rootAssimpNode->AttachToAnimator(animation, index);
+		animation->m_boneSize = index + 1;
+		ReadAnimations(scene, animation, bonesMap);
+		ApplyBoneIndices(this);
+
+		auto animator = Serialization::ProduceSerializable<Animator>();
+		animator->Setup(animation);
+		AttachAnimator(this, m_entityHandle);
+		PrivateComponentHolder holder;
+		holder.m_enabled = true;
+		holder.m_data = std::static_pointer_cast<IPrivateComponent>(animator);
+		m_privateComponents.push_back(holder);
+	}
+	GatherAssets();
+}
+
+#pragma endregion
+
+#pragma region Assimp Export
+
+
+struct AssimpExportNode
+{
+	int m_meshIndex = -1;
+	aiMatrix4x4 m_transform;
+
+	std::vector<AssimpExportNode> m_children;
+
+	void Collect(const std::shared_ptr<Prefab>& currentPrefab, std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes, std::vector<std::shared_ptr<Material>>& materials);
+
+	void Process(aiNode* aiNode);
+};
+
+void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab, std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
+	std::vector<std::shared_ptr<Material>>& materials)
+{
+	m_meshIndex = -1;
+	for(const auto& dataComponent : currentPrefab->m_dataComponents)
+	{
+		if(dataComponent.m_type == Typeof<Transform>())
+		{
+			m_transform = mat4_cast(std::reinterpret_pointer_cast<Transform>(dataComponent.m_data)->m_value);
+		}
+	}
+	for(const auto& privateComponent : currentPrefab->m_privateComponents)
+	{
+		if(const auto meshRenderer = std::dynamic_pointer_cast<MeshRenderer>(privateComponent.m_data))
+		{
+			auto mesh = meshRenderer->m_mesh.Get<Mesh>();
+			auto material = meshRenderer->m_material.Get<Material>();
+			if(mesh && material){
+				int targetMaterialIndex = -1;
+				for(int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
+				{
+					if(materials[materialIndex] == material)
+					{
+						targetMaterialIndex = materialIndex;
+					}
+				}
+				if(targetMaterialIndex == -1)
+				{
+					targetMaterialIndex = materials.size();
+					materials.emplace_back(material);
+				}
+
+				if(m_meshIndex == -1)
+				{
+					m_meshIndex = meshes.size();
+					meshes.emplace_back(std::make_pair(mesh, targetMaterialIndex));
+				}
+			}
+		}
+	}
+
+	for(const auto& childPrefab : currentPrefab->m_children)
+	{
+		m_children.emplace_back();
+		auto& newNode = m_children.back();
+		newNode.Collect(childPrefab, meshes, materials);
+	}
+}
+
+void AssimpExportNode::Process(aiNode* exporterNode)
+{
+	if(m_meshIndex != -1)
+	{
+		exporterNode->mNumMeshes = 1;
+		exporterNode->mMeshes = new unsigned int[1];
+		exporterNode->mMeshes[0] = m_meshIndex;
+	}
+	exporterNode->mNumChildren = m_children.size();
+	exporterNode->mChildren = new aiNode*[m_children.size()];
+	for(int i = 0; i < m_children.size(); i++)
+	{
+		exporterNode->mChildren[i] = new aiNode();
+		m_children.at(i).Process(exporterNode->mChildren[i]);
+	}
+}
+
+bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
+{
+	Assimp::Exporter exporter;
+	aiScene* exporterScene = new aiScene();
+	std::vector<std::pair<std::shared_ptr<Mesh>, int>> meshes;
+	std::vector<std::shared_ptr<Material>> materials;
+
+	AssimpExportNode rootNode;
+	rootNode.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, materials);
+	
+	exporterScene->mRootNode = new aiNode();
+	exporterScene->mNumMeshes = meshes.size();
+	exporterScene->mMeshes = new aiMesh*[meshes.size()];
+	for(int meshIndex = 0; meshIndex < meshes.size(); meshIndex++)
+	{
+		aiMesh* exporterMesh = exporterScene->mMeshes[meshIndex] = new aiMesh();
+		auto& mesh = meshes.at(meshIndex);
+		const auto& vertices = mesh.first->UnsafeGetVertices();
+		const auto& triangles = mesh.first->UnsafeGetTriangles();
+		exporterMesh->mNumVertices = vertices.size();
+		exporterMesh->mVertices = new aiVector3D[vertices.size()];
+		exporterMesh->mNormals = new aiVector3D[vertices.size()];
+		exporterMesh->mTextureCoords[0] = new aiVector3D[vertices.size()];
+		for(int vertexIndex = 0; vertexIndex < vertices.size(); vertexIndex++)
+		{
+			exporterMesh->mVertices[vertexIndex].x = vertices.at(vertexIndex).m_position.x;
+			exporterMesh->mVertices[vertexIndex].y = vertices.at(vertexIndex).m_position.y;
+			exporterMesh->mVertices[vertexIndex].z = vertices.at(vertexIndex).m_position.z;
+
+			exporterMesh->mNormals[vertexIndex].x = vertices.at(vertexIndex).m_normal.x;
+			exporterMesh->mNormals[vertexIndex].y = vertices.at(vertexIndex).m_normal.y;
+			exporterMesh->mNormals[vertexIndex].z = vertices.at(vertexIndex).m_normal.z;
+
+			exporterMesh->mTextureCoords[0][vertexIndex].x = vertices.at(vertexIndex).m_texCoord.x;
+			exporterMesh->mTextureCoords[0][vertexIndex].y = vertices.at(vertexIndex).m_texCoord.y;
+			exporterMesh->mTextureCoords[0][vertexIndex].z = 0.f;
+		}
+
+		exporterMesh->mNumFaces = triangles.size();
+		exporterMesh->mFaces = new aiFace[triangles.size()];
+		for(int triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++)
+		{
+			exporterMesh->mFaces[triangleIndex].mIndices = new unsigned int[3];
+			exporterMesh->mFaces[triangleIndex].mNumIndices = 3;
+			exporterMesh->mFaces[triangleIndex].mIndices[0] = triangles[triangleIndex][0];
+			exporterMesh->mFaces[triangleIndex].mIndices[1] = triangles[triangleIndex][1];
+			exporterMesh->mFaces[triangleIndex].mIndices[2] = triangles[triangleIndex][2];
+		}
+		exporterMesh->mMaterialIndex = mesh.second;		
+	}
+
+	exporterScene->mNumMaterials = materials.size();
+	exporterScene->mMaterials = new aiMaterial*[materials.size()];
+
+	struct TextureElement
+	{
+		std::shared_ptr<Texture2D> m_texture;
+		std::filesystem::path m_relativePath;
+
+	};
+
+	std::vector<TextureElement> collectedTextures;
+	const auto textureFolderPath = std::filesystem::absolute(path.parent_path() / "textures");
+	std::filesystem::create_directories(textureFolderPath);
+
+	for(int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
+	{
+		auto & material = materials.at(materialIndex);
+		if(const auto albedoTexture = material->GetAlbedoTexture())
+		{
+			std::string title = std::to_string(materialIndex) + "_albedo.png";
+			collectedTextures.emplace_back();
+			auto& textureElement = collectedTextures.back();
+			textureElement.m_texture = albedoTexture;
+			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			if(albedoTexture->IsTemporary())
+			{
+				const auto succeed = albedoTexture->Export(textureFolderPath / title);
+			}else
+			{
+				std::filesystem::copy(albedoTexture->GetAbsolutePath(), textureFolderPath / title);
+			}
+		}
+		if(const auto normalTexture = material->GetNormalTexture())
+		{
+			std::string title = std::to_string(materialIndex) + "_normal.png";
+			collectedTextures.emplace_back();
+			auto& textureElement = collectedTextures.back();
+			textureElement.m_texture = normalTexture;
+			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			if(normalTexture->IsTemporary())
+			{
+				const auto succeed = normalTexture->Export(textureFolderPath / title);
+			}else
+			{
+				std::filesystem::copy(normalTexture->GetAbsolutePath(), textureFolderPath / title);
+			}
+		}
+		if(const auto metallicTexture = material->GetMetallicTexture())
+		{
+			std::string title = std::to_string(materialIndex) + "_metallic.png";
+			collectedTextures.emplace_back();
+			auto& textureElement = collectedTextures.back();
+			textureElement.m_texture = metallicTexture;
+			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			if(metallicTexture->IsTemporary())
+			{
+				
+				const auto succeed = metallicTexture->Export(textureFolderPath / title);
+			}else
+			{
+				std::filesystem::copy(metallicTexture->GetAbsolutePath(), textureFolderPath / title);
+			}
+		}
+		if(const auto roughnessTexture = material->GetRoughnessTexture())
+		{
+			std::string title = std::to_string(materialIndex) + "_roughness.png";
+			collectedTextures.emplace_back();
+			auto& textureElement = collectedTextures.back();
+			textureElement.m_texture = roughnessTexture;
+			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			if(roughnessTexture->IsTemporary())
+			{
+				
+				const auto succeed = roughnessTexture->Export(textureFolderPath / title);
+			}else
+			{
+				std::filesystem::copy(roughnessTexture->GetAbsolutePath(), textureFolderPath / title);
+			}
+		}
+		if(const auto aoTexture = material->GetAoTexture())
+		{
+			std::string title = std::to_string(materialIndex) + "_ao.png";
+			collectedTextures.emplace_back();
+			auto& textureElement = collectedTextures.back();
+			textureElement.m_texture = aoTexture;
+			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			if(aoTexture->IsTemporary())
+			{
+				
+				const auto succeed = aoTexture->Export(textureFolderPath / title);
+			}else
+			{
+				std::filesystem::copy(aoTexture->GetAbsolutePath(), textureFolderPath / title);
+			}
+		}
+	}
+	for(int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
+	{
+		aiMaterial* exporterMaterial = exporterScene->mMaterials[materialIndex] = new aiMaterial();
+		auto& material = materials.at(materialIndex);
+		
+		std::vector<aiMaterialProperty> materialProperties;
+		if(const auto albedoTexture = material->GetAlbedoTexture())
+		{
+			materialProperties.emplace_back();
+			auto& materialProperty = materialProperties.back();
+			for(const auto& textureElement : collectedTextures)
+			{
+				if(textureElement.m_texture == albedoTexture)
+				{
+					materialProperty.mKey = textureElement.m_relativePath.string();
+					materialProperty.mSemantic = aiTextureType_DIFFUSE;
+				}
+			}		
+		}
+
+		exporterMaterial->mNumProperties = materialProperties.size();
+		exporterMaterial->mProperties = new aiMaterialProperty*[materialProperties.size()];
+		for(int propertyIndex = 0; propertyIndex < materialProperties.size(); propertyIndex++)
+		{
+			exporterMaterial->mProperties[propertyIndex] = new aiMaterialProperty();
+			*exporterMaterial->mProperties[propertyIndex] = materialProperties.at(propertyIndex);
+		}
+	}
+
+	
+
+	std::string formatId;
+	if(path.extension().string() == ".obj")
+	{
+		formatId = "obj";
+	}else if(path.extension().string() == ".fbx")
+	{
+		formatId = "fbx";
+	}else if(path.extension().string() == ".gltf")
+	{
+		formatId = "gltf";
+	}else if(path.extension().string() == ".dae")
+	{
+		formatId = "dae";
+	}
+
+	rootNode.Process(exporterScene->mRootNode);
+
+	exporter.Export(exporterScene, formatId, path.string());
+
+	delete exporterScene;
+	return true;
+}
+
+#pragma endregion
+
+Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool autoAdjustSize) const
+{
+	std::unordered_map<Handle, Handle> entityMap;
+	std::vector<DataComponentType> types;
+	types.reserve(m_dataComponents.size());
+	for (auto& i : m_dataComponents)
+	{
+		types.emplace_back(i.m_type);
+	}
+	auto archetype = Entities::CreateEntityArchetype("", types);
+	const Entity entity = scene->CreateEntity(archetype, m_name);
+	entityMap[m_entityHandle] = scene->GetEntityHandle(entity);
+	for (auto& i : m_dataComponents)
+	{
+		scene->SetDataComponent(entity.GetIndex(), i.m_type.m_typeId, i.m_type.m_size, i.m_data.get());
+	}
+	int index = 0;
+	for (const auto& i : m_children)
+	{
+		AttachChildren(scene, i, entity, entityMap);
+		index++;
+	}
+
+	for (auto& i : m_privateComponents)
+	{
+		size_t id;
+		auto ptr = std::static_pointer_cast<IPrivateComponent>(
+			Serialization::ProduceSerializable(i.m_data->GetTypeName(), id));
+		Serialization::ClonePrivateComponent(ptr, i.m_data);
+		ptr->m_handle = Handle();
+		ptr->m_scene = scene;
+		scene->SetPrivateComponent(entity, ptr);
+	}
+	for (const auto& i : m_children)
+	{
+		AttachChildrenPrivateComponent(scene, i, entity, entityMap);
+		index++;
+	}
+
+	RelinkChildren(scene, entity, entityMap);
+
+	scene->SetEnable(entity, m_enabled);
+
+	TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
+
+	if (autoAdjustSize) {
+		const auto bound = scene->GetEntityBoundingBox(entity);
+		auto size = bound.Size();
+		glm::vec3 scale = glm::vec3(1.f);
+		while (size.x > 10.f || size.y > 10.f || size.z > 10.f)
+		{
+			scale /= 2.f;
+			size /= 2.f;
+		}
+		Transform t{};
+		GlobalTransform gt{};
+		gt.SetScale(scale);
+		t.SetScale(scale);
+		scene->SetDataComponent(entity, t);
+		scene->SetDataComponent(entity, gt);
+		TransformGraph::CalculateTransformGraphForDescendants(scene, entity);
+	}
+	return entity;
+}
+
 void DataComponentHolder::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_type.m_name" << YAML::Value << m_type.m_name;
@@ -1127,23 +1552,11 @@ void Prefab::RelinkChildren(const std::shared_ptr<Scene>& scene, const Entity& p
 		});
 }
 
-
-
-
 void Prefab::LoadModel(const std::filesystem::path& path, const bool optimize, const unsigned flags)
 {
 	LoadModelInternal(ProjectManager::GetProjectPath().parent_path() / path, optimize, flags);
 }
 
-bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
-{
-	Assimp::Exporter exporter;
-	aiScene* scene = new aiScene();
-
-
-	delete scene;
-	return true;
-}
 
 void Prefab::GatherAssets()
 {
@@ -1214,7 +1627,7 @@ bool Prefab::OnInspectComponents(const std::shared_ptr<Prefab>& walker)
 bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	bool changed = false;
-	if(ImGui::Button("Instantiate"))
+	if (ImGui::Button("Instantiate"))
 	{
 		ToEntity(Application::GetActiveScene());
 	}
@@ -1259,103 +1672,6 @@ bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 	return changed;
 }
 
-bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize, unsigned int flags)
-{
-	flags = flags | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate;
-	if (optimize)
-	{
-		flags = flags | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
-	}
-	// read file via ASSIMP
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path.string(), flags);
-	// check for errors
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
-	{
-		EVOENGINE_LOG("Assimp: " + std::string(importer.GetErrorString()));
-		return false;
-	}
-	// retrieve the directory path of the filepath
-	auto temp = path;
-	const std::string directory = temp.remove_filename().string();
-	std::unordered_map<std::string, std::shared_ptr<Texture2D>> loadedTextures;
-	m_name = path.filename().string();
-	std::unordered_map<unsigned, std::shared_ptr<Material>> loadedMaterials;
-	std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>> opacityMaps;
-	std::unordered_map<std::string, std::shared_ptr<Bone>> bonesMap;
-	std::shared_ptr<Animation> animation;
-	if (!bonesMap.empty() || scene->HasAnimations())
-	{
-		animation = ProjectManager::CreateTemporaryAsset<Animation>();
-	}
-	std::shared_ptr<AssimpNode> rootAssimpNode = std::make_shared<AssimpNode>(scene->mRootNode);
-	if (!ProcessNode(
-		directory,
-		this,
-		loadedMaterials,
-		loadedTextures,
-		opacityMaps,
-		bonesMap,
-		scene->mRootNode,
-		rootAssimpNode,
-		scene,
-		animation))
-	{
-		EVOENGINE_ERROR("Model is empty!");
-		return false;
-	}
-
-	for (auto& pair : opacityMaps)
-	{
-		std::vector<glm::vec4> colorData;
-		const auto& albedoTexture = pair.first;
-		const auto& opacityTexture = pair.second;
-		if(!albedoTexture || !opacityTexture) continue;
-		albedoTexture->GetRgbaChannelData(colorData);
-		std::vector<glm::vec4> alphaData;
-		const auto resolution = albedoTexture->GetResolution();
-		opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
-		Jobs::RunParallelFor(colorData.size(), [&](unsigned i)
-			{
-				colorData[i].a = alphaData[i].r;
-			}
-		);
-		std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
-		replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
-		pair.second = replacementTexture;
-	}
-
-	for(const auto& material : loadedMaterials)
-	{
-		const auto albedoTexture = material.second->GetAlbedoTexture();
-		for(const auto& pair : opacityMaps)
-		{
-			if(albedoTexture->GetHandle() == pair.first->GetHandle())
-			{
-				material.second->SetAlbedoTexture(pair.second);
-			}
-		}
-	}
-
-	if (!bonesMap.empty() || scene->HasAnimations())
-	{
-		rootAssimpNode->NecessaryWalker(bonesMap);
-		size_t index = 0;
-		rootAssimpNode->AttachToAnimator(animation, index);
-		animation->m_boneSize = index + 1;
-		ReadAnimations(scene, animation, bonesMap);
-		ApplyBoneIndices(this);
-
-		auto animator = Serialization::ProduceSerializable<Animator>();
-		animator->Setup(animation);
-		AttachAnimator(this, m_entityHandle);
-		PrivateComponentHolder holder;
-		holder.m_enabled = true;
-		holder.m_data = std::static_pointer_cast<IPrivateComponent>(animator);
-		m_privateComponents.push_back(holder);
-	}
-	GatherAssets();
-}
 
 void PrivateComponentHolder::Serialize(YAML::Emitter& out) const
 {

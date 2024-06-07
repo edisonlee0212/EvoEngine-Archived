@@ -47,11 +47,12 @@ namespace EvoEngine
 
 		friend struct SkinnedMeshBonesBlock;
 		//Don't serialize.
-		std::vector<std::shared_ptr<Bone>> m_bones;
+		
 		friend class Prefab;
 	protected:
 		bool SaveInternal(const std::filesystem::path& path) const override;
 	public:
+		std::vector<std::shared_ptr<Bone>> m_bones;
 		~SkinnedMesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
 		void OnCreate() override;
