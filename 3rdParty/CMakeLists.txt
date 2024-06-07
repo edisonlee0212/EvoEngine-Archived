@@ -7,7 +7,7 @@ else ()
 	find_package(ASSIMP REQUIRED)
 	message(STATUS "Found ASSIMP in ${ASSIMP_INCLUDE_DIR}")
 endif ()
-set(ASSIMP_DIR ${3RD_PARTY_DIR}/assimp/ PARENT_SCOPE)
+set(ASSIMP_DIR ${3RD_PARTY_DIR}/assimp PARENT_SCOPE)
 
 # ------------------------------------------------------------------
 # glfw

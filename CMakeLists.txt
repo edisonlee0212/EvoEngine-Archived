@@ -112,22 +112,22 @@ if (WIN32)
 		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
 		set(ASSIMP_LIBS
-				${ASSIMP_DIR}assimp-vc143-mt.lib
-				${ASSIMP_DIR}zlibstatic.lib
+				${ASSIMP_DIR}/lib/Release/assimp-vc143-mt.lib
+				${ASSIMP_DIR}/lib/Release/zlibstatic.lib
 				)
 	elseif (CMAKE_BUILD_TYPE MATCHES "^[Rr]elWithDebInfo")
 		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
 		set(ASSIMP_LIBS
-				${ASSIMP_DIR}assimp-vc143-mt.lib
-				${ASSIMP_DIR}zlibstatic.lib
+				${ASSIMP_DIR}/lib/RelWithDebInfo/assimp-vc143-mt.lib
+				${ASSIMP_DIR}/lib/RelWithDebInfo/zlibstatic.lib
 				)
 	else()
 		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/debug/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined_d.lib)
 		set(ASSIMP_LIBS
-				${ASSIMP_DIR}assimp-vc143-mtd.lib
-				${ASSIMP_DIR}zlibstaticd.lib
+				${ASSIMP_DIR}/lib/Debug/assimp-vc143-mtd.lib
+				${ASSIMP_DIR}/lib/Debug/zlibstaticd.lib
 				)
 	endif ()
 	target_link_libraries(evoengine
@@ -258,18 +258,9 @@ add_custom_command(TARGET evoengine POST_BUILD
 if (WIN32)
 	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease" OR CMAKE_BUILD_TYPE MATCHES "^[Rr]lWithDebInfo")
 		file(GLOB PHYSX_DLLS "3rdParty/physx/win.x86_64.vc143.mt/release/*.dll")
-		set(ASSIMP_DLL ${3RD_PARTY_DIR}/assimp/assimp-vc143-mt.dll)
 	elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
 		file(GLOB PHYSX_DLLS "3rdParty/physx/win.x86_64.vc143.mt/debug/*.dll")
-		set(ASSIMP_DLL ${3RD_PARTY_DIR}/assimp/assimp-vc143-mtd.dll)
 	endif ()
-	add_custom_command(
-			TARGET evoengine
-			POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${ASSIMP_DLL}
-			${CMAKE_BINARY_DIR}
-	)
 elseif (UNIX AND NOT APPLE)
 	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease" OR CMAKE_BUILD_TYPE MATCHES "^[Rr]lWithDebInfo")
 		file(GLOB PHYSX_DLLS "3rdParty/physx/linux.clang/release/*.so")

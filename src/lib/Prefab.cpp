@@ -1014,35 +1014,35 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab, std
 	std::vector<std::shared_ptr<Material>>& materials)
 {
 	m_meshIndex = -1;
-	for(const auto& dataComponent : currentPrefab->m_dataComponents)
+	for (const auto& dataComponent : currentPrefab->m_dataComponents)
 	{
-		if(dataComponent.m_type == Typeof<Transform>())
+		if (dataComponent.m_type == Typeof<Transform>())
 		{
 			m_transform = mat4_cast(std::reinterpret_pointer_cast<Transform>(dataComponent.m_data)->m_value);
 		}
 	}
-	for(const auto& privateComponent : currentPrefab->m_privateComponents)
+	for (const auto& privateComponent : currentPrefab->m_privateComponents)
 	{
-		if(const auto meshRenderer = std::dynamic_pointer_cast<MeshRenderer>(privateComponent.m_data))
+		if (const auto meshRenderer = std::dynamic_pointer_cast<MeshRenderer>(privateComponent.m_data))
 		{
 			auto mesh = meshRenderer->m_mesh.Get<Mesh>();
 			auto material = meshRenderer->m_material.Get<Material>();
-			if(mesh && material){
+			if (mesh && material) {
 				int targetMaterialIndex = -1;
-				for(int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
+				for (int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
 				{
-					if(materials[materialIndex] == material)
+					if (materials[materialIndex] == material)
 					{
 						targetMaterialIndex = materialIndex;
 					}
 				}
-				if(targetMaterialIndex == -1)
+				if (targetMaterialIndex == -1)
 				{
 					targetMaterialIndex = materials.size();
 					materials.emplace_back(material);
 				}
 
-				if(m_meshIndex == -1)
+				if (m_meshIndex == -1)
 				{
 					m_meshIndex = meshes.size();
 					meshes.emplace_back(std::make_pair(mesh, targetMaterialIndex));
@@ -1051,7 +1051,7 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab, std
 		}
 	}
 
-	for(const auto& childPrefab : currentPrefab->m_children)
+	for (const auto& childPrefab : currentPrefab->m_children)
 	{
 		m_children.emplace_back();
 		auto& newNode = m_children.back();
@@ -1061,31 +1061,34 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab, std
 
 void AssimpExportNode::Process(aiNode* exporterNode)
 {
-	if(m_meshIndex != -1)
+	if (m_meshIndex != -1)
 	{
 		exporterNode->mNumMeshes = 1;
 		exporterNode->mMeshes = new unsigned int[1];
 		exporterNode->mMeshes[0] = m_meshIndex;
 	}
 	exporterNode->mNumChildren = m_children.size();
-	exporterNode->mChildren = new aiNode*[m_children.size()];
-	for(int i = 0; i < m_children.size(); i++)
+	exporterNode->mChildren = new aiNode * [m_children.size()];
+	for (int i = 0; i < m_children.size(); i++)
 	{
 		exporterNode->mChildren[i] = new aiNode();
+		exporterNode->mChildren[i]->mParent = exporterNode;
 		m_children.at(i).Process(exporterNode->mChildren[i]);
 	}
 }
 
 bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 {
+	
 	Assimp::Exporter exporter;
 	aiScene* exporterScene = new aiScene();
+	exporterScene->mMetaData = new aiMetadata();
 	std::vector<std::pair<std::shared_ptr<Mesh>, int>> meshes;
 	std::vector<std::shared_ptr<Material>> materials;
 
 	AssimpExportNode rootNode;
 	rootNode.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, materials);
-	
+
 	exporterScene->mRootNode = new aiNode();
 	exporterScene->mNumMeshes = meshes.size();
 	exporterScene->mMeshes = new aiMesh*[meshes.size()];
@@ -1098,7 +1101,9 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 		exporterMesh->mNumVertices = vertices.size();
 		exporterMesh->mVertices = new aiVector3D[vertices.size()];
 		exporterMesh->mNormals = new aiVector3D[vertices.size()];
+		exporterMesh->mNumUVComponents[0] = vertices.size();
 		exporterMesh->mTextureCoords[0] = new aiVector3D[vertices.size()];
+		exporterMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
 		for(int vertexIndex = 0; vertexIndex < vertices.size(); vertexIndex++)
 		{
 			exporterMesh->mVertices[vertexIndex].x = vertices.at(vertexIndex).m_position.x;
@@ -1124,7 +1129,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 			exporterMesh->mFaces[triangleIndex].mIndices[1] = triangles[triangleIndex][1];
 			exporterMesh->mFaces[triangleIndex].mIndices[2] = triangles[triangleIndex][2];
 		}
-		exporterMesh->mMaterialIndex = mesh.second;		
+		exporterMesh->mMaterialIndex = mesh.second;
 	}
 
 	exporterScene->mNumMaterials = materials.size();
@@ -1183,7 +1188,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
 			if(metallicTexture->IsTemporary())
 			{
-				
+
 				const auto succeed = metallicTexture->Export(textureFolderPath / title);
 			}else
 			{
@@ -1199,7 +1204,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
 			if(roughnessTexture->IsTemporary())
 			{
-				
+
 				const auto succeed = roughnessTexture->Export(textureFolderPath / title);
 			}else
 			{
@@ -1215,7 +1220,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
 			if(aoTexture->IsTemporary())
 			{
-				
+
 				const auto succeed = aoTexture->Export(textureFolderPath / title);
 			}else
 			{
@@ -1223,11 +1228,12 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 			}
 		}
 	}
+
 	for(int materialIndex = 0; materialIndex < materials.size(); materialIndex++)
 	{
 		aiMaterial* exporterMaterial = exporterScene->mMaterials[materialIndex] = new aiMaterial();
 		auto& material = materials.at(materialIndex);
-		
+
 		std::vector<aiMaterialProperty> materialProperties;
 		if(const auto albedoTexture = material->GetAlbedoTexture())
 		{
@@ -1240,7 +1246,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 					materialProperty.mKey = textureElement.m_relativePath.string();
 					materialProperty.mSemantic = aiTextureType_DIFFUSE;
 				}
-			}		
+			}
 		}
 
 		exporterMaterial->mNumProperties = materialProperties.size();
@@ -1252,7 +1258,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 		}
 	}
 
-	
+
 
 	std::string formatId;
 	if(path.extension().string() == ".obj")
@@ -1270,9 +1276,12 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 	}
 
 	rootNode.Process(exporterScene->mRootNode);
+	try{
+		exporter.Export(exporterScene, formatId.c_str(), path.string());
+	}catch (const std::exception& e)
+	{
 
-	exporter.Export(exporterScene, formatId, path.string());
-
+	}
 	delete exporterScene;
 	return true;
 }
