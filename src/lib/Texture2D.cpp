@@ -23,6 +23,8 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path) const
 	}
 	else if (path.extension() == ".jpg") {
 		StoreToJpg(path.string());
+	}else if (path.extension() == ".tga") {
+		StoreToTga(path.string());
 	}
 	else if (path.extension() == ".hdr") {
 		StoreToHdr(path.string());
@@ -263,6 +265,53 @@ void Texture2D::StoreToPng(const std::string& path, int resizeX, int resizeY,
 		}
 		stbi_flip_vertically_on_write(true);
 		stbi_write_png(path.c_str(), resolutionX, resolutionY, storeChannels, pixels.data(), resolutionX * storeChannels);
+	}
+}
+
+void Texture2D::StoreToTga(const std::string& path, int resizeX, int resizeY) const
+{
+	const auto& textureStorage = PeekTexture2DStorage();
+	const auto resolutionX = textureStorage.m_image->GetExtent().width;
+	const auto resolutionY = textureStorage.m_image->GetExtent().height;
+	const size_t storeChannels = 4;
+	const size_t channels = 4;
+	std::vector<float> dst;
+	dst.resize(resolutionX * resolutionY * channels);
+	//Retrieve image data here.
+	Buffer imageBuffer(sizeof(glm::vec4) * resolutionX * resolutionY);
+	imageBuffer.CopyFromImage(*textureStorage.m_image);
+	imageBuffer.DownloadVector(dst, resolutionX * resolutionY * channels);
+	std::vector<uint8_t> pixels;
+	if (resizeX > 0 && resizeY > 0 && (resizeX != resolutionX || resizeY != resolutionY))
+	{
+		std::vector<float> res;
+		res.resize(resizeX * resizeY * storeChannels);
+		stbir_resize_float(dst.data(), resolutionX, resolutionY, 0, res.data(), resizeX, resizeY, 0, storeChannels);
+		pixels.resize(resizeX * resizeY * storeChannels);
+		for (int i = 0; i < resizeX * resizeY; i++)
+		{
+			pixels[i * storeChannels] = glm::clamp<int>(int(255.9f * res[i * channels]), 0, 255);
+			pixels[i * storeChannels + 1] = glm::clamp<int>(int(255.9f * res[i * channels + 1]), 0, 255);
+			pixels[i * storeChannels + 2] = glm::clamp<int>(int(255.9f * res[i * channels + 2]), 0, 255);
+			if (storeChannels == 4)
+				pixels[i * storeChannels + 3] = glm::clamp<int>(int(255.9f * res[i * channels + 3]), 0, 255);
+		}
+		stbi_flip_vertically_on_write(true);
+		stbi_write_tga(path.c_str(), resizeX, resizeY, storeChannels, pixels.data());
+	}
+	else
+	{
+		pixels.resize(resolutionX * resolutionY * channels);
+		for (int i = 0; i < resolutionX * resolutionY; i++)
+		{
+			pixels[i * storeChannels] = glm::clamp<int>(int(255.9f * dst[i * channels]), 0, 255);
+			pixels[i * storeChannels + 1] = glm::clamp<int>(int(255.9f * dst[i * channels + 1]), 0, 255);
+			pixels[i * storeChannels + 2] = glm::clamp<int>(int(255.9f * dst[i * channels + 2]), 0, 255);
+			if (storeChannels == 4)
+				pixels[i * storeChannels + 3] = glm::clamp<int>(int(255.9f * dst[i * channels + 3]), 0, 255);
+		}
+		stbi_flip_vertically_on_write(true);
+		stbi_write_tga(path.c_str(), resolutionX, resolutionY, storeChannels, pixels.data());
 	}
 }
 

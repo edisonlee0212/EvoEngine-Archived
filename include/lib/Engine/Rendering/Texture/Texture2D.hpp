@@ -54,6 +54,10 @@ namespace EvoEngine
 			int resizeX = -1,
 			int resizeY = -1,
 			unsigned compressionLevel = 8) const;
+		void StoreToTga(
+			const std::string& path,
+			int resizeX = -1,
+			int resizeY = -1) const;
 		void StoreToJpg(const std::string& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
 		void StoreToHdr(const std::string& path, int resizeX = -1, int resizeY = -1,
 			bool alphaChannel = false, unsigned quality = 100) const;

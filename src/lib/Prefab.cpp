@@ -1079,7 +1079,6 @@ void AssimpExportNode::Process(aiNode* exporterNode)
 
 bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 {
-	
 	Assimp::Exporter exporter;
 	aiScene* exporterScene = new aiScene();
 	exporterScene->mMetaData = new aiMetadata();
@@ -1151,80 +1150,80 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 		auto & material = materials.at(materialIndex);
 		if(const auto albedoTexture = material->GetAlbedoTexture())
 		{
-			std::string title = std::to_string(materialIndex) + "_albedo.png";
+			std::string title = std::to_string(materialIndex) + "_albedo.tga";
 			collectedTextures.emplace_back();
 			auto& textureElement = collectedTextures.back();
 			textureElement.m_texture = albedoTexture;
-			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			textureElement.m_relativePath = std::filesystem::path("textures") / title;
 			if(albedoTexture->IsTemporary())
 			{
 				const auto succeed = albedoTexture->Export(textureFolderPath / title);
 			}else
 			{
-				std::filesystem::copy(albedoTexture->GetAbsolutePath(), textureFolderPath / title);
+				std::filesystem::copy(albedoTexture->GetAbsolutePath(), textureFolderPath / title, std::filesystem::copy_options::overwrite_existing);
 			}
 		}
 		if(const auto normalTexture = material->GetNormalTexture())
 		{
-			std::string title = std::to_string(materialIndex) + "_normal.png";
+			std::string title = std::to_string(materialIndex) + "_normal.tga";
 			collectedTextures.emplace_back();
 			auto& textureElement = collectedTextures.back();
 			textureElement.m_texture = normalTexture;
-			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			textureElement.m_relativePath = std::filesystem::path("textures") / title;
 			if(normalTexture->IsTemporary())
 			{
 				const auto succeed = normalTexture->Export(textureFolderPath / title);
 			}else
 			{
-				std::filesystem::copy(normalTexture->GetAbsolutePath(), textureFolderPath / title);
+				std::filesystem::copy(normalTexture->GetAbsolutePath(), textureFolderPath / title, std::filesystem::copy_options::overwrite_existing);
 			}
 		}
 		if(const auto metallicTexture = material->GetMetallicTexture())
 		{
-			std::string title = std::to_string(materialIndex) + "_metallic.png";
+			std::string title = std::to_string(materialIndex) + "_metallic.tga";
 			collectedTextures.emplace_back();
 			auto& textureElement = collectedTextures.back();
 			textureElement.m_texture = metallicTexture;
-			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			textureElement.m_relativePath = std::filesystem::path("textures") / title;
 			if(metallicTexture->IsTemporary())
 			{
 
 				const auto succeed = metallicTexture->Export(textureFolderPath / title);
 			}else
 			{
-				std::filesystem::copy(metallicTexture->GetAbsolutePath(), textureFolderPath / title);
+				std::filesystem::copy(metallicTexture->GetAbsolutePath(), textureFolderPath / title, std::filesystem::copy_options::overwrite_existing);
 			}
 		}
 		if(const auto roughnessTexture = material->GetRoughnessTexture())
 		{
-			std::string title = std::to_string(materialIndex) + "_roughness.png";
+			std::string title = std::to_string(materialIndex) + "_roughness.tga";
 			collectedTextures.emplace_back();
 			auto& textureElement = collectedTextures.back();
 			textureElement.m_texture = roughnessTexture;
-			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			textureElement.m_relativePath = std::filesystem::path("textures") / title;
 			if(roughnessTexture->IsTemporary())
 			{
 
 				const auto succeed = roughnessTexture->Export(textureFolderPath / title);
 			}else
 			{
-				std::filesystem::copy(roughnessTexture->GetAbsolutePath(), textureFolderPath / title);
+				std::filesystem::copy(roughnessTexture->GetAbsolutePath(), textureFolderPath / title, std::filesystem::copy_options::overwrite_existing);
 			}
 		}
 		if(const auto aoTexture = material->GetAoTexture())
 		{
-			std::string title = std::to_string(materialIndex) + "_ao.png";
+			std::string title = std::to_string(materialIndex) + "_ao.tga";
 			collectedTextures.emplace_back();
 			auto& textureElement = collectedTextures.back();
 			textureElement.m_texture = aoTexture;
-			textureElement.m_relativePath = std::filesystem::path("./textures") / title;
+			textureElement.m_relativePath = std::filesystem::path("textures") / title;
 			if(aoTexture->IsTemporary())
 			{
 
 				const auto succeed = aoTexture->Export(textureFolderPath / title);
 			}else
 			{
-				std::filesystem::copy(aoTexture->GetAbsolutePath(), textureFolderPath / title);
+				std::filesystem::copy(aoTexture->GetAbsolutePath(), textureFolderPath / title, std::filesystem::copy_options::overwrite_existing);
 			}
 		}
 	}
@@ -1233,18 +1232,109 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 	{
 		aiMaterial* exporterMaterial = exporterScene->mMaterials[materialIndex] = new aiMaterial();
 		auto& material = materials.at(materialIndex);
-
-		std::vector<aiMaterialProperty> materialProperties;
+		std::vector<aiMaterialProperty*> materialProperties;
 		if(const auto albedoTexture = material->GetAlbedoTexture())
 		{
-			materialProperties.emplace_back();
-			auto& materialProperty = materialProperties.back();
+			materialProperties.emplace_back(new aiMaterialProperty());
+			auto* materialProperty = materialProperties.back();
 			for(const auto& textureElement : collectedTextures)
 			{
 				if(textureElement.m_texture == albedoTexture)
 				{
-					materialProperty.mKey = textureElement.m_relativePath.string();
-					materialProperty.mSemantic = aiTextureType_DIFFUSE;
+					materialProperty->mKey = _AI_MATKEY_TEXTURE_BASE;
+					materialProperty->mSemantic = aiTextureType_DIFFUSE;
+					materialProperty->mIndex = 0;
+					materialProperty->mType = aiPTI_String;
+					const auto relativePath = textureElement.m_relativePath.string();
+					uint32_t stringLength = relativePath.size();
+					materialProperty->mDataLength = 4 + stringLength + 1;
+					materialProperty->mData = new char[materialProperty->mDataLength];
+					memcpy(&materialProperty->mData[0], &stringLength, sizeof(uint32_t));
+					memcpy(&materialProperty->mData[4], relativePath.c_str(), stringLength + 1);
+				}
+			}
+		}
+		if(const auto normalTexture = material->GetNormalTexture())
+		{
+			materialProperties.emplace_back(new aiMaterialProperty());
+			auto* materialProperty = materialProperties.back();
+			for(const auto& textureElement : collectedTextures)
+			{
+				if(textureElement.m_texture == normalTexture)
+				{
+					materialProperty->mKey = _AI_MATKEY_TEXTURE_BASE;
+					materialProperty->mSemantic = aiTextureType_NORMALS;
+					materialProperty->mIndex = 0;
+					materialProperty->mType = aiPTI_String;
+					const auto relativePath = textureElement.m_relativePath.string();
+					uint32_t stringLength = relativePath.size();
+					materialProperty->mDataLength = 4 + stringLength + 1;
+					materialProperty->mData = new char[materialProperty->mDataLength];
+					memcpy(&materialProperty->mData[0], &stringLength, sizeof(uint32_t));
+					memcpy(&materialProperty->mData[4], relativePath.c_str(), stringLength + 1);
+				}
+			}
+		}
+		if(const auto metallicTexture = material->GetMetallicTexture())
+		{
+			materialProperties.emplace_back(new aiMaterialProperty());
+			auto* materialProperty = materialProperties.back();
+			for(const auto& textureElement : collectedTextures)
+			{
+				if(textureElement.m_texture == metallicTexture)
+				{
+					materialProperty->mKey = _AI_MATKEY_TEXTURE_BASE;
+					materialProperty->mSemantic = aiTextureType_METALNESS;
+					materialProperty->mIndex = 0;
+					materialProperty->mType = aiPTI_String;
+					const auto relativePath = textureElement.m_relativePath.string();
+					uint32_t stringLength = relativePath.size();
+					materialProperty->mDataLength = 4 + stringLength + 1;
+					materialProperty->mData = new char[materialProperty->mDataLength];
+					memcpy(&materialProperty->mData[0], &stringLength, sizeof(uint32_t));
+					memcpy(&materialProperty->mData[4], relativePath.c_str(), stringLength + 1);
+				}
+			}
+		}
+		if(const auto roughnessTexture = material->GetRoughnessTexture())
+		{
+			materialProperties.emplace_back(new aiMaterialProperty());
+			auto* materialProperty = materialProperties.back();
+			for(const auto& textureElement : collectedTextures)
+			{
+				if(textureElement.m_texture == roughnessTexture)
+				{
+					materialProperty->mKey = _AI_MATKEY_TEXTURE_BASE;
+					materialProperty->mSemantic = aiTextureType_DIFFUSE_ROUGHNESS;
+					materialProperty->mIndex = 0;
+					materialProperty->mType = aiPTI_String;
+					const auto relativePath = textureElement.m_relativePath.string();
+					uint32_t stringLength = relativePath.size();
+					materialProperty->mDataLength = 4 + stringLength + 1;
+					materialProperty->mData = new char[materialProperty->mDataLength];
+					memcpy(&materialProperty->mData[0], &stringLength, sizeof(uint32_t));
+					memcpy(&materialProperty->mData[4], relativePath.c_str(), stringLength + 1);
+				}
+			}
+		}
+		if(const auto aoTexture = material->GetAoTexture())
+		{
+			materialProperties.emplace_back(new aiMaterialProperty());
+			auto* materialProperty = materialProperties.back();
+			for(const auto& textureElement : collectedTextures)
+			{
+				if(textureElement.m_texture == aoTexture)
+				{
+					materialProperty->mKey = _AI_MATKEY_TEXTURE_BASE;
+					materialProperty->mSemantic = aiTextureType_AMBIENT_OCCLUSION;
+					materialProperty->mIndex = 0;
+					materialProperty->mType = aiPTI_String;
+					const auto relativePath = textureElement.m_relativePath.string();
+					uint32_t stringLength = relativePath.size();
+					materialProperty->mDataLength = 4 + stringLength + 1;
+					materialProperty->mData = new char[materialProperty->mDataLength];
+					memcpy(&materialProperty->mData[0], &stringLength, sizeof(uint32_t));
+					memcpy(&materialProperty->mData[4], relativePath.c_str(), stringLength + 1);
 				}
 			}
 		}
@@ -1253,8 +1343,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 		exporterMaterial->mProperties = new aiMaterialProperty*[materialProperties.size()];
 		for(int propertyIndex = 0; propertyIndex < materialProperties.size(); propertyIndex++)
 		{
-			exporterMaterial->mProperties[propertyIndex] = new aiMaterialProperty();
-			*exporterMaterial->mProperties[propertyIndex] = materialProperties.at(propertyIndex);
+			exporterMaterial->mProperties[propertyIndex] = materialProperties.at(propertyIndex);
 		}
 	}
 
@@ -1276,12 +1365,8 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const
 	}
 
 	rootNode.Process(exporterScene->mRootNode);
-	try{
-		exporter.Export(exporterScene, formatId.c_str(), path.string());
-	}catch (const std::exception& e)
-	{
-
-	}
+	exporter.Export(exporterScene, formatId.c_str(), path.string());
+	
 	delete exporterScene;
 	return true;
 }
