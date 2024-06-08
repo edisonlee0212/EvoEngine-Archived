@@ -8,6 +8,11 @@
 #include "Prefab.hpp"
 #include "Resources.hpp"
 #include "TransformGraph.hpp"
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include "shellapi.h"
+#endif
+
 using namespace EvoEngine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
@@ -426,7 +431,7 @@ void Folder::Refresh(const std::filesystem::path& parentAbsolutePath)
 		{
 			assetMetadataList.push_back(entry.path());
 		}
-		else if(entry.path().filename() != "" && entry.path().filename() != "." && entry.path().filename() != ".." && entry.path().extension() != ".eveproj")
+		else if (entry.path().filename() != "" && entry.path().filename() != "." && entry.path().filename() != ".." && entry.path().extension() != ".eveproj")
 		{
 			fileList.push_back(entry.path());
 		}
@@ -1071,6 +1076,24 @@ void ProjectManager::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 				bool updated = false;
 				if (ImGui::BeginPopupContextWindow("NewAssetPopup"))
 				{
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+					if (ImGui::Button("Show in Explorer..."))
+					{
+						const auto folderPath = currentFocusedFolder->GetAbsolutePath().string();
+						ShellExecuteA(NULL, "open", folderPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+					}
+#else
+#endif
+
+					FileUtils::OpenFile("Import model...", "Model", { ".eveprefab", ".obj", ".gltf", ".glb", ".blend", ".ply", ".fbx", ".dae", ".x3d" }, [&](const std::filesystem::path& path)
+					{
+						const auto prefab = CreateTemporaryAsset<Prefab>();
+						if(prefab->Import(path))
+						{
+							prefab->SetPathAndSave(currentFocusedFolder->GetProjectRelativePath() / path.filename().replace_extension(".eveprefab"));
+						}
+					}, false);
+
 					if (ImGui::Button("New folder..."))
 					{
 						auto newPath = GenerateNewProjectRelativePath(

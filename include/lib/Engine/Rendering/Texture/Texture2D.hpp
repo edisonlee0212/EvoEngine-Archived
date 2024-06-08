@@ -31,6 +31,16 @@ namespace EvoEngine
 		bool SaveInternal(const std::filesystem::path& path) const override;
 		bool LoadInternal(const std::filesystem::path& path) override;
 	public:
+		bool m_redChannel = false;
+		bool m_greenChannel = false;
+		bool m_blueChannel = false;
+		bool m_alphaChannel = false;
+
+		static void StoreToPng(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, unsigned compressionLevel = 8, int resizeX = -1, int resizeY = -1);
+		static void StoreToJpg(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, unsigned quality = 100, int resizeX = -1, int resizeY = -1);
+		static void StoreToTga(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, int resizeX = -1, int resizeY = -1);
+		static void StoreToHdr(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, int resizeX = -1, int resizeY = -1);
+
 		void ApplyOpacityMap(const std::shared_ptr<Texture2D>& target);
 
 		void Serialize(YAML::Emitter& out) const override;
@@ -49,18 +59,10 @@ namespace EvoEngine
 		~Texture2D() override;
 		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		[[nodiscard]] glm::ivec2 GetResolution() const;
-		void StoreToPng(
-			const std::string& path,
-			int resizeX = -1,
-			int resizeY = -1,
-			unsigned compressionLevel = 8) const;
-		void StoreToTga(
-			const std::string& path,
-			int resizeX = -1,
-			int resizeY = -1) const;
-		void StoreToJpg(const std::string& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
-		void StoreToHdr(const std::string& path, int resizeX = -1, int resizeY = -1,
-			bool alphaChannel = false, unsigned quality = 100) const;
+		void StoreToPng(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1, unsigned compressionLevel = 8) const;
+		void StoreToTga(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1) const;
+		void StoreToJpg(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
+		void StoreToHdr(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1) const;
 		
 		void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX = -1, int resizeY = -1) const;
 		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
