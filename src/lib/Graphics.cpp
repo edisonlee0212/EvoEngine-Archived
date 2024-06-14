@@ -1452,7 +1452,7 @@ void Graphics::PreUpdate()
 	if(renderLayer && !Application::GetLayer<EditorLayer>())
 	{
 		if (const auto scene = Application::GetActiveScene()) {
-			if (const auto mainCamera = scene->m_mainCamera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
+			if (const auto mainCamera = scene->main_camera.Get<Camera>(); mainCamera && mainCamera->IsEnabled())
 			{
 				mainCamera->SetRequireRendering(true);
 				if (windowLayer) mainCamera->Resize({ graphics.m_swapchain->GetImageExtent().width, graphics.m_swapchain->GetImageExtent().height });
@@ -1468,7 +1468,7 @@ void Graphics::LateUpdate()
 	{
 		if (Application::GetLayer<RenderLayer>() && !Application::GetLayer<EditorLayer>()) {
 			if (const auto scene = Application::GetActiveScene()) {
-				if (const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+				if (const auto mainCamera = scene->main_camera.Get<Camera>();
 					mainCamera->IsEnabled() && mainCamera->m_rendered)
 				{
 					const auto& renderTexturePresent = graphics.m_graphicsPipelines["RENDER_TEXTURE_PRESENT"];

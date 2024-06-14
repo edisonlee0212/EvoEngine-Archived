@@ -66,7 +66,7 @@ std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::str
     if (it != serializationManager.m_serializableGenerators.end())
     {
         auto retVal = it->second(hashCode);
-        retVal->m_typeName = typeName;
+        retVal->type_name_ = typeName;
         retVal->m_handle = Handle();
         return retVal;
     }
@@ -80,7 +80,7 @@ std::shared_ptr<ISerializable> Serialization::ProduceSerializable(const std::str
     if (it != serializationManager.m_serializableGenerators.end())
     {
         auto retVal = it->second(hashCode);
-        retVal->m_typeName = typeName;
+        retVal->type_name_ = typeName;
         retVal->m_handle = handle;
         return retVal;
     }

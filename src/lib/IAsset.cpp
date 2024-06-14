@@ -181,7 +181,7 @@ bool IAsset::SetPathAndSave(const std::filesystem::path &projectRelativePath)
 }
 std::string IAsset::GetTitle() const
 {
-    return IsTemporary() ? "Temporary " + m_typeName
+    return IsTemporary() ? "Temporary " + type_name_
                          : (GetProjectRelativePath().stem().string() + (m_saved ? "" : " *"));
 }
 IAsset::~IAsset()

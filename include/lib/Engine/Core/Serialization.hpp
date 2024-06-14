@@ -586,10 +586,10 @@ namespace evo_engine
 			typeid(T).hash_code(),
 			[](std::shared_ptr<IPrivateComponent> target, const std::shared_ptr<IPrivateComponent>& source) {
 				target->m_handle = source->m_handle;
-				target->m_enabled = source->m_enabled;
-				target->m_owner = source->m_owner;
+				target->enabled_ = source->enabled_;
+				target->owner_ = source->owner_;
 				*std::dynamic_pointer_cast<T>(target) = *std::dynamic_pointer_cast<T>(source);
-				target->m_started = false;
+				target->started_ = false;
 				target->PostCloneAction(source);
 			});
 	}
@@ -597,10 +597,10 @@ namespace evo_engine
 	{
 		return RegisterSystemType(name, [](std::shared_ptr<ISystem> target, const std::shared_ptr<ISystem>& source) {
 			target->m_handle = source->m_handle;
-			target->m_rank = source->m_rank;
-			target->m_enabled = source->m_enabled;
+			target->rank_ = source->rank_;
+			target->enabled_ = source->enabled_;
 			*std::dynamic_pointer_cast<T>(target) = *std::dynamic_pointer_cast<T>(source);
-			target->m_started = false;
+			target->started_ = false;
 			target->PostCloneAction(source);
 			});
 	}
@@ -640,7 +640,7 @@ namespace evo_engine
 		{
 			size_t hashCode;
 			auto retVal = it->second(hashCode);
-			retVal->m_typeName = typeName;
+			retVal->type_name_ = typeName;
 			return std::move(std::static_pointer_cast<T>(retVal));
 		}
 		EVOENGINE_ERROR("PrivateComponent " + typeName + "is not registered!");

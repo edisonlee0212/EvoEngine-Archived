@@ -249,8 +249,8 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const Globa
 
 	const auto cameraPosition = globalTransform.GetPosition();
 	const auto scene = Application::GetActiveScene();
-	auto lightProbe = scene->m_environment.GetLightProbe(cameraPosition);
-	auto reflectionProbe = scene->m_environment.GetReflectionProbe(cameraPosition);
+	auto lightProbe = scene->environment.GetLightProbe(cameraPosition);
+	auto reflectionProbe = scene->environment.GetReflectionProbe(cameraPosition);
 	if (!lightProbe)
 	{
 		lightProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->m_lightProbe.Get<LightProbe>();
@@ -563,18 +563,18 @@ bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 
 	ImGui::Checkbox("Use clear color", &m_useClearColor);
 	const auto scene = GetScene();
-	const bool savedState = (this == scene->m_mainCamera.Get<Camera>().get());
+	const bool savedState = (this == scene->main_camera.Get<Camera>().get());
 	bool isMainCamera = savedState;
 	ImGui::Checkbox("Main Camera", &isMainCamera);
 	if (savedState != isMainCamera)
 	{
 		if (isMainCamera)
 		{
-			scene->m_mainCamera = scene->GetOrSetPrivateComponent<Camera>(GetOwner()).lock();
+			scene->main_camera = scene->GetOrSetPrivateComponent<Camera>(GetOwner()).lock();
 		}
 		else
 		{
-			Application::GetActiveScene()->m_mainCamera.Clear();
+			Application::GetActiveScene()->main_camera.Clear();
 		}
 	}
 	if (!isMainCamera || !Application::GetLayer<EditorLayer>()->m_mainCameraAllowAutoResize)

@@ -8,18 +8,18 @@
 using namespace evo_engine;
 bool AssetRef::Update()
 {
-    if (m_assetHandle.GetValue() == 0)
+    if (asset_handle_.GetValue() == 0)
     {
-        m_value.reset();
+        value_.reset();
         return false;
     }
     
-    if (!m_value)
+    if (!value_)
     {
-	    if (const auto ptr = ProjectManager::GetAsset(m_assetHandle))
+	    if (const auto ptr = ProjectManager::GetAsset(asset_handle_))
         {
-            m_value = ptr;
-            m_assetTypeName = ptr->GetTypeName();
+            value_ = ptr;
+            asset_type_name_ = ptr->GetTypeName();
             return true;
         }
         Clear();
@@ -31,11 +31,11 @@ bool AssetRef::Update()
 
 void AssetRef::Clear()
 {
-    m_value.reset();
-    m_assetHandle = Handle(0);
+    value_.reset();
+    asset_handle_ = Handle(0);
 }
 void AssetRef::Set(const AssetRef &target)
 {
-    m_assetHandle = target.m_assetHandle;
+    asset_handle_ = target.asset_handle_;
     Update();
 }

@@ -7,7 +7,7 @@ namespace evo_engine
 struct Handle
 {
     friend class IAsset;
-    friend class EntityMetadata;
+    friend struct EntityMetadata;
     friend class Resources;
 
     /**

@@ -149,7 +149,7 @@ void CaptureActiveScene(const int resolutionX, const int resolutionY, const std:
 		EVOENGINE_ERROR("No active scene!");
 		return;
 	}
-	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	const auto mainCamera = scene->main_camera.Get<Camera>();
 	if (!mainCamera)
 	{
 		EVOENGINE_ERROR("No main camera in scene!");

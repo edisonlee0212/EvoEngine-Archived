@@ -1,87 +1,68 @@
-#include "Entities.hpp"
 #include "PrivateComponentStorage.hpp"
+#include "Entities.hpp"
 #include "Scene.hpp"
 using namespace evo_engine;
-void PrivateComponentStorage::RemovePrivateComponent(Entity entity, size_t typeID, const std::shared_ptr<IPrivateComponent> &privateComponent)
-{
-    const auto search = m_pOwnersCollectionsMap.find(typeID);
-    if (search != m_pOwnersCollectionsMap.end())
-    {
-        auto &collection = m_pOwnersCollectionsList[search->second].second;
-        const auto entitySearch = collection.m_ownersMap.find(entity);
-        if (entitySearch != collection.m_ownersMap.end())
-        {
-            if (entity != entitySearch->first)
-            {
-                EVOENGINE_ERROR("RemovePrivateComponent: Entity mismatch!");
-                return;
-            }
-            privateComponent->OnDestroy();
-            privateComponent->m_version++;
-            m_privateComponentPool[typeID].push_back(privateComponent);
-            if (collection.m_ownersList.size() == 1)
-            {
-                const auto eraseHash = typeID;
-                const auto eraseIndex = search->second;
-                const auto backHash = m_pOwnersCollectionsList.back().first;
-                m_pOwnersCollectionsMap[backHash] = eraseIndex;
-                std::swap(m_pOwnersCollectionsList[eraseIndex], m_pOwnersCollectionsList.back());
-                m_pOwnersCollectionsMap.erase(eraseHash);
-                m_pOwnersCollectionsList.pop_back();
-                return;
-            }
-            else
-            {
-                const auto eraseIndex = entitySearch->second;
-                const auto backEntity = collection.m_ownersList.back();
-                collection.m_ownersMap[backEntity] = eraseIndex;
-                collection.m_ownersMap.erase(entity);
-                collection.m_ownersList[eraseIndex] = backEntity;
-                collection.m_ownersList.pop_back();
-                return;
-            }
-        }
+void PrivateComponentStorage::RemovePrivateComponent(const Entity &entity, const size_t type_index,
+                                                     const std::shared_ptr<IPrivateComponent> &private_component) {
+  if (const auto search = p_owners_collections_map_.find(type_index); search != p_owners_collections_map_.end()) {
+    auto &collection = p_owners_collections_list_[search->second].second;
+    if (const auto entity_search = collection.owners_map.find(entity); entity_search != collection.owners_map.end()) {
+      if (entity != entity_search->first) {
+        EVOENGINE_ERROR("RemovePrivateComponent: Entity mismatch!");
+        return;
+      }
+      private_component->OnDestroy();
+      private_component->version_++;
+      private_component_pool_[type_index].push_back(private_component);
+      if (collection.owners_list.size() == 1) {
+        const auto erase_hash = type_index;
+        const auto erase_index = search->second;
+        const auto back_hash = p_owners_collections_list_.back().first;
+        p_owners_collections_map_[back_hash] = erase_index;
+        std::swap(p_owners_collections_list_[erase_index], p_owners_collections_list_.back());
+        p_owners_collections_map_.erase(erase_hash);
+        p_owners_collections_list_.pop_back();
+      } else {
+        const auto erase_index = entity_search->second;
+        const auto back_entity = collection.owners_list.back();
+        collection.owners_map[back_entity] = erase_index;
+        collection.owners_map.erase(entity);
+        collection.owners_list[erase_index] = back_entity;
+        collection.owners_list.pop_back();
+      }
     }
+  }
 }
 
-void PrivateComponentStorage::DeleteEntity(Entity entity)
-{
-    auto scene = m_scene.lock();
-    for (auto &element :
-          scene->m_sceneDataStorage.m_entityMetadataList.at(entity.GetIndex()).m_privateComponentElements)
-    {
-        RemovePrivateComponent(entity, element.m_typeId, element.m_privateComponentData);
-    }
+void PrivateComponentStorage::DeleteEntity(const Entity &entity) {
+  const auto scene = owner_scene.lock();
+  for (auto &element :
+       scene->scene_data_storage_.entity_metadata_list.at(entity.GetIndex()).private_component_elements) {
+    RemovePrivateComponent(entity, element.type_index, element.private_component_data);
+  }
 }
 
-void PrivateComponentStorage::SetPrivateComponent(Entity entity, size_t id)
-{
-    const auto search = m_pOwnersCollectionsMap.find(id);
-    if (search != m_pOwnersCollectionsMap.end())
-    {
-        const auto insearch = m_pOwnersCollectionsList[search->second].second.m_ownersMap.find(entity);
-        if (insearch == m_pOwnersCollectionsList[search->second].second.m_ownersMap.end())
-        {
-            m_pOwnersCollectionsList[search->second].second.m_ownersMap.insert(
-                {entity, m_pOwnersCollectionsList[search->second].second.m_ownersList.size()});
-            m_pOwnersCollectionsList[search->second].second.m_ownersList.push_back(entity);
-        }
+void PrivateComponentStorage::SetPrivateComponent(const Entity &entity, size_t id) {
+  if (const auto search = p_owners_collections_map_.find(id); search != p_owners_collections_map_.end()) {
+    if (const auto search2 = p_owners_collections_list_[search->second].second.owners_map.find(entity);
+        search2 == p_owners_collections_list_[search->second].second.owners_map.end()) {
+      p_owners_collections_list_[search->second].second.owners_map.insert(
+          {entity, p_owners_collections_list_[search->second].second.owners_list.size()});
+      p_owners_collections_list_[search->second].second.owners_list.push_back(entity);
     }
-    else
-    {
-        POwnersCollection collection;
-        collection.m_ownersMap.insert({entity, 0});
-        collection.m_ownersList.push_back(entity);
-        m_pOwnersCollectionsMap.insert({id, m_pOwnersCollectionsList.size()});
-        m_pOwnersCollectionsList.push_back(std::make_pair(id, std::move(collection)));
-    }
+  } else {
+    POwnersCollection collection;
+    collection.owners_map.insert({entity, 0});
+    collection.owners_list.push_back(entity);
+    p_owners_collections_map_.insert({id, p_owners_collections_list_.size()});
+    p_owners_collections_list_.emplace_back(id, std::move(collection));
+  }
 }
-template <typename T> const std::vector<Entity> PrivateComponentStorage::GetOwnersList()
-{
-    auto search = m_pOwnersCollectionsMap.find(typeid(T).hash_code());
-    if (search != m_pOwnersCollectionsMap.end())
-    {
-        return m_pOwnersCollectionsList[search->second].second.m_ownersList;
-    }
-    return std::vector<Entity>();
+template <typename T>
+std::vector<Entity> PrivateComponentStorage::GetOwnersList() {
+  if (const auto search = p_owners_collections_map_.find(typeid(T).hash_code());
+      search != p_owners_collections_map_.end()) {
+    return p_owners_collections_list_[search->second].second.owners_list;
+  }
+  return {};
 }

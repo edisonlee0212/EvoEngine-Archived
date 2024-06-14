@@ -1,28 +1,27 @@
 #pragma once
-#include <ISerializable.hpp>
-#include <IPrivateComponent.hpp>
 #include <Entity.hpp>
-namespace evo_engine
-{
+#include <IPrivateComponent.hpp>
+#include <ISerializable.hpp>
+namespace evo_engine {
 class Scene;
 
-struct EntityMetadata
-{
-    std::string m_name;
-    bool m_static = false;
-    bool m_ancestorSelected = false;
-    unsigned m_version = 1;
-    bool m_enabled = true;
-    Entity m_parent = Entity();
-    Entity m_root = Entity();
-    std::vector<PrivateComponentElement> m_privateComponentElements;
-    std::vector<Entity> m_children;
-    size_t m_dataComponentStorageIndex = 0;
-    size_t m_chunkArrayIndex = 0;
-    Handle m_handle;
-    void Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const;
-    void Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene);
-    void Clone(const std::unordered_map<Handle, Handle> &entityMap, const EntityMetadata &source, const std::shared_ptr<Scene> &scene);
+struct EntityMetadata {
+  std::string entity_name;
+  bool entity_static = false;
+  bool ancestor_selected = false;
+  unsigned entity_version = 1;
+  bool entity_enabled = true;
+  Entity parent = Entity();
+  Entity root = Entity();
+  std::vector<PrivateComponentElement> private_component_elements;
+  std::vector<Entity> children;
+  size_t data_component_storage_index = 0;
+  size_t chunk_array_index = 0;
+  Handle entity_handle;
+  void Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const;
+  void Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene);
+  void Clone(const std::unordered_map<Handle, Handle> &entity_map, const EntityMetadata &source,
+             const std::shared_ptr<Scene> &scene);
 };
 
-} // namespace evo_engine
+}  // namespace evo_engine

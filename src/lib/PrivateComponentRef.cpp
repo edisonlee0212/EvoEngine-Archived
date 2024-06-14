@@ -9,20 +9,20 @@
 using namespace evo_engine;
 bool PrivateComponentRef::Update()
 {
-    if (m_entityHandle.GetValue() == 0 || m_scene.expired())
+    if (entity_handle_.GetValue() == 0 || scene_.expired())
     {
         Clear();
         return false;
     }
-    if (m_value.expired())
+    if (value_.expired())
     {
-        auto scene = m_scene.lock();
-        auto entity = scene->GetEntity(m_entityHandle);
+        auto scene = scene_.lock();
+        auto entity = scene->GetEntity(entity_handle_);
         if (entity.GetIndex() != 0)
         {
-            if (scene->HasPrivateComponent(entity, m_privateComponentTypeName))
+            if (scene->HasPrivateComponent(entity, private_component_type_name_))
             {
-                m_value = scene->GetPrivateComponent(entity, m_privateComponentTypeName);
+                value_ = scene->GetPrivateComponent(entity, private_component_type_name_);
                 return true;
             }
         }
@@ -33,9 +33,9 @@ bool PrivateComponentRef::Update()
 }
 void PrivateComponentRef::Clear()
 {
-    m_value.reset();
-    m_entityHandle = m_handle = Handle(0);
-    m_scene.reset();
-    m_privateComponentTypeName = {};
+    value_.reset();
+    entity_handle_ = m_handle = Handle(0);
+    scene_.reset();
+    private_component_type_name_ = {};
 }
 

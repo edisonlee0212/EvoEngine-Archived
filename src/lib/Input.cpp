@@ -56,7 +56,7 @@ void Input::Dispatch(const InputEvent& event)
 	if (!Application::GetLayer<EditorLayer>()) {
 		const auto activeScene = Application::GetActiveScene();
 		
-		auto& scenePressedKeys = activeScene->m_pressedKeys;
+		auto& scenePressedKeys = activeScene->pressed_keys_;
 		if (event.m_keyAction == KeyActionType::Press)
 		{
 			scenePressedKeys[event.m_key] = KeyActionType::Press;
@@ -83,7 +83,7 @@ void Input::PreUpdate()
 	}
 	const auto scene = Application::GetActiveScene();
 	if (scene) {
-		for (auto& i : scene->m_pressedKeys)
+		for (auto& i : scene->pressed_keys_)
 		{
 			i.second = KeyActionType::Hold;
 		}

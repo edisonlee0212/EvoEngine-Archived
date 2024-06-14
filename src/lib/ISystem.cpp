@@ -5,53 +5,53 @@ using namespace evo_engine;
 
 ISystem::ISystem()
 {
-    m_enabled = false;
+    enabled_ = false;
 }
 
 void ISystem::Enable()
 {
-    if (!m_enabled)
+    if (!enabled_)
     {
-        m_enabled = true;
+        enabled_ = true;
         OnEnable();
     }
 }
 
 void ISystem::Disable()
 {
-    if (m_enabled)
+    if (enabled_)
     {
-        m_enabled = false;
+        enabled_ = false;
         OnDisable();
     }
 }
 std::shared_ptr<Scene> ISystem::GetScene() const
 {
-    return m_scene.lock();
+    return scene_.lock();
 }
 bool ISystem::Enabled() const
 {
-    return m_enabled;
+    return enabled_;
 }
 
 float ISystem::GetRank()
 {
-    return m_rank;
+    return rank_;
 }
 
 bool SystemRef::Update()
 {
-    if (m_systemHandle.GetValue() == 0)
+    if (system_handle_.GetValue() == 0)
     {
-        m_value.reset();
+        value_.reset();
         return false;
     }
-    if(!m_value.has_value() || m_value->expired())
+    if(!value_.has_value() || value_->expired())
     {
         auto currentScene = Application::GetActiveScene();
-        auto system = currentScene->m_mappedSystems.find(m_systemHandle);
-        if(system != currentScene->m_mappedSystems.end()){
-            m_value = system->second;
+        auto system = currentScene->mapped_systems_.find(system_handle_);
+        if(system != currentScene->mapped_systems_.end()){
+            value_ = system->second;
             return true;
         }
         Clear();

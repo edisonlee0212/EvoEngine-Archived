@@ -331,14 +331,14 @@ void EditorLayer::PreUpdate()
 	if (!m_mainCameraWindowFocused)
 	{
 		const auto activeScene = Application::GetActiveScene();
-		auto& pressedKeys = activeScene->m_pressedKeys;
+		auto& pressedKeys = activeScene->pressed_keys_;
 		pressedKeys.clear();
 	}
 
 	if (m_applyTransformToMainCamera && !Application::IsPlaying())
 	{
 		const auto scene = Application::GetActiveScene();
-		if (const auto camera = scene->m_mainCamera.Get<Camera>(); camera && scene->IsEntityValid(camera->GetOwner()))
+		if (const auto camera = scene->main_camera.Get<Camera>(); camera && scene->IsEntityValid(camera->GetOwner()))
 		{
 			auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
 			GlobalTransform globalTransform;
@@ -444,8 +444,8 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.2, 0.3, 0.2, 1.0));
 							ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.2, 0.2, 0.2, 1.0));
 							ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2, 0.2, 0.3, 1.0));
-							for (int j = 0; j < storage.m_entityAliveCount; j++) {
-								Entity entity = storage.m_chunkArray.m_entities.at(j);
+							for (int j = 0; j < storage.entity_alive_count; j++) {
+								Entity entity = storage.chunk_array.entity_array.at(j);
 								std::string title = std::to_string(entity.GetIndex()) + ": ";
 								title += scene->GetEntityName(entity);
 								const bool enabled = scene->IsEntityEnabled(entity);
@@ -538,15 +538,15 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 					scene->UnsafeForEachDataComponent(m_selectedEntity, [&](DataComponentType type, void* data) {
 						if (skip)
 							return;
-						std::string info = type.m_name;
-						info += " Size: " + std::to_string(type.m_size);
+						std::string info = type.type_name;
+						info += " Size: " + std::to_string(type.type_size);
 						ImGui::Text(info.c_str());
 						ImGui::PushID(i);
 						if (ImGui::BeginPopupContextItem(
 							("DataComponentDeletePopup" + std::to_string(i)).c_str())) {
 							if (ImGui::Button("Remove")) {
 								skip = true;
-								scene->RemoveDataComponent(m_selectedEntity, type.m_typeId);
+								scene->RemoveDataComponent(m_selectedEntity, type.type_index);
 							}
 							ImGui::EndPopup();
 						}
@@ -578,15 +578,15 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 						if (skip)
 							return;
 						ImGui::Checkbox(
-							data.m_privateComponentData->GetTypeName().c_str(),
-							&data.m_privateComponentData->m_enabled);
-						DraggablePrivateComponent(data.m_privateComponentData);
-						const std::string tag = "##" + data.m_privateComponentData->GetTypeName() +
-							std::to_string(data.m_privateComponentData->GetHandle());
+							data.private_component_data->GetTypeName().c_str(),
+							&data.private_component_data->enabled_);
+						DraggablePrivateComponent(data.private_component_data);
+						const std::string tag = "##" + data.private_component_data->GetTypeName() +
+							std::to_string(data.private_component_data->GetHandle());
 						if (ImGui::BeginPopupContextItem(tag.c_str())) {
 							if (ImGui::Button(("Remove" + tag).c_str())) {
 								skip = true;
-								scene->RemovePrivateComponent(m_selectedEntity, data.m_typeId);
+								scene->RemovePrivateComponent(m_selectedEntity, data.type_index);
 							}
 							ImGui::EndPopup();
 						}
@@ -594,7 +594,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							if (ImGui::TreeNodeEx(
 								("Component Settings##" + std::to_string(i)).c_str(),
 								ImGuiTreeNodeFlags_DefaultOpen)) {
-								if (data.m_privateComponentData->OnInspect(editorLayer)) scene->SetUnsaved();
+								if (data.private_component_data->OnInspect(editorLayer)) scene->SetUnsaved();
 								ImGui::TreePop();
 							}
 						}
@@ -819,9 +819,9 @@ void EditorLayer::DrawEntityNode(const Entity& entity, const unsigned& hierarchy
 
 void EditorLayer::InspectComponentData(Entity entity, IDataComponent* data, DataComponentType type, bool isRoot)
 {
-	if (m_componentDataInspectorMap.find(type.m_typeId) !=
+	if (m_componentDataInspectorMap.find(type.type_index) !=
 		m_componentDataInspectorMap.end()) {
-		if (m_componentDataInspectorMap.at(type.m_typeId)(entity, data, isRoot)) {
+		if (m_componentDataInspectorMap.at(type.type_index)(entity, data, isRoot)) {
 			auto scene = GetScene();
 			scene->SetUnsaved();
 		}
@@ -1065,7 +1065,7 @@ void EditorLayer::MainCameraWindow()
 			//  Get the size of the child (i.e. the whole draw size of the windows).
 			ImVec2 overlayPos = ImGui::GetWindowPos();
 			// Because I use the texture from OpenGL, I need to invert the V from the UV.
-			const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+			const auto mainCamera = scene->main_camera.Get<Camera>();
 			if (mainCamera && mainCamera->m_rendered) {
 				ImGui::Image(mainCamera->GetRenderTexture()->GetColorImTextureId(), ImVec2(viewPortSize.x, viewPortSize.y), ImVec2(0, 1),
 					ImVec2(1, 0));
@@ -1169,7 +1169,7 @@ void EditorLayer::MainCameraWindow()
 	else {
 		m_mainCameraWindowFocused = false;
 	}
-	if (const auto mainCamera = scene->m_mainCamera.Get<Camera>()) {
+	if (const auto mainCamera = scene->main_camera.Get<Camera>()) {
 		mainCamera->SetRequireRendering(
 			!ImGui::GetCurrentWindowRead()->Hidden && !ImGui::GetCurrentWindowRead()->Collapsed);
 	}
@@ -1185,10 +1185,10 @@ void EditorLayer::OnInputEvent(const InputEvent& inputEvent)
 	if (m_mainCameraWindowFocused && Application::IsPlaying())
 	{
 		const auto activeScene = Application::GetActiveScene();
-		auto& pressedKeys = activeScene->m_pressedKeys;
+		auto& pressedKeys = activeScene->pressed_keys_;
 		if (inputEvent.m_keyAction == KeyActionType::Press)
 		{
-			if (const auto search = pressedKeys.find(inputEvent.m_key); search != activeScene->m_pressedKeys.end())
+			if (const auto search = pressedKeys.find(inputEvent.m_key); search != activeScene->pressed_keys_.end())
 			{
 				//Dispatch hold if the key is already pressed.
 				search->second = KeyActionType::Hold;
@@ -1222,7 +1222,7 @@ void EditorLayer::ResizeCameras()
 		sceneCamera->Resize({ m_sceneCameraResolutionX, m_sceneCameraResolutionY });
 	}
 	const auto scene = Application::GetActiveScene();
-	if (const std::shared_ptr<Camera> mainCamera = scene->m_mainCamera.Get<Camera>())
+	if (const std::shared_ptr<Camera> mainCamera = scene->main_camera.Get<Camera>())
 	{
 		if (m_mainCameraAllowAutoResize) mainCamera->Resize({ m_mainCameraResolutionX, m_mainCameraResolutionY });
 	}
@@ -1307,9 +1307,9 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 	const auto previousDescendants = scene->GetDescendants(m_selectedEntity);
 	for (const auto& i : previousDescendants)
 	{
-		scene->GetEntityMetadata(i).m_ancestorSelected = false;
+		scene->GetEntityMetadata(i).ancestor_selected = false;
 	}
-	if (scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = false;
+	if (scene->IsEntityValid(m_selectedEntity)) scene->GetEntityMetadata(m_selectedEntity).ancestor_selected = false;
 	if (entity.GetIndex() == 0) {
 		m_selectedEntity = Entity();
 		m_lockEntitySelection = false;
@@ -1324,9 +1324,9 @@ void EditorLayer::SetSelectedEntity(const Entity& entity, bool openMenu)
 
 	for (const auto& i : descendants)
 	{
-		scene->GetEntityMetadata(i).m_ancestorSelected = true;
+		scene->GetEntityMetadata(i).ancestor_selected = true;
 	}
-	scene->GetEntityMetadata(m_selectedEntity).m_ancestorSelected = true;
+	scene->GetEntityMetadata(m_selectedEntity).ancestor_selected = true;
 	if (!openMenu)
 		return;
 	auto walker = entity;
@@ -1369,7 +1369,7 @@ bool EditorLayer::UnsafeDroppableAsset(AssetRef& target, const std::vector<std::
 					if (asset && asset->GetTypeName() == typeName)
 					{
 						target.Clear();
-						target.m_assetHandle = payload_n;
+						target.asset_handle_ = payload_n;
 						target.Update();
 						statusChanged = true;
 						break;
@@ -1810,11 +1810,11 @@ void EditorLayer::CameraWindowDragAndDrop() {
 			strandsRenderer->m_material.Set<Material>(material);
 		}
 		else if (asset->GetTypeName() == "EnvironmentalMap") {
-			scene->m_environment.m_environmentalMap =
+			scene->environment.environmental_map =
 				std::dynamic_pointer_cast<EnvironmentalMap>(asset);
 		}
 		else if (asset->GetTypeName() == "Cubemap") {
-			auto mainCamera = scene->m_mainCamera.Get<Camera>();
+			auto mainCamera = scene->main_camera.Get<Camera>();
 			mainCamera->m_skybox = std::dynamic_pointer_cast<Cubemap>(asset);
 		}
 

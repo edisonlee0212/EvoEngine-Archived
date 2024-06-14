@@ -141,8 +141,8 @@ void AssetRecord::Save() const
 	out << YAML::BeginMap;
 	out << YAML::Key << "m_assetExtension" << YAML::Value << m_assetExtension;
 	out << YAML::Key << "m_assetFileName" << YAML::Value << m_assetFileName;
-	out << YAML::Key << "m_assetTypeName" << YAML::Value << m_assetTypeName;
-	out << YAML::Key << "m_assetHandle" << YAML::Value << m_assetHandle;
+	out << YAML::Key << "asset_type_name_" << YAML::Value << m_assetTypeName;
+	out << YAML::Key << "asset_handle_" << YAML::Value << m_assetHandle;
 	out << YAML::EndMap;
 	std::ofstream fout(path);
 	fout << out.c_str();
@@ -177,10 +177,10 @@ void AssetRecord::Load(const std::filesystem::path& path)
 		m_assetFileName = in["m_assetFileName"].as<std::string>();
 	if (in["m_assetExtension"])
 		m_assetExtension = in["m_assetExtension"].as<std::string>();
-	if (in["m_assetTypeName"])
-		m_assetTypeName = in["m_assetTypeName"].as<std::string>();
-	if (in["m_assetHandle"])
-		m_assetHandle = in["m_assetHandle"].as<uint64_t>();
+	if (in["asset_type_name_"])
+		m_assetTypeName = in["asset_type_name_"].as<std::string>();
+	if (in["asset_handle_"])
+		m_assetHandle = in["asset_handle_"].as<uint64_t>();
 
 	if (!Serialization::HasSerializableType(m_assetTypeName))
 	{
@@ -238,7 +238,7 @@ void Folder::Save() const
 	YAML::Emitter out;
 	out << YAML::BeginMap;
 	out << YAML::Key << "m_handle" << YAML::Value << m_handle;
-	out << YAML::Key << "m_name" << YAML::Value << m_name;
+	out << YAML::Key << "type_name" << YAML::Value << m_name;
 	out << YAML::EndMap;
 	std::ofstream fout(path);
 	fout << out.c_str();
@@ -261,8 +261,8 @@ void Folder::Load(const std::filesystem::path& path)
 	YAML::Node in = YAML::Load(stringStream.str());
 	if (in["m_handle"])
 		m_handle = in["m_handle"].as<uint64_t>();
-	if (in["m_name"])
-		m_name = in["m_name"].as<std::string>();
+	if (in["type_name"])
+		m_name = in["type_name"].as<std::string>();
 }
 void Folder::DeleteMetadata() const
 {

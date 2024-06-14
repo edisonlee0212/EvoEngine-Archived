@@ -116,7 +116,7 @@ void RenderLayer::RenderAllCameras()
 	glm::vec3 lodCenter = glm::vec3(0.f);
 	float lodMaxDistance = FLT_MAX;
 	bool lodSet = false;
-	if (const auto mainCamera = scene->m_mainCamera.Get<Camera>())
+	if (const auto mainCamera = scene->main_camera.Get<Camera>())
 	{
 		const auto mainCameraOwner = mainCamera->GetOwner();
 		if (scene->IsEntityValid(mainCameraOwner))
@@ -187,7 +187,7 @@ void RenderLayer::RenderAllCameras()
 	}
 
 	{
-		switch (scene->m_environment.m_environmentType)
+		switch (scene->environment.environment_type)
 		{
 
 		case EnvironmentType::EnvironmentalMap: {
@@ -195,13 +195,13 @@ void RenderLayer::RenderAllCameras()
 		}
 											  break;
 		case EnvironmentType::Color: {
-			m_environmentInfoBlock.m_backgroundColor = glm::vec4(scene->m_environment.m_backgroundColor, 1.0f);
+			m_environmentInfoBlock.m_backgroundColor = glm::vec4(scene->environment.background_color, 1.0f);
 		}
 								   break;
 		}
-		m_environmentInfoBlock.m_environmentalMapGamma = scene->m_environment.m_environmentGamma;
-		m_environmentInfoBlock.m_environmentalLightingIntensity = scene->m_environment.m_ambientLightIntensity;
-		m_environmentInfoBlock.m_backgroundIntensity = scene->m_environment.m_backgroundIntensity;
+		m_environmentInfoBlock.m_environmentalMapGamma = scene->environment.environment_gamma;
+		m_environmentInfoBlock.m_environmentalLightingIntensity = scene->environment.ambient_light_intensity;
+		m_environmentInfoBlock.m_backgroundIntensity = scene->environment.background_intensity;
 	}
 
 	m_renderInfoDescriptorBuffers[currentFrameIndex]->Upload(m_renderInfoBlock);
@@ -803,7 +803,7 @@ void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTra
 void RenderLayer::CollectPointLights()
 {
 	const auto scene = GetScene();
-	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	const auto mainCamera = scene->main_camera.Get<Camera>();
 	glm::vec3 mainCameraPosition = { 0, 0, 0 };
 	if (mainCamera)
 	{
@@ -882,7 +882,7 @@ void RenderLayer::CollectPointLights()
 void RenderLayer::CollectSpotLights()
 {
 	const auto scene = GetScene();
-	const auto mainCamera = scene->m_mainCamera.Get<Camera>();
+	const auto mainCamera = scene->main_camera.Get<Camera>();
 	glm::vec3 mainCameraPosition = { 0, 0, 0 };
 	if (mainCamera)
 	{
