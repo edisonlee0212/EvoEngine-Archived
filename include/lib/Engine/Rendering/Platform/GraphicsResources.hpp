@@ -1,7 +1,7 @@
 #pragma once
 #include "Console.hpp"
 #include "shaderc/shaderc.h"
-namespace EvoEngine
+namespace evo_engine
 {
 	class IGraphicsResource
 	{

@@ -1,5 +1,5 @@
 #include "Animation.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 void Bone::Animate(
 	const std::string& name,
 	const float& animationTime,

@@ -1,6 +1,6 @@
 #pragma once
 #include "ILayer.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class WindowLayer final : public ILayer
 	{

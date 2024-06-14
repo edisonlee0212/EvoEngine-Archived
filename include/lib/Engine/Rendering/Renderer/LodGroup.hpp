@@ -4,7 +4,7 @@
 #include "IPrivateComponent.hpp"
 #include "PrivateComponentRef.hpp"
 
-namespace EvoEngine {
+namespace evo_engine {
 	class Lod
 	{
 	public:

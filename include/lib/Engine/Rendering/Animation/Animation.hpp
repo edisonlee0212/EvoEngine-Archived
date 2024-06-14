@@ -1,7 +1,7 @@
 #pragma once
 #include "Scene.hpp"
 #include "Transform.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 #pragma region Bone
 struct BonePosition
@@ -102,4 +102,4 @@ class Animation : public IAsset
     void Serialize(YAML::Emitter &out) const override;
     void Deserialize(const YAML::Node &in) override;
 };
-} // namespace EvoEngine
+} // namespace evo_engine

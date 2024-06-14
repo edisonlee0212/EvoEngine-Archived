@@ -1,6 +1,6 @@
 #include "GraphicsPipelineStates.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 
 

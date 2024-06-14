@@ -7,7 +7,7 @@
 #include "RenderLayer.hpp"
 #include "Utilities.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void GraphicsPipeline::PreparePipeline()
 {

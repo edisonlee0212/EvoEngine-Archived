@@ -3,7 +3,7 @@
 
 #include "IPrivateComponent.hpp"
 
-namespace EvoEngine{
+namespace evo_engine{
 class UnknownPrivateComponent : public IPrivateComponent
 {
     std::string m_originalTypeName {};

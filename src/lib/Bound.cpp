@@ -1,7 +1,7 @@
 #include "Bound.hpp"
 #include "Mesh.hpp"
 #include "Transform.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 glm::vec3 Bound::Size() const
 {

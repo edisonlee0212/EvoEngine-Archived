@@ -6,7 +6,7 @@
 //#include "ProjectManager.hpp"
 #include "Application.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 DataComponentType::DataComponentType(const std::string &name, const size_t &id, const size_t &size)
 {

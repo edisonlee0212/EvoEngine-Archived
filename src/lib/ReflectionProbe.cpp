@@ -3,7 +3,7 @@
 #include "EditorLayer.hpp"
 #include "Mesh.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 struct EquirectangularToCubemapConstant
 {
 	glm::mat4 m_projectionView = {};

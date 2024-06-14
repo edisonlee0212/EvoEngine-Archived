@@ -2,7 +2,7 @@
 #include "Material.hpp"
 #include "Strands.hpp"
 #include "IPrivateComponent.hpp"
-namespace EvoEngine {
+namespace evo_engine {
     class StrandsRenderer : public IPrivateComponent {
         void RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color);
     public:

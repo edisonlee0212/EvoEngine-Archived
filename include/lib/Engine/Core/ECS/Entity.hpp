@@ -2,7 +2,7 @@
 #include "IHandle.hpp"
 #include "ISerializable.hpp"
 #include <IDataComponent.hpp>
-namespace EvoEngine
+namespace evo_engine
 {
 #pragma region EntityManager
 #pragma region Entity
@@ -245,4 +245,4 @@ template <typename T> bool DataComponentStorage::HasType()
 }
 
 
-} // namespace EvoEngine
+} // namespace evo_engine

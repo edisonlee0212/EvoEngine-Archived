@@ -3,7 +3,7 @@
 #include "Animator.hpp"
 #include "Scene.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void AnimationPlayer::Update()
 {

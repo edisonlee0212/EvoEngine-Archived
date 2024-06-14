@@ -1,7 +1,7 @@
 #include "Shader.hpp"
 #include "Utilities.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 bool Shader::Compiled() const
 {
 	return m_shaderModule != nullptr;

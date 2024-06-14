@@ -5,7 +5,7 @@
 #include "EntityMetadata.hpp"
 #include "Serialization.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene)
 {

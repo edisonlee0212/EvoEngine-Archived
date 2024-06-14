@@ -11,7 +11,7 @@
 #include "RenderLayer.hpp"
 #include "TextureStorage.hpp"
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 VkBool32 DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
@@ -524,7 +524,7 @@ void Graphics::CreateInstance()
 	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	vkApplicationInfo.pApplicationName = Application::GetApplicationInfo().m_applicationName.c_str();
 	vkApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	vkApplicationInfo.pEngineName = "EvoEngine";
+	vkApplicationInfo.pEngineName = "evo_engine";
 	vkApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	vkApplicationInfo.apiVersion = volkGetInstanceVersion();
 

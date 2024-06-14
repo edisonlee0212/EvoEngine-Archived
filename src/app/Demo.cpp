@@ -15,7 +15,7 @@
 
 
 
-using namespace EvoEngine;
+using namespace evo_engine;
 #pragma region Helpers
 
 enum class DemoSetup

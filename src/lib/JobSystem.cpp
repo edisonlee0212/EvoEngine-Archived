@@ -2,7 +2,7 @@
 
 #include "Console.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 int JobHandle::GetIndex() const
 {

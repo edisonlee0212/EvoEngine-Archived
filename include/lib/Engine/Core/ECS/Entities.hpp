@@ -5,7 +5,7 @@
 #include "Serialization.hpp"
 #include "Transform.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 template <typename T> DataComponentType Typeof()
 {
@@ -235,4 +235,4 @@ template <typename T, typename... Ts> void EntityQuery::SetNoneFilters(T arg, Ts
 
 #pragma endregion
 
-} // namespace EvoEngine
+} // namespace evo_engine

@@ -1,7 +1,7 @@
 #pragma once
-namespace EvoEngine
+namespace evo_engine
 {
 struct IDataComponent
 {
 };
-} // namespace EvoEngine
+} // namespace evo_engine

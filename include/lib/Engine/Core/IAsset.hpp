@@ -1,7 +1,7 @@
 #pragma once
 #include <IHandle.hpp>
 #include <ISerializable.hpp>
-namespace EvoEngine
+namespace evo_engine
 {
 	class EditorLayer;
 	class AssetRef;
@@ -90,4 +90,4 @@ namespace EvoEngine
 		~IAsset() override;
 	};
 
-} // namespace EvoEngine
+} // namespace evo_engine

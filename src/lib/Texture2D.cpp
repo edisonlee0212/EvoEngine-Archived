@@ -8,7 +8,7 @@
 #include "Jobs.hpp"
 #include "TextureStorage.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const
 {

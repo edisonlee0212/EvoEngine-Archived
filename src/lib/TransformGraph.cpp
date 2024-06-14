@@ -5,7 +5,7 @@
 #include "Scene.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 DataComponentRegistration<Transform> TransformRegistry("Transform");
 DataComponentRegistration<GlobalTransform> GlobalTransformRegistry("GlobalTransform");

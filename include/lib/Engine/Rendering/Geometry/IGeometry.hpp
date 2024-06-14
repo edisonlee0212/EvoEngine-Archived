@@ -1,7 +1,7 @@
 #pragma once
 #include "Transform.hpp"
 #include "Vertex.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class GraphicsPipelineStates;
 

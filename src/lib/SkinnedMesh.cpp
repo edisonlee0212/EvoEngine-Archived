@@ -3,7 +3,7 @@
 
 #include "Application.hpp"
 #include "GeometryStorage.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 void SkinnedVertexAttributes::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_normal" << YAML::Value << m_normal;

@@ -1,7 +1,7 @@
 #include "WayPoints.hpp"
 
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 bool WayPoints::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {

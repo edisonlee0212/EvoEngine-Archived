@@ -4,7 +4,7 @@
 #include "Scene.hpp"
 #include "EditorLayer.hpp"
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void PlayerController::OnCreate()
 {

@@ -4,7 +4,7 @@
 #include "Mesh.hpp"
 #include "Transform.hpp"
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void MeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, const glm::vec4& color)
 {

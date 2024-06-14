@@ -9,7 +9,7 @@
 #include "PostProcessingStack.hpp"
 #include "RenderLayer.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Graphics::CreateGraphicsPipelines() const
 {

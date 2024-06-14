@@ -9,7 +9,7 @@
 #include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Scene::Purge()
 {

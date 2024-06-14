@@ -1,6 +1,6 @@
 #include "GeometryStorage.hpp"
 #include "meshoptimizer.h"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void GeometryStorage::UploadData()
 {

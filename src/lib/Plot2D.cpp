@@ -1,6 +1,6 @@
 #include "Plot2D.hpp"
 #include "Serialization.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 
 // TAKEN FROM (with much cleaning + tweaking):

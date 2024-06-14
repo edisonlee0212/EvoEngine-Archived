@@ -1,5 +1,5 @@
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 double Times::m_timeStep = 0.016;
 double Times::m_deltaTime = 0;

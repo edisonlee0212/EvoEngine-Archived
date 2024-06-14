@@ -1,7 +1,7 @@
 #pragma once
 #include "IAsset.hpp"
 #include "RenderTexture.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class Camera;
 

@@ -14,7 +14,7 @@
 #include "LightProbe.hpp"
 #include "EnvironmentalMap.hpp"
 #include "Jobs.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 
 	enum SystemGroup
@@ -2133,4 +2133,4 @@ namespace EvoEngine
 
 #pragma endregion
 
-} // namespace EvoEngine
+} // namespace evo_engine

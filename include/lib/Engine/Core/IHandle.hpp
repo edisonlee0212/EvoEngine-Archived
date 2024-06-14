@@ -1,8 +1,8 @@
 #pragma once
-namespace EvoEngine
+namespace evo_engine
 {
 /**
- * The "GUID" for all instances in EvoEngine that requires a unique identifier for hashing/serialization.
+ * The "GUID" for all instances in evo_engine that requires a unique identifier for hashing/serialization.
  */
 struct Handle
 {
@@ -11,7 +11,7 @@ struct Handle
     friend class Resources;
 
     /**
-     * Default constructor, will allocate a random number to the handle. EvoEngine will not handle the collision since possibility is extremely small and negligible.
+     * Default constructor, will allocate a random number to the handle. evo_engine will not handle the collision since possibility is extremely small and negligible.
      */
     Handle();
     /**
@@ -56,14 +56,14 @@ class IHandle{
         return m_handle;
     }
 };
-} // namespace EvoEngine
+} // namespace evo_engine
 
 namespace std
 {
 template <>
-struct hash<EvoEngine::Handle>
+struct hash<evo_engine::Handle>
     {
-    size_t operator()(const EvoEngine::Handle &handle) const
+    size_t operator()(const evo_engine::Handle &handle) const
     {
         return hash<uint64_t>()((uint64_t)handle);
     }

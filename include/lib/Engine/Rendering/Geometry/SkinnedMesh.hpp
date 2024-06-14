@@ -4,7 +4,7 @@
 #include "Vertex.hpp"
 #include "GraphicsResources.hpp"
 #include "GeometryStorage.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	struct SkinnedVertexAttributes
 	{
@@ -74,4 +74,4 @@ namespace EvoEngine
 		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 	};
-} // namespace EvoEngine
+} // namespace evo_engine

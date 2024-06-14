@@ -14,7 +14,7 @@
 #include "Cubemap.hpp"
 #include "EnvironmentalMap.hpp"
 #include "StrandsRenderer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void EditorLayer::OnCreate()
 {

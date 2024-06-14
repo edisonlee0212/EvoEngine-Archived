@@ -1,5 +1,5 @@
 #pragma once
-namespace EvoEngine {
+namespace evo_engine {
 	class Times
 	{
 		friend class Scene;

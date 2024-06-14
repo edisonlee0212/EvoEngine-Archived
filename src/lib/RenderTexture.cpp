@@ -4,7 +4,7 @@
 #include "EditorLayer.hpp"
 #include "Graphics.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void RenderTexture::Initialize(const RenderTextureCreateInfo& renderTextureCreateInfo)
 {

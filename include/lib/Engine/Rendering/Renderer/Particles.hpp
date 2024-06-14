@@ -2,7 +2,7 @@
 #include "Material.hpp"
 #include "Mesh.hpp"
 #include "Scene.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
     class Particles : public IPrivateComponent
     {
@@ -21,4 +21,4 @@ namespace EvoEngine
         void CollectAssetRef(std::vector<AssetRef>& list) override;
         void OnDestroy() override;
     };
-} // namespace EvoEngine
+} // namespace evo_engine

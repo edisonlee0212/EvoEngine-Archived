@@ -1,7 +1,7 @@
 #pragma once
 #include <IHandle.hpp>
 #include <IAsset.hpp>
-namespace EvoEngine
+namespace evo_engine
 {
 class AssetRef final : public ISerializable
 {
@@ -89,4 +89,4 @@ class AssetRef final : public ISerializable
         return m_assetHandle;
     }
 };
-} // namespace EvoEngine
+} // namespace evo_engine

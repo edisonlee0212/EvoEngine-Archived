@@ -2,7 +2,7 @@
 #include "EditorLayer.hpp"
 #include "ProjectManager.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 
 void EnvironmentalMap::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap)

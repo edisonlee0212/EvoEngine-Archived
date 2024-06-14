@@ -6,7 +6,7 @@
 //#include "ProjectManager.hpp"
 #include "Entities.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 bool PrivateComponentRef::Update()
 {
     if (m_entityHandle.GetValue() == 0 || m_scene.expired())

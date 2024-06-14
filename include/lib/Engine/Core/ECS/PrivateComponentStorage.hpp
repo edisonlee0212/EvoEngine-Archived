@@ -2,7 +2,7 @@
 #include "Entity.hpp"
 #include <utility>
 #include "Serialization.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 struct POwnersCollection
 {
@@ -77,4 +77,4 @@ template <typename T> const std::vector<Entity> *PrivateComponentStorage::Unsafe
     }
     return nullptr;
 }
-} // namespace EvoEngine
+} // namespace evo_engine

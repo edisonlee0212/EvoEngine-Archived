@@ -1,7 +1,7 @@
 #include "Jobs.hpp"
 
 #include "Console.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 size_t Jobs::GetWorkerSize()
 {

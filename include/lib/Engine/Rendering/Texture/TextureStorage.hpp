@@ -2,7 +2,7 @@
 #include "GraphicsResources.hpp"
 
 #include "Cubemap.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	struct TextureStorageHandle
 	{

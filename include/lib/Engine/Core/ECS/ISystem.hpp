@@ -1,7 +1,7 @@
 #pragma once
 #include "ISerializable.hpp"
 #include "AssetRef.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class ThreadPool;
 	class Scene;
@@ -133,4 +133,4 @@ namespace EvoEngine
 			return m_systemHandle;
 		}
 	};
-} // namespace EvoEngine
+} // namespace evo_engine

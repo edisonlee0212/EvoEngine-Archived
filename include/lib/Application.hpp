@@ -3,11 +3,11 @@
 #include "Console.hpp"
 #include "ILayer.hpp"
 
-namespace EvoEngine {
+namespace evo_engine {
 
 	struct ApplicationInfo {
 		std::filesystem::path m_projectPath;
-		std::string m_applicationName = "EvoEngine";
+		std::string m_applicationName = "evo_engine";
 		glm::ivec2 m_defaultWindowSize = { 1280, 720 };
 		bool m_enableDocking = true;
 		bool m_enableViewport = false;

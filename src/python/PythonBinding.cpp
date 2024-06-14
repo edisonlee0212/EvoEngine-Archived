@@ -14,7 +14,7 @@
 #include "ProjectManager.hpp"
 #include "Scene.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 namespace py = pybind11;
 
@@ -109,7 +109,7 @@ void RegisterLayers(bool enableWindowLayer, bool enableEditorLayer)
 void StartProjectWindowless(const std::filesystem::path& projectPath)
 {
 	if (std::filesystem::path(projectPath).extension().string() != ".eveproj") {
-		EVOENGINE_ERROR("Project path doesn't point to a EvoEngine project!");
+		EVOENGINE_ERROR("Project path doesn't point to a evo_engine project!");
 		return;
 	}
 	RegisterLayers(false, false);
@@ -123,7 +123,7 @@ void StartProjectWithEditor(const std::filesystem::path& projectPath)
 {
 	if (!projectPath.empty()) {
 		if (std::filesystem::path(projectPath).extension().string() != ".eveproj") {
-			EVOENGINE_ERROR("Project path doesn't point to a EvoEngine project!");
+			EVOENGINE_ERROR("Project path doesn't point to a evo_engine project!");
 			return;
 		}
 	}
@@ -191,7 +191,7 @@ PYBIND11_MODULE(pyevoengine, m) {
 	py::class_<ProjectManager>(m, "ProjectManager")
 		.def_static("GetOrCreateProject", &ProjectManager::GetOrCreateProject)
 		.def_static("SaveProject", &ProjectManager::SaveProject);
-	m.doc() = "EvoEngine"; // optional module docstring
+	m.doc() = "evo_engine"; // optional module docstring
 
 	m.def("create_rendering_demo", &CreateRenderingDemo, "Create Rendering Demo");
 

@@ -3,7 +3,7 @@
 #include "ISingleton.hpp"
 #include "Resources.hpp"
 #include "Serialization.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class Folder;
 	class AssetRecord
@@ -176,4 +176,4 @@ namespace EvoEngine
 	{
 		return GetExtension(Serialization::GetSerializableTypeName<T>());
 	}
-} // namespace EvoEngine
+} // namespace evo_engine

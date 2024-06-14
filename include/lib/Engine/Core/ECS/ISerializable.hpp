@@ -6,7 +6,7 @@ class Emitter;
 class Node;
 } // namespace YAML
 
-namespace EvoEngine
+namespace evo_engine
 {
 class ISerializable : public IHandle
 {
@@ -34,4 +34,4 @@ class ISerializable : public IHandle
     {
     }
 };
-} // namespace EvoEngine
+} // namespace evo_engine

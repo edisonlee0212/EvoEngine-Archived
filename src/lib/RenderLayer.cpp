@@ -15,7 +15,7 @@
 #include "PostProcessingStack.hpp"
 #include "StrandsRenderer.hpp"
 #include "TextureStorage.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void RenderInstanceCollection::Dispatch(const std::function<void(const RenderInstance&)>& commandAction) const
 {

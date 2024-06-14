@@ -4,7 +4,7 @@
 #include "Particles.hpp"
 #include "Vertex.hpp"
 #include "GeometryStorage.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
     struct StrandPointAttributes
     {

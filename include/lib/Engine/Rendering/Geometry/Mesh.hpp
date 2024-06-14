@@ -6,7 +6,7 @@
 #include "IAsset.hpp"
 #include "IGeometry.hpp"
 #include "Vertex.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	struct VertexAttributes
 	{

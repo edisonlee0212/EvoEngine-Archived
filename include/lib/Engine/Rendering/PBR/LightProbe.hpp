@@ -1,7 +1,7 @@
 #pragma once
 #include "Cubemap.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	class LightProbe : public IAsset
 	{

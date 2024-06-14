@@ -3,7 +3,7 @@
 #include "Material.hpp"
 #include "SkinnedMesh.hpp"
 #include "PrivateComponentRef.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class SkinnedMeshRenderer : public IPrivateComponent
 	{
@@ -41,4 +41,4 @@ namespace EvoEngine
 	};
 
 
-} // namespace EvoEngine
+} // namespace evo_engine

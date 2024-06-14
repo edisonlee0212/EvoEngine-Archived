@@ -1,6 +1,6 @@
 #pragma once
 #include "ISingleton.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
     class Console : public ISingleton<Console>
     {
@@ -22,7 +22,7 @@ namespace EvoEngine
         static void Warning(const std::string& msg);
     };
 
-} // namespace EvoEngine
+} // namespace evo_engine
 
 /**
  * \brief A thread-safe message log macro.
@@ -30,8 +30,8 @@ namespace EvoEngine
  */
 #define EVOENGINE_LOG(msg)                                                                                             \
     {                                                                                                                  \
-        EvoEngine::Console::Log(msg);                                                                                    \
-        std::cout << "[EvoEngine]Log: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;       \
+        evo_engine::Console::Log(msg);                                                                                    \
+        std::cout << "[evo_engine]Log: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;       \
     }
 
  /**
@@ -40,8 +40,8 @@ namespace EvoEngine
   */
 #define EVOENGINE_ERROR(msg)                                                                                           \
     {                                                                                                                  \
-        EvoEngine::Console::Error(msg);                                                                                  \
-        std::cerr << "[EvoEngine]Error: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;     \
+        evo_engine::Console::Error(msg);                                                                                  \
+        std::cerr << "[evo_engine]Error: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;     \
     }
   /**
    * \brief A thread-safe warning log macro.
@@ -49,6 +49,6 @@ namespace EvoEngine
    */
 #define EVOENGINE_WARNING(msg)                                                                                         \
     {                                                                                                                  \
-        EvoEngine::Console::Warning(msg);                                                                                \
-        std::cout << "[EvoEngine]Warning: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;   \
+        evo_engine::Console::Warning(msg);                                                                                \
+        std::cout << "[evo_engine]Warning: " << msg << " (" << __FILE__ << ": line " << __LINE__ << ")\n==========" << std::endl;   \
     }

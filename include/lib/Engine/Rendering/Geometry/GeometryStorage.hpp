@@ -4,7 +4,7 @@
 #include "ISingleton.hpp"
 #include "Vertex.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	struct VertexDataChunk
 	{

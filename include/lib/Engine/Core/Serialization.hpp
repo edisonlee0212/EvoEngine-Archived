@@ -463,7 +463,7 @@ namespace YAML
 } // namespace YAML
 #define EXPORT_PARAM(x, y) (x) << "{" << (y) << "}"
 #define IMPORT_PARAM(x, y, temp) (x) >> (temp) >> (y) >> (temp)
-namespace EvoEngine
+namespace evo_engine
 {
 #pragma region Component Factory
 	class Serialization : public ISingleton<Serialization>
@@ -646,4 +646,4 @@ namespace EvoEngine
 		EVOENGINE_ERROR("PrivateComponent " + typeName + "is not registered!");
 		throw 1;
 	}
-} // namespace EvoEngine
+} // namespace evo_engine

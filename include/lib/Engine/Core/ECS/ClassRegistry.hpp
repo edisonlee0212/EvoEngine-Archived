@@ -4,7 +4,7 @@
 #include "Entity.hpp"
 #include "Serialization.hpp"
 #include "ProjectManager.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 class ClassRegistry
 {
@@ -96,4 +96,4 @@ template <typename T> class SerializableRegistration
     }
 };
 
-} // namespace EvoEngine
+} // namespace evo_engine

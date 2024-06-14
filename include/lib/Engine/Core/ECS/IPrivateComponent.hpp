@@ -3,7 +3,7 @@
 #include "Entity.hpp"
 #include "ISerializable.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	class EditorLayer;
 	class IPrivateComponent : public ISerializable
@@ -60,4 +60,4 @@ namespace EvoEngine
 		void ResetOwner(const Entity& newOwner, const std::shared_ptr<Scene>& scene) const;
 	};
 
-} // namespace EvoEngine
+} // namespace evo_engine

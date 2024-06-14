@@ -1,7 +1,7 @@
 #include "Entities.hpp"
 #include "Entity.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 #pragma region EntityManager
 

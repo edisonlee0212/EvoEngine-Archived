@@ -2,7 +2,7 @@
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	enum class ShaderType
 	{

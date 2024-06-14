@@ -1,7 +1,7 @@
 #pragma once
 #include "GraphicsPipelineStates.hpp"
 #include "GraphicsResources.hpp"
-namespace EvoEngine{
+namespace evo_engine{
 	struct RenderTextureCreateInfo
 	{
 		VkExtent3D m_extent = {1, 1, 1};

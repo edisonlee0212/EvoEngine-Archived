@@ -1,7 +1,7 @@
 #pragma once
 #include "IDataComponent.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	struct Vertex;
 

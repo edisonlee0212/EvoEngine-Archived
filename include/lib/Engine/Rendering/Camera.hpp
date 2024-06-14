@@ -4,7 +4,7 @@
 #include "RenderTexture.hpp"
 #include "Transform.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
     struct CameraInfoBlock
     {

@@ -12,7 +12,7 @@
 #include "Scene.hpp"
 #include "Mesh.hpp"
 #include "Strands.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	enum class ConsoleMessageType
 	{

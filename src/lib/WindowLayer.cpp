@@ -3,7 +3,7 @@
 #include "Application.hpp"
 #include "ProjectManager.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void WindowLayer::FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {

@@ -4,7 +4,7 @@
 #include "LightProbe.hpp"
 #include "RenderTexture.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
     class EnvironmentalMap : public IAsset
     {

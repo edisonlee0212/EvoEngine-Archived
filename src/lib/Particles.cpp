@@ -1,7 +1,7 @@
 #include "EditorLayer.hpp"
 #include "Particles.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Particles::OnCreate()
 {

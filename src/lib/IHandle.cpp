@@ -1,5 +1,5 @@
 #include <IHandle.hpp>
-using namespace EvoEngine;
+using namespace evo_engine;
 
 static std::random_device s_RandomDevice;
 static std::mt19937_64 eng(s_RandomDevice());

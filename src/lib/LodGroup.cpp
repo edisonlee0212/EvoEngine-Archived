@@ -3,7 +3,7 @@
 #include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "StrandsRenderer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 bool Lod::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {

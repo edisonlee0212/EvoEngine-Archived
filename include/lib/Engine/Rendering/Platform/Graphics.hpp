@@ -3,7 +3,7 @@
 #include "ISingleton.hpp"
 #include "GraphicsResources.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> m_graphicsFamily;

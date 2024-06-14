@@ -5,7 +5,7 @@
 #include "AssetRef.hpp"
 #include "ProjectManager.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 bool AssetRef::Update()
 {
     if (m_assetHandle.GetValue() == 0)

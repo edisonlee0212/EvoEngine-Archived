@@ -1,7 +1,7 @@
 #include "Entities.hpp"
 #include "PrivateComponentStorage.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 void PrivateComponentStorage::RemovePrivateComponent(Entity entity, size_t typeID, const std::shared_ptr<IPrivateComponent> &privateComponent)
 {
     const auto search = m_pOwnersCollectionsMap.find(typeID);

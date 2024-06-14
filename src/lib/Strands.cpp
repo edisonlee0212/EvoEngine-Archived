@@ -8,7 +8,7 @@
 #include "GeometryStorage.hpp"
 #include "Jobs.hpp"
 #include "RenderLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void StrandPointAttributes::Serialize(YAML::Emitter& out) const
 {

@@ -8,7 +8,7 @@
 #include "RenderLayer.hpp"
 #include "Scene.hpp"
 #include "PostProcessingStack.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 
 glm::vec3 CameraInfoBlock::Project(const glm::vec3& position) const

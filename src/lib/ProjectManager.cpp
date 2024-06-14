@@ -13,7 +13,7 @@
 #include "shellapi.h"
 #endif
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 std::shared_ptr<IAsset> AssetRecord::GetAsset()
 {

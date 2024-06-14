@@ -6,7 +6,7 @@
 #include "RenderLayer.hpp"
 #include "Resources.hpp"
 #include "TextureStorage.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 #include "EditorLayer.hpp"
 struct EquirectangularToCubemapConstant
 {

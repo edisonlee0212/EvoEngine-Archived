@@ -10,7 +10,7 @@
 
 #include "Texture2D.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
    
     struct DataComponentHolder
@@ -97,4 +97,4 @@ namespace EvoEngine
         return nullptr;
     }
 
-} // namespace EvoEngine
+} // namespace evo_engine

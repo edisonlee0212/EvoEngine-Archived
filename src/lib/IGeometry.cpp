@@ -1,6 +1,6 @@
 #include "IGeometry.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 const std::vector<VkVertexInputBindingDescription>& IGeometry::GetVertexBindingDescriptions(GeometryType geometryType)
 {
 	static std::vector<VkVertexInputBindingDescription> mesh{};

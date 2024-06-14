@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-namespace EvoEngine
+namespace evo_engine
 {
     struct MaterialProperties {
         glm::vec3 m_albedoColor = glm::vec3(1.0f);

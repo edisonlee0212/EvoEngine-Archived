@@ -2,7 +2,7 @@
 #include "Application.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 
 class PointCloud : public IAsset
@@ -47,4 +47,4 @@ protected:
     void Deserialize(const YAML::Node &in) override;
     
 };
-} // namespace EvoEngine
+} // namespace evo_engine

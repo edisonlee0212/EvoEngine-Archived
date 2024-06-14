@@ -2,7 +2,7 @@
 #include "GraphicsPipelineStates.hpp"
 #include "GraphicsResources.hpp"
 #include "IGeometry.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class Shader;
 

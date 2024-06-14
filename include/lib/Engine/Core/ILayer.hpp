@@ -1,7 +1,7 @@
 #pragma once
 #include "Input.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	class Scene;
 	class EditorLayer;
@@ -23,4 +23,4 @@ namespace EvoEngine
 	public:
 		[[nodiscard]] std::shared_ptr<Scene> GetScene() const;
 	};
-} // namespace EvoEngine
+} // namespace evo_engine

@@ -4,7 +4,7 @@
 #include "IAsset.hpp"
 #include "MaterialProperties.hpp"
 #include "Texture2D.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	struct MaterialInfoBlock {
 		alignas(4) int m_albedoTextureIndex = -1;

@@ -1,7 +1,7 @@
 #pragma once
 #include "ISingleton.hpp"
 #include "JobSystem.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class Jobs final : ISingleton<Jobs>
 	{
@@ -26,4 +26,4 @@ namespace EvoEngine
 		static void Execute(const JobHandle& jobHandle);
 		static void Wait(const JobHandle &jobHandle);
 	};
-} // namespace EvoEngine
+} // namespace evo_engine

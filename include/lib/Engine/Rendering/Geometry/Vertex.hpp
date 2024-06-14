@@ -1,6 +1,6 @@
 #pragma once
 
-namespace EvoEngine
+namespace evo_engine
 {
     struct Vertex
     {

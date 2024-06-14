@@ -4,7 +4,7 @@
 #include "IAsset.hpp"
 #include "IPrivateComponent.hpp"
 #include "ISerializable.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class PrivateComponentRef final : public ISerializable
 	{
@@ -115,4 +115,4 @@ namespace EvoEngine
 			if (in[name]) Deserialize(in[name], scene);
 		}
 	};
-} // namespace EvoEngine
+} // namespace evo_engine

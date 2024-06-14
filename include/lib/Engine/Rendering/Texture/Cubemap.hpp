@@ -4,7 +4,7 @@
 #include "IAsset.hpp"
 #include "Texture2D.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	class CubemapStorage;
 	struct TextureStorageHandle;

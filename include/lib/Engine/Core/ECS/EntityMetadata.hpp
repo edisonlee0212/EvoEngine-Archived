@@ -2,7 +2,7 @@
 #include <ISerializable.hpp>
 #include <IPrivateComponent.hpp>
 #include <Entity.hpp>
-namespace EvoEngine
+namespace evo_engine
 {
 class Scene;
 
@@ -25,4 +25,4 @@ struct EntityMetadata
     void Clone(const std::unordered_map<Handle, Handle> &entityMap, const EntityMetadata &source, const std::shared_ptr<Scene> &scene);
 };
 
-} // namespace EvoEngine
+} // namespace evo_engine

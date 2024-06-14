@@ -1,7 +1,7 @@
 #pragma once
 #include "IPrivateComponent.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
     class AnimationPlayer : public IPrivateComponent
     {

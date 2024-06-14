@@ -2,7 +2,7 @@
 #include "GraphicsResources.hpp"
 #include "IPrivateComponent.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 #pragma region Lights
     struct DirectionalLightInfo

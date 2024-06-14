@@ -1,7 +1,7 @@
 #include "Console.hpp"
 #include "EditorLayer.hpp"
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Console::Log(const std::string& msg)
 {

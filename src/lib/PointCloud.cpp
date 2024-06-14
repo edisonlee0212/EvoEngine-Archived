@@ -11,7 +11,7 @@
 #include "Graphics.hpp"
 #include "EditorLayer.hpp"
 #include "ClassRegistry.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 using namespace tinyply;
 
 bool PointCloud::LoadInternal(const std::filesystem::path& path)

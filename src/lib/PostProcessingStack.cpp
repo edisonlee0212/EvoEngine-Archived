@@ -7,7 +7,7 @@
 #include "Mesh.hpp"
 #include "RenderLayer.hpp"
 #include "Resources.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void PostProcessingStack::Resize(const glm::uvec2& size) const
 {

@@ -9,7 +9,7 @@
 #include "ClassRegistry.hpp"
 #include "TransformGraph.hpp"
 #include "UnknownPrivateComponent.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 void Prefab::OnCreate()
 {
 	m_name = "New Prefab";

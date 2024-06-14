@@ -9,7 +9,7 @@
 #include "SkinnedMeshRenderer.hpp"
 #include "Strands.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 #pragma region Enums Structs
 	enum class RenderCommandType {

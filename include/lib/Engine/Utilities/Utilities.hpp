@@ -1,7 +1,7 @@
 #pragma once
 #include <shaderc/shaderc.hpp>
 
-namespace EvoEngine
+namespace evo_engine
 {
 	class FileUtils
 	{

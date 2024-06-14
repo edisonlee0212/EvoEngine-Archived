@@ -3,7 +3,7 @@
 #include "EditorLayer.hpp"
 #include "ClassRegistry.hpp"
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Animator::Setup()
 {

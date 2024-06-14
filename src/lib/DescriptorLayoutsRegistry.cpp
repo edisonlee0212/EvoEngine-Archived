@@ -1,6 +1,6 @@
 #include "Graphics.hpp"
 #include "Utilities.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Graphics::PrepareDescriptorSetLayouts() const
 {

@@ -4,7 +4,7 @@
 #include "Graphics.hpp"
 #include "RenderLayer.hpp"
 #include "Serialization.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 
 bool SpotLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)

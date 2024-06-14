@@ -5,7 +5,7 @@
 //#include <ProjectManager.hpp>
 #include "Entities.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 PrivateComponentElement::PrivateComponentElement(
         size_t id, const std::shared_ptr<IPrivateComponent> &data, const Entity &owner,

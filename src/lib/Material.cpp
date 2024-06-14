@@ -3,7 +3,7 @@
 #include "Texture2D.hpp"
 #include "EditorLayer.hpp"
 #include "RenderLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 static const char* PolygonMode[]{ "Point", "Line", "Fill" };
 static const char* CullingMode[]{ "Front", "Back", "FrontAndBack", "None" };

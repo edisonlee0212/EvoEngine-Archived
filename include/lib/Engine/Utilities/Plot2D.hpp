@@ -1,7 +1,7 @@
 #pragma once
 #include "Entity.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	enum class CurveEditorFlags
 	{
@@ -49,10 +49,10 @@ namespace EvoEngine
 	template <class T> struct Plot2D {
 		T m_minValue = 0;
 		T m_maxValue = 1;
-		EvoEngine::Curve2D m_curve = EvoEngine::Curve2D(0.5f, 0.5f, { 0, 0 }, { 1, 1 });
+		evo_engine::Curve2D m_curve = evo_engine::Curve2D(0.5f, 0.5f, { 0, 0 }, { 1, 1 });
 		Plot2D();
 		Plot2D(T min, T max,
-			EvoEngine::Curve2D curve = EvoEngine::Curve2D(0.5f, 0.5f, { 0, 0 },
+			evo_engine::Curve2D curve = evo_engine::Curve2D(0.5f, 0.5f, { 0, 0 },
 				{ 1, 1 }));
 		bool OnInspect(const std::string& name,
 			const CurveDescriptorSettings& settings = {});
@@ -250,10 +250,10 @@ namespace EvoEngine
 		}
 	}
 	template <class T> Plot2D<T>::Plot2D() {
-		m_curve = EvoEngine::Curve2D(0.5f, 0.5f, { 0, 0 }, { 1, 1 });
+		m_curve = evo_engine::Curve2D(0.5f, 0.5f, { 0, 0 }, { 1, 1 });
 	}
 	template <class T>
-	Plot2D<T>::Plot2D(T min, T max, const EvoEngine::Curve2D curve) {
+	Plot2D<T>::Plot2D(T min, T max, const evo_engine::Curve2D curve) {
 		m_minValue = min;
 		m_maxValue = max;
 		m_curve = curve;
@@ -262,4 +262,4 @@ namespace EvoEngine
 		return glm::mix(m_minValue, m_maxValue,
 			glm::clamp(m_curve.GetValue(t), 0.0f, 1.0f));
 	}
-} // namespace EvoEngine
+} // namespace evo_engine

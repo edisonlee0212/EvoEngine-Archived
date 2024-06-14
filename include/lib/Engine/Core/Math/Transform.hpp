@@ -1,6 +1,6 @@
 #pragma once
 #include "Entity.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 struct TransformUpdateFlag : IDataComponent
 {
@@ -601,4 +601,4 @@ struct Transform : IDataComponent
     }
 #pragma endregion
 };
-} // namespace EvoEngine
+} // namespace evo_engine

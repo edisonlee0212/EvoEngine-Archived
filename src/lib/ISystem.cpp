@@ -1,7 +1,7 @@
 #include "ISystem.hpp"
 #include "Application.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 ISystem::ISystem()
 {

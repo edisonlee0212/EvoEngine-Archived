@@ -3,7 +3,7 @@
 #include "Application.hpp"
 #include "WindowLayer.hpp"
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Input::KeyCallBack(GLFWwindow* window, int key, int scanCode, int action, int mods)
 {

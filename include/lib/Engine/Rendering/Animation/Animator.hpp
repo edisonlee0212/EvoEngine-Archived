@@ -1,7 +1,7 @@
 #pragma once
 #include "Animation.hpp"
 #include "Scene.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 class Animator final : public IPrivateComponent
 {
@@ -44,4 +44,4 @@ class Animator final : public IPrivateComponent
     void Deserialize(const YAML::Node &in) override;
     void CollectAssetRef(std::vector<AssetRef> &list) override;
 };
-} // namespace EvoEngine
+} // namespace evo_engine

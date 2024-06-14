@@ -7,7 +7,7 @@
 #include "ProjectManager.hpp"
 #include "WindowLayer.hpp"
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 std::string FileUtils::LoadFileAsString(const std::filesystem::path& path)
 {
 	std::ifstream file;

@@ -2,7 +2,7 @@
 #include "AssetRef.hpp"
 #include "ISingleton.hpp"
 #include "Serialization.hpp"
-namespace EvoEngine
+namespace evo_engine
 {
 	class Resources : ISingleton<Resources>
 	{

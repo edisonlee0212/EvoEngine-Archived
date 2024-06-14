@@ -1,7 +1,7 @@
 #include <IAsset.hpp>
 #include "Console.hpp"
 #include "ProjectManager.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 bool IAsset::Save()
 {
     if (IsTemporary())

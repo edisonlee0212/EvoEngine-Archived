@@ -3,7 +3,7 @@
 
 #include "ISingleton.hpp"
 
-namespace EvoEngine
+namespace evo_engine
 {
 	enum class KeyActionType
 	{

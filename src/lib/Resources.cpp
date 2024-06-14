@@ -8,7 +8,7 @@
 #include "GeometryStorage.hpp"
 #include "Shader.hpp"
 #include "TextureStorage.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Resources::LoadShaders()
 {

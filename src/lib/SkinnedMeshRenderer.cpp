@@ -1,7 +1,7 @@
 #include "SkinnedMeshRenderer.hpp"
 
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 void SkinnedMeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color)
 {
 	const auto scene = GetScene();

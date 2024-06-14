@@ -4,7 +4,7 @@
 #include "ILayer.hpp"
 #include "Scene.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void ILayer::OnInputEvent(const InputEvent& inputEvent)
 {

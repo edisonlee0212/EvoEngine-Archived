@@ -33,7 +33,7 @@
 #include "UnknownPrivateComponent.hpp"
 #include "Strands.hpp"
 #include "WayPoints.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
 void Application::PreUpdateInternal()
 {
