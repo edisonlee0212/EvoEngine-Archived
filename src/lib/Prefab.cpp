@@ -61,19 +61,19 @@ glm::mat4 mat4_cast(const aiMatrix3x3& m) {
 AssimpImportNode::AssimpImportNode(aiNode* node) {
   m_correspondingNode = node;
   if (node->mParent)
-    m_localTransform.m_value = mat4_cast(node->mTransformation);
+    m_localTransform.value = mat4_cast(node->mTransformation);
   m_name = node->mName.C_Str();
 }
 void AssimpImportNode::AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const {
-  animation->m_rootBone = m_bone;
-  animation->m_rootBone->m_index = index;
+  animation->root_bone = m_bone;
+  animation->root_bone->index = index;
   for (auto& i : m_children) {
     index += 1;
     i->AttachChild(m_bone, index);
   }
 }
 void AssimpImportNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const {
-  m_bone->m_index = index;
+  m_bone->index = index;
   parent->m_children.push_back(m_bone);
   for (auto& i : m_children) {
     index += 1;
@@ -96,46 +96,46 @@ bool AssimpImportNode::NecessaryWalker(std::unordered_map<std::string, std::shar
     necessary = true;
   } else if (necessary) {
     m_bone = std::make_shared<Bone>();
-    m_bone->m_name = m_name;
+    m_bone->name = m_name;
   }
 
   return necessary;
 }
 void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel) {
   const auto numPositions = channel->mNumPositionKeys;
-  boneAnimation.m_positions.resize(numPositions);
+  boneAnimation.positions.resize(numPositions);
   for (int positionIndex = 0; positionIndex < numPositions; ++positionIndex) {
     const aiVector3D aiPosition = channel->mPositionKeys[positionIndex].mValue;
     const float timeStamp = channel->mPositionKeys[positionIndex].mTime;
     BonePosition data;
-    data.m_value = glm::vec3(aiPosition.x, aiPosition.y, aiPosition.z);
-    data.m_timeStamp = timeStamp;
-    boneAnimation.m_positions.push_back(data);
-    boneAnimation.m_maxTimeStamp = glm::max(boneAnimation.m_maxTimeStamp, timeStamp);
+    data.value = glm::vec3(aiPosition.x, aiPosition.y, aiPosition.z);
+    data.time_stamp = timeStamp;
+    boneAnimation.positions.push_back(data);
+    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
   }
 
   const auto numRotations = channel->mNumRotationKeys;
-  boneAnimation.m_rotations.resize(numRotations);
+  boneAnimation.rotations.resize(numRotations);
   for (int rotationIndex = 0; rotationIndex < numRotations; ++rotationIndex) {
     const aiQuaternion aiOrientation = channel->mRotationKeys[rotationIndex].mValue;
     const float timeStamp = channel->mRotationKeys[rotationIndex].mTime;
     BoneRotation data;
-    data.m_value = glm::quat(aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z);
-    data.m_timeStamp = timeStamp;
-    boneAnimation.m_rotations.push_back(data);
-    boneAnimation.m_maxTimeStamp = glm::max(boneAnimation.m_maxTimeStamp, timeStamp);
+    data.value = glm::quat(aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z);
+    data.time_stamp = timeStamp;
+    boneAnimation.rotations.push_back(data);
+    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
   }
 
   const auto numScales = channel->mNumScalingKeys;
-  boneAnimation.m_scales.resize(numScales);
+  boneAnimation.scales.resize(numScales);
   for (int keyIndex = 0; keyIndex < numScales; ++keyIndex) {
     const aiVector3D scale = channel->mScalingKeys[keyIndex].mValue;
     const float timeStamp = channel->mScalingKeys[keyIndex].mTime;
     BoneScale data;
     data.m_value = glm::vec3(scale.x, scale.y, scale.z);
-    data.m_timeStamp = timeStamp;
-    boneAnimation.m_scales.push_back(data);
-    boneAnimation.m_maxTimeStamp = glm::max(boneAnimation.m_maxTimeStamp, timeStamp);
+    data.time_stamp = timeStamp;
+    boneAnimation.scales.push_back(data);
+    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
   }
 }
 void ReadAnimations(const aiScene* importerScene, const std::shared_ptr<Animation>& animator,
@@ -150,12 +150,12 @@ void ReadAnimations(const aiScene* importerScene, const std::shared_ptr<Animatio
       const auto search = bonesMap.find(nodeName);
       if (search != bonesMap.end()) {
         auto& bone = search->second;
-        bone->m_animations[animationName] = BoneKeyFrames();
-        ReadKeyFrame(bone->m_animations[animationName], importerNodeAnimation);
-        maxAnimationTimeStamp = glm::max(maxAnimationTimeStamp, bone->m_animations[animationName].m_maxTimeStamp);
+        bone->animations[animationName] = BoneKeyFrames();
+        ReadKeyFrame(bone->animations[animationName], importerNodeAnimation);
+        maxAnimationTimeStamp = glm::max(maxAnimationTimeStamp, bone->animations[animationName].max_time_stamp);
       }
     }
-    animator->m_animationLength[animationName] = maxAnimationTimeStamp;
+    animator->animation_length[animationName] = maxAnimationTimeStamp;
   }
 }
 std::shared_ptr<Texture2D> CollectTexture(const std::string& directory, const std::string& path,
@@ -265,6 +265,7 @@ std::shared_ptr<Material> ReadMaterial(
 
       opacityMaps.emplace_back(albedoTexture, opacityTexture);
     }
+    /*
     if (importerMaterial->GetTextureCount(aiTextureType_LIGHTMAP) > 0) {
       aiString str;
       importerMaterial->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
@@ -274,7 +275,7 @@ std::shared_ptr<Material> ReadMaterial(
       aiString str;
       importerMaterial->GetTexture(aiTextureType_AMBIENT, 0, &str);
       targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
-    }
+    }*/
     int unknownTextureSize = 0;
     if (importerMaterial->GetTextureCount(aiTextureType_EMISSIVE) > 0) {
       unknownTextureSize++;
@@ -340,43 +341,43 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh) {
     v3.x = importerMesh->mVertices[i].x;
     v3.y = importerMesh->mVertices[i].y;
     v3.z = importerMesh->mVertices[i].z;
-    vertex.m_position = v3;
+    vertex.position = v3;
     if (importerMesh->HasNormals()) {
       v3.x = importerMesh->mNormals[i].x;
       v3.y = importerMesh->mNormals[i].y;
       v3.z = importerMesh->mNormals[i].z;
-      vertex.m_normal = v3;
-      attributes.m_normal = true;
+      vertex.normal = v3;
+      attributes.normal = true;
     } else {
-      attributes.m_normal = false;
+      attributes.normal = false;
     }
     if (importerMesh->HasTangentsAndBitangents()) {
       v3.x = importerMesh->mTangents[i].x;
       v3.y = importerMesh->mTangents[i].y;
       v3.z = importerMesh->mTangents[i].z;
       vertex.m_tangent = v3;
-      attributes.m_tangent = true;
+      attributes.tangent = true;
     } else {
-      attributes.m_tangent = false;
+      attributes.tangent = false;
     }
     if (importerMesh->HasVertexColors(0)) {
       v3.x = importerMesh->mColors[0][i].r;
       v3.y = importerMesh->mColors[0][i].g;
       v3.z = importerMesh->mColors[0][i].b;
-      vertex.m_color = glm::vec4(v3, 1.0f);
-      attributes.m_color = true;
+      vertex.color = glm::vec4(v3, 1.0f);
+      attributes.color = true;
     } else {
-      attributes.m_color = false;
+      attributes.color = false;
     }
     if (importerMesh->HasTextureCoords(0)) {
       glm::vec2 v2;
       v2.x = importerMesh->mTextureCoords[0][i].x;
       v2.y = importerMesh->mTextureCoords[0][i].y;
-      vertex.m_texCoord = v2;
-      attributes.m_texCoord = true;
+      vertex.tex_coord = v2;
+      attributes.tex_coord = true;
     } else {
-      vertex.m_texCoord = glm::vec2(0.0f, 0.0f);
-      attributes.m_color = false;
+      vertex.tex_coord = glm::vec2(0.0f, 0.0f);
+      attributes.color = false;
     }
     vertices[i] = vertex;
   }
@@ -409,37 +410,37 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
     v3.x = importerMesh->mVertices[i].x;
     v3.y = importerMesh->mVertices[i].y;
     v3.z = importerMesh->mVertices[i].z;
-    vertex.m_position = v3;
+    vertex.position = v3;
     if (importerMesh->HasNormals()) {
       v3.x = importerMesh->mNormals[i].x;
       v3.y = importerMesh->mNormals[i].y;
       v3.z = importerMesh->mNormals[i].z;
-      vertex.m_normal = v3;
-      skinnedVertexAttributes.m_normal = true;
+      vertex.normal = v3;
+      skinnedVertexAttributes.normal = true;
     }
     if (importerMesh->HasTangentsAndBitangents()) {
       v3.x = importerMesh->mTangents[i].x;
       v3.y = importerMesh->mTangents[i].y;
       v3.z = importerMesh->mTangents[i].z;
-      vertex.m_tangent = v3;
-      skinnedVertexAttributes.m_tangent = true;
+      vertex.tangent = v3;
+      skinnedVertexAttributes.tangent = true;
     }
     if (importerMesh->HasVertexColors(0)) {
       v3.x = importerMesh->mColors[0][i].r;
       v3.y = importerMesh->mColors[0][i].g;
       v3.z = importerMesh->mColors[0][i].b;
-      vertex.m_color = glm::vec4(v3, 1.0f);
-      skinnedVertexAttributes.m_color = true;
+      vertex.color = glm::vec4(v3, 1.0f);
+      skinnedVertexAttributes.color = true;
     }
     glm::vec2 v2;
     if (importerMesh->HasTextureCoords(0)) {
       v2.x = importerMesh->mTextureCoords[0][i].x;
       v2.y = importerMesh->mTextureCoords[0][i].y;
-      vertex.m_texCoord = v2;
-      skinnedVertexAttributes.m_texCoord = true;
+      vertex.tex_coord = v2;
+      skinnedVertexAttributes.tex_coord = true;
     } else {
-      vertex.m_texCoord = glm::vec2(0.0f, 0.0f);
-      skinnedVertexAttributes.m_texCoord = true;
+      vertex.tex_coord = glm::vec2(0.0f, 0.0f);
+      skinnedVertexAttributes.tex_coord = true;
     }
     vertices[i] = vertex;
   }
@@ -461,12 +462,12 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
     if (const auto search = bonesMap.find(name); search == bonesMap.end())  // If we can't find this bone
     {
       std::shared_ptr<Bone> bone = std::make_shared<Bone>();
-      bone->m_name = name;
-      bone->m_offsetMatrix.m_value = mat4_cast(importerBone->mOffsetMatrix);
+      bone->name = name;
+      bone->offset_matrix.value = mat4_cast(importerBone->mOffsetMatrix);
       bonesMap[name] = bone;
-      skinnedMesh->m_bones.push_back(bone);
+      skinnedMesh->bones.push_back(bone);
     } else {
-      skinnedMesh->m_bones.push_back(search->second);
+      skinnedMesh->bones.push_back(search->second);
     }
 
     for (int j = 0; j < importerBone->mNumWeights; j++) {
@@ -493,8 +494,8 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
       } else
         break;
     }
-    vertices[i].m_bondId = ids;
-    vertices[i].m_weight = weights;
+    vertices[i].bond_id = ids;
+    vertices[i].weight = weights;
 
     ids = glm::ivec4(-1);
     weights = glm::vec4(0.0f);
@@ -514,8 +515,8 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
       } else
         break;
     }
-    vertices[i].m_bondId2 = ids;
-    vertices[i].m_weight2 = weights;
+    vertices[i].bond_id2 = ids;
+    vertices[i].weight2 = weights;
   }
 #pragma endregion
   skinnedMesh->SetVertices(skinnedVertexAttributes, vertices, indices);
@@ -575,9 +576,9 @@ bool ProcessNode(const std::string& directory, Prefab* modelNode,
       childNode->private_components.push_back(holder);
     }
     auto transform = std::make_shared<Transform>();
-    transform->m_value = mat4_cast(importerNode->mTransformation);
+    transform->value = mat4_cast(importerNode->mTransformation);
     if (!importerNode->mParent)
-      transform->m_value = Transform().m_value;
+      transform->value = Transform().value;
 
     DataComponentHolder holder;
     holder.data_component_type = Typeof<Transform>();
@@ -666,7 +667,7 @@ void Prefab::AttachAnimator(Prefab* parent, const Handle& animator_entity_handle
 void Prefab::ApplyBoneIndices(Prefab* node) {
   if (const auto skinnedMeshRenderer = node->GetPrivateComponent<SkinnedMeshRenderer>()) {
     skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->FetchIndices();
-    skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->m_bones.clear();
+    skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->bones.clear();
   }
   for (auto& i : node->child_prefabs) {
     ApplyBoneIndices(i.get());
@@ -805,7 +806,7 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     rootAssimpNode->NecessaryWalker(bonesMap);
     size_t index = 0;
     rootAssimpNode->AttachToAnimator(animation, index);
-    animation->m_boneSize = index + 1;
+    animation->bone_size = index + 1;
     ReadAnimations(scene, animation, bonesMap);
     ApplyBoneIndices(this);
 
@@ -842,7 +843,7 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab,
   m_meshIndex = -1;
   for (const auto& dataComponent : currentPrefab->data_components) {
     if (dataComponent.data_component_type == Typeof<Transform>()) {
-      m_transform = mat4_cast(std::reinterpret_pointer_cast<Transform>(dataComponent.data_component)->m_value);
+      m_transform = mat4_cast(std::reinterpret_pointer_cast<Transform>(dataComponent.data_component)->value);
     }
   }
   for (const auto& privateComponent : currentPrefab->private_components) {
@@ -924,16 +925,16 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
     exporterMesh->mTextureCoords[0] = new aiVector3D[vertices.size()];
     exporterMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
     for (int vertexIndex = 0; vertexIndex < vertices.size(); vertexIndex++) {
-      exporterMesh->mVertices[vertexIndex].x = vertices.at(vertexIndex).m_position.x;
-      exporterMesh->mVertices[vertexIndex].y = vertices.at(vertexIndex).m_position.y;
-      exporterMesh->mVertices[vertexIndex].z = vertices.at(vertexIndex).m_position.z;
+      exporterMesh->mVertices[vertexIndex].x = vertices.at(vertexIndex).position.x;
+      exporterMesh->mVertices[vertexIndex].y = vertices.at(vertexIndex).position.y;
+      exporterMesh->mVertices[vertexIndex].z = vertices.at(vertexIndex).position.z;
 
-      exporterMesh->mNormals[vertexIndex].x = vertices.at(vertexIndex).m_normal.x;
-      exporterMesh->mNormals[vertexIndex].y = vertices.at(vertexIndex).m_normal.y;
-      exporterMesh->mNormals[vertexIndex].z = vertices.at(vertexIndex).m_normal.z;
+      exporterMesh->mNormals[vertexIndex].x = vertices.at(vertexIndex).normal.x;
+      exporterMesh->mNormals[vertexIndex].y = vertices.at(vertexIndex).normal.y;
+      exporterMesh->mNormals[vertexIndex].z = vertices.at(vertexIndex).normal.z;
 
-      exporterMesh->mTextureCoords[0][vertexIndex].x = vertices.at(vertexIndex).m_texCoord.x;
-      exporterMesh->mTextureCoords[0][vertexIndex].y = vertices.at(vertexIndex).m_texCoord.y;
+      exporterMesh->mTextureCoords[0][vertexIndex].x = vertices.at(vertexIndex).tex_coord.x;
+      exporterMesh->mTextureCoords[0][vertexIndex].y = vertices.at(vertexIndex).tex_coord.y;
       exporterMesh->mTextureCoords[0][vertexIndex].z = 0.f;
     }
 
@@ -1148,7 +1149,7 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool auto_adjust_si
     auto ptr = std::static_pointer_cast<IPrivateComponent>(
         Serialization::ProduceSerializable(i.private_component->GetTypeName(), id));
     Serialization::ClonePrivateComponent(ptr, i.private_component);
-    ptr->m_handle = Handle();
+    ptr->handle_ = Handle();
     ptr->scene_ = scene;
     scene->SetPrivateComponent(entity, ptr);
   }
@@ -1276,7 +1277,7 @@ void Prefab::Deserialize(const YAML::Node& in) {
   if (in["child_prefabs"]) {
     for (const auto& i : in["child_prefabs"]) {
       auto child = ProjectManager::CreateTemporaryAsset<Prefab>();
-      child->m_handle = i["m_handle"].as<uint64_t>();
+      child->handle_ = i["m_handle"].as<uint64_t>();
       child->Deserialize(i);
       child_prefabs.push_back(child);
     }
@@ -1435,7 +1436,7 @@ bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
         EditorLayer::DraggableAsset(ptr);
         EditorLayer::Rename(i.second);
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-          ProjectManager::GetInstance().m_inspectingAsset = ptr;
+          ProjectManager::GetInstance().inspecting_asset = ptr;
         }
       }
       ImGui::TreePop();

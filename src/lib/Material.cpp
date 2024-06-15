@@ -111,9 +111,9 @@ void DrawSettings::ApplySettings(GraphicsPipelineStates& globalPipelineState) co
 void DrawSettings::Save(const std::string& name, YAML::Emitter& out) const
 {
     out << YAML::Key << name << YAML::Value << YAML::BeginMap;
-    out << YAML::Key << "m_cullMode" << YAML::Value << m_cullMode;
-    out << YAML::Key << "m_lineWidth" << YAML::Value << m_lineWidth;
-    out << YAML::Key << "m_polygonMode" << YAML::Value << static_cast<unsigned>(m_polygonMode);
+    out << YAML::Key << "cull_mode" << YAML::Value << m_cullMode;
+    out << YAML::Key << "line_width" << YAML::Value << m_lineWidth;
+    out << YAML::Key << "polygon_mode" << YAML::Value << static_cast<unsigned>(m_polygonMode);
     out << YAML::Key << "m_blending" << YAML::Value << m_blending;
     out << YAML::Key << "m_blendingSrcFactor" << YAML::Value << static_cast<unsigned>(m_blendingSrcFactor);
     out << YAML::Key << "m_blendingDstFactor" << YAML::Value << static_cast<unsigned>(m_blendingDstFactor);
@@ -123,9 +123,9 @@ void DrawSettings::Save(const std::string& name, YAML::Emitter& out) const
 void DrawSettings::Load(const std::string& name, const YAML::Node& in) {
     if (in[name]) {
         const auto& drawSettings = in[name];
-        if (drawSettings["m_cullMode"]) m_cullMode = drawSettings["m_cullMode"].as<unsigned>();
-        if (drawSettings["m_lineWidth"]) m_lineWidth = drawSettings["m_lineWidth"].as<float>();
-        if (drawSettings["m_polygonMode"]) m_polygonMode = static_cast<VkPolygonMode>(drawSettings["m_polygonMode"].as<unsigned>());
+        if (drawSettings["cull_mode"]) m_cullMode = drawSettings["cull_mode"].as<unsigned>();
+        if (drawSettings["line_width"]) m_lineWidth = drawSettings["line_width"].as<float>();
+        if (drawSettings["polygon_mode"]) m_polygonMode = static_cast<VkPolygonMode>(drawSettings["polygon_mode"].as<unsigned>());
 
         if (drawSettings["m_blending"]) m_blending = drawSettings["m_blending"].as<bool>();
         if (drawSettings["m_blendingSrcFactor"]) m_blendingSrcFactor = static_cast<VkBlendFactor>(drawSettings["m_blendingSrcFactor"].as<unsigned>());
@@ -348,7 +348,7 @@ void Material::Serialize(YAML::Emitter& out) const {
     m_roughnessTexture.Save("m_roughnessTexture", out);
     m_aoTexture.Save("m_aoTexture", out);
 
-    m_drawSettings.Save("m_drawSettings", out);
+    m_drawSettings.Save("draw_settings", out);
 
     out << YAML::Key << "m_materialProperties.m_albedoColor" << YAML::Value << m_materialProperties.m_albedoColor;
     out << YAML::Key << "m_materialProperties.m_subsurfaceColor" << YAML::Value << m_materialProperties.m_subsurfaceColor;
@@ -378,7 +378,7 @@ void Material::Deserialize(const YAML::Node& in) {
     m_roughnessTexture.Load("m_roughnessTexture", in);
     m_aoTexture.Load("m_aoTexture", in);
 
-    m_drawSettings.Load("m_drawSettings", in);
+    m_drawSettings.Load("draw_settings", in);
     if (in["m_materialProperties.m_albedoColor"])
         m_materialProperties.m_albedoColor = in["m_materialProperties.m_albedoColor"].as<glm::vec3>();
     if (in["m_materialProperties.m_subsurfaceColor"])
@@ -414,5 +414,5 @@ void Material::Deserialize(const YAML::Node& in) {
 
     if (in["m_vertexColorOnly"])
         m_vertexColorOnly = in["m_vertexColorOnly"].as<bool>();
-    m_version = 0;
+    version_ = 0;
 }

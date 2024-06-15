@@ -18,7 +18,7 @@ class Jobs final : ISingleton<Jobs> {
   static void RunParallelFor(const std::vector<JobHandle>& dependencies, size_t size,
                              std::function<void(size_t i)>&& func, size_t worker_size = 0);
   static void RunParallelFor(const std::vector<JobHandle>& dependencies, size_t size,
-                             std::function<void(size_t i, size_t workerIndex)>&& func, size_t worker_size = 0);
+                             std::function<void(size_t i, size_t worker_index)>&& func, size_t worker_size = 0);
   static JobHandle ScheduleParallelFor(const std::vector<JobHandle>& dependencies, size_t size,
                                        std::function<void(size_t i)>&& func, size_t worker_size = 0);
   static JobHandle ScheduleParallelFor(const std::vector<JobHandle>& dependencies, size_t size,

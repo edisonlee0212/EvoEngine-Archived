@@ -163,7 +163,7 @@ void PostProcessingStack::Process(const std::shared_ptr<Camera>& targetCamera)
 						i.blendEnable = VK_FALSE;
 					}
 					ssrReflectPipeline->Bind(commandBuffer);
-					ssrReflectPipeline->BindDescriptorSet(commandBuffer, 0, renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->GetVkDescriptorSet());
+					ssrReflectPipeline->BindDescriptorSet(commandBuffer, 0, renderLayer->per_frame_descriptor_sets_[currentFrameIndex]->GetVkDescriptorSet());
 					ssrReflectPipeline->BindDescriptorSet(commandBuffer, 1, m_SSRReflectDescriptorSet->GetVkDescriptorSet());
 					ssrReflectPipeline->m_states.m_viewPort = viewport;
 					ssrReflectPipeline->m_states.m_scissor = scissor;

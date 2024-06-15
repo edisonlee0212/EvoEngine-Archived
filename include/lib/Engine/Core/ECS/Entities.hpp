@@ -136,20 +136,20 @@ size_t Entities::CollectDataComponentTypes(std::vector<DataComponentType> *compo
 
 template <typename T, typename... Ts>
 std::vector<DataComponentType> Entities::CollectDataComponentTypes(T arg, Ts... args) {
-  auto retVal = std::vector<DataComponentType>();
-  retVal.push_back(Typeof<Transform>());
-  retVal.push_back(Typeof<GlobalTransform>());
-  retVal.push_back(Typeof<TransformUpdateFlag>());
-  CollectDataComponentTypes(&retVal, arg, args...);
-  std::sort(retVal.begin() + 3, retVal.end(), ComponentTypeComparator);
+  auto ret_val = std::vector<DataComponentType>();
+  ret_val.push_back(Typeof<Transform>());
+  ret_val.push_back(Typeof<GlobalTransform>());
+  ret_val.push_back(Typeof<TransformUpdateFlag>());
+  CollectDataComponentTypes(&ret_val, arg, args...);
+  std::sort(ret_val.begin() + 3, ret_val.end(), ComponentTypeComparator);
   size_t offset = 0;
 
   std::vector<DataComponentType> copy;
-  copy.insert(copy.begin(), retVal.begin(), retVal.end());
-  retVal.clear();
+  copy.insert(copy.begin(), ret_val.begin(), ret_val.end());
+  ret_val.clear();
   for (const auto &i : copy) {
     bool found = false;
-    for (const auto j : retVal) {
+    for (const auto j : ret_val) {
       if (i == j) {
         found = true;
         break;
@@ -157,13 +157,13 @@ std::vector<DataComponentType> Entities::CollectDataComponentTypes(T arg, Ts... 
     }
     if (found)
       continue;
-    retVal.push_back(i);
+    ret_val.push_back(i);
   }
-  for (auto &i : retVal) {
+  for (auto &i : ret_val) {
     i.type_offset = offset;
     offset += i.type_size;
   }
-  return retVal;
+  return ret_val;
 }
 #pragma endregion
 

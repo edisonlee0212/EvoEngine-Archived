@@ -1,116 +1,101 @@
 #include "Application.hpp"
-#include "RenderLayer.hpp"
 #include "EditorLayer.hpp"
+#include "RenderLayer.hpp"
 using namespace evo_engine;
 
-void GizmoSettings::ApplySettings(GraphicsPipelineStates& globalPipelineState) const
-{
-	m_drawSettings.ApplySettings(globalPipelineState);
-	globalPipelineState.m_depthTest = m_depthTest;
-	globalPipelineState.m_depthWrite = m_depthWrite;
+void GizmoSettings::ApplySettings(GraphicsPipelineStates& global_pipeline_state) const {
+  draw_settings.ApplySettings(global_pipeline_state);
+  global_pipeline_state.m_depthTest = depth_test;
+  global_pipeline_state.m_depthWrite = depth_write;
 }
 
-
-void EditorLayer::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Camera>& editorCameraComponent,
-	const glm::vec4& color, const glm::mat4& model,
-	const float& size, const GizmoSettings& gizmoSettings)
-{
-	if(Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!");
-		return;
-	}
-	m_gizmoMeshTasks.push_back({ mesh, editorCameraComponent, color, model, size, gizmoSettings });
+void EditorLayer::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh,
+                                const std::shared_ptr<Camera>& editor_camera_component, const glm::vec4& color,
+                                const glm::mat4& model, const float& size, const GizmoSettings& gizmo_settings) {
+  if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate) {
+    EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!")
+    return;
+  }
+  gizmo_mesh_tasks_.push_back({mesh, editor_camera_component, color, model, size, gizmo_settings});
 }
 
-void EditorLayer::DrawGizmoStrands(const std::shared_ptr<Strands>& strands, const std::shared_ptr<Camera>& editorCameraComponent,
-	const glm::vec4& color, const glm::mat4& model,
-	const float& size, const GizmoSettings& gizmoSettings)
-{
-	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!");
-		return;
-	}
-	m_gizmoStrandsTasks.push_back({ strands, editorCameraComponent, color, model, size, gizmoSettings });
+void EditorLayer::DrawGizmoStrands(const std::shared_ptr<Strands>& strands,
+                                   const std::shared_ptr<Camera>& editor_camera_component, const glm::vec4& color,
+                                   const glm::mat4& model, const float& size, const GizmoSettings& gizmo_settings) {
+  if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate) {
+    EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!")
+    return;
+  }
+  gizmo_strands_tasks_.push_back({strands, editor_camera_component, color, model, size, gizmo_settings});
 }
 
 void EditorLayer::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh,
-	const std::shared_ptr<Camera>& editorCameraComponent, 
-	const std::shared_ptr<ParticleInfoList>& instancedData, const glm::mat4& model, const float& size,
-	const GizmoSettings& gizmoSettings)
-{
-	if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate)
-	{
-		EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!");
-		return;
-	}
-	m_gizmoInstancedMeshTasks.push_back({ mesh, editorCameraComponent, instancedData, model, size, gizmoSettings });
+                                                const std::shared_ptr<Camera>& editor_camera_component,
+                                                const std::shared_ptr<ParticleInfoList>& instanced_data,
+                                                const glm::mat4& model, const float& size,
+                                                const GizmoSettings& gizmo_settings) {
+  if (Application::GetApplicationExecutionStatus() == ApplicationExecutionStatus::LateUpdate) {
+    EVOENGINE_ERROR("Gizmos command ignored! Submit gizmos command during LateUpdate is now allowed!")
+    return;
+  }
+  gizmo_instanced_mesh_tasks_.push_back({mesh, editor_camera_component, instanced_data, model, size, gizmo_settings});
 }
 
-void EditorLayer::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<ParticleInfoList>& instancedData, const glm::mat4& model, const float& size,
-	const GizmoSettings& gizmoSettings)
-{
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if (!renderLayer)
-		return;
-	const auto sceneCamera = GetSceneCamera();
-	DrawGizmoMeshInstancedColored(mesh, sceneCamera, instancedData, model, size, gizmoSettings);
+void EditorLayer::DrawGizmoMeshInstancedColored(const std::shared_ptr<Mesh>& mesh,
+                                                const std::shared_ptr<ParticleInfoList>& instanced_data,
+                                                const glm::mat4& model, const float& size,
+                                                const GizmoSettings& gizmo_settings) {
+  if (const auto render_layer = Application::GetLayer<RenderLayer>(); !render_layer)
+    return;
+  const auto scene_camera = GetSceneCamera();
+  DrawGizmoMeshInstancedColored(mesh, scene_camera, instanced_data, model, size, gizmo_settings);
 }
 
 void EditorLayer::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh, const glm::vec4& color, const glm::mat4& model,
-                           const float& size, const GizmoSettings& gizmoSettings)
-{
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if (!renderLayer)
-		return;
-	const auto sceneCamera = GetSceneCamera();
-	DrawGizmoMesh(mesh, sceneCamera, color, model, size, gizmoSettings);
+                                const float& size, const GizmoSettings& gizmo_settings) {
+  if (const auto render_layer = Application::GetLayer<RenderLayer>(); !render_layer)
+    return;
+  const auto scene_camera = GetSceneCamera();
+  DrawGizmoMesh(mesh, scene_camera, color, model, size, gizmo_settings);
 }
 
-void EditorLayer::DrawGizmoStrands(const std::shared_ptr<Strands>& strands, const glm::vec4& color, const glm::mat4& model,
-	const float& size, const GizmoSettings& gizmoSettings)
-{
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
-	if (!renderLayer)
-		return;
-	const auto sceneCamera = GetSceneCamera();
-	DrawGizmoStrands(strands, sceneCamera, color, model, size, gizmoSettings);
+void EditorLayer::DrawGizmoStrands(const std::shared_ptr<Strands>& strands, const glm::vec4& color,
+                                   const glm::mat4& model, const float& size, const GizmoSettings& gizmo_settings) {
+  if (const auto render_layer = Application::GetLayer<RenderLayer>(); !render_layer)
+    return;
+  const auto scene_camera = GetSceneCamera();
+  DrawGizmoStrands(strands, scene_camera, color, model, size, gizmo_settings);
 }
 
-void EditorLayer::DrawGizmoCubes(const std::shared_ptr<ParticleInfoList>& instancedData,
-                            const glm::mat4& model, const float& size, const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), instancedData, model, size, gizmoSettings);
+void EditorLayer::DrawGizmoCubes(const std::shared_ptr<ParticleInfoList>& instanced_data, const glm::mat4& model,
+                                 const float& size, const GizmoSettings& gizmo_settings) {
+  DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), instanced_data, model, size,
+                                gizmo_settings);
 }
 
 void EditorLayer::DrawGizmoCube(const glm::vec4& color, const glm::mat4& model, const float& size,
-	const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), color, model, size, gizmoSettings);
+                                const GizmoSettings& gizmo_settings) {
+  DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"), color, model, size, gizmo_settings);
 }
 
-void EditorLayer::DrawGizmoSpheres(const std::shared_ptr<ParticleInfoList>& instancedData,
-	const glm::mat4& model, const float& size, const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), instancedData, model, size, gizmoSettings);
+void EditorLayer::DrawGizmoSpheres(const std::shared_ptr<ParticleInfoList>& instanced_data, const glm::mat4& model,
+                                   const float& size, const GizmoSettings& gizmo_settings) {
+  DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), instanced_data, model, size,
+                                gizmo_settings);
 }
 
 void EditorLayer::DrawGizmoSphere(const glm::vec4& color, const glm::mat4& model, const float& size,
-                             const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), color, model, size, gizmoSettings);
+                                  const GizmoSettings& gizmo_settings) {
+  DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_SPHERE"), color, model, size, gizmo_settings);
 }
 
-void EditorLayer::DrawGizmoCylinders(const std::shared_ptr<ParticleInfoList>& instancedData, const glm::mat4& model, const float& size,
-	const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), instancedData, model, size, gizmoSettings);
+void EditorLayer::DrawGizmoCylinders(const std::shared_ptr<ParticleInfoList>& instanced_data, const glm::mat4& model,
+                                     const float& size, const GizmoSettings& gizmo_settings) {
+  DrawGizmoMeshInstancedColored(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), instanced_data, model, size,
+                                gizmo_settings);
 }
 
 void EditorLayer::DrawGizmoCylinder(const glm::vec4& color, const glm::mat4& model, const float& size,
-                               const GizmoSettings& gizmoSettings)
-{
-	DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), color, model, size, gizmoSettings);
-
+                                    const GizmoSettings& gizmo_settings) {
+  DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CYLINDER"), color, model, size, gizmo_settings);
 }

@@ -6,8 +6,8 @@
 using namespace evo_engine;
 void StrandsRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, glm::vec4& color)
 {
-	const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
-	glm::vec3 size = m_strands.Get<Strands>()->m_bound.Size();
+	const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).value;
+	glm::vec3 size = m_strands.Get<Strands>()->bound_.Size();
 	if (size.x < 0.01f)
 		size.x = 0.01f;
 	if (size.z < 0.01f)
@@ -15,13 +15,13 @@ void StrandsRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLaye
 	if (size.y < 0.01f)
 		size.y = 0.01f;
 	GizmoSettings gizmoSettings;
-	gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
-	gizmoSettings.m_drawSettings.m_blending = true;
-	gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
-	gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
+	gizmoSettings.draw_settings.m_cullMode = VK_CULL_MODE_NONE;
+	gizmoSettings.draw_settings.m_blending = true;
+	gizmoSettings.draw_settings.m_polygonMode = VK_POLYGON_MODE_LINE;
+	gizmoSettings.draw_settings.m_lineWidth = 3.0f;
 	editorLayer->DrawGizmoMesh(Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
 		color,
-		transform * (glm::translate(m_strands.Get<Strands>()->m_bound.Center()) * glm::scale(size)),
+		transform * (glm::translate(m_strands.Get<Strands>()->bound_.Center()) * glm::scale(size)),
 		1, gizmoSettings);
 }
 

@@ -174,7 +174,7 @@ PYBIND11_MODULE(pyevoengine, m) {
 		.def("save", &Scene::Save);
 	py::class_<ApplicationInfo>(m, "ApplicationInfo")
 		.def(py::init<>())
-		.def_readwrite("m_projectPath", &ApplicationInfo::m_projectPath)
+		.def_readwrite("project_path_", &ApplicationInfo::m_projectPath)
 		.def_readwrite("m_applicationName", &ApplicationInfo::m_applicationName)
 		.def_readwrite("m_enableDocking", &ApplicationInfo::m_enableDocking)
 		.def_readwrite("m_enableViewport", &ApplicationInfo::m_enableViewport)

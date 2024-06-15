@@ -60,8 +60,8 @@ class DataComponentRegistration {
 template <typename T>
 class AssetRegistration {
  public:
-  AssetRegistration(const std::string &name, const std::vector<std::string> &externalExtensions) {
-    ClassRegistry::RegisterAsset<T>(name, externalExtensions);
+  AssetRegistration(const std::string &name, const std::vector<std::string> &external_extensions) {
+    ClassRegistry::RegisterAsset<T>(name, external_extensions);
   }
 };
 

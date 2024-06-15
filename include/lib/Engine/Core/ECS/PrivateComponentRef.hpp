@@ -82,7 +82,7 @@ class PrivateComponentRef final : public ISerializable {
       private_component_type_name_ = private_component->GetTypeName();
       entity_handle_ = private_component->GetScene()->GetEntityHandle(private_component->GetOwner());
       value_ = private_component;
-      m_handle = private_component->GetHandle();
+      handle_ = private_component->GetHandle();
     } else {
       Clear();
     }

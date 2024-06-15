@@ -96,11 +96,11 @@ size_t EntityArchetype::GetIndex()
 
 
 
-bool EntityArchetypeInfo::HasType(const size_t &typeId)
+bool EntityArchetypeInfo::HasType(const size_t &type_index)
 {
     for (const auto &type : data_component_types)
     {
-        if (typeId == type.type_index)
+        if (type_index == type.type_index)
             return true;
     }
     return false;

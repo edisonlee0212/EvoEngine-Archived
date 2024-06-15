@@ -110,29 +110,29 @@ class Scene final : public IAsset {
             typename T4 = IDataComponent>
   JobHandle ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                            std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>&& func,
-                          bool check_enable = true);
+                           bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent>
   JobHandle ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                            std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func,
-                          bool check_enable = true);
+                           bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent>
   JobHandle ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                            std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                          bool check_enable = true);
+                           bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent>
   JobHandle ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                            std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                          bool check_enable = true);
+                           bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent, typename T8 = IDataComponent>
   JobHandle ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                            std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>&& func,
-                          bool check_enable = true);
+                           bool check_enable = true);
 
 #pragma endregion
 
@@ -156,7 +156,7 @@ class Scene final : public IAsset {
                              std::function<bool(const T2&, const T3&)>&& filter_func, bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent>
   void GetComponentDataArray(const EntityQuery& entity_query, const T1& filter, std::vector<T2>& container,
-                            bool check_enable = true);
+                             bool check_enable = true);
   void GetEntityArray(const EntityQuery& entity_query, std::vector<Entity>& container, bool check_enable = true);
   template <typename T1 = IDataComponent>
   void GetEntityArray(const EntityQuery& entity_query, std::vector<Entity>& container,
@@ -166,7 +166,7 @@ class Scene final : public IAsset {
                       std::function<bool(const Entity&, const T1&, const T2&)>&& filter_func, bool check_enable = true);
   template <typename T1 = IDataComponent>
   void GetEntityArray(const EntityQuery& entity_query, const T1& filter, std::vector<Entity>& container,
-                     bool check_enable = true);
+                      bool check_enable = true);
   size_t GetEntityAmount(EntityQuery entity_query, bool check_enable = true);
 
   [[nodiscard]] Handle GetEntityHandle(const Entity& entity);
@@ -198,7 +198,7 @@ class Scene final : public IAsset {
 
 #pragma region Entity Management
 #pragma region Entity methods
-  void RemovePrivateComponent(const Entity& entity, size_t typeId);
+  void RemovePrivateComponent(const Entity& entity, size_t type_id);
   // Enable or Disable an Entity. Note that the disable action will recursively disable the children of current
   // entity.
   void SetEnable(const Entity& entity, const bool& value);
@@ -235,8 +235,9 @@ class Scene final : public IAsset {
   [[nodiscard]] bool HasDataComponent(const Entity& entity) const;
 
   template <typename T = IPrivateComponent>
-  [[nodiscard]] std::weak_ptr<T> GetOrSetPrivateComponent(const Entity& entity);
-  [[nodiscard]] std::weak_ptr<IPrivateComponent> GetPrivateComponent(const Entity& entity, const std::string& type_name);
+  [[maybe_unused]] std::weak_ptr<T> GetOrSetPrivateComponent(const Entity& entity);
+  [[nodiscard]] std::weak_ptr<IPrivateComponent> GetPrivateComponent(const Entity& entity,
+                                                                     const std::string& type_name);
 
   template <typename T = IPrivateComponent>
   void RemovePrivateComponent(const Entity& entity);
@@ -262,7 +263,8 @@ class Scene final : public IAsset {
 
   Bound GetEntityBoundingBox(const Entity& entity);
 #pragma endregion
-  std::vector<std::reference_wrapper<DataComponentStorage>> QueryDataComponentStorageList(const EntityQuery& entity_query);
+  std::vector<std::reference_wrapper<DataComponentStorage>> QueryDataComponentStorageList(
+      const EntityQuery& entity_query);
   std::optional<std::pair<std::reference_wrapper<DataComponentStorage>, unsigned>> GetDataComponentStorage(
       const EntityArchetype& entity_archetype);
 
@@ -309,28 +311,29 @@ class Scene final : public IAsset {
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
-                    std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func, bool check_enable = true);
+                    std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func,
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent, typename T8 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   // For implicit parallel task dispatching
   template <typename T1 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies, std::function<void(int i, Entity entity, T1&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies,
                     std::function<void(int i, Entity entity, T1&, T2&)>&& func, bool check_enable = true);
@@ -344,24 +347,25 @@ class Scene final : public IAsset {
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies,
-                    std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func, bool check_enable = true);
+                    std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func,
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
   template <typename T1 = IDataComponent, typename T2 = IDataComponent, typename T3 = IDataComponent,
             typename T4 = IDataComponent, typename T5 = IDataComponent, typename T6 = IDataComponent,
             typename T7 = IDataComponent, typename T8 = IDataComponent>
   JobHandle ForEach(const std::vector<JobHandle>& dependencies,
                     std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>&& func,
-                   bool check_enable = true);
+                    bool check_enable = true);
 #pragma endregion
 #pragma endregion
 #pragma endregion
@@ -400,11 +404,11 @@ std::shared_ptr<T> Scene::GetOrCreateSystem(float rank) {
   auto ptr = Serialization::ProduceSerializable<T>();
   auto system = std::dynamic_pointer_cast<ISystem>(ptr);
   system->scene_ = std::dynamic_pointer_cast<Scene>(GetSelf());
-  system->m_handle = Handle();
+  system->handle_ = Handle();
   system->rank_ = rank;
   systems_.insert({rank, system});
   indexed_systems_[typeid(T).hash_code()] = system;
-  mapped_systems_[system->m_handle] = system;
+  mapped_systems_[system->handle_] = system;
   system->started_ = false;
   system->OnCreate();
   SetUnsaved();
@@ -419,7 +423,8 @@ void Scene::AddDataComponent(const Entity& entity, const T& value) {
   auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
 
 #pragma region Check if componentdata already exists.If yes, go to SetComponentData
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list.at(entity_info.data_component_storage_index);
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list.at(entity_info.data_component_storage_index);
   const auto original_component_types = data_component_storage.data_component_types;
   for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
@@ -440,7 +445,8 @@ void Scene::AddDataComponent(const Entity& entity, const T& value) {
   // Erase duplicates
 
   std::vector<DataComponentType> copy;
-  copy.insert(copy.begin(), new_archetype_info.data_component_types.begin(), new_archetype_info.data_component_types.end());
+  copy.insert(copy.begin(), new_archetype_info.data_component_types.begin(),
+              new_archetype_info.data_component_types.end());
   new_archetype_info.data_component_types.clear();
   for (const auto& i : copy) {
     bool found = false;
@@ -459,8 +465,8 @@ void Scene::AddDataComponent(const Entity& entity, const T& value) {
     i.type_offset = offset;
     offset += i.type_size;
   }
-  new_archetype_info.entity_size =
-      new_archetype_info.data_component_types.back().type_offset + new_archetype_info.data_component_types.back().type_size;
+  new_archetype_info.entity_size = new_archetype_info.data_component_types.back().type_offset +
+                                   new_archetype_info.data_component_types.back().type_size;
   new_archetype_info.chunk_capacity = Entities::GetArchetypeChunkSize() / new_archetype_info.entity_size;
   const auto archetype = Entities::CreateEntityArchetypeHelper(new_archetype_info);
 #pragma endregion
@@ -501,7 +507,8 @@ void Scene::RemoveDataComponent(const Entity& entity) {
   }
   const auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
 #pragma region Check if componentdata already exists.If yes, go to SetComponentData
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   if (data_component_storage.data_component_types.size() <= 3) {
     EVOENGINE_ERROR(
         "Remove Component Data failed: Entity must have at least 1 data component besides 3 basic data "
@@ -529,8 +536,8 @@ void Scene::RemoveDataComponent(const Entity& entity) {
     i.type_offset = offset;
     offset += i.type_size;
   }
-  new_archetype_info.entity_size =
-      new_archetype_info.data_component_types.back().type_offset + new_archetype_info.data_component_types.back().type_size;
+  new_archetype_info.entity_size = new_archetype_info.data_component_types.back().type_offset +
+                                   new_archetype_info.data_component_types.back().type_size;
   new_archetype_info.chunk_capacity = Entities::GetArchetypeChunkSize() / new_archetype_info.entity_size;
   const auto archetype = Entities::CreateEntityArchetypeHelper(new_archetype_info);
 #pragma endregion
@@ -576,7 +583,8 @@ template <typename T>
 T Scene::GetDataComponent(const Entity& entity) {
   assert(IsEntityValid(entity));
   EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-  auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const size_t chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const size_t chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   ComponentDataChunk& chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
@@ -589,14 +597,12 @@ T Scene::GetDataComponent(const Entity& entity) {
                             chunk_pointer * sizeof(GlobalTransform));
   }
   if (id == typeid(TransformUpdateFlag).hash_code()) {
-    return chunk.GetData<T>(
-        (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-        chunk_pointer * sizeof(TransformUpdateFlag));
+    return chunk.GetData<T>((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                            chunk_pointer * sizeof(TransformUpdateFlag));
   }
   for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
-      return chunk.GetData<T>(
-          type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * sizeof(T));
+      return chunk.GetData<T>(type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * sizeof(T));
     }
   }
   EVOENGINE_LOG("ComponentData doesn't exist");
@@ -607,7 +613,8 @@ bool Scene::HasDataComponent(const Entity& entity) const {
   assert(IsEntityValid(entity));
 
   const EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const size_t id = typeid(T).hash_code();
   if (id == typeid(Transform).hash_code()) {
     return true;
@@ -630,7 +637,8 @@ T Scene::GetDataComponent(const size_t& index) {
   if (index > scene_data_storage_.entity_metadata_list.size())
     return T();
   EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(index);
-  auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const size_t chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const size_t chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   ComponentDataChunk& chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
@@ -643,14 +651,12 @@ T Scene::GetDataComponent(const size_t& index) {
                             chunk_pointer * sizeof(GlobalTransform));
   }
   if (id == typeid(TransformUpdateFlag).hash_code()) {
-    return chunk.GetData<T>(
-        (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-        chunk_pointer * sizeof(TransformUpdateFlag));
+    return chunk.GetData<T>((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                            chunk_pointer * sizeof(TransformUpdateFlag));
   }
   for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
-      return chunk.GetData<T>(
-          type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * sizeof(T));
+      return chunk.GetData<T>(type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * sizeof(T));
     }
   }
   EVOENGINE_LOG("ComponentData doesn't exist");
@@ -661,7 +667,8 @@ bool Scene::HasDataComponent(const size_t& index) const {
   if (index > scene_data_storage_.entity_metadata_list.size())
     return false;
   const EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(index);
-  auto& dataComponentStorage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
 
   const size_t id = typeid(T).hash_code();
   if (id == typeid(Transform).hash_code()) {
@@ -673,7 +680,7 @@ bool Scene::HasDataComponent(const size_t& index) const {
   if (id == typeid(TransformUpdateFlag).hash_code()) {
     return true;
   }
-  for (const auto& type : dataComponentStorage.data_component_types) {
+  for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
       return true;
     }
@@ -706,8 +713,8 @@ void Scene::RemovePrivateComponent(const Entity& entity) {
   auto& elements = scene_data_storage_.entity_metadata_list.at(entity.index_).private_component_elements;
   for (auto i = 0; i < elements.size(); i++) {
     if (std::dynamic_pointer_cast<T>(elements[i].private_component_data)) {
-      scene_data_storage_.entity_private_component_storage.RemovePrivateComponent<T>(entity,
-                                                                                   elements[i].private_component_data);
+      scene_data_storage_.entity_private_component_storage.RemovePrivateComponent<T>(
+          entity, elements[i].private_component_data);
       elements.erase(elements.begin() + i);
       SetUnsaved();
       return;
@@ -736,7 +743,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -748,7 +756,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -760,8 +769,9 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(),
-                                        std::forward<std::function<void(int, Entity, T1&, T2&, T3&)>>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(
+            dependencies, i.get(), std::forward<std::function<void(int, Entity, T1&, T2&, T3&)>>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -774,7 +784,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job =
-        ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable); job.Valid())
+            ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -786,8 +797,9 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job =
-        ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func),
+                                        check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -795,13 +807,14 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   assert(entity_query.IsValid());
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job = ForEachStorage(dependencies, i.get(),
-                                        std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func), check_enable); job.Valid())
+                                        std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -809,13 +822,14 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   assert(entity_query.IsValid());
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(),
-                                        std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(
+            dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -823,13 +837,15 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const EntityQuery& entity_query,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   assert(entity_query.IsValid());
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(
-        dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable); job.Valid())
+    if (const auto job =
+            ForEachStorage(dependencies, i.get(),
+                           std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -841,7 +857,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -853,7 +870,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -865,7 +883,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -877,7 +896,9 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable); job.Valid())
+    if (const auto job =
+            ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -890,7 +911,8 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job =
-        ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func), check_enable); job.Valid())
+            ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -899,12 +921,13 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job =
-        ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func),
+                                        check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -913,12 +936,13 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i,
-                                        std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable); job.Valid())
+    if (const auto job = ForEachStorage(
+            dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -927,12 +951,13 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
                          std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&)>&& func,
-                        const bool check_enable) {
+                         const bool check_enable) {
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job = ForEachStorage(
-        dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable); job.Valid())
+            dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable);
+        job.Valid())
       jobs.emplace_back(job);
   }
   return Jobs::Combine(jobs);
@@ -999,7 +1024,8 @@ void Scene::GetComponentDataArray(const EntityQuery& entity_query, std::vector<T
   GetComponentDataArray(entity_query, component_data_list2, check_enable);
   GetComponentDataArray(entity_query, component_data_list1, check_enable);
   GetComponentDataArray(entity_query, target_data_list, check_enable);
-  if (target_data_list.size() != component_data_list1.size() || component_data_list1.size() != component_data_list2.size())
+  if (target_data_list.size() != component_data_list1.size() ||
+      component_data_list1.size() != component_data_list2.size())
     return;
   size_t size = component_data_list1.size();
   std::vector<std::vector<T1>> collected_data_lists;
@@ -1034,7 +1060,7 @@ void Scene::GetComponentDataArray(const EntityQuery& entity_query, std::vector<T
 
 template <typename T1, typename T2>
 void Scene::GetComponentDataArray(const EntityQuery& entity_query, const T1& filter, std::vector<T2>& container,
-                                 const bool check_enable) {
+                                  const bool check_enable) {
   assert(entity_query.IsValid());
   std::vector<T1> component_data_list;
   std::vector<T2> target_data_list;
@@ -1052,7 +1078,7 @@ void Scene::GetComponentDataArray(const EntityQuery& entity_query, const T1& fil
   Jobs::RunParallelFor(
       size,
       [&target_data_list, &target_data_list, &component_data_list, filter, &collected_data_lists](size_t i,
-                                                                                          size_t thread_index) {
+                                                                                                  size_t thread_index) {
         if (filter == component_data_list[i]) {
           collected_data_lists.at(thread_index)->push_back(target_data_list[i]);
         }
@@ -1137,8 +1163,8 @@ void Scene::GetEntityArray(const EntityQuery& entity_query, std::vector<Entity>&
   }
   Jobs::RunParallelFor(
       size,
-      [=, &all_entities, &component_data_list1, &component_data_list2, &collected_entity_lists](size_t i,
-                                                                                              const size_t thread_index) {
+      [=, &all_entities, &component_data_list1, &component_data_list2, &collected_entity_lists](
+          size_t i, const size_t thread_index) {
         if (filter_func(all_entities[i], component_data_list1[i], component_data_list2[i])) {
           collected_entity_lists.at(thread_index).push_back(all_entities[i]);
         }
@@ -1155,7 +1181,7 @@ void Scene::GetEntityArray(const EntityQuery& entity_query, std::vector<Entity>&
   const size_t remainder = size % thread_size;
   for (int i = 0; i < remainder; i++) {
     if (filter_func(all_entities[size - remainder + i], component_data_list1[size - remainder + i],
-                   component_data_list2[size - remainder + i])) {
+                    component_data_list2[size - remainder + i])) {
       container.push_back(all_entities[size - remainder + i]);
     }
   }
@@ -1255,8 +1281,8 @@ void Scene::GetDataComponentArrayStorage(const DataComponentStorage& storage, st
         return;
       if (check_enable) {
         const auto thread_size = Jobs::GetWorkerSize();
-        std::vector<std::vector<T>> tempStorage;
-        tempStorage.resize(thread_size);
+        std::vector<std::vector<T>> temp_storage;
+        temp_storage.resize(thread_size);
         const auto capacity = storage.chunk_capacity;
         const auto& chunk_array = storage.chunk_array;
         const auto& entities = chunk_array.entity_array;
@@ -1265,11 +1291,12 @@ void Scene::GetDataComponentArrayStorage(const DataComponentStorage& storage, st
           const auto remainder = i % capacity;
           auto* data = static_cast<char*>(chunk_array.chunk_array[chunk_index].chunk_data);
           T* address1 = reinterpret_cast<T*>(data + type.type_offset * capacity);
-          if (const auto entity = entities.at(i); !scene_data_storage_.entity_metadata_list.at(entity.index_).entity_enabled)
+          if (const auto entity = entities.at(i);
+              !scene_data_storage_.entity_metadata_list.at(entity.index_).entity_enabled)
             return;
-          tempStorage[thread_index].push_back(address1[remainder]);
+          temp_storage[thread_index].push_back(address1[remainder]);
         });
-        for (auto& i : tempStorage) {
+        for (auto& i : temp_storage) {
           container.insert(container.end(), i.begin(), i.end());
         }
       } else {
@@ -1399,7 +1426,7 @@ JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, cons
 template <typename T1, typename T2, typename T3, typename T4>
 JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                                 std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&)>&& func,
-                               const bool check_enable) {
+                                const bool check_enable) {
   auto target_type1 = Typeof<T1>();
   auto target_type2 = Typeof<T2>();
   auto target_type3 = Typeof<T3>();
@@ -1447,7 +1474,7 @@ JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, cons
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
 JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                                 std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&)>&& func,
-                               const bool check_enable) {
+                                const bool check_enable) {
   auto target_type1 = Typeof<T1>();
   auto target_type2 = Typeof<T2>();
   auto target_type3 = Typeof<T3>();
@@ -1501,7 +1528,7 @@ JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, cons
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                                 std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&)>&& func,
-                               const bool check_enable) {
+                                const bool check_enable) {
   auto target_type1 = Typeof<T1>();
   auto target_type2 = Typeof<T2>();
   auto target_type3 = Typeof<T3>();
@@ -1561,7 +1588,7 @@ JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, cons
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 JobHandle Scene::ForEachStorage(const std::vector<JobHandle>& dependencies, const DataComponentStorage& storage,
                                 std::function<void(int i, Entity entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&)>&& func,
-                               const bool check_enable) {
+                                const bool check_enable) {
   auto target_type1 = Typeof<T1>();
   auto target_type2 = Typeof<T2>();
   auto target_type3 = Typeof<T3>();

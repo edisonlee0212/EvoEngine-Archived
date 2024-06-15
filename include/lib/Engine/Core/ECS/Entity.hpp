@@ -161,7 +161,7 @@ struct EntityArchetypeInfo {
   std::vector<DataComponentType> data_component_types;
   template <typename T>
   bool HasType() const;
-  bool HasType(const size_t &typeId);
+  bool HasType(const size_t &type_index);
 };
 
 struct EntityQuery final {

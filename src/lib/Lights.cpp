@@ -33,7 +33,7 @@ void SpotLight::OnCreate()
 
 void SpotLight::Serialize(YAML::Emitter& out) const
 {
-    out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
+    out << YAML::Key << "cast_shadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_innerDegrees" << YAML::Value << m_innerDegrees;
     out << YAML::Key << "m_outerDegrees" << YAML::Value << m_outerDegrees;
     out << YAML::Key << "m_constant" << YAML::Value << m_constant;
@@ -47,7 +47,7 @@ void SpotLight::Serialize(YAML::Emitter& out) const
 
 void SpotLight::Deserialize(const YAML::Node& in)
 {
-    m_castShadow = in["m_castShadow"].as<bool>();
+    m_castShadow = in["cast_shadow"].as<bool>();
     m_innerDegrees = in["m_innerDegrees"].as<float>();
     m_outerDegrees = in["m_outerDegrees"].as<float>();
     m_constant = in["m_constant"].as<float>();
@@ -97,7 +97,7 @@ void PointLight::OnCreate()
 
 void PointLight::Serialize(YAML::Emitter& out) const
 {
-    out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
+    out << YAML::Key << "cast_shadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_constant" << YAML::Value << m_constant;
     out << YAML::Key << "m_linear" << YAML::Value << m_linear;
     out << YAML::Key << "m_quadratic" << YAML::Value << m_quadratic;
@@ -109,7 +109,7 @@ void PointLight::Serialize(YAML::Emitter& out) const
 
 void PointLight::Deserialize(const YAML::Node& in)
 {
-    m_castShadow = in["m_castShadow"].as<bool>();
+    m_castShadow = in["cast_shadow"].as<bool>();
     m_constant = in["m_constant"].as<float>();
     m_linear = in["m_linear"].as<float>();
     m_quadratic = in["m_quadratic"].as<float>();
@@ -138,7 +138,7 @@ bool DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer
 
 void DirectionalLight::Serialize(YAML::Emitter& out) const
 {
-    out << YAML::Key << "m_castShadow" << YAML::Value << m_castShadow;
+    out << YAML::Key << "cast_shadow" << YAML::Value << m_castShadow;
     out << YAML::Key << "m_bias" << YAML::Value << m_bias;
     out << YAML::Key << "m_diffuse" << YAML::Value << m_diffuse;
     out << YAML::Key << "m_diffuseBrightness" << YAML::Value << m_diffuseBrightness;
@@ -148,7 +148,7 @@ void DirectionalLight::Serialize(YAML::Emitter& out) const
 
 void DirectionalLight::Deserialize(const YAML::Node& in)
 {
-    m_castShadow = in["m_castShadow"].as<bool>();
+    m_castShadow = in["cast_shadow"].as<bool>();
     m_bias = in["m_bias"].as<float>();
     m_diffuse = in["m_diffuse"].as<glm::vec3>();
     m_diffuseBrightness = in["m_diffuseBrightness"].as<float>();

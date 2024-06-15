@@ -54,7 +54,7 @@ std::shared_ptr<T> PrivateComponentStorage::GetOrSetPrivateComponent(const Entit
       p_search != private_component_pool_.end() && !p_search->second.empty()) {
     const auto back = p_search->second.back();
     p_search->second.pop_back();
-    back->m_handle = Handle();
+    back->handle_ = Handle();
     return std::dynamic_pointer_cast<T>(back);
   }
   return Serialization::ProduceSerializable<T>();

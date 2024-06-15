@@ -13,7 +13,7 @@ void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Sce
     entity_version = 1;
     entity_enabled = in["entity_enabled"].as<bool>();
     entity_static = in["entity_static"].as<bool>();
-    entity_handle.m_value = in["m_handle"].as<uint64_t>();
+    entity_handle.value_ = in["m_handle"].as<uint64_t>();
     ancestor_selected = false;
 }
 
@@ -22,7 +22,7 @@ void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> 
     out << YAML::BeginMap;
     {
         out << YAML::Key << "entity_name" << YAML::Value << entity_name;
-        out << YAML::Key << "m_handle" << YAML::Value << entity_handle.m_value;
+        out << YAML::Key << "m_handle" << YAML::Value << entity_handle.value_;
         out << YAML::Key << "entity_enabled" << YAML::Value << entity_enabled;
         out << YAML::Key << "entity_static" << YAML::Value << entity_static;
         if(parent.GetIndex() != 0) out << YAML::Key << "Parent.Handle" << YAML::Value << scene->GetEntityHandle(parent);

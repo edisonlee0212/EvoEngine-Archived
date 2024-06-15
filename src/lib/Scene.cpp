@@ -185,7 +185,7 @@ bool Scene::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
       ImGui::Separator();
       static float rank = 0.0f;
       ImGui::DragFloat("Rank", &rank, 1.0f, 0.0f, 999.0f);
-      for (auto& i : editor_layer->m_systemMenuList) {
+      for (auto& i : editor_layer->system_menu_list_) {
         i.second(rank);
       }
       ImGui::Separator();
@@ -217,11 +217,11 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& system_name
   size_t typeId;
   auto ptr = Serialization::ProduceSerializable(system_name, typeId);
   auto system = std::dynamic_pointer_cast<ISystem>(ptr);
-  system->m_handle = Handle();
+  system->handle_ = Handle();
   system->rank_ = order;
   systems_.insert({order, system});
   indexed_systems_[typeId] = system;
-  mapped_systems_[system->m_handle] = system;
+  mapped_systems_[system->handle_] = system;
   system->started_ = false;
   system->OnCreate();
   SetUnsaved();
@@ -471,13 +471,13 @@ void Scene::Deserialize(const YAML::Node& in) {
         size_t hashCode;
         if (const auto ptr =
                 std::static_pointer_cast<ISystem>(Serialization::ProduceSerializable(typeName, hashCode))) {
-          ptr->m_handle = Handle(inSystem["m_handle"].as<uint64_t>());
+          ptr->handle_ = Handle(inSystem["m_handle"].as<uint64_t>());
           ptr->enabled_ = inSystem["enabled_"].as<bool>();
           ptr->rank_ = inSystem["m_rank"].as<float>();
           ptr->started_ = false;
           systems_.insert({ptr->rank_, ptr});
           indexed_systems_.insert({hashCode, ptr});
-          mapped_systems_[ptr->m_handle] = ptr;
+          mapped_systems_[ptr->handle_] = ptr;
           systems.emplace_back(index, ptr);
           ptr->scene_ = self;
           ptr->OnCreate();
@@ -621,7 +621,7 @@ bool Scene::LoadInternal(const std::filesystem::path& path) {
 }
 void Scene::Clone(const std::shared_ptr<Scene>& source, const std::shared_ptr<Scene>& new_scene) {
   new_scene->environment = source->environment;
-  new_scene->m_saved = source->m_saved;
+  new_scene->saved_ = source->saved_;
   new_scene->world_bound_ = source->world_bound_;
   std::unordered_map<Handle, Handle> entityMap;
 
@@ -1098,7 +1098,7 @@ void Scene::SetParent(const Entity& child, const Entity& parent, const bool& rec
     const auto childGlobalTransform = GetDataComponent<GlobalTransform>(child);
     const auto parentGlobalTransform = GetDataComponent<GlobalTransform>(parent);
     Transform childTransform;
-    childTransform.m_value = glm::inverse(parentGlobalTransform.m_value) * childGlobalTransform.m_value;
+    childTransform.value = glm::inverse(parentGlobalTransform.value) * childGlobalTransform.value;
     SetDataComponent(child, childTransform);
   }
   childEntityInfo.parent = parent;
@@ -1193,7 +1193,7 @@ void Scene::RemoveChild(const Entity& child, const Entity& parent) {
   }
   const auto childGlobalTransform = GetDataComponent<GlobalTransform>(child);
   Transform childTransform;
-  childTransform.m_value = childGlobalTransform.m_value;
+  childTransform.value = childGlobalTransform.value;
   SetDataComponent(child, childTransform);
   SetUnsaved();
 }
@@ -1277,7 +1277,7 @@ void Scene::SetDataComponent(const unsigned& entity_index, size_t id, size_t siz
         chunk.GetDataPointer(
             static_cast<size_t>((sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.chunk_capacity +
                                 chunkPointer * sizeof(TransformUpdateFlag))))
-        ->m_transformModified = true;
+        ->transform_modified = true;
   } else if (id == typeid(GlobalTransform).hash_code()) {
     chunk.SetData(static_cast<size_t>(sizeof(Transform) * dataComponentStorage.chunk_capacity +
                                       chunkPointer * sizeof(GlobalTransform)),
@@ -1286,7 +1286,7 @@ void Scene::SetDataComponent(const unsigned& entity_index, size_t id, size_t siz
         chunk.GetDataPointer(
             static_cast<size_t>((sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.chunk_capacity +
                                 chunkPointer * sizeof(TransformUpdateFlag))))
-        ->m_globalTransformModified = true;
+        ->global_transform_modified = true;
   } else if (id == typeid(TransformUpdateFlag).hash_code()) {
     chunk.SetData(
         static_cast<size_t>((sizeof(Transform) + sizeof(GlobalTransform)) * dataComponentStorage.chunk_capacity +
@@ -1402,14 +1402,14 @@ Entity Scene::GetEntity(const size_t& index) {
   return {};
 }
 
-void Scene::RemovePrivateComponent(const Entity& entity, size_t typeId) {
+void Scene::RemovePrivateComponent(const Entity& entity, size_t type_id) {
   assert(IsEntityValid(entity));
   auto& privateComponentElements =
       scene_data_storage_.entity_metadata_list.at(entity.index_).private_component_elements;
   for (auto i = 0; i < privateComponentElements.size(); i++) {
-    if (privateComponentElements[i].type_index == typeId) {
+    if (privateComponentElements[i].type_index == type_id) {
       scene_data_storage_.entity_private_component_storage.RemovePrivateComponent(
-          entity, typeId, privateComponentElements[i].private_component_data);
+          entity, type_id, privateComponentElements[i].private_component_data);
       privateComponentElements.erase(privateComponentElements.begin() + i);
       SetUnsaved();
       break;
@@ -1474,31 +1474,27 @@ Bound Scene::GetEntityBoundingBox(const Entity& entity) {
       auto meshRenderer = GetOrSetPrivateComponent<MeshRenderer>(walker).lock();
       if (const auto mesh = meshRenderer->m_mesh.Get<Mesh>()) {
         auto meshBound = mesh->GetBound();
-        meshBound.ApplyTransform(gt.m_value);
+        meshBound.ApplyTransform(gt.value);
         glm::vec3 center = meshBound.Center();
 
         glm::vec3 size = meshBound.Size();
-        retVal.m_min =
-            glm::vec3((glm::min)(retVal.m_min.x, center.x - size.x), (glm::min)(retVal.m_min.y, center.y - size.y),
-                      (glm::min)(retVal.m_min.z, center.z - size.z));
-        retVal.m_max =
-            glm::vec3((glm::max)(retVal.m_max.x, center.x + size.x), (glm::max)(retVal.m_max.y, center.y + size.y),
-                      (glm::max)(retVal.m_max.z, center.z + size.z));
+        retVal.min = glm::vec3((glm::min)(retVal.min.x, center.x - size.x), (glm::min)(retVal.min.y, center.y - size.y),
+                               (glm::min)(retVal.min.z, center.z - size.z));
+        retVal.max = glm::vec3((glm::max)(retVal.max.x, center.x + size.x), (glm::max)(retVal.max.y, center.y + size.y),
+                               (glm::max)(retVal.max.z, center.z + size.z));
       }
     } else if (HasPrivateComponent<SkinnedMeshRenderer>(walker)) {
       auto meshRenderer = GetOrSetPrivateComponent<SkinnedMeshRenderer>(walker).lock();
       if (const auto mesh = meshRenderer->m_skinnedMesh.Get<SkinnedMesh>()) {
         auto meshBound = mesh->GetBound();
-        meshBound.ApplyTransform(gt.m_value);
+        meshBound.ApplyTransform(gt.value);
         glm::vec3 center = meshBound.Center();
 
         glm::vec3 size = meshBound.Size();
-        retVal.m_min =
-            glm::vec3((glm::min)(retVal.m_min.x, center.x - size.x), (glm::min)(retVal.m_min.y, center.y - size.y),
-                      (glm::min)(retVal.m_min.z, center.z - size.z));
-        retVal.m_max =
-            glm::vec3((glm::max)(retVal.m_max.x, center.x + size.x), (glm::max)(retVal.m_max.y, center.y + size.y),
-                      (glm::max)(retVal.m_max.z, center.z + size.z));
+        retVal.min = glm::vec3((glm::min)(retVal.min.x, center.x - size.x), (glm::min)(retVal.min.y, center.y - size.y),
+                               (glm::min)(retVal.min.z, center.z - size.z));
+        retVal.max = glm::vec3((glm::max)(retVal.max.x, center.x + size.x), (glm::max)(retVal.max.y, center.y + size.y),
+                               (glm::max)(retVal.max.z, center.z + size.z));
       }
     }
   }

@@ -1,277 +1,271 @@
 #pragma once
 #include "Camera.hpp"
+#include "IGeometry.hpp"
 #include "ILayer.hpp"
+#include "Lights.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
-#include "IGeometry.hpp"
-#include "Lights.hpp"
 #include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "Strands.hpp"
 
-namespace evo_engine
-{
+namespace evo_engine {
 #pragma region Enums Structs
-	enum class RenderCommandType {
-		Unknown,
-		FromRenderer,
-		FromAPI,
-	};
+enum class RenderCommandType {
+  Unknown,
+  FromRenderer,
+  FromApi,
+};
 
-	struct RenderInstancePushConstant
-	{
-		int m_instanceIndex = 0;
-		int m_cameraIndex = 0;
-		int m_lightSplitIndex = 0;
-	};
+struct RenderInstancePushConstant {
+  int instance_index = 0;
+  int camera_index = 0;
+  int light_split_index = 0;
+};
 
-	struct RenderInstance {
-		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::Unknown;
-		Entity m_owner = Entity();
-		std::shared_ptr<Mesh> m_mesh;
-		bool m_castShadow = true;
+struct RenderInstance {
+  uint32_t instance_index = 0;
+  RenderCommandType command_type = RenderCommandType::Unknown;
+  Entity m_owner = Entity();
+  std::shared_ptr<Mesh> m_mesh;
+  bool cast_shadow = true;
 
-		uint32_t m_meshletSize = 0;
+  uint32_t meshlet_size = 0;
 
-		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
-		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
-	};
+  float line_width = 1.0f;
+  VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+  VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+};
 
-	struct SkinnedRenderInstance {
-		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::Unknown;
-		Entity m_owner = Entity();
-		std::shared_ptr<SkinnedMesh> m_skinnedMesh;
-		bool m_castShadow = true;
-		std::shared_ptr<BoneMatrices> m_boneMatrices; // We require the skinned mesh renderer to provide bones.
+struct SkinnedRenderInstance {
+  uint32_t instance_index = 0;
+  RenderCommandType command_type = RenderCommandType::Unknown;
+  Entity m_owner = Entity();
+  std::shared_ptr<SkinnedMesh> skinned_mesh;
+  bool cast_shadow = true;
+  std::shared_ptr<BoneMatrices> bone_matrices;  // We require the skinned mesh renderer to provide bones.
 
-		uint32_t m_skinnedMeshletSize = 0;
+  uint32_t skinned_meshlet_size = 0;
 
-		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
-		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
-	};
+  float line_width = 1.0f;
+  VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+  VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+};
 
-	struct InstancedRenderInstance
-	{
-		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::Unknown;
-		Entity m_owner = Entity();
-		std::shared_ptr<Mesh> m_mesh;
-		bool m_castShadow = true;
-		std::shared_ptr<ParticleInfoList> m_particleInfos;
+struct InstancedRenderInstance {
+  uint32_t instance_index = 0;
+  RenderCommandType command_type = RenderCommandType::Unknown;
+  Entity owner = Entity();
+  std::shared_ptr<Mesh> mesh;
+  bool cast_shadow = true;
+  std::shared_ptr<ParticleInfoList> particle_infos;
 
-		uint32_t m_meshletSize = 0;
+  uint32_t meshlet_size = 0;
 
-		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
-		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
-	};
+  float line_width = 1.0f;
+  VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+  VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+};
 
-	struct StrandsRenderInstance
-	{
-		uint32_t m_instanceIndex = 0;
-		RenderCommandType m_commandType = RenderCommandType::Unknown;
-		Entity m_owner = Entity();
-		std::shared_ptr<Strands> m_strands;
-		bool m_castShadow = true;
+struct StrandsRenderInstance {
+  uint32_t instance_index = 0;
+  RenderCommandType command_type = RenderCommandType::Unknown;
+  Entity m_owner = Entity();
+  std::shared_ptr<Strands> m_strands;
+  bool cast_shadow = true;
 
-		uint32_t m_strandMeshletSize = 0;
+  uint32_t strand_meshlet_size = 0;
 
-		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
-		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
-	};
+  float line_width = 1.0f;
+  VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+  VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+};
 
-	struct RenderInstanceCollection
-	{
-		std::vector<RenderInstance> m_renderCommands;
-		void Dispatch(const std::function<void(const RenderInstance&)>& commandAction) const;
-	};
-	struct SkinnedRenderInstanceCollection
-	{
-		std::vector<SkinnedRenderInstance> m_renderCommands;
-		void Dispatch(const std::function<void(const SkinnedRenderInstance&)>& commandAction) const;
-	};
-	struct StrandsRenderInstanceCollection
-	{
-		std::vector<StrandsRenderInstance> m_renderCommands;
-		void Dispatch(const std::function<void(const StrandsRenderInstance&)>& commandAction) const;
-	};
-	struct InstancedRenderInstanceCollection
-	{
-		std::vector<InstancedRenderInstance> m_renderCommands;
-		void Dispatch(const std::function<void(const InstancedRenderInstance&)>& commandAction) const;
-	};
-	struct RenderInfoBlock {
-		glm::vec4 m_splitDistances = {};
-		alignas(4) int m_pcfSampleAmount = 32;
-		alignas(4) int m_blockerSearchAmount = 8;
-		alignas(4) float m_seamFixRatio = 0.1f;
-		alignas(4) float m_gamma = 1.f;
+struct RenderInstanceCollection {
+  std::vector<RenderInstance> render_commands;
+  void Dispatch(const std::function<void(const RenderInstance&)>& command_action) const;
+};
+struct SkinnedRenderInstanceCollection {
+  std::vector<SkinnedRenderInstance> render_commands;
+  void Dispatch(const std::function<void(const SkinnedRenderInstance&)>& command_action) const;
+};
+struct StrandsRenderInstanceCollection {
+  std::vector<StrandsRenderInstance> render_commands;
+  void Dispatch(const std::function<void(const StrandsRenderInstance&)>& command_action) const;
+};
+struct InstancedRenderInstanceCollection {
+  std::vector<InstancedRenderInstance> render_commands;
+  void Dispatch(const std::function<void(const InstancedRenderInstance&)>& command_action) const;
+};
+struct RenderInfoBlock {
+  glm::vec4 split_distances = {};
+  alignas(4) int pcf_sample_amount = 32;
+  alignas(4) int blocker_search_amount = 8;
+  alignas(4) float seam_fix_ratio = 0.1f;
+  alignas(4) float gamma = 1.f;
 
-		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
-		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
-		alignas(4) int m_strandsSubdivisionMaxX = 15;
-		alignas(4) int m_strandsSubdivisionMaxY = 8;
+  alignas(4) float strands_subdivision_x_factor = 50.0f;
+  alignas(4) float strands_subdivision_y_factor = 50.0f;
+  alignas(4) int strands_subdivision_max_x = 15;
+  alignas(4) int strands_subdivision_max_y = 8;
 
-		alignas(4) int m_directionalLightSize = 0;
-		alignas(4) int m_pointLightSize = 0;
-		alignas(4) int m_spotLightSize = 0;
-		alignas(4) int m_brdflutTextureIndex = 0;
-	};
+  alignas(4) int directional_light_size = 0;
+  alignas(4) int point_light_size = 0;
+  alignas(4) int spot_light_size = 0;
+  alignas(4) int brdflut_texture_index = 0;
+};
 
-	struct EnvironmentInfoBlock {
-		glm::vec4 m_backgroundColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		alignas(4) float m_environmentalMapGamma = 1.0f;
-		alignas(4) float m_environmentalLightingIntensity = 0.8f;
-		alignas(4) float m_backgroundIntensity = 1.0f;
-		alignas(4) float m_environmentalPadding2 = 0.0f;
-	};
+struct EnvironmentInfoBlock {
+  glm::vec4 background_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+  alignas(4) float environmental_map_gamma = 1.0f;
+  alignas(4) float environmental_lighting_intensity = 0.8f;
+  alignas(4) float background_intensity = 1.0f;
+  alignas(4) float environmental_padding2 = 0.0f;
+};
 
-	struct InstanceInfoBlock
-	{
-		GlobalTransform m_model = {};
-		uint32_t m_materialIndex = 0;
-		uint32_t m_entitySelected = 0;
-		uint32_t m_meshletIndexOffset = 0;
-		uint32_t m_meshletSize = 0;
-	};
+struct InstanceInfoBlock {
+  GlobalTransform model = {};
+  uint32_t material_index = 0;
+  uint32_t entity_selected = 0;
+  uint32_t meshlet_index_offset = 0;
+  uint32_t meshlet_size = 0;
+};
 
 #pragma endregion
 
-	class RenderLayer final : public ILayer {
-		friend class Resources;
-		friend class Camera;
-		friend class GraphicsPipeline;
-		friend class EditorLayer;
-		friend class Material;
-		friend class Lighting;
-		friend class PostProcessingStack;
-		friend class Application;
-		void OnCreate() override;
-		void OnDestroy() override;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+class RenderLayer final : public ILayer {
+  friend class Resources;
+  friend class Camera;
+  friend class GraphicsPipeline;
+  friend class EditorLayer;
+  friend class Material;
+  friend class Lighting;
+  friend class PostProcessingStack;
+  friend class Application;
+  void OnCreate() override;
+  void OnDestroy() override;
+  void OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
 
-		void PreparePointAndSpotLightShadowMap() const;
-		
-		void PrepareEnvironmentalBrdfLut();
-		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
+  void PreparePointAndSpotLightShadowMap() const;
 
-		bool TryRegisterRenderer(
-			const std::shared_ptr<Scene>& scene, const Entity& owner,
-			const std::shared_ptr<MeshRenderer>& meshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
-		bool TryRegisterRenderer(
-			const std::shared_ptr<Scene>& scene, const Entity& owner,
-			const std::shared_ptr<SkinnedMeshRenderer>& skinnedMeshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
-		bool TryRegisterRenderer(
-			const std::shared_ptr<Scene>& scene, const Entity& owner,
-			const std::shared_ptr<Particles>& particles, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
-		bool TryRegisterRenderer(
-			const std::shared_ptr<Scene>& scene, const Entity& owner,
-			const std::shared_ptr<StrandsRenderer>& strandsRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+  void PrepareEnvironmentalBrdfLut();
+  void RenderToCamera(const GlobalTransform& camera_global_transform, const std::shared_ptr<Camera>& camera);
 
-		void ClearAllCameras();
-		void RenderAllCameras();
-	public:
-		bool m_wireFrame = false;
+  bool TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+                           const std::shared_ptr<MeshRenderer>& mesh_renderer, glm::vec3& min_bound, glm::vec3& max_bound,
+                           bool enable_selection_highlight);
+  bool TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+                           const std::shared_ptr<SkinnedMeshRenderer>& skinned_mesh_renderer, glm::vec3& min_bound,
+                           glm::vec3& max_bound, bool enable_selection_highlight);
+  bool TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+                           const std::shared_ptr<Particles>& particles, glm::vec3& min_bound, glm::vec3& max_bound,
+                           bool enable_selection_high_light);
+  bool TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+                           const std::shared_ptr<StrandsRenderer>& strands_renderer, glm::vec3& min_bound,
+                           glm::vec3& max_bound, bool enable_selection_high_light);
 
-		bool m_countShadowRenderingDrawCalls = false;
-		bool m_enableIndirectRendering = false;
-		bool m_enableDebugVisualization = false;
-		bool m_enableRenderMenu = false;
-		bool m_stableFit = true;
-		float m_maxShadowDistance = 100;
-		float m_shadowCascadeSplit[4] = { 0.075f, 0.15f, 0.3f, 1.0f };
+  void ClearAllCameras();
+  void RenderAllCameras();
 
-		bool m_enableStrandsRenderer = true;
-		bool m_enableMeshRenderer = true;
-		bool m_enableParticles = true;
-		bool m_enableSkinnedMeshRenderer = true;
+ public:
+  bool wire_frame = false;
 
-		[[nodiscard]] uint32_t GetCameraIndex(const Handle& handle);
-		[[nodiscard]] uint32_t GetMaterialIndex(const Handle& handle);
-		[[nodiscard]] uint32_t GetInstanceIndex(const Handle& handle);
-		[[nodiscard]] Handle GetInstanceHandle(uint32_t index);
-		
-		[[nodiscard]] uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& cameraInfoBlock);
-		[[nodiscard]] uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& materialInfoBlock);
-		[[nodiscard]] uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instanceInfoBlock);
+  bool count_shadow_rendering_draw_calls = false;
+  bool enable_indirect_rendering = false;
+  bool enable_debug_visualization = false;
+  bool enable_render_menu = false;
+  bool stable_fit = true;
+  float max_shadow_distance = 100;
+  float shadow_cascade_split[4] = {0.075f, 0.15f, 0.3f, 1.0f};
 
-		RenderInfoBlock m_renderInfoBlock = {};
-		EnvironmentInfoBlock m_environmentInfoBlock = {};
-		void DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material, glm::mat4 model, bool castShadow);
-		
-		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetPerFrameDescriptorSet() const;
-	private:
-		std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> m_cameras;
-		bool m_needFade = false;
+  bool enable_strands_renderer = true;
+  bool enable_mesh_renderer = true;
+  bool enable_particles = true;
+  bool enable_skinned_mesh_renderer = true;
+
+  [[nodiscard]] uint32_t GetCameraIndex(const Handle& handle);
+  [[nodiscard]] uint32_t GetMaterialIndex(const Handle& handle);
+  [[nodiscard]] uint32_t GetInstanceIndex(const Handle& handle);
+  [[nodiscard]] Handle GetInstanceHandle(uint32_t index);
+
+  [[nodiscard]] uint32_t RegisterCameraIndex(const Handle& handle, const CameraInfoBlock& camera_info_block);
+  [[nodiscard]] uint32_t RegisterMaterialIndex(const Handle& handle, const MaterialInfoBlock& material_info_block);
+  [[nodiscard]] uint32_t RegisterInstanceIndex(const Handle& handle, const InstanceInfoBlock& instance_info_block);
+
+  RenderInfoBlock render_info_block = {};
+  EnvironmentInfoBlock environment_info_block = {};
+  void DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material, glm::mat4 model,
+                bool cast_shadow);
+
+  [[nodiscard]] const std::shared_ptr<DescriptorSet>& GetPerFrameDescriptorSet() const;
+
+ private:
+  std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras_;
+  bool need_fade_ = false;
 #pragma region Render procedure
-		RenderInstanceCollection m_deferredRenderInstances;
-		SkinnedRenderInstanceCollection m_deferredSkinnedRenderInstances;
-		InstancedRenderInstanceCollection m_deferredInstancedRenderInstances;
-		StrandsRenderInstanceCollection m_deferredStrandsRenderInstances;
+  RenderInstanceCollection deferred_render_instances_;
+  SkinnedRenderInstanceCollection deferred_skinned_render_instances_;
+  InstancedRenderInstanceCollection deferred_instanced_render_instances_;
+  StrandsRenderInstanceCollection deferred_strands_render_instances_;
 
-		RenderInstanceCollection m_transparentRenderInstances;
-		SkinnedRenderInstanceCollection m_transparentSkinnedRenderInstances;
-		InstancedRenderInstanceCollection m_transparentInstancedRenderInstances;
-		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
+  RenderInstanceCollection transparent_render_instances_;
+  SkinnedRenderInstanceCollection transparent_skinned_render_instances_;
+  InstancedRenderInstanceCollection transparent_instanced_render_instances_;
+  StrandsRenderInstanceCollection transparent_strands_render_instances_;
 
-		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
+  void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 
-		void CalculateLodFactor(const glm::vec3& center, float maxDistance) const;
+  void CalculateLodFactor(const glm::vec3& center, float max_distance) const;
 
-		[[nodiscard]] bool CollectRenderInstances(Bound& worldBound);
-		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
-		void CollectPointLights();
-		void CollectSpotLights();
+  [[nodiscard]] bool CollectRenderInstances(Bound& world_bound);
+  void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
+  void CollectPointLights();
+  void CollectSpotLights();
 
-		std::unique_ptr<Lighting> m_lighting;
-		std::shared_ptr<Texture2D> m_environmentalBRDFLut = {};
+  std::unique_ptr<Lighting> lighting_;
+  std::shared_ptr<Texture2D> environmental_brdf_lut_ = {};
 
-		void ApplyAnimator() const;
+  void ApplyAnimator() const;
 
 #pragma endregion
 #pragma region Per Frame Descriptor Sets
-		friend class TextureStorage;
-		std::vector<std::shared_ptr<DescriptorSet>> m_perFrameDescriptorSets = {};
+  friend class TextureStorage;
+  std::vector<std::shared_ptr<DescriptorSet>> per_frame_descriptor_sets_ = {};
 
-		std::vector<std::unique_ptr<Buffer>> m_renderInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_environmentInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_cameraInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_materialInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_instanceInfoDescriptorBuffers = {};
-		
-		std::vector<std::unique_ptr<Buffer>> m_kernelDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_directionalLightInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_pointLightInfoDescriptorBuffers = {};
-		std::vector<std::unique_ptr<Buffer>> m_spotLightInfoDescriptorBuffers = {};
+  std::vector<std::unique_ptr<Buffer>> render_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> environment_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> camera_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> material_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> instance_info_descriptor_buffers_ = {};
 
-		void CreateStandardDescriptorBuffers();
-		void CreatePerFrameDescriptorSets();
+  std::vector<std::unique_ptr<Buffer>> kernel_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> directional_light_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> point_light_info_descriptor_buffers_ = {};
+  std::vector<std::unique_ptr<Buffer>> spot_light_info_descriptor_buffers_ = {};
 
-		std::unordered_map<Handle, uint32_t> m_cameraIndices;
-		std::unordered_map<Handle, uint32_t> m_materialIndices;
-		std::unordered_map<Handle, uint32_t> m_instanceIndices;
-		std::unordered_map<uint32_t, Handle> m_instanceHandles;
+  void CreateStandardDescriptorBuffers();
+  void CreatePerFrameDescriptorSets();
 
-		std::vector<CameraInfoBlock> m_cameraInfoBlocks{};
-		std::vector<MaterialInfoBlock> m_materialInfoBlocks{};
-		std::vector<InstanceInfoBlock> m_instanceInfoBlocks{};
+  std::unordered_map<Handle, uint32_t> camera_indices_;
+  std::unordered_map<Handle, uint32_t> material_indices_;
+  std::unordered_map<Handle, uint32_t> instance_indices_;
+  std::unordered_map<uint32_t, Handle> instance_handles_;
 
-		std::vector<std::unique_ptr<Buffer>> m_meshDrawIndexedIndirectCommandsBuffers = {};
-		std::vector<VkDrawIndexedIndirectCommand> m_meshDrawIndexedIndirectCommands{};
-		uint32_t m_totalMeshTriangles = 0;
+  std::vector<CameraInfoBlock> camera_info_blocks_{};
+  std::vector<MaterialInfoBlock> material_info_blocks_{};
+  std::vector<InstanceInfoBlock> instance_info_blocks_{};
 
-		std::vector<std::unique_ptr<Buffer>> m_meshDrawMeshTasksIndirectCommandsBuffers = {};
-		std::vector<VkDrawMeshTasksIndirectCommandEXT> m_meshDrawMeshTasksIndirectCommands{};
+  std::vector<std::unique_ptr<Buffer>> mesh_draw_indexed_indirect_commands_buffers_ = {};
+  std::vector<VkDrawIndexedIndirectCommand> mesh_draw_indexed_indirect_commands_{};
+  uint32_t total_mesh_triangles_ = 0;
 
-		std::vector<DirectionalLightInfo> m_directionalLightInfoBlocks;
-		std::vector<PointLightInfo> m_pointLightInfoBlocks;
-		std::vector<SpotLightInfo> m_spotLightInfoBlocks;
-		
+  std::vector<std::unique_ptr<Buffer>> mesh_draw_mesh_tasks_indirect_commands_buffers_ = {};
+  std::vector<VkDrawMeshTasksIndirectCommandEXT> mesh_draw_mesh_tasks_indirect_commands_{};
+
+  std::vector<DirectionalLightInfo> directional_light_info_blocks_;
+  std::vector<PointLightInfo> point_light_info_blocks_;
+  std::vector<SpotLightInfo> spot_light_info_blocks_;
+
 #pragma endregion
-	};
-}
+};
+}  // namespace evo_engine

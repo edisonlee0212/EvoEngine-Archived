@@ -495,23 +495,23 @@ void Graphics::CreateInstance()
 		const auto monitors = glfwGetMonitors(&size);
 		for (auto i = 0; i < size; i++)
 		{
-			windowLayer->m_monitors.push_back(monitors[i]);
+			windowLayer->monitors_.push_back(monitors[i]);
 		}
-		windowLayer->m_primaryMonitor = glfwGetPrimaryMonitor();
+		windowLayer->primary_monitor_ = glfwGetPrimaryMonitor();
 		glfwSetMonitorCallback(windowLayer->SetMonitorCallback);
 
 		const auto& applicationInfo = Application::GetApplicationInfo();
-		windowLayer->m_windowSize = applicationInfo.m_defaultWindowSize;
-		if (editorLayer) windowLayer->m_windowSize = { 250, 50 };
-		windowLayer->m_window = glfwCreateWindow(windowLayer->m_windowSize.x, windowLayer->m_windowSize.y, applicationInfo.m_applicationName.c_str(), nullptr, nullptr);
+		windowLayer->window_size_ = applicationInfo.m_defaultWindowSize;
+		if (editorLayer) windowLayer->window_size_ = { 250, 50 };
+		windowLayer->window_ = glfwCreateWindow(windowLayer->window_size_.x, windowLayer->window_size_.y, applicationInfo.m_applicationName.c_str(), nullptr, nullptr);
 
 		if (applicationInfo.m_fullScreen)
-			glfwMaximizeWindow(windowLayer->m_window);
+			glfwMaximizeWindow(windowLayer->window_);
 
-		glfwSetFramebufferSizeCallback(windowLayer->m_window, windowLayer->FramebufferSizeCallback);
-		glfwSetWindowFocusCallback(windowLayer->m_window, windowLayer->WindowFocusCallback);
-		glfwSetKeyCallback(windowLayer->m_window, Input::KeyCallBack);
-		glfwSetMouseButtonCallback(windowLayer->m_window, Input::MouseButtonCallBack);
+		glfwSetFramebufferSizeCallback(windowLayer->window_, windowLayer->FramebufferSizeCallback);
+		glfwSetWindowFocusCallback(windowLayer->window_, windowLayer->WindowFocusCallback);
+		glfwSetKeyCallback(windowLayer->window_, Input::KeyCallBack);
+		glfwSetMouseButtonCallback(windowLayer->window_, Input::MouseButtonCallBack);
 	}
 	
 
@@ -593,7 +593,7 @@ void Graphics::CreateSurface()
 	const auto windowLayer = Application::GetLayer<WindowLayer>();
 #pragma region Surface
 	if (windowLayer) {
-		if (glfwCreateWindowSurface(m_vkInstance, windowLayer->m_window, nullptr, &m_vkSurface) != VK_SUCCESS) {
+		if (glfwCreateWindowSurface(m_vkInstance, windowLayer->window_, nullptr, &m_vkSurface) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create window surface!");
 		}
 	}
@@ -1023,7 +1023,7 @@ void Graphics::CreateSwapChain()
 	}
 	else {
 		int width, height;
-		if (windowLayer) glfwGetFramebufferSize(windowLayer->m_window, &width, &height);
+		if (windowLayer) glfwGetFramebufferSize(windowLayer->window_, &width, &height);
 		else
 		{
 			width = applicationInfo.m_defaultWindowSize.x;
@@ -1164,7 +1164,7 @@ void Graphics::OnDestroy()
 void Graphics::SwapChainSwapImage()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
+	if (windowLayer->window_size_.x == 0 || windowLayer->window_size_.y == 0) return;
 	const auto justNow = Times::Now();
 	vkDeviceWaitIdle(m_vkDevice);
 	GeometryStorage::DeviceSync();
@@ -1194,7 +1194,7 @@ void Graphics::SwapChainSwapImage()
 void Graphics::SubmitPresent()
 {
 	const auto& windowLayer = Application::GetLayer<WindowLayer>();
-	if (windowLayer->m_windowSize.x == 0 || windowLayer->m_windowSize.y == 0) return;
+	if (windowLayer->window_size_.x == 0 || windowLayer->window_size_.y == 0) return;
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1434,7 +1434,7 @@ void Graphics::PreUpdate()
 	const auto renderLayer = Application::GetLayer<RenderLayer>();
 	if (windowLayer)
 	{
-		if (glfwWindowShouldClose(windowLayer->m_window))
+		if (glfwWindowShouldClose(windowLayer->window_))
 		{
 			Application::End();
 		}

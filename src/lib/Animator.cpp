@@ -1,296 +1,248 @@
-#include "Application.hpp"
 #include "Animator.hpp"
-#include "EditorLayer.hpp"
+#include "Application.hpp"
 #include "ClassRegistry.hpp"
+#include "EditorLayer.hpp"
 #include "Times.hpp"
 using namespace evo_engine;
 
-void Animator::Setup()
-{
-	if (const auto animation = m_animation.Get<Animation>())
-	{
-		m_boneSize = animation->m_boneSize;
-		if (animation->UnsafeGetRootBone() && m_boneSize != 0)
-		{
-			m_transformChain.resize(m_boneSize);
-			m_names.resize(m_boneSize);
-			m_bones.resize(m_boneSize);
-			BoneSetter(animation->UnsafeGetRootBone());
-			m_offsetMatrices.resize(m_boneSize);
-			for (const auto& i : m_bones)
-				m_offsetMatrices[i->m_index] = i->m_offsetMatrix.m_value;
-			if (!animation->IsEmpty()) {
-				m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
-				m_currentAnimationTime = 0.0f;
-			}
-		}
-	}
+void Animator::Setup() {
+  if (const auto animation = animation_.Get<Animation>()) {
+    bone_size_ = animation->bone_size;
+    if (animation->UnsafeGetRootBone() && bone_size_ != 0) {
+      transform_chain_.resize(bone_size_);
+      names_.resize(bone_size_);
+      bones_.resize(bone_size_);
+      BoneSetter(animation->UnsafeGetRootBone());
+      offset_matrices_.resize(bone_size_);
+      for (const auto& i : bones_)
+        offset_matrices_[i->index] = i->offset_matrix.value;
+      if (!animation->IsEmpty()) {
+        current_activated_animation_ = animation->GetFirstAvailableAnimationName();
+        current_animation_time_ = 0.0f;
+      }
+    }
+  }
 }
-void Animator::OnDestroy()
-{
-	m_transformChain.clear();
-	m_offsetMatrices.clear();
-	m_names.clear();
-	m_animation.Clear();
-	m_bones.clear();
+void Animator::OnDestroy() {
+  transform_chain_.clear();
+  offset_matrices_.clear();
+  names_.clear();
+  animation_.Clear();
+  bones_.clear();
 }
-void Animator::Setup(const std::shared_ptr<Animation>& targetAnimation)
-{
-	m_animation.Set<Animation>(targetAnimation);
-	Setup();
+void Animator::Setup(const std::shared_ptr<Animation>& target_animation) {
+  animation_.Set<Animation>(target_animation);
+  Setup();
 }
 
-bool Animator::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
-{
-	bool changed = false;
-	auto animation = m_animation.Get<Animation>();
-	const Animation* previous = animation.get();
-	editorLayer->DragAndDropButton<Animation>(m_animation, "Animation");
-	if (previous != animation.get() && animation)
-	{
-		Setup(animation);
-		animation = m_animation.Get<Animation>();
-	}
-	if (animation)
-	{
-		if (m_boneSize != 0)
-		{
-			if (!animation->HasAnimation(m_currentActivatedAnimation))
-			{
-				m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
-				m_currentAnimationTime = 0.0f;
-			}
-			if (ImGui::BeginCombo(
-				"Animations##Animator",
-				m_currentActivatedAnimation
-				.c_str())) // The second parameter is the label previewed before opening the combo.
-			{
-				for (auto& i : animation->UnsafeGetAnimationLengths())
-				{
-					const bool selected =
-						m_currentActivatedAnimation ==
-						i.first; // You can store your selection however you want, outside or inside your objects
-					if (ImGui::Selectable(i.first.c_str(), selected))
-					{
-						m_currentActivatedAnimation = i.first;
-						m_currentAnimationTime = 0.0f;
-					}
-					if (selected)
-					{
-						ImGui::SetItemDefaultFocus(); // You may set the initial focus when opening the combo (scrolling
-						// + for keyboard navigation support)
-					}
-				}
-				ImGui::EndCombo();
-			}
-			ImGui::SliderFloat(
-				"Animation time",
-				&m_currentAnimationTime,
-				0.0f,
-				animation->GetAnimationLength(m_currentActivatedAnimation));
-			/*
-			static bool autoPlay = false;
-			if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &autoPlay);
-			static std::weak_ptr<Animator> previousAnimatorPtr;
-			static std::string lastAnimationName = {};
-			static float lastAnimationTime = 0;
-			if (autoPlay) {
-				static float autoPlaySpeed = 30;
-				if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() != this)
-				{
-					const auto previousAnimator = previousAnimatorPtr.lock();
-					previousAnimator->Animate(lastAnimationName, lastAnimationTime);
-					if (animation->HasAnimation(m_currentActivatedAnimation)) {
-						lastAnimationName = m_currentActivatedAnimation;
-						lastAnimationTime = m_currentAnimationTime;
-					}else
-					{
-						lastAnimationName = {};
-						lastAnimationTime = 0.0f;
-					}
-					previousAnimatorPtr = std::dynamic_pointer_cast<Animator>(ProjectManager::GetAsset(GetHandle()));
-				}
+bool Animator::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
+  bool changed = false;
+  auto animation = animation_.Get<Animation>();
+  const Animation* previous = animation.get();
+  editor_layer->DragAndDropButton<Animation>(animation_, "Animation");
+  if (previous != animation.get() && animation) {
+    Setup(animation);
+    animation = animation_.Get<Animation>();
+  }
+  if (animation) {
+    if (bone_size_ != 0) {
+      if (!animation->HasAnimation(current_activated_animation_)) {
+        current_activated_animation_ = animation->GetFirstAvailableAnimationName();
+        current_animation_time_ = 0.0f;
+      }
+      if (ImGui::BeginCombo("Animations##Animator",
+                            current_activated_animation_
+                                .c_str()))  // The second parameter is the label previewed before opening the combo.
+      {
+        for (auto& i : animation->UnsafeGetAnimationLengths()) {
+          const bool selected =
+              current_activated_animation_ ==
+              i.first;  // You can store your selection however you want, outside or inside your objects
+          if (ImGui::Selectable(i.first.c_str(), selected)) {
+            current_activated_animation_ = i.first;
+            current_animation_time_ = 0.0f;
+          }
+          if (selected) {
+            ImGui::SetItemDefaultFocus();  // You may set the initial focus when opening the combo (scrolling
+                                           // + for keyboard navigation support)
+          }
+        }
+        ImGui::EndCombo();
+      }
+      ImGui::SliderFloat("Animation time", &current_animation_time_, 0.0f,
+                         animation->GetAnimationLength(current_activated_animation_));
+      /*
+      static bool autoPlay = false;
+      if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &autoPlay);
+      static std::weak_ptr<Animator> previousAnimatorPtr;
+      static std::string lastAnimationName = {};
+      static float lastAnimationTime = 0;
+      if (autoPlay) {
+              static float autoPlaySpeed = 30;
+              if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() != this)
+              {
+                      const auto previousAnimator = previousAnimatorPtr.lock();
+                      previousAnimator->Animate(lastAnimationName, lastAnimationTime);
+                      if (animation->HasAnimation(current_activated_animation_)) {
+                              lastAnimationName = current_activated_animation_;
+                              lastAnimationTime = current_animation_time_;
+                      }else
+                      {
+                              lastAnimationName = {};
+                              lastAnimationTime = 0.0f;
+                      }
+                      previousAnimatorPtr = std::dynamic_pointer_cast<Animator>(ProjectManager::GetAsset(GetHandle()));
+              }
 
-				ImGui::DragFloat("AutoPlay Speed", &autoPlaySpeed, 1.0f);
-				if (animation->HasAnimation(m_currentActivatedAnimation)) {
-					m_currentAnimationTime += Times::DeltaTime() * autoPlaySpeed;
-					const float animationLength = animation->GetAnimationLength(m_currentActivatedAnimation);
-					if (m_currentAnimationTime > animationLength)
-						m_currentAnimationTime =
-						glm::mod(m_currentAnimationTime, animationLength);
-				}
-			}else if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() == this)
-			{
-				const auto previousAnimator = previousAnimatorPtr.lock();
-				previousAnimator->Animate(lastAnimationName, lastAnimationTime);
-				if (animation->HasAnimation(m_currentActivatedAnimation)) {
-					lastAnimationName = m_currentActivatedAnimation;
-					lastAnimationTime = m_currentAnimationTime;
-				}
-				else
-				{
-					lastAnimationName = {};
-					lastAnimationTime = 0.0f;
-				}
-				previousAnimatorPtr.reset();
-			}*/
-
-		}
-	}
-	return changed;
+              ImGui::DragFloat("AutoPlay Speed", &autoPlaySpeed, 1.0f);
+              if (animation->HasAnimation(current_activated_animation_)) {
+                      current_animation_time_ += Times::DeltaTime() * autoPlaySpeed;
+                      const float animationLength = animation->GetAnimationLength(current_activated_animation_);
+                      if (current_animation_time_ > animationLength)
+                              current_animation_time_ =
+                              glm::mod(current_animation_time_, animationLength);
+              }
+      }else if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() == this)
+      {
+              const auto previousAnimator = previousAnimatorPtr.lock();
+              previousAnimator->Animate(lastAnimationName, lastAnimationTime);
+              if (animation->HasAnimation(current_activated_animation_)) {
+                      lastAnimationName = current_activated_animation_;
+                      lastAnimationTime = current_animation_time_;
+              }
+              else
+              {
+                      lastAnimationName = {};
+                      lastAnimationTime = 0.0f;
+              }
+              previousAnimatorPtr.reset();
+      }*/
+    }
+  }
+  return changed;
 }
-float Animator::GetCurrentAnimationTimePoint() const
-{
-	return m_currentAnimationTime;
+float Animator::GetCurrentAnimationTimePoint() const {
+  return current_animation_time_;
 }
 
-std::string Animator::GetCurrentAnimationName()
-{
-	return m_currentActivatedAnimation;
+std::string Animator::GetCurrentAnimationName() {
+  return current_activated_animation_;
 }
 
-void Animator::Animate(const std::string& animationName, const float time)
-{
-	const auto animation = m_animation.Get<Animation>();
-	if (!animation)
-		return;
-	const auto search = animation->UnsafeGetAnimationLengths().find(animationName);
-	if (search == animation->UnsafeGetAnimationLengths().end()) {
-		EVOENGINE_ERROR("Animation not found!");
-		return;
-	}
-	m_currentActivatedAnimation = animationName;
-	m_currentAnimationTime =
-		glm::mod(time, search->second);
+void Animator::Animate(const std::string& animation_name, const float time) {
+  const auto animation = animation_.Get<Animation>();
+  if (!animation)
+    return;
+  const auto search = animation->UnsafeGetAnimationLengths().find(animation_name);
+  if (search == animation->UnsafeGetAnimationLengths().end()) {
+    EVOENGINE_ERROR("Animation not found!");
+    return;
+  }
+  current_activated_animation_ = animation_name;
+  current_animation_time_ = glm::mod(time, search->second);
 }
-void Animator::Animate(const float time)
-{
-	const auto animation = m_animation.Get<Animation>();
-	if (!animation)
-		return;
-	m_currentAnimationTime =
-		glm::mod(time, animation->GetAnimationLength(m_currentActivatedAnimation));
+void Animator::Animate(const float time) {
+  const auto animation = animation_.Get<Animation>();
+  if (!animation)
+    return;
+  current_animation_time_ = glm::mod(time, animation->GetAnimationLength(current_activated_animation_));
 }
-void Animator::Apply()
-{
-	const auto animation = m_animation.Get<Animation>();
-	if (animation && !animation->IsEmpty())
-	{
-		if (!animation->HasAnimation(m_currentActivatedAnimation))
-		{
-			m_currentActivatedAnimation = animation->GetFirstAvailableAnimationName();
-			m_currentAnimationTime = 0.0f;
-		}
-		if (const auto owner = GetOwner(); owner.GetIndex() != 0)
-		{
-			animation->Animate(m_currentActivatedAnimation, m_currentAnimationTime, glm::mat4(1.0f), m_transformChain);
-			ApplyOffsetMatrices();
-		}
-	}
+void Animator::Apply() {
+  const auto animation = animation_.Get<Animation>();
+  if (animation && !animation->IsEmpty()) {
+    if (!animation->HasAnimation(current_activated_animation_)) {
+      current_activated_animation_ = animation->GetFirstAvailableAnimationName();
+      current_animation_time_ = 0.0f;
+    }
+    if (const auto owner = GetOwner(); owner.GetIndex() != 0) {
+      animation->Animate(current_activated_animation_, current_animation_time_, glm::mat4(1.0f), transform_chain_);
+      ApplyOffsetMatrices();
+    }
+  }
 }
 
-void Animator::BoneSetter(const std::shared_ptr<Bone>& boneWalker)
-{
-	m_names[boneWalker->m_index] = boneWalker->m_name;
-	m_bones[boneWalker->m_index] = boneWalker;
-	for (auto& i : boneWalker->m_children)
-	{
-		BoneSetter(i);
-	}
+void Animator::BoneSetter(const std::shared_ptr<Bone>& bone_walker) {
+  names_[bone_walker->index] = bone_walker->name;
+  bones_[bone_walker->index] = bone_walker;
+  for (auto& i : bone_walker->m_children) {
+    BoneSetter(i);
+  }
 }
 
-void Animator::Setup(const std::vector<std::string>& name, const std::vector<glm::mat4>& offsetMatrices)
-{
-	m_bones.clear();
-	m_boneSize = 0;
-	m_transformChain.resize(offsetMatrices.size());
-	m_names = name;
-	m_offsetMatrices = offsetMatrices;
+void Animator::Setup(const std::vector<std::string>& name, const std::vector<glm::mat4>& offset_matrices) {
+  bones_.clear();
+  bone_size_ = 0;
+  transform_chain_.resize(offset_matrices.size());
+  names_ = name;
+  offset_matrices_ = offset_matrices;
 }
 
-void Animator::ApplyOffsetMatrices()
-{
-	for (int i = 0; i < m_transformChain.size(); i++)
-	{
-		m_transformChain[i] *= m_offsetMatrices[i];
-	}
+void Animator::ApplyOffsetMatrices() {
+  for (int i = 0; i < transform_chain_.size(); i++) {
+    transform_chain_[i] *= offset_matrices_[i];
+  }
 }
 
-glm::mat4 Animator::GetReverseTransform(const int boneIndex) const
-{
-	return m_transformChain[boneIndex] * glm::inverse(m_bones[boneIndex]->m_offsetMatrix.m_value);
+glm::mat4 Animator::GetReverseTransform(const int bone_index) const {
+  return transform_chain_[bone_index] * glm::inverse(bones_[bone_index]->offset_matrix.value);
 }
-void Animator::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target)
-{
+void Animator::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) {
 }
 
-void Animator::CollectAssetRef(std::vector<AssetRef>& list)
-{
-	list.push_back(m_animation);
+void Animator::CollectAssetRef(std::vector<AssetRef>& list) {
+  list.push_back(animation_);
 }
 
-void Animator::Serialize(YAML::Emitter& out) const
-{
-	m_animation.Save("m_animation", out);
-	out << YAML::Key << "m_currentActivatedAnimation" << YAML::Value << m_currentActivatedAnimation;
-	out << YAML::Key << "m_currentAnimationTime" << YAML::Value << m_currentAnimationTime;
+void Animator::Serialize(YAML::Emitter& out) const {
+  animation_.Save("animation_", out);
+  out << YAML::Key << "current_activated_animation_" << YAML::Value << current_activated_animation_;
+  out << YAML::Key << "current_animation_time_" << YAML::Value << current_animation_time_;
 
-	if (!m_transformChain.empty())
-	{
-		out << YAML::Key << "m_transformChain" << YAML::Value
-			<< YAML::Binary(
-				reinterpret_cast<const unsigned char*>(m_transformChain.data()), m_transformChain.size() * sizeof(glm::mat4));
-	}
-	if (!m_offsetMatrices.empty())
-	{
-		out << YAML::Key << "m_offsetMatrices" << YAML::Value
-			<< YAML::Binary(
-				reinterpret_cast<const unsigned char*>(m_offsetMatrices.data()), m_offsetMatrices.size() * sizeof(glm::mat4));
-	}
-	if (!m_names.empty())
-	{
-		out << YAML::Key << "m_names" << YAML::Value << YAML::BeginSeq;
-		for (int i = 0; i < m_names.size(); i++)
-		{
-			out << YAML::BeginMap;
-			out << YAML::Key << "Name" << YAML::Value << m_names[i];
-			out << YAML::EndMap;
-		}
-		out << YAML::EndSeq;
-	}
+  if (!transform_chain_.empty()) {
+    out << YAML::Key << "transform_chain_" << YAML::Value
+        << YAML::Binary(reinterpret_cast<const unsigned char*>(transform_chain_.data()),
+                        transform_chain_.size() * sizeof(glm::mat4));
+  }
+  if (!offset_matrices_.empty()) {
+    out << YAML::Key << "offset_matrices_" << YAML::Value
+        << YAML::Binary(reinterpret_cast<const unsigned char*>(offset_matrices_.data()),
+                        offset_matrices_.size() * sizeof(glm::mat4));
+  }
+  if (!names_.empty()) {
+    out << YAML::Key << "names_" << YAML::Value << YAML::BeginSeq;
+    for (const auto& name : names_) {
+      out << YAML::BeginMap;
+      out << YAML::Key << "Name" << YAML::Value << name;
+      out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+  }
 }
 
-void Animator::Deserialize(const YAML::Node& in)
-{
-	m_animation.Load("m_animation", in);
-	if (m_animation.Get<Animation>())
-	{
-		m_currentActivatedAnimation = in["m_currentActivatedAnimation"].as<std::string>();
-		m_currentAnimationTime = in["m_currentAnimationTime"].as<float>();
-		Setup();
-	}
-	if (in["m_transformChain"])
-	{
-		const auto chains = in["m_transformChain"].as<YAML::Binary>();
-		m_transformChain.resize(chains.size() / sizeof(glm::mat4));
-		std::memcpy(m_transformChain.data(), chains.data(), chains.size());
-	}
-	if (in["m_offsetMatrices"])
-	{
-		const auto matrices = in["m_offsetMatrices"].as<YAML::Binary>();
-		m_offsetMatrices.resize(matrices.size() / sizeof(glm::mat4));
-		std::memcpy(m_offsetMatrices.data(), matrices.data(), matrices.size());
-	}
-	if (in["m_names"])
-	{
-		for (const auto& i : in["m_names"])
-		{
-			m_names.push_back(i["Name"].as<std::string>());
-		}
-	}
+void Animator::Deserialize(const YAML::Node& in) {
+  animation_.Load("animation_", in);
+  if (animation_.Get<Animation>()) {
+    current_activated_animation_ = in["current_activated_animation_"].as<std::string>();
+    current_animation_time_ = in["current_animation_time_"].as<float>();
+    Setup();
+  }
+  if (in["transform_chain_"]) {
+    const auto chains = in["transform_chain_"].as<YAML::Binary>();
+    transform_chain_.resize(chains.size() / sizeof(glm::mat4));
+    std::memcpy(transform_chain_.data(), chains.data(), chains.size());
+  }
+  if (in["offset_matrices_"]) {
+    const auto matrices = in["offset_matrices_"].as<YAML::Binary>();
+    offset_matrices_.resize(matrices.size() / sizeof(glm::mat4));
+    std::memcpy(offset_matrices_.data(), matrices.data(), matrices.size());
+  }
+  if (in["names_"]) {
+    for (const auto& i : in["names_"]) {
+      names_.push_back(i["Name"].as<std::string>());
+    }
+  }
 }
 
-std::shared_ptr<Animation> Animator::GetAnimation()
-{
-	return m_animation.Get<Animation>();
+std::shared_ptr<Animation> Animator::GetAnimation() {
+  return animation_.Get<Animation>();
 }

@@ -25,18 +25,18 @@ void TransformGraph::CalculateTransformGraph(const std::shared_ptr<Scene>& scene
     auto* transformStatus = reinterpret_cast<TransformUpdateFlag*>(
         scene->GetDataComponentPointer(entity.GetIndex(), typeid(TransformUpdateFlag).hash_code()));
     GlobalTransform ltw;
-    if (transformStatus->m_globalTransformModified) {
+    if (transformStatus->global_transform_modified) {
       ltw = scene->GetDataComponent<GlobalTransform>(entity.GetIndex());
       reinterpret_cast<Transform*>(scene->GetDataComponentPointer(entity.GetIndex(), typeid(Transform).hash_code()))
-          ->m_value = glm::inverse(parent_global_transform.m_value) * ltw.m_value;
-      transformStatus->m_globalTransformModified = false;
+          ->value = glm::inverse(parent_global_transform.value) * ltw.value;
+      transformStatus->global_transform_modified = false;
     } else {
       auto ltp = scene->GetDataComponent<Transform>(entity.GetIndex());
-      ltw.m_value = parent_global_transform.m_value * ltp.m_value;
+      ltw.value = parent_global_transform.value * ltp.value;
       *reinterpret_cast<GlobalTransform*>(
           scene->GetDataComponentPointer(entity.GetIndex(), typeid(GlobalTransform).hash_code())) = ltw;
     }
-    transformStatus->m_transformModified = false;
+    transformStatus->transform_modified = false;
     CalculateTransformGraph(scene, entity_infos, ltw, entity);
   }
 }
@@ -52,18 +52,18 @@ void TransformGraph::CalculateTransformGraphs(const std::shared_ptr<Scene>& scen
           TransformUpdateFlag& transformStatus) {
         const EntityMetadata& entityInfo = scene->scene_data_storage_.entity_metadata_list.at(entity.GetIndex());
         if (entityInfo.parent.GetIndex() != 0) {
-          transformStatus.m_transformModified = false;
+          transformStatus.transform_modified = false;
           return;
         }
         if (check_static && entityInfo.entity_static) {
-          transformStatus.m_transformModified = false;
+          transformStatus.transform_modified = false;
           return;
         }
-        if (transformStatus.m_globalTransformModified) {
-          transform.m_value = globalTransform.m_value;
-          transformStatus.m_globalTransformModified = false;
+        if (transformStatus.global_transform_modified) {
+          transform.value = globalTransform.value;
+          transformStatus.global_transform_modified = false;
         } else {
-          globalTransform.m_value = transform.m_value;
+          globalTransform.value = transform.value;
         }
         transformGraph.CalculateTransformGraph(scene, entityInfos, globalTransform, entity);
       },

@@ -339,35 +339,35 @@ void Camera::SetRequireRendering(const bool value)
 void Camera::CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view)
 {
 	glm::mat4 comboMatrix = projection * glm::transpose(view);
-	planes[0].m_a = comboMatrix[3][0] + comboMatrix[0][0];
-	planes[0].m_b = comboMatrix[3][1] + comboMatrix[0][1];
-	planes[0].m_c = comboMatrix[3][2] + comboMatrix[0][2];
-	planes[0].m_d = comboMatrix[3][3] + comboMatrix[0][3];
+	planes[0].a = comboMatrix[3][0] + comboMatrix[0][0];
+	planes[0].b = comboMatrix[3][1] + comboMatrix[0][1];
+	planes[0].c = comboMatrix[3][2] + comboMatrix[0][2];
+	planes[0].d = comboMatrix[3][3] + comboMatrix[0][3];
 
-	planes[1].m_a = comboMatrix[3][0] - comboMatrix[0][0];
-	planes[1].m_b = comboMatrix[3][1] - comboMatrix[0][1];
-	planes[1].m_c = comboMatrix[3][2] - comboMatrix[0][2];
-	planes[1].m_d = comboMatrix[3][3] - comboMatrix[0][3];
+	planes[1].a = comboMatrix[3][0] - comboMatrix[0][0];
+	planes[1].b = comboMatrix[3][1] - comboMatrix[0][1];
+	planes[1].c = comboMatrix[3][2] - comboMatrix[0][2];
+	planes[1].d = comboMatrix[3][3] - comboMatrix[0][3];
 
-	planes[2].m_a = comboMatrix[3][0] - comboMatrix[1][0];
-	planes[2].m_b = comboMatrix[3][1] - comboMatrix[1][1];
-	planes[2].m_c = comboMatrix[3][2] - comboMatrix[1][2];
-	planes[2].m_d = comboMatrix[3][3] - comboMatrix[1][3];
+	planes[2].a = comboMatrix[3][0] - comboMatrix[1][0];
+	planes[2].b = comboMatrix[3][1] - comboMatrix[1][1];
+	planes[2].c = comboMatrix[3][2] - comboMatrix[1][2];
+	planes[2].d = comboMatrix[3][3] - comboMatrix[1][3];
 
-	planes[3].m_a = comboMatrix[3][0] + comboMatrix[1][0];
-	planes[3].m_b = comboMatrix[3][1] + comboMatrix[1][1];
-	planes[3].m_c = comboMatrix[3][2] + comboMatrix[1][2];
-	planes[3].m_d = comboMatrix[3][3] + comboMatrix[1][3];
+	planes[3].a = comboMatrix[3][0] + comboMatrix[1][0];
+	planes[3].b = comboMatrix[3][1] + comboMatrix[1][1];
+	planes[3].c = comboMatrix[3][2] + comboMatrix[1][2];
+	planes[3].d = comboMatrix[3][3] + comboMatrix[1][3];
 
-	planes[4].m_a = comboMatrix[3][0] + comboMatrix[2][0];
-	planes[4].m_b = comboMatrix[3][1] + comboMatrix[2][1];
-	planes[4].m_c = comboMatrix[3][2] + comboMatrix[2][2];
-	planes[4].m_d = comboMatrix[3][3] + comboMatrix[2][3];
+	planes[4].a = comboMatrix[3][0] + comboMatrix[2][0];
+	planes[4].b = comboMatrix[3][1] + comboMatrix[2][1];
+	planes[4].c = comboMatrix[3][2] + comboMatrix[2][2];
+	planes[4].d = comboMatrix[3][3] + comboMatrix[2][3];
 
-	planes[5].m_a = comboMatrix[3][0] - comboMatrix[2][0];
-	planes[5].m_b = comboMatrix[3][1] - comboMatrix[2][1];
-	planes[5].m_c = comboMatrix[3][2] - comboMatrix[2][2];
-	planes[5].m_d = comboMatrix[3][3] - comboMatrix[2][3];
+	planes[5].a = comboMatrix[3][0] - comboMatrix[2][0];
+	planes[5].b = comboMatrix[3][1] - comboMatrix[2][1];
+	planes[5].c = comboMatrix[3][2] - comboMatrix[2][2];
+	planes[5].d = comboMatrix[3][3] - comboMatrix[2][3];
 
 	planes[0].Normalize();
 	planes[1].Normalize();
@@ -485,7 +485,7 @@ Ray Camera::ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mousePosition) cons
 	start /= start.w;
 	end /= end.w;
 	const glm::vec3 dir = glm::normalize(glm::vec3(end - start));
-	return { glm::vec3(ltw.m_value[3]) + m_nearDistance * dir, glm::vec3(ltw.m_value[3]) + m_farDistance * dir };
+	return { glm::vec3(ltw.value[3]) + m_nearDistance * dir, glm::vec3(ltw.value[3]) + m_farDistance * dir };
 }
 
 void Camera::Serialize(YAML::Emitter& out) const
@@ -577,7 +577,7 @@ bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			Application::GetActiveScene()->main_camera.Clear();
 		}
 	}
-	if (!isMainCamera || !Application::GetLayer<EditorLayer>()->m_mainCameraAllowAutoResize)
+	if (!isMainCamera || !Application::GetLayer<EditorLayer>()->main_camera_allow_auto_resize)
 	{
 		glm::ivec2 resolution = { m_size.x, m_size.y };
 		if (ImGui::DragInt2("Resolution", &resolution.x, 1, 1, 4096))

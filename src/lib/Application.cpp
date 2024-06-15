@@ -39,9 +39,9 @@ void Application::PreUpdateInternal()
 {
 	auto& application = GetInstance();
 	const auto now = std::chrono::system_clock::now();
-	const std::chrono::duration<double> deltaTime = now - Times::m_lastUpdateTime;
-	Times::m_deltaTime = deltaTime.count();
-	Times::m_lastUpdateTime = std::chrono::system_clock::now();
+	const std::chrono::duration<double> deltaTime = now - Times::last_update_time_;
+	Times::delta_time_ = deltaTime.count();
+	Times::last_update_time_ = std::chrono::system_clock::now();
 	if (application.m_applicationStatus == ApplicationStatus::Uninitialized)
 	{
 		EVOENGINE_ERROR("Application uninitialized!")
@@ -65,14 +65,14 @@ void Application::PreUpdateInternal()
 	{
 		i->PreUpdate();
 	}
-	if (Times::m_steps == 0) {
-		Times::m_lastFixedUpdateTime = std::chrono::system_clock::now();
-		Times::m_steps = 1;
+	if (Times::steps_ == 0) {
+		Times::last_fixed_update_time_ = std::chrono::system_clock::now();
+		Times::steps_ = 1;
 	}
-	const auto lastFixedUpdateTime = Times::m_lastFixedUpdateTime;
+	const auto lastFixedUpdateTime = Times::last_fixed_update_time_;
 	std::chrono::duration<double> duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 	size_t step = 1;
-	while (duration.count() >= step * Times::m_timeStep)
+	while (duration.count() >= step * Times::time_step_)
 	{
 		for (const auto& i : application.m_externalFixedUpdateFunctions)
 			i();
@@ -87,9 +87,9 @@ void Application::PreUpdateInternal()
 		duration = std::chrono::system_clock::now() - lastFixedUpdateTime;
 		step++;
 		const auto now = std::chrono::system_clock::now();
-		const std::chrono::duration<double> fixedDeltaTime = now - Times::m_lastFixedUpdateTime;
-		Times::m_fixedDeltaTime = fixedDeltaTime.count();
-		Times::m_lastFixedUpdateTime = std::chrono::system_clock::now();
+		const std::chrono::duration<double> fixedDeltaTime = now - Times::last_fixed_update_time_;
+		Times::fixed_delta_time_ = fixedDeltaTime.count();
+		Times::last_fixed_update_time_ = std::chrono::system_clock::now();
 		if (step > 10)
 		{
 			EVOENGINE_WARNING("Fixed update timeout!");
@@ -199,7 +199,7 @@ void Application::LateUpdateInternal()
 					// action
 					std::filesystem::path path = ImGuiFileDialog::Instance()->GetFilePathName();
 					ProjectManager::GetOrCreateProject(path);
-					if (ProjectManager::GetInstance().m_projectFolder)
+					if (ProjectManager::GetInstance().project_folder_)
 					{
 						windowLayer->ResizeWindow(
 							application.m_applicationInfo.m_defaultWindowSize.x,
@@ -298,7 +298,7 @@ void Application::Reset()
 {
 	auto& application = GetInstance();
 	application.m_applicationStatus = ApplicationStatus::Stop;
-	Times::m_steps = Times::m_frames = 0;
+	Times::steps_ = Times::frames_ = 0;
 }
 
 void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
@@ -342,7 +342,7 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 	if (!application.m_applicationInfo.m_projectPath.empty())
 	{
 		ProjectManager::GetOrCreateProject(application.m_applicationInfo.m_projectPath);
-		if (ProjectManager::GetInstance().m_projectFolder)
+		if (ProjectManager::GetInstance().project_folder_)
 		{
 			if (windowLayer) {
 				windowLayer->ResizeWindow(
@@ -363,8 +363,8 @@ void Application::Initialize(const ApplicationInfo& applicationCreateInfo)
 
 void Application::Start()
 {
-	Times::m_startTime = std::chrono::system_clock::now();
-	Times::m_steps = Times::m_frames = 0;
+	Times::start_time_ = std::chrono::system_clock::now();
+	Times::steps_ = Times::frames_ = 0;
 	if (const auto editorLayer = GetLayer<EditorLayer>(); !editorLayer) Play();
 
 }
@@ -421,7 +421,7 @@ void Application::Attach(const std::shared_ptr<Scene>& scene)
 	}
 	for (const auto& layer : application.m_layers)
 	{
-		layer->m_scene = scene;
+		layer->scene_ = scene;
 	}
 }
 

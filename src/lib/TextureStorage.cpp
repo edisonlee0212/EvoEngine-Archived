@@ -316,7 +316,7 @@ void TextureStorage::DeviceSync()
 		imageInfo.imageLayout = textureStorage.GetLayout();
 		imageInfo.imageView = textureStorage.GetVkImageView();
 		imageInfo.sampler = textureStorage.GetVkSampler();
-		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
+		if(!renderLayer->per_frame_descriptor_sets_.empty()) renderLayer->per_frame_descriptor_sets_[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
 	}
 
 	for (int textureIndex = 0; textureIndex < storage.m_cubemaps.size(); textureIndex++)
@@ -339,7 +339,7 @@ void TextureStorage::DeviceSync()
 		imageInfo.imageLayout = textureStorage.GetLayout();
 		imageInfo.imageView = textureStorage.GetVkImageView();
 		imageInfo.sampler = textureStorage.GetVkSampler();
-		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, textureIndex);
+		if(!renderLayer->per_frame_descriptor_sets_.empty()) renderLayer->per_frame_descriptor_sets_[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, textureIndex);
 	}
 }
 

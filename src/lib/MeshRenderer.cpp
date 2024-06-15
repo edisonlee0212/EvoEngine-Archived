@@ -9,7 +9,7 @@ using namespace evo_engine;
 void MeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, const glm::vec4& color)
 {
 	const auto scene = GetScene();
-	const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
+	const auto transform = scene->GetDataComponent<GlobalTransform>(GetOwner()).value;
 	glm::vec3 size = m_mesh.Get<Mesh>()->GetBound().Size() * 2.0f;
 	if (size.x < 0.01f)
 		size.x = 0.01f;
@@ -18,10 +18,10 @@ void MeshRenderer::RenderBound(const std::shared_ptr<EditorLayer>& editorLayer, 
 	if (size.y < 0.01f)
 		size.y = 0.01f;
 	GizmoSettings gizmoSettings;
-	gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
-	gizmoSettings.m_drawSettings.m_blending = true;
-	gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
-	gizmoSettings.m_drawSettings.m_lineWidth = 5.0f;
+	gizmoSettings.draw_settings.m_cullMode = VK_CULL_MODE_NONE;
+	gizmoSettings.draw_settings.m_blending = true;
+	gizmoSettings.draw_settings.m_polygonMode = VK_POLYGON_MODE_LINE;
+	gizmoSettings.draw_settings.m_lineWidth = 5.0f;
 	editorLayer->DrawGizmoMesh(
 		Resources::GetResource<Mesh>("PRIMITIVE_CUBE"),
 		color,

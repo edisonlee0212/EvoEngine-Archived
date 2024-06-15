@@ -34,7 +34,7 @@ bool PrivateComponentRef::Update()
 void PrivateComponentRef::Clear()
 {
     value_.reset();
-    entity_handle_ = m_handle = Handle(0);
+    entity_handle_ = handle_ = Handle(0);
     scene_.reset();
     private_component_type_name_ = {};
 }
