@@ -501,11 +501,11 @@ void Graphics::CreateInstance()
 		glfwSetMonitorCallback(windowLayer->SetMonitorCallback);
 
 		const auto& applicationInfo = Application::GetApplicationInfo();
-		windowLayer->window_size_ = applicationInfo.m_defaultWindowSize;
+		windowLayer->window_size_ = applicationInfo.default_window_size;
 		if (editorLayer) windowLayer->window_size_ = { 250, 50 };
-		windowLayer->window_ = glfwCreateWindow(windowLayer->window_size_.x, windowLayer->window_size_.y, applicationInfo.m_applicationName.c_str(), nullptr, nullptr);
+		windowLayer->window_ = glfwCreateWindow(windowLayer->window_size_.x, windowLayer->window_size_.y, applicationInfo.application_name.c_str(), nullptr, nullptr);
 
-		if (applicationInfo.m_fullScreen)
+		if (applicationInfo.full_screen)
 			glfwMaximizeWindow(windowLayer->window_);
 
 		glfwSetFramebufferSizeCallback(windowLayer->window_, windowLayer->FramebufferSizeCallback);
@@ -522,7 +522,7 @@ void Graphics::CreateInstance()
 
 	VkApplicationInfo vkApplicationInfo{};
 	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	vkApplicationInfo.pApplicationName = Application::GetApplicationInfo().m_applicationName.c_str();
+	vkApplicationInfo.pApplicationName = Application::GetApplicationInfo().application_name.c_str();
 	vkApplicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	vkApplicationInfo.pEngineName = "evo_engine";
 	vkApplicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -1026,8 +1026,8 @@ void Graphics::CreateSwapChain()
 		if (windowLayer) glfwGetFramebufferSize(windowLayer->window_, &width, &height);
 		else
 		{
-			width = applicationInfo.m_defaultWindowSize.x;
-			height = applicationInfo.m_defaultWindowSize.y;
+			width = applicationInfo.default_window_size.x;
+			height = applicationInfo.default_window_size.y;
 		}
 		if (width > 0 && height > 0) {
 			VkExtent2D actualExtent = {

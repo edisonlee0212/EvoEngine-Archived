@@ -187,8 +187,8 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo) {
   }
   switch (demoSetup) {
     case DemoSetup::Rendering: {
-      applicationInfo.m_applicationName = "Rendering Demo";
-      applicationInfo.m_projectPath = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
+      applicationInfo.application_name = "Rendering Demo";
+      applicationInfo.pr = resourceFolderPath / "Example Projects/Rendering/Rendering.eveproj";
       ProjectManager::SetActionAfterNewScene([&](const std::shared_ptr<Scene>& scene) {
         scene->environment.ambient_light_intensity = 0.1f;
 #pragma region Set main camera to correct position and rotation

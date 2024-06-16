@@ -646,7 +646,7 @@ void Scene::Clone(const std::shared_ptr<Scene>& source, const std::shared_ptr<Sc
 
 std::shared_ptr<LightProbe> Environment::GetLightProbe(const glm::vec3& position) {
   if (const auto environmentalMap = environmental_map.Get<EnvironmentalMap>()) {
-    if (auto lightProbe = environmentalMap->m_lightProbe.Get<LightProbe>())
+    if (auto lightProbe = environmentalMap->light_probe.Get<LightProbe>())
       return lightProbe;
   }
   return nullptr;
@@ -654,7 +654,7 @@ std::shared_ptr<LightProbe> Environment::GetLightProbe(const glm::vec3& position
 
 std::shared_ptr<ReflectionProbe> Environment::GetReflectionProbe(const glm::vec3& position) {
   if (const auto environmentalMap = environmental_map.Get<EnvironmentalMap>()) {
-    if (auto reflectionProbe = environmentalMap->m_lightProbe.Get<ReflectionProbe>())
+    if (auto reflectionProbe = environmentalMap->light_probe.Get<ReflectionProbe>())
       return reflectionProbe;
   }
   return nullptr;

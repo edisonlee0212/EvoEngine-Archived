@@ -114,7 +114,7 @@ void StartProjectWindowless(const std::filesystem::path& projectPath)
 	}
 	RegisterLayers(false, false);
 	ApplicationInfo applicationInfo{};
-	applicationInfo.m_projectPath = projectPath;
+	applicationInfo.pr = projectPath;
 	Application::Initialize(applicationInfo);
 	Application::Start();
 }
@@ -129,7 +129,7 @@ void StartProjectWithEditor(const std::filesystem::path& projectPath)
 	}
 	RegisterLayers(false, false);
 	ApplicationInfo applicationInfo{};
-	applicationInfo.m_projectPath = projectPath;
+	applicationInfo.pr = projectPath;
 	Application::Initialize(applicationInfo);
 	Application::Start();
 	Application::Run();
@@ -174,11 +174,11 @@ PYBIND11_MODULE(pyevoengine, m) {
 		.def("save", &Scene::Save);
 	py::class_<ApplicationInfo>(m, "ApplicationInfo")
 		.def(py::init<>())
-		.def_readwrite("project_path_", &ApplicationInfo::m_projectPath)
-		.def_readwrite("m_applicationName", &ApplicationInfo::m_applicationName)
-		.def_readwrite("m_enableDocking", &ApplicationInfo::m_enableDocking)
-		.def_readwrite("m_enableViewport", &ApplicationInfo::m_enableViewport)
-		.def_readwrite("m_fullScreen", &ApplicationInfo::m_fullScreen);
+		.def_readwrite("project_path_", &ApplicationInfo::pr)
+		.def_readwrite("application_name", &ApplicationInfo::application_name)
+		.def_readwrite("enable_docking", &ApplicationInfo::enable_docking)
+		.def_readwrite("enable_viewport", &ApplicationInfo::enable_viewport)
+		.def_readwrite("full_screen", &ApplicationInfo::full_screen);
 
 	py::class_<Application>(m, "Application")
 		.def_static("initialize", &Application::Initialize)

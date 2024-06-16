@@ -6,7 +6,7 @@
 using namespace evo_engine;
 struct EquirectangularToCubemapConstant
 {
-	glm::mat4 m_projectionView = {};
+	glm::mat4 projection_view = {};
 	float m_preset = 0;
 
 };
@@ -187,7 +187,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 				prefilterConstruct->BindDescriptorSet(commandBuffer, 0, tempSet->GetVkDescriptorSet());
 				const auto mesh = Resources::GetResource<Mesh>("PRIMITIVE_RENDERING_CUBE");
 				EquirectangularToCubemapConstant constant{};
-				constant.m_projectionView = captureProjection * captureViews[i];
+				constant.projection_view = captureProjection * captureViews[i];
 				constant.m_preset = roughness;
 				prefilterConstruct->PushConstant(commandBuffer, 0, constant);
 				mesh->DrawIndexed(commandBuffer, prefilterConstruct->m_states, 1);
