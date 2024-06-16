@@ -32,7 +32,7 @@ void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> 
     out << YAML::Key << "private_component_elements" << YAML::Value << YAML::BeginSeq;
     for (const auto &element : private_component_elements) {
       out << YAML::BeginMap;
-      out << YAML::Key << "m_typeName" << YAML::Value << element.private_component_data->type_name_;
+      out << YAML::Key << "type_name_" << YAML::Value << element.private_component_data->type_name_;
       out << YAML::Key << "enabled_" << YAML::Value << element.private_component_data->enabled_;
       element.private_component_data->Serialize(out);
       out << YAML::EndMap;

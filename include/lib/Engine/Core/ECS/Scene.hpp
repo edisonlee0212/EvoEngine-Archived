@@ -92,7 +92,7 @@ class Scene final : public IAsset {
   template <typename T = IDataComponent>
   T GetDataComponent(const size_t& index);
   template <typename T = IDataComponent>
-  bool HasDataComponent(const size_t& index) const;
+  [[nodiscard]] bool HasDataComponent(const size_t& index) const;
   template <typename T = IDataComponent>
   void SetDataComponent(const size_t& index, const T& value);
 
@@ -144,6 +144,9 @@ class Scene final : public IAsset {
   bool LoadInternal(const std::filesystem::path& path) override;
 
  public:
+  template <typename T>
+  std::vector<Entity> GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene);
+
   KeyActionType GetKey(int key);
 
   template <typename T = IDataComponent>
@@ -202,11 +205,11 @@ class Scene final : public IAsset {
   // Enable or Disable an Entity. Note that the disable action will recursively disable the children of current
   // entity.
   void SetEnable(const Entity& entity, const bool& value);
-  bool IsEntityValid(const Entity& entity) const;
-  bool IsEntityEnabled(const Entity& entity) const;
-  bool IsEntityRoot(const Entity& entity) const;
-  bool IsEntityStatic(const Entity& entity);
-  bool IsEntityAncestorSelected(const Entity& entity) const;
+  [[nodiscard]] bool IsEntityValid(const Entity& entity) const;
+  [[nodiscard]] bool IsEntityEnabled(const Entity& entity) const;
+  [[nodiscard]] bool IsEntityRoot(const Entity& entity) const;
+  [[nodiscard]] bool IsEntityStatic(const Entity& entity);
+  [[nodiscard]] bool IsEntityAncestorSelected(const Entity& entity) const;
   Entity GetRoot(const Entity& entity);
   std::string GetEntityName(const Entity& entity);
   void SetEntityName(const Entity& entity, const std::string& name);
@@ -255,9 +258,8 @@ class Scene final : public IAsset {
   void DeleteEntity(const Entity& entity);
   Entity GetEntity(const Handle& handle);
   Entity GetEntity(const size_t& index);
-  template <typename T>
-  std::vector<Entity> GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene);
-  void ForEachPrivateComponent(const Entity& entity, const std::function<void(PrivateComponentElement& data)>& func) const;
+  void ForEachPrivateComponent(const Entity& entity,
+                               const std::function<void(PrivateComponentElement& data)>& func) const;
   void GetAllEntities(std::vector<Entity>& target);
   void ForAllEntities(const std::function<void(int i, Entity entity)>& func) const;
 
@@ -370,7 +372,10 @@ class Scene final : public IAsset {
 #pragma endregion
 #pragma endregion
 };
-
+template <typename T>
+std::vector<Entity> Scene::GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene) {
+  return scene_data_storage_.entity_private_component_storage.GetOwnersList<T>();
+}
 template <typename T>
 std::shared_ptr<T> Scene::GetSystem() {
   if (const auto search = indexed_systems_.find(typeid(T).hash_code()); search != indexed_systems_.end())

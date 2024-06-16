@@ -376,8 +376,8 @@ void Scene::Deserialize(const YAML::Node& in) {
     for (const auto& in_data_component_type : in_data_component_types) {
       DataComponentType data_component_type;
       data_component_type.type_name = in_data_component_type["type_name"].as<std::string>();
-      data_component_type.type_size = in_data_component_type["m_size"].as<size_t>();
-      data_component_type.type_offset = in_data_component_type["m_offset"].as<size_t>();
+      data_component_type.type_size = in_data_component_type["type_size"].as<size_t>();
+      data_component_type.type_offset = in_data_component_type["type_offset"].as<size_t>();
       data_component_type.type_index = Serialization::GetDataComponentTypeId(data_component_type.type_name);
       data_component_storage.data_component_types.push_back(data_component_type);
     }
@@ -470,9 +470,9 @@ void Scene::Deserialize(const YAML::Node& in) {
         size_t hash_code;
         if (const auto ptr =
                 std::static_pointer_cast<ISystem>(Serialization::ProduceSerializable(type_name, hash_code))) {
-          ptr->handle_ = Handle(in_system["m_handle"].as<uint64_t>());
+          ptr->handle_ = Handle(in_system["handle_"].as<uint64_t>());
           ptr->enabled_ = in_system["enabled_"].as<bool>();
-          ptr->rank_ = in_system["m_rank"].as<float>();
+          ptr->rank_ = in_system["rank_"].as<float>();
           ptr->started_ = false;
           systems_.insert({ptr->rank_, ptr});
           indexed_systems_.insert({hash_code, ptr});
@@ -516,8 +516,8 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
     for (const auto& i : storage.data_component_types) {
       out << YAML::BeginMap;
       out << YAML::Key << "type_name" << YAML::Value << i.type_name;
-      out << YAML::Key << "m_size" << YAML::Value << i.type_size;
-      out << YAML::Key << "m_offset" << YAML::Value << i.type_offset;
+      out << YAML::Key << "type_size" << YAML::Value << i.type_size;
+      out << YAML::Key << "type_offset" << YAML::Value << i.type_offset;
       out << YAML::EndMap;
     }
     out << YAML::EndSeq;
@@ -530,7 +530,7 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
 
       out << YAML::BeginMap;
       auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-      out << YAML::Key << "m_handle" << YAML::Value << entity_info.entity_handle;
+      out << YAML::Key << "entity_handle" << YAML::Value << entity_info.entity_handle;
 
       auto& data_component_storage =
           scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
@@ -542,9 +542,10 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
       for (const auto& type : data_component_storage.data_component_types) {
         out << YAML::BeginMap;
         out << YAML::Key << "Data" << YAML::Value
-            << YAML::Binary((const unsigned char*)chunk.GetDataPointer(
-                                type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * type.type_size),
-                            type.type_size);
+            << YAML::Binary(
+                   (const unsigned char*)chunk.GetDataPointer(type.type_offset * data_component_storage.chunk_capacity +
+                                                              chunk_pointer * type.type_size),
+                   type.type_size);
         out << YAML::EndMap;
       }
       out << YAML::EndSeq;
@@ -560,8 +561,8 @@ void Scene::SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitte
   {
     out << YAML::Key << "m_typeName" << YAML::Value << system->GetTypeName();
     out << YAML::Key << "enabled_" << YAML::Value << system->enabled_;
-    out << YAML::Key << "m_rank" << YAML::Value << system->rank_;
-    out << YAML::Key << "m_handle" << YAML::Value << system->GetHandle();
+    out << YAML::Key << "rank_" << YAML::Value << system->rank_;
+    out << YAML::Key << "handle_" << YAML::Value << system->handle_;
     system->Serialize(out);
   }
   out << YAML::EndMap;
@@ -663,7 +664,7 @@ void Environment::Serialize(YAML::Emitter& out) const {
   out << YAML::Key << "environment_gamma" << YAML::Value << environment_gamma;
   out << YAML::Key << "ambient_light_intensity" << YAML::Value << ambient_light_intensity;
   out << YAML::Key << "environment_type" << YAML::Value << static_cast<unsigned>(environment_type);
-  environmental_map.Save("environment", out);
+  environmental_map.Save("environmental_map", out);
 }
 void Environment::Deserialize(const YAML::Node& in) {
   if (in["background_color"])
@@ -674,7 +675,7 @@ void Environment::Deserialize(const YAML::Node& in) {
     ambient_light_intensity = in["ambient_light_intensity"].as<float>();
   if (in["environment_type"])
     environment_type = static_cast<EnvironmentType>(in["environment_type"].as<unsigned>());
-  environmental_map.Load("environment", in);
+  environmental_map.Load("environmental_map", in);
 }
 void SceneDataStorage::Clone(std::unordered_map<Handle, Handle>& entity_links, const SceneDataStorage& source,
                              const std::shared_ptr<Scene>& new_scene) {
@@ -703,11 +704,12 @@ KeyActionType Scene::GetKey(int key) {
 }
 
 #pragma region Entity Management
-void Scene::UnsafeForEachDataComponent(const Entity& entity,
-                                       const std::function<void(const DataComponentType& type, void* data)>& func) const {
+void Scene::UnsafeForEachDataComponent(
+    const Entity& entity, const std::function<void(const DataComponentType& type, void* data)>& func) const {
   assert(IsEntityValid(entity));
   const EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const size_t chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const size_t chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   const ComponentDataChunk& chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
@@ -739,7 +741,8 @@ void Scene::UnsafeForEachEntityStorage(
 
 void Scene::DeleteEntityInternal(unsigned entity_index) {
   EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity_index);
-  auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   Entity actual_entity = scene_data_storage_.entities.at(entity_index);
 
   scene_data_storage_.entity_private_component_storage.DeleteEntity(actual_entity);
@@ -756,8 +759,8 @@ void Scene::DeleteEntityInternal(unsigned entity_index) {
   data_component_storage.chunk_array.entity_array[entity_info.chunk_array_index] = actual_entity;
   const auto original_index = entity_info.chunk_array_index;
   if (entity_info.chunk_array_index != data_component_storage.entity_alive_count - 1) {
-    const auto swapped_index =
-        SwapEntity(data_component_storage, entity_info.chunk_array_index, data_component_storage.entity_alive_count - 1);
+    const auto swapped_index = SwapEntity(data_component_storage, entity_info.chunk_array_index,
+                                          data_component_storage.entity_alive_count - 1);
     entity_info.chunk_array_index = data_component_storage.entity_alive_count - 1;
     scene_data_storage_.entity_metadata_list.at(swapped_index).chunk_array_index = original_index;
   }
@@ -847,11 +850,11 @@ auto Scene::SwapEntity(DataComponentStorage& storage, const size_t index1, const
   const auto chunk_pointer2 = index2 % capacity;
   for (const auto& i : storage.data_component_types) {
     void* temp = malloc(i.type_size);
-    void* d1 = static_cast<char*>(storage.chunk_array.chunk_array[chunk_index1].chunk_data) +
-               i.type_offset * capacity + i.type_size * chunk_pointer1;
+    void* d1 = static_cast<char*>(storage.chunk_array.chunk_array[chunk_index1].chunk_data) + i.type_offset * capacity +
+               i.type_size * chunk_pointer1;
 
-    void* d2 = static_cast<char*>(storage.chunk_array.chunk_array[chunk_index2].chunk_data) +
-               i.type_offset * capacity + i.type_size * chunk_pointer2;
+    void* d2 = static_cast<char*>(storage.chunk_array.chunk_array[chunk_index2].chunk_data) + i.type_offset * capacity +
+               i.type_size * chunk_pointer2;
 
     memcpy(temp, d1, i.type_size);
     memcpy(d1, d2, i.type_size);
@@ -890,7 +893,8 @@ Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& 
   auto search = GetDataComponentStorage(archetype);
   DataComponentStorage& storage = search->first;
   if (storage.entity_count == storage.entity_alive_count) {
-    if (const size_t chunk_index = storage.entity_count / storage.chunk_capacity + 1; storage.chunk_array.chunk_array.size() <= chunk_index) {
+    if (const size_t chunk_index = storage.entity_count / storage.chunk_capacity + 1;
+        storage.chunk_array.chunk_array.size() <= chunk_index) {
       // Allocate new chunk;
       ComponentDataChunk chunk;
       chunk.chunk_data = calloc(1, Entities::GetArchetypeChunkSize());
@@ -1022,7 +1026,8 @@ std::vector<Entity> Scene::CreateEntities(const EntityArchetype& archetype, cons
     SetDataComponent(entity, TransformUpdateFlag());
   });
 
-  ret_val.insert(ret_val.end(), scene_data_storage_.entities.begin() + original_size, scene_data_storage_.entities.end());
+  ret_val.insert(ret_val.end(), scene_data_storage_.entities.begin() + original_size,
+                 scene_data_storage_.entities.end());
   SetUnsaved();
   return ret_val;
 }
@@ -1201,7 +1206,8 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& type_index) 
     return;
   }
   EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   if (data_component_storage.data_component_types.size() <= 3) {
     EVOENGINE_ERROR(
         "Remove Component Data failed: Entity must have at least 1 data component besides 3 basic data "
@@ -1230,8 +1236,8 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& type_index) 
     i.type_offset = offset;
     offset += i.type_size;
   }
-  new_archetype_info.entity_size =
-      new_archetype_info.data_component_types.back().type_offset + new_archetype_info.data_component_types.back().type_size;
+  new_archetype_info.entity_size = new_archetype_info.data_component_types.back().type_offset +
+                                   new_archetype_info.data_component_types.back().type_size;
   new_archetype_info.chunk_capacity = Entities::GetArchetypeChunkSize() / new_archetype_info.entity_size;
   auto archetype = Entities::CreateEntityArchetypeHelper(new_archetype_info);
 #pragma endregion
@@ -1262,37 +1268,33 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& type_index) 
 
 void Scene::SetDataComponent(const unsigned& entity_index, size_t id, size_t size, IDataComponent* data) {
   const auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity_index);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const auto chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const auto chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
   if (id == typeid(Transform).hash_code()) {
     chunk.SetData(chunk_pointer * sizeof(Transform), sizeof(Transform), data);
     static_cast<TransformUpdateFlag*>(
-        chunk.GetDataPointer(
-            (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-            chunk_pointer * sizeof(TransformUpdateFlag)))
+        chunk.GetDataPointer((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                             chunk_pointer * sizeof(TransformUpdateFlag)))
         ->transform_modified = true;
   } else if (id == typeid(GlobalTransform).hash_code()) {
-    chunk.SetData(sizeof(Transform) * data_component_storage.chunk_capacity +
-                  chunk_pointer * sizeof(GlobalTransform),
+    chunk.SetData(sizeof(Transform) * data_component_storage.chunk_capacity + chunk_pointer * sizeof(GlobalTransform),
                   sizeof(GlobalTransform), data);
     static_cast<TransformUpdateFlag*>(
-        chunk.GetDataPointer(
-            (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-            chunk_pointer * sizeof(TransformUpdateFlag)))
+        chunk.GetDataPointer((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                             chunk_pointer * sizeof(TransformUpdateFlag)))
         ->global_transform_modified = true;
   } else if (id == typeid(TransformUpdateFlag).hash_code()) {
-    chunk.SetData(
-        (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-        chunk_pointer * sizeof(TransformUpdateFlag),
-        sizeof(TransformUpdateFlag), data);
+    chunk.SetData((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                      chunk_pointer * sizeof(TransformUpdateFlag),
+                  sizeof(TransformUpdateFlag), data);
   } else {
     for (const auto& type : data_component_storage.data_component_types) {
       if (type.type_index == id) {
-        chunk.SetData(
-            type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * type.type_size,
-            size, data);
+        chunk.SetData(type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * type.type_size, size,
+                      data);
         return;
       }
     }
@@ -1302,7 +1304,8 @@ void Scene::SetDataComponent(const unsigned& entity_index, size_t id, size_t siz
 }
 IDataComponent* Scene::GetDataComponentPointer(unsigned entity_index, const size_t& id) {
   const EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity_index);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const auto chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const auto chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
@@ -1320,8 +1323,8 @@ IDataComponent* Scene::GetDataComponentPointer(unsigned entity_index, const size
   }
   for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
-      return chunk.GetDataPointer(
-          static_cast<size_t>(type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * type.type_size));
+      return chunk.GetDataPointer(static_cast<size_t>(type.type_offset * data_component_storage.chunk_capacity +
+                                                      chunk_pointer * type.type_size));
     }
   }
   EVOENGINE_LOG("ComponentData doesn't exist");
@@ -1330,7 +1333,8 @@ IDataComponent* Scene::GetDataComponentPointer(unsigned entity_index, const size
 IDataComponent* Scene::GetDataComponentPointer(const Entity& entity, const size_t& id) {
   assert(IsEntityValid(entity));
   const EntityMetadata& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-  const auto& data_component_storage = scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
+  const auto& data_component_storage =
+      scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
   const auto chunk_index = entity_info.chunk_array_index / data_component_storage.chunk_capacity;
   const auto chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
   const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
@@ -1342,14 +1346,13 @@ IDataComponent* Scene::GetDataComponentPointer(const Entity& entity, const size_
                                 chunk_pointer * sizeof(GlobalTransform));
   }
   if (id == typeid(TransformUpdateFlag).hash_code()) {
-    return chunk.GetDataPointer(
-        (sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
-        chunk_pointer * sizeof(TransformUpdateFlag));
+    return chunk.GetDataPointer((sizeof(Transform) + sizeof(GlobalTransform)) * data_component_storage.chunk_capacity +
+                                chunk_pointer * sizeof(TransformUpdateFlag));
   }
   for (const auto& type : data_component_storage.data_component_types) {
     if (type.type_index == id) {
-      return chunk.GetDataPointer(
-          type.type_offset * data_component_storage.chunk_capacity + chunk_pointer * type.type_size);
+      return chunk.GetDataPointer(type.type_offset * data_component_storage.chunk_capacity +
+                                  chunk_pointer * type.type_size);
     }
   }
   EVOENGINE_LOG("ComponentData doesn't exist");
@@ -1433,7 +1436,8 @@ void Scene::SetEnable(const Entity& entity, const bool& value) {
 
 void Scene::SetEnableSingle(const Entity& entity, const bool& value) {
   assert(IsEntityValid(entity));
-  if (auto& entity_metadata = scene_data_storage_.entity_metadata_list.at(entity.index_); entity_metadata.entity_enabled != value) {
+  if (auto& entity_metadata = scene_data_storage_.entity_metadata_list.at(entity.index_);
+      entity_metadata.entity_enabled != value) {
     for (auto& i : entity_metadata.private_component_elements) {
       if (value) {
         i.private_component_data->OnEntityEnable();
@@ -1470,10 +1474,12 @@ Bound Scene::GetEntityBoundingBox(const Entity& entity) {
         glm::vec3 center = mesh_bound.Center();
 
         glm::vec3 size = mesh_bound.Size();
-        ret_val.min = glm::vec3((glm::min)(ret_val.min.x, center.x - size.x), (glm::min)(ret_val.min.y, center.y - size.y),
-                               (glm::min)(ret_val.min.z, center.z - size.z));
-        ret_val.max = glm::vec3((glm::max)(ret_val.max.x, center.x + size.x), (glm::max)(ret_val.max.y, center.y + size.y),
-                               (glm::max)(ret_val.max.z, center.z + size.z));
+        ret_val.min =
+            glm::vec3((glm::min)(ret_val.min.x, center.x - size.x), (glm::min)(ret_val.min.y, center.y - size.y),
+                      (glm::min)(ret_val.min.z, center.z - size.z));
+        ret_val.max =
+            glm::vec3((glm::max)(ret_val.max.x, center.x + size.x), (glm::max)(ret_val.max.y, center.y + size.y),
+                      (glm::max)(ret_val.max.z, center.z + size.z));
       }
     } else if (HasPrivateComponent<SkinnedMeshRenderer>(walker)) {
       auto mesh_renderer = GetOrSetPrivateComponent<SkinnedMeshRenderer>(walker).lock();
@@ -1483,10 +1489,12 @@ Bound Scene::GetEntityBoundingBox(const Entity& entity) {
         glm::vec3 center = mesh_bound.Center();
 
         glm::vec3 size = mesh_bound.Size();
-        ret_val.min = glm::vec3((glm::min)(ret_val.min.x, center.x - size.x), (glm::min)(ret_val.min.y, center.y - size.y),
-                               (glm::min)(ret_val.min.z, center.z - size.z));
-        ret_val.max = glm::vec3((glm::max)(ret_val.max.x, center.x + size.x), (glm::max)(ret_val.max.y, center.y + size.y),
-                               (glm::max)(ret_val.max.z, center.z + size.z));
+        ret_val.min =
+            glm::vec3((glm::min)(ret_val.min.x, center.x - size.x), (glm::min)(ret_val.min.y, center.y - size.y),
+                      (glm::min)(ret_val.min.z, center.z - size.z));
+        ret_val.max =
+            glm::vec3((glm::max)(ret_val.max.x, center.x + size.x), (glm::max)(ret_val.max.y, center.y + size.y),
+                      (glm::max)(ret_val.max.z, center.z + size.z));
       }
     }
   }
@@ -1535,10 +1543,6 @@ void Scene::GetDescendantsHelper(const Entity& target, std::vector<Entity>& resu
     results.insert(results.end(), children.begin(), children.end());
   for (const auto& i : children)
     GetDescendantsHelper(i, results);
-}
-template <typename T>
-std::vector<Entity> Scene::GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene) {
-  return scene_data_storage_.entity_private_component_storage.GetOwnersList<T>();
 }
 
 std::weak_ptr<IPrivateComponent> Scene::GetPrivateComponent(const Entity& entity, const std::string& type_name) {
