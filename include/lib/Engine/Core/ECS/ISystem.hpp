@@ -20,7 +20,7 @@ class ISystem : public ISerializable {
 
  public:
   [[nodiscard]] std::shared_ptr<Scene> GetScene() const;
-  [[nodiscard]] float GetRank();
+  [[nodiscard]] float GetRank() const;
   ISystem();
   void Enable();
   void Disable();

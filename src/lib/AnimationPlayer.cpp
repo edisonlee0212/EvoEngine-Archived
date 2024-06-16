@@ -13,7 +13,7 @@ void AnimationPlayer::Update() {
       if (!animation)
         return;
       float current_animation_time = animator->GetCurrentAnimationTimePoint();
-      current_animation_time += Times::DeltaTime() * m_autoPlaySpeed;
+      current_animation_time += Times::DeltaTime() * auto_play_speed;
       if (current_animation_time > animation->GetAnimationLength(animator->GetCurrentAnimationName()))
         current_animation_time =
             glm::mod(current_animation_time, animation->GetAnimationLength(animator->GetCurrentAnimationName()));
@@ -24,9 +24,9 @@ void AnimationPlayer::Update() {
 
 bool AnimationPlayer::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   bool changed = false;
-  ImGui::Checkbox("AutoPlay", &m_autoPlay);
-  if (m_autoPlay) {
-    ImGui::DragFloat("AutoPlay Speed", &m_autoPlaySpeed, 1.0f);
+  ImGui::Checkbox("AutoPlay", &auto_play);
+  if (auto_play) {
+    ImGui::DragFloat("AutoPlay Speed", &auto_play_speed, 1.0f);
   }
 
   return changed;

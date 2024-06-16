@@ -6,31 +6,31 @@
 
 namespace evo_engine {
 struct VertexDataChunk {
-  Vertex vertex_data[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
+  Vertex vertex_data[Graphics::Constants::meshlet_max_vertices_size] = {};
 };
 
 struct Meshlet {
-  glm::u8vec3 triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {};  // up to 126 triangles
+  glm::u8vec3 triangles[Graphics::Constants::meshlet_max_triangles_size] = {};  // up to 126 triangles
   uint32_t vertices_size = 0;
   uint32_t triangle_size = 0;
   uint32_t vertex_chunk_index = 0;
 };
 
 struct SkinnedVertexDataChunk {
-  SkinnedVertex skinned_vertex_data[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
+  SkinnedVertex skinned_vertex_data[Graphics::Constants::meshlet_max_vertices_size] = {};
 };
 struct SkinnedMeshlet {
-  glm::u8vec3 skinned_triangles[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {};  // up to 126 triangles
+  glm::u8vec3 skinned_triangles[Graphics::Constants::meshlet_max_triangles_size] = {};  // up to 126 triangles
   uint32_t skinned_vertices_size = 0;
   uint32_t skinned_triangle_size = 0;
   uint32_t skinned_vertex_chunk_index = 0;
 };
 
 struct StrandPointDataChunk {
-  StrandPoint strand_point_data[Graphics::Constants::MESHLET_MAX_VERTICES_SIZE] = {};
+  StrandPoint strand_point_data[Graphics::Constants::meshlet_max_vertices_size] = {};
 };
 struct StrandMeshlet {
-  glm::u8vec4 segments[Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE] = {};  // up to 126 triangles
+  glm::u8vec4 segments[Graphics::Constants::meshlet_max_triangles_size] = {};  // up to 126 triangles
   uint32_t strand_points_size = 0;
   uint32_t segment_size = 0;
   uint32_t strand_point_chunk_index = 0;
@@ -46,7 +46,7 @@ class RangeDescriptor {
    * When used to record triangles, this records the newest number of triangles, including the size of the empty
    * fillers.
    */
-  uint32_t m_range;
+  uint32_t range;
 
   uint32_t prev_frame_offset;
   uint32_t index_count;

@@ -131,7 +131,7 @@ bool Strands::LoadInternal(const std::filesystem::path& path) {
       HairHeader header;
       input.read(reinterpret_cast<char*>(&header), sizeof(HairHeader));
       assert(input);
-      assert(strncmp(header.m_magic, "HAIR", 4) == 0);
+      assert(strncmp(header.magic, "HAIR", 4) == 0);
       header.file_info[87] = 0;
 
       // Segments array(unsigned short)

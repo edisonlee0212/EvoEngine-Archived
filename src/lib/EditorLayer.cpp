@@ -111,8 +111,8 @@ void EditorLayer::OnCreate() {
                static_cast<void**>(static_cast<void*>(&mapped_entity_index_data_)));
 
   const auto scene_camera = Serialization::ProduceSerializable<Camera>();
-  scene_camera->m_clearColor = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
-  scene_camera->m_useClearColor = false;
+  scene_camera->clear_color = glm::vec3(59.0f / 255.0f, 85 / 255.0f, 143 / 255.f);
+  scene_camera->use_clear_color = false;
   scene_camera->OnCreate();
   RegisterEditorCamera(scene_camera);
   scene_camera_handle_ = scene_camera->GetHandle();
@@ -756,7 +756,7 @@ void EditorLayer::SceneCameraWindow() {
       scene_camera_resolution_x_ = view_port_size.x * scene_camera_resolution_multiplier;
       scene_camera_resolution_y_ = view_port_size.y * scene_camera_resolution_multiplier;
       const ImVec2 overlay_pos = ImGui::GetWindowPos();
-      if (sceneCamera && sceneCamera->m_rendered) {
+      if (sceneCamera && sceneCamera->rendered_) {
         // Because I use the texture from OpenGL, I need to invert the V from the UV.
         ImGui::Image(sceneCamera->GetRenderTexture()->GetColorImTextureId(), ImVec2(view_port_size.x, view_port_size.y),
                      ImVec2(0, 1), ImVec2(1, 0));
@@ -780,17 +780,17 @@ void EditorLayer::SceneCameraWindow() {
           ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
           std::string draw_call_info = {};
           const auto current_frame_index = Graphics::GetCurrentFrameIndex();
-          if (graphics.m_triangles[current_frame_index] < 999)
-            draw_call_info += std::to_string(graphics.m_triangles[current_frame_index]);
-          else if (graphics.m_triangles[current_frame_index] < 999999)
-            draw_call_info += std::to_string(static_cast<int>(graphics.m_triangles[current_frame_index] / 1000)) + "K";
+          if (graphics.triangles[current_frame_index] < 999)
+            draw_call_info += std::to_string(graphics.triangles[current_frame_index]);
+          else if (graphics.triangles[current_frame_index] < 999999)
+            draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000)) + "K";
           else
             draw_call_info +=
-                std::to_string(static_cast<int>(graphics.m_triangles[current_frame_index] / 1000000)) + "M";
+                std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
           draw_call_info += " tris";
           ImGui::Text(draw_call_info.c_str());
-          ImGui::Text("%d drawcall", graphics.m_drawCall[current_frame_index]);
-          ImGui::Text("Idle: %.3f", graphics.m_cpuWaitTime);
+          ImGui::Text("%d drawcall", graphics.draw_call[current_frame_index]);
+          ImGui::Text("Idle: %.3f", graphics.cpu_wait_time);
           ImGui::Separator();
           if (ImGui::IsMousePosValid()) {
             const auto pos = Input::GetMousePosition();
@@ -807,15 +807,15 @@ void EditorLayer::SceneCameraWindow() {
             default_scene_camera_rotation = sceneCameraRotation;
           }
           ImGui::PushItemWidth(100);
-          ImGui::Checkbox("Use clear color", &sceneCamera->m_useClearColor);
-          ImGui::ColorEdit3("Clear color", &sceneCamera->m_clearColor.x);
-          ImGui::SliderFloat("FOV", &sceneCamera->m_fov, 1.0f, 359.f, "%.1f");
+          ImGui::Checkbox("Use clear color", &sceneCamera->use_clear_color);
+          ImGui::ColorEdit3("Clear color", &sceneCamera->clear_color.x);
+          ImGui::SliderFloat("FOV", &sceneCamera->fov, 1.0f, 359.f, "%.1f");
           ImGui::DragFloat3("Position", &sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
           ImGui::DragFloat("Speed", &velocity, 0.1f, 0, 0, "%.1f");
           ImGui::DragFloat("Sensitivity", &sensitivity, 0.1f, 0, 0, "%.1f");
           ImGui::Checkbox("Copy Transform", &apply_transform_to_main_camera);
           ImGui::DragFloat("Resolution", &scene_camera_resolution_multiplier, 0.1f, 0.1f, 4.0f);
-          DragAndDropButton<Cubemap>(sceneCamera->m_skybox, "Skybox", true);
+          DragAndDropButton<Cubemap>(sceneCamera->skybox, "Skybox", true);
           ImGui::PopItemWidth();
         }
         ImGui::EndChild();
@@ -954,7 +954,7 @@ void EditorLayer::MainCameraWindow() {
       const ImVec2 overlay_pos = ImGui::GetWindowPos();
       // Because I use the texture from OpenGL, I need to invert the V from the UV.
       const auto main_camera = scene->main_camera.Get<Camera>();
-      if (main_camera && main_camera->m_rendered) {
+      if (main_camera && main_camera->rendered_) {
         ImGui::Image(main_camera->GetRenderTexture()->GetColorImTextureId(), ImVec2(view_port_size.x, view_port_size.y),
                      ImVec2(0, 1), ImVec2(1, 0));
         CameraWindowDragAndDrop();
@@ -983,16 +983,16 @@ void EditorLayer::MainCameraWindow() {
           ImGui::PopItemWidth();
           std::string draw_call_info = {};
           const auto current_frame_index = Graphics::GetCurrentFrameIndex();
-          if (graphics.m_triangles[current_frame_index] < 999)
-            draw_call_info += std::to_string(graphics.m_triangles[current_frame_index]);
-          else if (graphics.m_triangles[current_frame_index] < 999999)
-            draw_call_info += std::to_string(static_cast<int>(graphics.m_triangles[current_frame_index] / 1000)) + "K";
+          if (graphics.triangles[current_frame_index] < 999)
+            draw_call_info += std::to_string(graphics.triangles[current_frame_index]);
+          else if (graphics.triangles[current_frame_index] < 999999)
+            draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000)) + "K";
           else
             draw_call_info +=
-                std::to_string(static_cast<int>(graphics.m_triangles[current_frame_index] / 1000000)) + "M";
+                std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
           draw_call_info += " tris";
           ImGui::Text(draw_call_info.c_str());
-          ImGui::Text("%d drawcall", graphics.m_drawCall[current_frame_index]);
+          ImGui::Text("%d drawcall", graphics.draw_call[current_frame_index]);
           ImGui::Separator();
           if (ImGui::IsMousePosValid()) {
             const auto pos = Input::GetMousePosition();
@@ -1400,7 +1400,7 @@ void EditorLayer::MouseEntitySelection() {
 Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& target_camera,
                                          const glm::vec2& mouse_position) const {
   Entity ret_val;
-  const auto& g_buffer_normal = target_camera->m_gBufferNormal;
+  const auto& g_buffer_normal = target_camera->g_buffer_normal_;
   const glm::vec2 resolution = target_camera->GetSize();
   glm::vec2 point = resolution;
   point.x = mouse_position.x;
@@ -1586,22 +1586,22 @@ void EditorLayer::CameraWindowDragAndDrop() const {
     } else if (asset->GetTypeName() == "Mesh") {
       const auto entity = scene->CreateEntity(asset->GetTitle());
       const auto mesh_renderer = scene->GetOrSetPrivateComponent<MeshRenderer>(entity).lock();
-      mesh_renderer->m_mesh.Set<Mesh>(std::dynamic_pointer_cast<Mesh>(asset));
+      mesh_renderer->mesh.Set<Mesh>(std::dynamic_pointer_cast<Mesh>(asset));
       const auto material = ProjectManager::CreateTemporaryAsset<Material>();
-      mesh_renderer->m_material.Set<Material>(material);
+      mesh_renderer->material.Set<Material>(material);
     }
 
     else if (asset->GetTypeName() == "Strands") {
       const auto entity = scene->CreateEntity(asset->GetTitle());
       const auto strands_renderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(entity).lock();
-      strands_renderer->m_strands.Set<Strands>(std::dynamic_pointer_cast<Strands>(asset));
+      strands_renderer->strands.Set<Strands>(std::dynamic_pointer_cast<Strands>(asset));
       const auto material = ProjectManager::CreateTemporaryAsset<Material>();
-      strands_renderer->m_material.Set<Material>(material);
+      strands_renderer->material.Set<Material>(material);
     } else if (asset->GetTypeName() == "EnvironmentalMap") {
       scene->environment.environmental_map = std::dynamic_pointer_cast<EnvironmentalMap>(asset);
     } else if (asset->GetTypeName() == "Cubemap") {
       const auto main_camera = scene->main_camera.Get<Camera>();
-      main_camera->m_skybox = std::dynamic_pointer_cast<Cubemap>(asset);
+      main_camera->skybox = std::dynamic_pointer_cast<Cubemap>(asset);
     }
   }
 }

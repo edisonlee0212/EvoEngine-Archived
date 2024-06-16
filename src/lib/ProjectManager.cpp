@@ -691,7 +691,7 @@ bool ProjectManager::IsValidAssetFileName(const std::filesystem::path& path) {
 }
 std::filesystem::path ProjectManager::GenerateNewProjectRelativePath(const std::string& relative_stem,
                                                                      const std::string& postfix) {
-  assert(std::filesystem::path(relativeStem + postfix).is_relative());
+  assert(std::filesystem::path(relative_stem + postfix).is_relative());
   const auto& project_manager = GetInstance();
   const auto project_path = project_manager.project_path_.parent_path();
   std::filesystem::path test_path = project_path / (relative_stem + postfix);

@@ -89,8 +89,8 @@ bool Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   if (visualize) {
           if (!visualizationCamera) {
                   visualizationCamera = Serialization::ProduceSerializable<Camera>();
-                  visualizationCamera->m_clearColor = glm::vec3(0.0f);
-                  visualizationCamera->m_useClearColor = true;
+                  visualizationCamera->clear_color = glm::vec3(0.0f);
+                  visualizationCamera->use_clear_color = true;
                   visualizationCamera->OnCreate();
           }
           else

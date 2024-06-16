@@ -11,281 +11,281 @@
 using namespace evo_engine;
 
 glm::vec3 CameraInfoBlock::Project(const glm::vec3& position) const {
-  return m_projection * m_view * glm::vec4(position, 1.0f);
+  return projection * view * glm::vec4(position, 1.0f);
 }
 
 glm::vec3 CameraInfoBlock::UnProject(const glm::vec3& position) const {
-  const glm::mat4 inverse = glm::inverse(m_projection * m_view);
+  const glm::mat4 inverse = glm::inverse(projection * view);
   auto start = glm::vec4(position, 1.0f);
   start = inverse * start;
   return start / start.w;
 }
 
 void Camera::UpdateGBuffer() {
-  m_gBufferNormalView.reset();
-  m_gBufferAlbedoView.reset();
-  m_gBufferMaterialView.reset();
+  g_buffer_normal_view_.reset();
+  g_buffer_albedo_view_.reset();
+  g_buffer_material_view_.reset();
 
-  m_gBufferNormal.reset();
-  m_gBufferAlbedo.reset();
-  m_gBufferMaterial.reset();
+  g_buffer_normal_.reset();
+  g_buffer_albedo_.reset();
+  g_buffer_material_.reset();
 
   {
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = m_renderTexture->GetExtent();
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+    VkImageCreateInfo image_info{};
+    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_info.imageType = VK_IMAGE_TYPE_2D;
+    image_info.extent = render_texture_->GetExtent();
+    image_info.mipLevels = 1;
+    image_info.arrayLayers = 1;
+    image_info.format = Graphics::Constants::g_buffer_color;
+    image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    m_gBufferNormal = std::make_unique<Image>(imageInfo);
+    g_buffer_normal_ = std::make_unique<Image>(image_info);
 
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_gBufferNormal->GetVkImage();
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    VkImageViewCreateInfo view_info{};
+    view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view_info.image = g_buffer_normal_->GetVkImage();
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view_info.format = Graphics::Constants::g_buffer_color;
+    view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view_info.subresourceRange.baseMipLevel = 0;
+    view_info.subresourceRange.levelCount = 1;
+    view_info.subresourceRange.baseArrayLayer = 0;
+    view_info.subresourceRange.layerCount = 1;
 
-    m_gBufferNormalView = std::make_unique<ImageView>(viewInfo);
+    g_buffer_normal_view_ = std::make_unique<ImageView>(view_info);
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    m_gBufferNormalSampler = std::make_unique<Sampler>(samplerInfo);
+    g_buffer_normal_sampler_ = std::make_unique<Sampler>(sampler_info);
   }
   {
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = m_renderTexture->GetExtent();
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+    VkImageCreateInfo image_info{};
+    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_info.imageType = VK_IMAGE_TYPE_2D;
+    image_info.extent = render_texture_->GetExtent();
+    image_info.mipLevels = 1;
+    image_info.arrayLayers = 1;
+    image_info.format = Graphics::Constants::g_buffer_color;
+    image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    m_gBufferAlbedo = std::make_unique<Image>(imageInfo);
+    g_buffer_albedo_ = std::make_unique<Image>(image_info);
 
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_gBufferAlbedo->GetVkImage();
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    VkImageViewCreateInfo view_info{};
+    view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view_info.image = g_buffer_albedo_->GetVkImage();
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view_info.format = Graphics::Constants::g_buffer_color;
+    view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view_info.subresourceRange.baseMipLevel = 0;
+    view_info.subresourceRange.levelCount = 1;
+    view_info.subresourceRange.baseArrayLayer = 0;
+    view_info.subresourceRange.layerCount = 1;
 
-    m_gBufferAlbedoView = std::make_unique<ImageView>(viewInfo);
+    g_buffer_albedo_view_ = std::make_unique<ImageView>(view_info);
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    m_gBufferAlbedoSampler = std::make_unique<Sampler>(samplerInfo);
+    g_buffer_albedo_sampler_ = std::make_unique<Sampler>(sampler_info);
   }
   {
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = m_renderTexture->GetExtent();
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+    VkImageCreateInfo image_info{};
+    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_info.imageType = VK_IMAGE_TYPE_2D;
+    image_info.extent = render_texture_->GetExtent();
+    image_info.mipLevels = 1;
+    image_info.arrayLayers = 1;
+    image_info.format = Graphics::Constants::g_buffer_color;
+    image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    m_gBufferMaterial = std::make_unique<Image>(imageInfo);
+    g_buffer_material_ = std::make_unique<Image>(image_info);
 
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_gBufferMaterial->GetVkImage();
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = Graphics::Constants::G_BUFFER_COLOR;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    VkImageViewCreateInfo view_info{};
+    view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view_info.image = g_buffer_material_->GetVkImage();
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view_info.format = Graphics::Constants::g_buffer_color;
+    view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view_info.subresourceRange.baseMipLevel = 0;
+    view_info.subresourceRange.levelCount = 1;
+    view_info.subresourceRange.baseArrayLayer = 0;
+    view_info.subresourceRange.layerCount = 1;
 
-    m_gBufferMaterialView = std::make_unique<ImageView>(viewInfo);
+    g_buffer_material_view_ = std::make_unique<ImageView>(view_info);
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    m_gBufferMaterialSampler = std::make_unique<Sampler>(samplerInfo);
+    g_buffer_material_sampler_ = std::make_unique<Sampler>(sampler_info);
   }
-  Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-    TransitGBufferImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  Graphics::ImmediateSubmit([&](const VkCommandBuffer command_buffer) {
+    TransitGBufferImageLayout(command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   });
 
-  EditorLayer::UpdateTextureId(m_gBufferNormalImTextureId, m_gBufferNormalSampler->GetVkSampler(),
-                               m_gBufferNormalView->GetVkImageView(), m_gBufferNormal->GetLayout());
-  EditorLayer::UpdateTextureId(m_gBufferAlbedoImTextureId, m_gBufferAlbedoSampler->GetVkSampler(),
-                               m_gBufferAlbedoView->GetVkImageView(), m_gBufferAlbedo->GetLayout());
-  EditorLayer::UpdateTextureId(m_gBufferMaterialImTextureId, m_gBufferMaterialSampler->GetVkSampler(),
-                               m_gBufferMaterialView->GetVkImageView(), m_gBufferMaterial->GetLayout());
+  EditorLayer::UpdateTextureId(g_buffer_normal_im_texture_id_, g_buffer_normal_sampler_->GetVkSampler(),
+                               g_buffer_normal_view_->GetVkImageView(), g_buffer_normal_->GetLayout());
+  EditorLayer::UpdateTextureId(g_buffer_albedo_im_texture_id_, g_buffer_albedo_sampler_->GetVkSampler(),
+                               g_buffer_albedo_view_->GetVkImageView(), g_buffer_albedo_->GetLayout());
+  EditorLayer::UpdateTextureId(g_buffer_material_im_texture_id_, g_buffer_material_sampler_->GetVkSampler(),
+                               g_buffer_material_view_->GetVkImageView(), g_buffer_material_->GetLayout());
 
   {
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = m_renderTexture->GetDepthImageView()->GetVkImageView();
-    imageInfo.sampler = m_renderTexture->m_depthSampler->GetVkSampler();
-    m_gBufferDescriptorSet->UpdateImageDescriptorBinding(18, imageInfo);
-    imageInfo.imageView = m_gBufferNormalView->GetVkImageView();
-    imageInfo.sampler = m_gBufferNormalSampler->GetVkSampler();
-    m_gBufferDescriptorSet->UpdateImageDescriptorBinding(19, imageInfo);
-    imageInfo.imageView = m_gBufferAlbedoView->GetVkImageView();
-    imageInfo.sampler = m_gBufferAlbedoSampler->GetVkSampler();
-    m_gBufferDescriptorSet->UpdateImageDescriptorBinding(20, imageInfo);
-    imageInfo.imageView = m_gBufferMaterialView->GetVkImageView();
-    imageInfo.sampler = m_gBufferMaterialSampler->GetVkSampler();
-    m_gBufferDescriptorSet->UpdateImageDescriptorBinding(21, imageInfo);
+    VkDescriptorImageInfo image_info{};
+    image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_info.imageView = render_texture_->GetDepthImageView()->GetVkImageView();
+    image_info.sampler = render_texture_->depth_sampler_->GetVkSampler();
+    g_buffer_descriptor_set_->UpdateImageDescriptorBinding(18, image_info);
+    image_info.imageView = g_buffer_normal_view_->GetVkImageView();
+    image_info.sampler = g_buffer_normal_sampler_->GetVkSampler();
+    g_buffer_descriptor_set_->UpdateImageDescriptorBinding(19, image_info);
+    image_info.imageView = g_buffer_albedo_view_->GetVkImageView();
+    image_info.sampler = g_buffer_albedo_sampler_->GetVkSampler();
+    g_buffer_descriptor_set_->UpdateImageDescriptorBinding(20, image_info);
+    image_info.imageView = g_buffer_material_view_->GetVkImageView();
+    image_info.sampler = g_buffer_material_sampler_->GetVkSampler();
+    g_buffer_descriptor_set_->UpdateImageDescriptorBinding(21, image_info);
   }
 }
 
-void Camera::TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const {
-  m_gBufferNormal->TransitImageLayout(commandBuffer, targetLayout);
-  m_gBufferAlbedo->TransitImageLayout(commandBuffer, targetLayout);
-  m_gBufferMaterial->TransitImageLayout(commandBuffer, targetLayout);
+void Camera::TransitGBufferImageLayout(VkCommandBuffer command_buffer, VkImageLayout target_layout) const {
+  g_buffer_normal_->TransitImageLayout(command_buffer, target_layout);
+  g_buffer_albedo_->TransitImageLayout(command_buffer, target_layout);
+  g_buffer_material_->TransitImageLayout(command_buffer, target_layout);
 }
 
-void Camera::UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform) {
-  const auto rotation = globalTransform.GetRotation();
-  const auto position = globalTransform.GetPosition();
+void Camera::UpdateCameraInfoBlock(CameraInfoBlock& camera_info_block, const GlobalTransform& global_transform) {
+  const auto rotation = global_transform.GetRotation();
+  const auto position = global_transform.GetPosition();
   const glm::vec3 front = rotation * glm::vec3(0, 0, -1);
   const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
   const auto ratio = GetSizeRatio();
-  cameraInfoBlock.m_projection = glm::perspective(glm::radians(m_fov * 0.5f), ratio, m_nearDistance, m_farDistance);
-  cameraInfoBlock.m_view = glm::lookAt(position, position + front, up);
-  cameraInfoBlock.m_projectionView = cameraInfoBlock.m_projection * cameraInfoBlock.m_view;
-  cameraInfoBlock.m_inverseProjection = glm::inverse(cameraInfoBlock.m_projection);
-  cameraInfoBlock.m_inverseView = glm::inverse(cameraInfoBlock.m_view);
-  cameraInfoBlock.m_inverseProjectionView =
-      glm::inverse(cameraInfoBlock.m_projection) * glm::inverse(cameraInfoBlock.m_view);
-  cameraInfoBlock.m_reservedParameters1 = glm::vec4(m_nearDistance, m_farDistance, glm::tan(glm::radians(m_fov * 0.5f)),
-                                                    glm::tan(glm::radians(m_fov * 0.25f)));
-  cameraInfoBlock.m_clearColor = glm::vec4(m_clearColor, 1.0f);
-  cameraInfoBlock.m_reservedParameters2 = glm::vec4(m_size.x, m_size.y, static_cast<float>(m_size.x) / m_size.y, 0.0f);
-  if (m_useClearColor) {
-    cameraInfoBlock.m_clearColor.w = 1.0f;
+  camera_info_block.projection = glm::perspective(glm::radians(fov * 0.5f), ratio, near_distance, far_distance);
+  camera_info_block.view = glm::lookAt(position, position + front, up);
+  camera_info_block.projection_view = camera_info_block.projection * camera_info_block.view;
+  camera_info_block.inverse_projection = glm::inverse(camera_info_block.projection);
+  camera_info_block.inverse_view = glm::inverse(camera_info_block.view);
+  camera_info_block.inverse_projection_view =
+      glm::inverse(camera_info_block.projection) * glm::inverse(camera_info_block.view);
+  camera_info_block.reserved_parameters1 = glm::vec4(near_distance, far_distance, glm::tan(glm::radians(fov * 0.5f)),
+                                                    glm::tan(glm::radians(fov * 0.25f)));
+  camera_info_block.clear_color = glm::vec4(clear_color, 1.0f);
+  camera_info_block.reserved_parameters2 = glm::vec4(size_.x, size_.y, static_cast<float>(size_.x) / size_.y, 0.0f);
+  if (use_clear_color) {
+    camera_info_block.clear_color.w = 1.0f;
   } else {
-    cameraInfoBlock.m_clearColor.w = 0.0f;
+    camera_info_block.clear_color.w = 0.0f;
   }
 
-  if (const auto cameraSkybox = m_skybox.Get<Cubemap>()) {
-    cameraInfoBlock.m_skyboxTextureIndex = cameraSkybox->GetTextureStorageIndex();
+  if (const auto camera_skybox = skybox.Get<Cubemap>()) {
+    camera_info_block.skybox_texture_index = camera_skybox->GetTextureStorageIndex();
   } else {
-    auto defaultCubemap = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
-    cameraInfoBlock.m_skyboxTextureIndex = defaultCubemap->GetTextureStorageIndex();
+    const auto default_cubemap = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
+    camera_info_block.skybox_texture_index = default_cubemap->GetTextureStorageIndex();
   }
 
-  const auto cameraPosition = globalTransform.GetPosition();
+  const auto camera_position = global_transform.GetPosition();
   const auto scene = Application::GetActiveScene();
-  auto lightProbe = scene->environment.GetLightProbe(cameraPosition);
-  auto reflectionProbe = scene->environment.GetReflectionProbe(cameraPosition);
-  if (!lightProbe) {
-    lightProbe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->light_probe.Get<LightProbe>();
+  auto light_probe = scene->environment.GetLightProbe(camera_position);
+  auto reflection_probe = scene->environment.GetReflectionProbe(camera_position);
+  if (!light_probe) {
+    light_probe = Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->light_probe.Get<LightProbe>();
   }
-  cameraInfoBlock.m_environmentalIrradianceTextureIndex = lightProbe->cubemap_->GetTextureStorageIndex();
-  if (!reflectionProbe) {
-    reflectionProbe =
+  camera_info_block.environmental_irradiance_texture_index = light_probe->cubemap_->GetTextureStorageIndex();
+  if (!reflection_probe) {
+    reflection_probe =
         Resources::GetResource<EnvironmentalMap>("DEFAULT_ENVIRONMENTAL_MAP")->reflection_probe.Get<ReflectionProbe>();
   }
-  cameraInfoBlock.m_environmentalPrefilteredIndex = reflectionProbe->m_cubemap->GetTextureStorageIndex();
+  camera_info_block.environmental_prefiltered_index = reflection_probe->cubemap_->GetTextureStorageIndex();
 }
 
-void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos,
-                                               const VkAttachmentLoadOp loadOp,
-                                               const VkAttachmentStoreOp storeOp) const {
+void Camera::AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachment_infos,
+                                               const VkAttachmentLoadOp load_op,
+                                               const VkAttachmentStoreOp store_op) const {
   VkRenderingAttachmentInfo attachment{};
   attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
   attachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-  attachment.loadOp = loadOp;
-  attachment.storeOp = storeOp;
+  attachment.loadOp = load_op;
+  attachment.storeOp = store_op;
 
   attachment.clearValue = {0, 0, 0, 0};
-  attachment.imageView = m_gBufferNormalView->GetVkImageView();
-  attachmentInfos.push_back(attachment);
+  attachment.imageView = g_buffer_normal_view_->GetVkImageView();
+  attachment_infos.push_back(attachment);
 
   attachment.clearValue = {0, 0, 0, 0};
-  attachment.imageView = m_gBufferAlbedoView->GetVkImageView();
-  attachmentInfos.push_back(attachment);
+  attachment.imageView = g_buffer_albedo_view_->GetVkImageView();
+  attachment_infos.push_back(attachment);
 
   attachment.clearValue = {0, 0, 0, 0};
-  attachment.imageView = m_gBufferMaterialView->GetVkImageView();
-  attachmentInfos.push_back(attachment);
+  attachment.imageView = g_buffer_material_view_->GetVkImageView();
+  attachment_infos.push_back(attachment);
 }
 
 float Camera::GetSizeRatio() const {
-  if (m_size.x == 0 || m_size.y == 0)
+  if (size_.x == 0 || size_.y == 0)
     return 0;
-  return static_cast<float>(m_size.x) / static_cast<float>(m_size.y);
+  return static_cast<float>(size_.x) / static_cast<float>(size_.y);
 }
 
 const std::shared_ptr<RenderTexture>& Camera::GetRenderTexture() const {
-  return m_renderTexture;
+  return render_texture_;
 }
 
 glm::uvec2 Camera::GetSize() const {
-  return m_size;
+  return size_;
 }
 
 void Camera::Resize(const glm::uvec2& size) {
@@ -293,63 +293,63 @@ void Camera::Resize(const glm::uvec2& size) {
     return;
   if (size.x > 16384 || size.y >= 16384)
     return;
-  if (m_size == size)
+  if (size_ == size)
     return;
-  m_size = size;
-  m_renderTexture->Resize({m_size.x, m_size.y, 1});
+  size_ = size;
+  render_texture_->Resize({size_.x, size_.y, 1});
   UpdateGBuffer();
 }
 
 void Camera::OnCreate() {
-  m_size = glm::uvec2(1, 1);
-  RenderTextureCreateInfo renderTextureCreateInfo{};
-  renderTextureCreateInfo.m_extent.width = m_size.x;
-  renderTextureCreateInfo.m_extent.height = m_size.y;
-  renderTextureCreateInfo.m_extent.depth = 1;
-  m_renderTexture = std::make_unique<RenderTexture>(renderTextureCreateInfo);
+  size_ = glm::uvec2(1, 1);
+  RenderTextureCreateInfo render_texture_create_info{};
+  render_texture_create_info.extent.width = size_.x;
+  render_texture_create_info.extent.height = size_.y;
+  render_texture_create_info.extent.depth = 1;
+  render_texture_ = std::make_unique<RenderTexture>(render_texture_create_info);
 
-  m_gBufferDescriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
+  g_buffer_descriptor_set_ = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("CAMERA_GBUFFER_LAYOUT"));
   UpdateGBuffer();
 }
 
 bool Camera::Rendered() const {
-  return m_rendered;
+  return rendered_;
 }
 void Camera::SetRequireRendering(const bool value) {
-  m_requireRendering = m_requireRendering || value;
+  require_rendering_ = require_rendering_ || value;
 }
 
 void Camera::CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view) {
-  glm::mat4 comboMatrix = projection * glm::transpose(view);
-  planes[0].a = comboMatrix[3][0] + comboMatrix[0][0];
-  planes[0].b = comboMatrix[3][1] + comboMatrix[0][1];
-  planes[0].c = comboMatrix[3][2] + comboMatrix[0][2];
-  planes[0].d = comboMatrix[3][3] + comboMatrix[0][3];
+  glm::mat4 combo_matrix = projection * glm::transpose(view);
+  planes[0].a = combo_matrix[3][0] + combo_matrix[0][0];
+  planes[0].b = combo_matrix[3][1] + combo_matrix[0][1];
+  planes[0].c = combo_matrix[3][2] + combo_matrix[0][2];
+  planes[0].d = combo_matrix[3][3] + combo_matrix[0][3];
 
-  planes[1].a = comboMatrix[3][0] - comboMatrix[0][0];
-  planes[1].b = comboMatrix[3][1] - comboMatrix[0][1];
-  planes[1].c = comboMatrix[3][2] - comboMatrix[0][2];
-  planes[1].d = comboMatrix[3][3] - comboMatrix[0][3];
+  planes[1].a = combo_matrix[3][0] - combo_matrix[0][0];
+  planes[1].b = combo_matrix[3][1] - combo_matrix[0][1];
+  planes[1].c = combo_matrix[3][2] - combo_matrix[0][2];
+  planes[1].d = combo_matrix[3][3] - combo_matrix[0][3];
 
-  planes[2].a = comboMatrix[3][0] - comboMatrix[1][0];
-  planes[2].b = comboMatrix[3][1] - comboMatrix[1][1];
-  planes[2].c = comboMatrix[3][2] - comboMatrix[1][2];
-  planes[2].d = comboMatrix[3][3] - comboMatrix[1][3];
+  planes[2].a = combo_matrix[3][0] - combo_matrix[1][0];
+  planes[2].b = combo_matrix[3][1] - combo_matrix[1][1];
+  planes[2].c = combo_matrix[3][2] - combo_matrix[1][2];
+  planes[2].d = combo_matrix[3][3] - combo_matrix[1][3];
 
-  planes[3].a = comboMatrix[3][0] + comboMatrix[1][0];
-  planes[3].b = comboMatrix[3][1] + comboMatrix[1][1];
-  planes[3].c = comboMatrix[3][2] + comboMatrix[1][2];
-  planes[3].d = comboMatrix[3][3] + comboMatrix[1][3];
+  planes[3].a = combo_matrix[3][0] + combo_matrix[1][0];
+  planes[3].b = combo_matrix[3][1] + combo_matrix[1][1];
+  planes[3].c = combo_matrix[3][2] + combo_matrix[1][2];
+  planes[3].d = combo_matrix[3][3] + combo_matrix[1][3];
 
-  planes[4].a = comboMatrix[3][0] + comboMatrix[2][0];
-  planes[4].b = comboMatrix[3][1] + comboMatrix[2][1];
-  planes[4].c = comboMatrix[3][2] + comboMatrix[2][2];
-  planes[4].d = comboMatrix[3][3] + comboMatrix[2][3];
+  planes[4].a = combo_matrix[3][0] + combo_matrix[2][0];
+  planes[4].b = combo_matrix[3][1] + combo_matrix[2][1];
+  planes[4].c = combo_matrix[3][2] + combo_matrix[2][2];
+  planes[4].d = combo_matrix[3][3] + combo_matrix[2][3];
 
-  planes[5].a = comboMatrix[3][0] - comboMatrix[2][0];
-  planes[5].b = comboMatrix[3][1] - comboMatrix[2][1];
-  planes[5].c = comboMatrix[3][2] - comboMatrix[2][2];
-  planes[5].d = comboMatrix[3][3] - comboMatrix[2][3];
+  planes[5].a = combo_matrix[3][0] - combo_matrix[2][0];
+  planes[5].b = combo_matrix[3][1] - combo_matrix[2][1];
+  planes[5].c = combo_matrix[3][2] - combo_matrix[2][2];
+  planes[5].d = combo_matrix[3][3] - combo_matrix[2][3];
 
   planes[0].Normalize();
   planes[1].Normalize();
@@ -359,43 +359,43 @@ void Camera::CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projec
   planes[5].Normalize();
 }
 
-void Camera::CalculateFrustumPoints(const std::shared_ptr<Camera>& cameraComponent, float nearPlane, float farPlane,
-                                    glm::vec3 cameraPos, glm::quat cameraRot, glm::vec3* points) {
-  const glm::vec3 front = cameraRot * glm::vec3(0, 0, -1);
-  const glm::vec3 right = cameraRot * glm::vec3(1, 0, 0);
-  const glm::vec3 up = cameraRot * glm::vec3(0, 1, 0);
-  const glm::vec3 nearCenter = front * nearPlane;
-  const glm::vec3 farCenter = front * farPlane;
+void Camera::CalculateFrustumPoints(const std::shared_ptr<Camera>& camera_component, float near_plane, float far_plane,
+                                    glm::vec3 camera_pos, glm::quat camera_rot, glm::vec3* points) {
+  const glm::vec3 front = camera_rot * glm::vec3(0, 0, -1);
+  const glm::vec3 right = camera_rot * glm::vec3(1, 0, 0);
+  const glm::vec3 up = camera_rot * glm::vec3(0, 1, 0);
+  const glm::vec3 near_center = front * near_plane;
+  const glm::vec3 far_center = front * far_plane;
 
-  const float e = tanf(glm::radians(cameraComponent->m_fov * 0.5f));
-  const float nearExtY = e * nearPlane;
-  const float nearExtX = nearExtY * cameraComponent->GetSizeRatio();
-  const float farExtY = e * farPlane;
-  const float farExtX = farExtY * cameraComponent->GetSizeRatio();
+  const float e = tanf(glm::radians(camera_component->fov * 0.5f));
+  const float near_ext_y = e * near_plane;
+  const float near_ext_x = near_ext_y * camera_component->GetSizeRatio();
+  const float far_ext_y = e * far_plane;
+  const float far_ext_x = far_ext_y * camera_component->GetSizeRatio();
 
-  points[0] = cameraPos + nearCenter - right * nearExtX - up * nearExtY;
-  points[1] = cameraPos + nearCenter - right * nearExtX + up * nearExtY;
-  points[2] = cameraPos + nearCenter + right * nearExtX + up * nearExtY;
-  points[3] = cameraPos + nearCenter + right * nearExtX - up * nearExtY;
-  points[4] = cameraPos + farCenter - right * farExtX - up * farExtY;
-  points[5] = cameraPos + farCenter - right * farExtX + up * farExtY;
-  points[6] = cameraPos + farCenter + right * farExtX + up * farExtY;
-  points[7] = cameraPos + farCenter + right * farExtX - up * farExtY;
+  points[0] = camera_pos + near_center - right * near_ext_x - up * near_ext_y;
+  points[1] = camera_pos + near_center - right * near_ext_x + up * near_ext_y;
+  points[2] = camera_pos + near_center + right * near_ext_x + up * near_ext_y;
+  points[3] = camera_pos + near_center + right * near_ext_x - up * near_ext_y;
+  points[4] = camera_pos + far_center - right * far_ext_x - up * far_ext_y;
+  points[5] = camera_pos + far_center - right * far_ext_x + up * far_ext_y;
+  points[6] = camera_pos + far_center + right * far_ext_x + up * far_ext_y;
+  points[7] = camera_pos + far_center + right * far_ext_x - up * far_ext_y;
 }
 
-glm::quat Camera::ProcessMouseMovement(float yawAngle, float pitchAngle, bool constrainPitch) {
+glm::quat Camera::ProcessMouseMovement(float yaw_angle, float pitch_angle, bool constrain_pitch) {
   // Make sure that when pitch is out of bounds, screen doesn't get flipped
-  if (constrainPitch) {
-    if (pitchAngle > 89.0f)
-      pitchAngle = 89.0f;
-    if (pitchAngle < -89.0f)
-      pitchAngle = -89.0f;
+  if (constrain_pitch) {
+    if (pitch_angle > 89.0f)
+      pitch_angle = 89.0f;
+    if (pitch_angle < -89.0f)
+      pitch_angle = -89.0f;
   }
 
   glm::vec3 front;
-  front.x = cos(glm::radians(yawAngle)) * cos(glm::radians(pitchAngle));
-  front.y = sin(glm::radians(pitchAngle));
-  front.z = sin(glm::radians(yawAngle)) * cos(glm::radians(pitchAngle));
+  front.x = cos(glm::radians(yaw_angle)) * cos(glm::radians(pitch_angle));
+  front.y = sin(glm::radians(pitch_angle));
+  front.z = sin(glm::radians(yaw_angle)) * cos(glm::radians(pitch_angle));
   front = glm::normalize(front);
   const glm::vec3 right = glm::normalize(glm::cross(
       front, glm::vec3(0.0f, 1.0f, 0.0f)));  // Normalize the vectors, because their length gets closer to 0 the more
@@ -404,156 +404,156 @@ glm::quat Camera::ProcessMouseMovement(float yawAngle, float pitchAngle, bool co
   return glm::quatLookAt(front, up);
 }
 
-void Camera::ReverseAngle(const glm::quat& rotation, float& pitchAngle, float& yawAngle, const bool& constrainPitch) {
+void Camera::ReverseAngle(const glm::quat& rotation, float& pitch_angle, float& yaw_angle, const bool& constrain_pitch) {
   const auto angle = glm::degrees(glm::eulerAngles(rotation));
-  pitchAngle = angle.x;
+  pitch_angle = angle.x;
   // yawAngle = glm::abs(angle.z) > 90.0f ? 90.0f - angle.y : -90.0f - angle.y;
   glm::vec3 front = rotation * glm::vec3(0, 0, -1);
   front.y = 0;
-  yawAngle = glm::degrees(glm::acos(glm::dot(glm::vec3(0, 0, 1), glm::normalize(front))));
-  if (constrainPitch) {
-    if (pitchAngle > 89.0f)
-      pitchAngle = 89.0f;
-    if (pitchAngle < -89.0f)
-      pitchAngle = -89.0f;
+  yaw_angle = glm::degrees(glm::acos(glm::dot(glm::vec3(0, 0, 1), glm::normalize(front))));
+  if (constrain_pitch) {
+    if (pitch_angle > 89.0f)
+      pitch_angle = 89.0f;
+    if (pitch_angle < -89.0f)
+      pitch_angle = -89.0f;
   }
 }
 glm::mat4 Camera::GetProjection() const {
-  return glm::perspective(glm::radians(m_fov * 0.5f), GetSizeRatio(), m_nearDistance, m_farDistance);
+  return glm::perspective(glm::radians(fov * 0.5f), GetSizeRatio(), near_distance, far_distance);
 }
 
-glm::vec3 Camera::GetMouseWorldPoint(GlobalTransform& ltw, glm::vec2 mousePosition) const {
-  const float halfX = static_cast<float>(m_size.x) / 2.0f;
-  const float halfY = static_cast<float>(m_size.y) / 2.0f;
-  const glm::vec4 start =
-      glm::vec4(-1.0f * (mousePosition.x - halfX) / halfX, -1.0f * (mousePosition.y - halfY) / halfY, 0.0f, 1.0f);
+glm::vec3 Camera::GetMouseWorldPoint(GlobalTransform& ltw, glm::vec2 mouse_position) const {
+  const float half_x = static_cast<float>(size_.x) / 2.0f;
+  const float half_y = static_cast<float>(size_.y) / 2.0f;
+  const auto start =
+      glm::vec4(-1.0f * (mouse_position.x - half_x) / half_x, -1.0f * (mouse_position.y - half_y) / half_y, 0.0f, 1.0f);
   return start / start.w;
 }
 
-Ray Camera::ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mousePosition) const {
+Ray Camera::ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mouse_position) const {
   const auto position = ltw.GetPosition();
   const auto rotation = ltw.GetRotation();
   const glm::vec3 front = rotation * glm::vec3(0, 0, -1);
   const glm::vec3 up = rotation * glm::vec3(0, 1, 0);
-  const auto projection = glm::perspective(glm::radians(m_fov * 0.5f), GetSizeRatio(), m_nearDistance, m_farDistance);
+  const auto projection = glm::perspective(glm::radians(fov * 0.5f), GetSizeRatio(), near_distance, far_distance);
   const auto view = glm::lookAt(position, position + front, up);
   const glm::mat4 inv = glm::inverse(projection * view);
-  const float halfX = static_cast<float>(m_size.x) / 2.0f;
-  const float halfY = static_cast<float>(m_size.y) / 2.0f;
-  const auto realX = (mousePosition.x - halfX) / halfX;
-  const auto realY = (mousePosition.y - halfY) / halfY;
-  if (glm::abs(realX) > 1.0f || glm::abs(realY) > 1.0f)
+  const float half_x = static_cast<float>(size_.x) / 2.0f;
+  const float half_y = static_cast<float>(size_.y) / 2.0f;
+  const auto real_x = (mouse_position.x - half_x) / half_x;
+  const auto real_y = (mouse_position.y - half_y) / half_y;
+  if (glm::abs(real_x) > 1.0f || glm::abs(real_y) > 1.0f)
     return {glm::vec3(FLT_MAX), glm::vec3(FLT_MAX)};
-  glm::vec4 start = glm::vec4(realX, -1 * realY, -1, 1.0);
-  glm::vec4 end = glm::vec4(realX, -1.0f * realY, 1.0f, 1.0f);
+  auto start = glm::vec4(real_x, -1 * real_y, -1, 1.0);
+  auto end = glm::vec4(real_x, -1.0f * real_y, 1.0f, 1.0f);
   start = inv * start;
   end = inv * end;
   start /= start.w;
   end /= end.w;
   const glm::vec3 dir = glm::normalize(glm::vec3(end - start));
-  return {glm::vec3(ltw.value[3]) + m_nearDistance * dir, glm::vec3(ltw.value[3]) + m_farDistance * dir};
+  return {glm::vec3(ltw.value[3]) + near_distance * dir, glm::vec3(ltw.value[3]) + far_distance * dir};
 }
 
 void Camera::Serialize(YAML::Emitter& out) const {
-  out << YAML::Key << "m_resolutionX" << YAML::Value << m_size.x;
-  out << YAML::Key << "m_resolutionY" << YAML::Value << m_size.y;
-  out << YAML::Key << "m_useClearColor" << YAML::Value << m_useClearColor;
-  out << YAML::Key << "m_clearColor" << YAML::Value << m_clearColor;
-  out << YAML::Key << "m_nearDistance" << YAML::Value << m_nearDistance;
-  out << YAML::Key << "m_farDistance" << YAML::Value << m_farDistance;
-  out << YAML::Key << "m_fov" << YAML::Value << m_fov;
+  out << YAML::Key << "m_resolutionX" << YAML::Value << size_.x;
+  out << YAML::Key << "m_resolutionY" << YAML::Value << size_.y;
+  out << YAML::Key << "use_clear_color" << YAML::Value << use_clear_color;
+  out << YAML::Key << "clear_color" << YAML::Value << clear_color;
+  out << YAML::Key << "near_distance" << YAML::Value << near_distance;
+  out << YAML::Key << "far_distance" << YAML::Value << far_distance;
+  out << YAML::Key << "fov" << YAML::Value << fov;
 
-  m_skybox.Save("m_skybox", out);
-  m_postProcessingStack.Save("m_postProcessingStack", out);
+  skybox.Save("skybox", out);
+  post_processing_stack.Save("post_processing_stack", out);
 }
 
 void Camera::Deserialize(const YAML::Node& in) {
-  int resolutionX = in["m_resolutionX"].as<int>();
-  int resolutionY = in["m_resolutionY"].as<int>();
-  m_useClearColor = in["m_useClearColor"].as<bool>();
-  m_clearColor = in["m_clearColor"].as<glm::vec3>();
-  m_nearDistance = in["m_nearDistance"].as<float>();
-  m_farDistance = in["m_farDistance"].as<float>();
-  m_fov = in["m_fov"].as<float>();
-  Resize({resolutionX, resolutionY});
-  m_skybox.Load("m_skybox", in);
-  m_postProcessingStack.Load("m_postProcessingStack", in);
-  m_rendered = false;
-  m_requireRendering = false;
+  int resolution_x = in["m_resolutionX"].as<int>();
+  int resolution_y = in["m_resolutionY"].as<int>();
+  use_clear_color = in["use_clear_color"].as<bool>();
+  clear_color = in["clear_color"].as<glm::vec3>();
+  near_distance = in["near_distance"].as<float>();
+  far_distance = in["far_distance"].as<float>();
+  fov = in["fov"].as<float>();
+  Resize({resolution_x, resolution_y});
+  skybox.Load("skybox", in);
+  post_processing_stack.Load("post_processing_stack", in);
+  rendered_ = false;
+  require_rendering_ = false;
 }
 
 void Camera::OnDestroy() {
-  m_renderTexture.reset();
-  m_skybox.Clear();
+  render_texture_.reset();
+  skybox.Clear();
 }
 
-bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
+bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   bool changed = false;
   if (ImGui::TreeNode("Contents")) {
-    m_requireRendering = true;
-    static float debugSacle = 0.25f;
-    ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
-    debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
-    if (m_rendered) {
-      ImGui::Image(m_renderTexture->GetColorImTextureId(), ImVec2(m_size.x * debugSacle, m_size.y * debugSacle),
+    require_rendering_ = true;
+    static float debug_scale = 0.25f;
+    ImGui::DragFloat("Scale", &debug_scale, 0.01f, 0.1f, 1.0f);
+    debug_scale = glm::clamp(debug_scale, 0.1f, 1.0f);
+    if (rendered_) {
+      ImGui::Image(render_texture_->GetColorImTextureId(), ImVec2(size_.x * debug_scale, size_.y * debug_scale),
                    ImVec2(0, 1), ImVec2(1, 0));
 
       ImGui::SameLine();
-      ImGui::Image(m_gBufferNormalImTextureId, ImVec2(m_size.x * debugSacle, m_size.y * debugSacle), ImVec2(0, 1),
+      ImGui::Image(g_buffer_normal_im_texture_id_, ImVec2(size_.x * debug_scale, size_.y * debug_scale), ImVec2(0, 1),
                    ImVec2(1, 0));
 
-      ImGui::Image(m_gBufferAlbedoImTextureId, ImVec2(m_size.x * debugSacle, m_size.y * debugSacle), ImVec2(0, 1),
+      ImGui::Image(g_buffer_albedo_im_texture_id_, ImVec2(size_.x * debug_scale, size_.y * debug_scale), ImVec2(0, 1),
                    ImVec2(1, 0));
       ImGui::SameLine();
-      ImGui::Image(m_gBufferMaterialImTextureId, ImVec2(m_size.x * debugSacle, m_size.y * debugSacle), ImVec2(0, 1),
+      ImGui::Image(g_buffer_material_im_texture_id_, ImVec2(size_.x * debug_scale, size_.y * debug_scale), ImVec2(0, 1),
                    ImVec2(1, 0));
     }
     ImGui::TreePop();
   }
 
-  ImGui::Checkbox("Use clear color", &m_useClearColor);
+  ImGui::Checkbox("Use clear color", &use_clear_color);
   const auto scene = GetScene();
-  const bool savedState = (this == scene->main_camera.Get<Camera>().get());
-  bool isMainCamera = savedState;
-  ImGui::Checkbox("Main Camera", &isMainCamera);
-  if (savedState != isMainCamera) {
-    if (isMainCamera) {
+  const bool saved_state = (this == scene->main_camera.Get<Camera>().get());
+  bool is_main_camera = saved_state;
+  ImGui::Checkbox("Main Camera", &is_main_camera);
+  if (saved_state != is_main_camera) {
+    if (is_main_camera) {
       scene->main_camera = scene->GetOrSetPrivateComponent<Camera>(GetOwner()).lock();
     } else {
       Application::GetActiveScene()->main_camera.Clear();
     }
   }
-  if (!isMainCamera || !Application::GetLayer<EditorLayer>()->main_camera_allow_auto_resize) {
-    glm::ivec2 resolution = {m_size.x, m_size.y};
+  if (!is_main_camera || !Application::GetLayer<EditorLayer>()->main_camera_allow_auto_resize) {
+    glm::ivec2 resolution = {size_.x, size_.y};
     if (ImGui::DragInt2("Resolution", &resolution.x, 1, 1, 4096)) {
       Resize({resolution.x, resolution.y});
     }
   }
-  if (m_useClearColor) {
-    ImGui::ColorEdit3("Clear Color", (float*)(void*)&m_clearColor);
+  if (use_clear_color) {
+    ImGui::ColorEdit3("Clear Color", (float*)(void*)&clear_color);
   } else {
-    editorLayer->DragAndDropButton<Cubemap>(m_skybox, "Skybox");
+    editor_layer->DragAndDropButton<Cubemap>(skybox, "Skybox");
   }
 
-  editorLayer->DragAndDropButton<PostProcessingStack>(m_postProcessingStack, "PostProcessingStack");
-  const auto pps = m_postProcessingStack.Get<PostProcessingStack>();
+  editor_layer->DragAndDropButton<PostProcessingStack>(post_processing_stack, "PostProcessingStack");
+  const auto pps = post_processing_stack.Get<PostProcessingStack>();
   if (pps && ImGui::TreeNode("Post Processing")) {
-    ImGui::Checkbox("SSAO", &pps->m_SSAO);
-    ImGui::Checkbox("SSR", &pps->m_SSR);
+    ImGui::Checkbox("SSAO", &pps->ssao);
+    ImGui::Checkbox("SSR", &pps->ssr);
 
-    ImGui::Checkbox("Bloom", &pps->m_bloom);
+    ImGui::Checkbox("Bloom", &pps->bloom);
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Intrinsic Settings")) {
-    ImGui::DragFloat("Near", &m_nearDistance, m_nearDistance / 10.0f, 0, m_farDistance);
-    ImGui::DragFloat("Far", &m_farDistance, m_farDistance / 10.0f, m_nearDistance);
-    ImGui::DragFloat("FOV", &m_fov, 1.0f, 1, 359);
+    ImGui::DragFloat("Near", &near_distance, near_distance / 10.0f, 0, far_distance);
+    ImGui::DragFloat("Far", &far_distance, far_distance / 10.0f, near_distance);
+    ImGui::DragFloat("FOV", &fov, 1.0f, 1, 359);
     ImGui::TreePop();
   }
   FileUtils::SaveFile(
-      "Screenshot", "Image", {".png", ".jpg", ".hdr"},
-      [this](const std::filesystem::path& filePath) {
-        m_renderTexture->Save(filePath);
+      "ScreenShot", "Image", {".png", ".jpg", ".hdr"},
+      [this](const std::filesystem::path& file_path) {
+        render_texture_->Save(file_path);
       },
       false);
 
@@ -561,6 +561,6 @@ bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
 }
 
 void Camera::CollectAssetRef(std::vector<AssetRef>& list) {
-  list.push_back(m_skybox);
-  list.push_back(m_postProcessingStack);
+  list.push_back(skybox);
+  list.push_back(post_processing_stack);
 }

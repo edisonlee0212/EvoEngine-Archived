@@ -257,7 +257,7 @@ class Scene final : public IAsset {
   Entity GetEntity(const size_t& index);
   template <typename T>
   std::vector<Entity> GetPrivateComponentOwnersList(const std::shared_ptr<Scene>& scene);
-  void ForEachPrivateComponent(const Entity& entity, const std::function<void(PrivateComponentElement& data)>& func);
+  void ForEachPrivateComponent(const Entity& entity, const std::function<void(PrivateComponentElement& data)>& func) const;
   void GetAllEntities(std::vector<Entity>& target);
   void ForAllEntities(const std::function<void(int i, Entity entity)>& func) const;
 
@@ -277,7 +277,7 @@ class Scene final : public IAsset {
   const std::vector<Entity>& UnsafeGetAllEntities();
   void UnsafeForEachDataComponent(
 
-      const Entity& entity, const std::function<void(const DataComponentType& type, void* data)>& func);
+      const Entity& entity, const std::function<void(const DataComponentType& type, void* data)>& func) const;
   void UnsafeForEachEntityStorage(
 
       const std::function<void(int i, const std::string& name, const DataComponentStorage& storage)>& func);

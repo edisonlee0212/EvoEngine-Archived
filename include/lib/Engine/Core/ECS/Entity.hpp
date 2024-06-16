@@ -25,7 +25,7 @@ struct EntityArchetype final {
   size_t index_ = 0;
 
  public:
-  size_t GetIndex();
+  size_t GetIndex() const;
   [[nodiscard]] bool IsNull() const;
   [[nodiscard]] bool IsValid() const;
   [[nodiscard]] std::string GetName() const;
@@ -161,7 +161,7 @@ struct EntityArchetypeInfo {
   std::vector<DataComponentType> data_component_types;
   template <typename T>
   bool HasType() const;
-  bool HasType(const size_t &type_index);
+  bool HasType(const size_t &type_index) const;
 };
 
 struct EntityQuery final {
@@ -172,7 +172,7 @@ struct EntityQuery final {
   size_t index_ = 0;
 
  public:
-  size_t GetIndex();
+  size_t GetIndex() const;
   bool operator==(const EntityQuery &other) const;
   bool operator!=(const EntityQuery &other) const;
   size_t operator()(const EntityQuery &key) const;
@@ -193,7 +193,7 @@ struct DataComponentStorage {
   size_t entity_alive_count = 0;
   template <typename T>
   bool HasType() const;
-  bool HasType(const size_t &type_id);
+  bool HasType(const size_t &type_id) const;
   DataComponentChunkArray chunk_array;
   DataComponentStorage() = default;
   DataComponentStorage(const EntityArchetypeInfo &entity_archetype_info);

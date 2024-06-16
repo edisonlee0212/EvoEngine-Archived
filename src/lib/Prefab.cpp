@@ -16,363 +16,351 @@ void Prefab::OnCreate() {
 
 #pragma region Assimp Import
 struct AssimpImportNode {
-  aiNode* m_correspondingNode = nullptr;
-  std::string m_name;
-  Transform m_localTransform;
+  aiNode* corresponding_node = nullptr;
+  std::string name;
+  Transform local_transform;
   AssimpImportNode(aiNode* node);
-  std::shared_ptr<AssimpImportNode> m_parent;
-  std::vector<std::shared_ptr<AssimpImportNode>> m_children;
-  std::shared_ptr<Bone> m_bone;
-  bool m_hasMesh;
+  std::shared_ptr<AssimpImportNode> parent_node;
+  std::vector<std::shared_ptr<AssimpImportNode>> child_nodes;
+  std::shared_ptr<Bone> bone;
+  bool has_mesh;
 
-  bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap);
+  bool NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& bone_map);
   void AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const;
   void AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const;
 };
-glm::mat4 mat4_cast(const aiMatrix4x4& m) {
+glm::mat4 Mat4Cast(const aiMatrix4x4& m) {
   return glm::transpose(glm::make_mat4(&m.a1));
 }
-aiMatrix4x4 mat4_cast(const glm::mat4& m) {
-  aiMatrix4x4 retVal;
-  retVal.a1 = m[0][0];
-  retVal.a2 = m[1][0];
-  retVal.a3 = m[2][0];
-  retVal.a4 = m[3][0];
+aiMatrix4x4 Mat4Cast(const glm::mat4& m) {
+  aiMatrix4x4 ret_val;
+  ret_val.a1 = m[0][0];
+  ret_val.a2 = m[1][0];
+  ret_val.a3 = m[2][0];
+  ret_val.a4 = m[3][0];
 
-  retVal.b1 = m[0][1];
-  retVal.b2 = m[1][1];
-  retVal.b3 = m[2][1];
-  retVal.b4 = m[3][1];
+  ret_val.b1 = m[0][1];
+  ret_val.b2 = m[1][1];
+  ret_val.b3 = m[2][1];
+  ret_val.b4 = m[3][1];
 
-  retVal.c1 = m[0][2];
-  retVal.c2 = m[1][2];
-  retVal.c3 = m[2][2];
-  retVal.c4 = m[3][2];
+  ret_val.c1 = m[0][2];
+  ret_val.c2 = m[1][2];
+  ret_val.c3 = m[2][2];
+  ret_val.c4 = m[3][2];
 
-  retVal.d1 = m[0][3];
-  retVal.d2 = m[1][3];
-  retVal.d3 = m[2][3];
-  retVal.d4 = m[3][3];
-  return retVal;
+  ret_val.d1 = m[0][3];
+  ret_val.d2 = m[1][3];
+  ret_val.d3 = m[2][3];
+  ret_val.d4 = m[3][3];
+  return ret_val;
 }
-glm::mat4 mat4_cast(const aiMatrix3x3& m) {
+glm::mat4 Mat4Cast(const aiMatrix3x3& m) {
   return glm::transpose(glm::make_mat3(&m.a1));
 }
 AssimpImportNode::AssimpImportNode(aiNode* node) {
-  m_correspondingNode = node;
+  corresponding_node = node;
   if (node->mParent)
-    m_localTransform.value = mat4_cast(node->mTransformation);
-  m_name = node->mName.C_Str();
+    local_transform.value = Mat4Cast(node->mTransformation);
+  name = node->mName.C_Str();
 }
 void AssimpImportNode::AttachToAnimator(const std::shared_ptr<Animation>& animation, size_t& index) const {
-  animation->root_bone = m_bone;
+  animation->root_bone = bone;
   animation->root_bone->index = index;
-  for (auto& i : m_children) {
+  for (auto& i : child_nodes) {
     index += 1;
-    i->AttachChild(m_bone, index);
+    i->AttachChild(bone, index);
   }
 }
 void AssimpImportNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const {
-  m_bone->index = index;
-  parent->m_children.push_back(m_bone);
-  for (auto& i : m_children) {
+  bone->index = index;
+  parent->m_children.push_back(bone);
+  for (auto& i : child_nodes) {
     index += 1;
-    i->AttachChild(m_bone, index);
+    i->AttachChild(bone, index);
   }
 }
-bool AssimpImportNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& boneMap) {
+bool AssimpImportNode::NecessaryWalker(std::unordered_map<std::string, std::shared_ptr<Bone>>& bone_map) {
   bool necessary = false;
-  for (int i = 0; i < m_children.size(); i++) {
-    if (!m_children[i]->NecessaryWalker(boneMap)) {
-      m_children.erase(m_children.begin() + i);
+  for (int i = 0; i < child_nodes.size(); i++) {
+    if (!child_nodes[i]->NecessaryWalker(bone_map)) {
+      child_nodes.erase(child_nodes.begin() + i);
       i--;
     } else {
       necessary = true;
     }
   }
-  const auto search = boneMap.find(m_name);
-  if (search != boneMap.end()) {
-    m_bone = search->second;
+  if (const auto search = bone_map.find(name); search != bone_map.end()) {
+    bone = search->second;
     necessary = true;
   } else if (necessary) {
-    m_bone = std::make_shared<Bone>();
-    m_bone->name = m_name;
+    bone = std::make_shared<Bone>();
+    bone->name = name;
   }
 
   return necessary;
 }
-void ReadKeyFrame(BoneKeyFrames& boneAnimation, const aiNodeAnim* channel) {
-  const auto numPositions = channel->mNumPositionKeys;
-  boneAnimation.positions.resize(numPositions);
-  for (int positionIndex = 0; positionIndex < numPositions; ++positionIndex) {
-    const aiVector3D aiPosition = channel->mPositionKeys[positionIndex].mValue;
-    const float timeStamp = channel->mPositionKeys[positionIndex].mTime;
+void ReadKeyFrame(BoneKeyFrames& bone_animation, const aiNodeAnim* channel) {
+  const auto num_positions = channel->mNumPositionKeys;
+  bone_animation.positions.resize(num_positions);
+  for (int position_index = 0; position_index < num_positions; ++position_index) {
+    const aiVector3D ai_position = channel->mPositionKeys[position_index].mValue;
+    const float time_stamp = channel->mPositionKeys[position_index].mTime;
     BonePosition data;
-    data.value = glm::vec3(aiPosition.x, aiPosition.y, aiPosition.z);
-    data.time_stamp = timeStamp;
-    boneAnimation.positions.push_back(data);
-    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
+    data.value = glm::vec3(ai_position.x, ai_position.y, ai_position.z);
+    data.time_stamp = time_stamp;
+    bone_animation.positions.push_back(data);
+    bone_animation.max_time_stamp = glm::max(bone_animation.max_time_stamp, time_stamp);
   }
 
-  const auto numRotations = channel->mNumRotationKeys;
-  boneAnimation.rotations.resize(numRotations);
-  for (int rotationIndex = 0; rotationIndex < numRotations; ++rotationIndex) {
-    const aiQuaternion aiOrientation = channel->mRotationKeys[rotationIndex].mValue;
-    const float timeStamp = channel->mRotationKeys[rotationIndex].mTime;
+  const auto num_rotations = channel->mNumRotationKeys;
+  bone_animation.rotations.resize(num_rotations);
+  for (int rotation_index = 0; rotation_index < num_rotations; ++rotation_index) {
+    const aiQuaternion ai_orientation = channel->mRotationKeys[rotation_index].mValue;
+    const float time_stamp = channel->mRotationKeys[rotation_index].mTime;
     BoneRotation data;
-    data.value = glm::quat(aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z);
-    data.time_stamp = timeStamp;
-    boneAnimation.rotations.push_back(data);
-    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
+    data.value = glm::quat(ai_orientation.w, ai_orientation.x, ai_orientation.y, ai_orientation.z);
+    data.time_stamp = time_stamp;
+    bone_animation.rotations.push_back(data);
+    bone_animation.max_time_stamp = glm::max(bone_animation.max_time_stamp, time_stamp);
   }
 
-  const auto numScales = channel->mNumScalingKeys;
-  boneAnimation.scales.resize(numScales);
-  for (int keyIndex = 0; keyIndex < numScales; ++keyIndex) {
-    const aiVector3D scale = channel->mScalingKeys[keyIndex].mValue;
-    const float timeStamp = channel->mScalingKeys[keyIndex].mTime;
+  const auto num_scales = channel->mNumScalingKeys;
+  bone_animation.scales.resize(num_scales);
+  for (int key_index = 0; key_index < num_scales; ++key_index) {
+    const aiVector3D scale = channel->mScalingKeys[key_index].mValue;
+    const float time_stamp = channel->mScalingKeys[key_index].mTime;
     BoneScale data;
     data.m_value = glm::vec3(scale.x, scale.y, scale.z);
-    data.time_stamp = timeStamp;
-    boneAnimation.scales.push_back(data);
-    boneAnimation.max_time_stamp = glm::max(boneAnimation.max_time_stamp, timeStamp);
+    data.time_stamp = time_stamp;
+    bone_animation.scales.push_back(data);
+    bone_animation.max_time_stamp = glm::max(bone_animation.max_time_stamp, time_stamp);
   }
 }
-void ReadAnimations(const aiScene* importerScene, const std::shared_ptr<Animation>& animator,
-                    std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap) {
-  for (int i = 0; i < importerScene->mNumAnimations; i++) {
-    aiAnimation* importerAnimation = importerScene->mAnimations[i];
-    const std::string animationName = importerAnimation->mName.C_Str();
-    float maxAnimationTimeStamp = 0.0f;
-    for (int j = 0; j < importerAnimation->mNumChannels; j++) {
-      const aiNodeAnim* importerNodeAnimation = importerAnimation->mChannels[j];
-      const std::string nodeName = importerNodeAnimation->mNodeName.C_Str();
-      const auto search = bonesMap.find(nodeName);
-      if (search != bonesMap.end()) {
-        auto& bone = search->second;
-        bone->animations[animationName] = BoneKeyFrames();
-        ReadKeyFrame(bone->animations[animationName], importerNodeAnimation);
-        maxAnimationTimeStamp = glm::max(maxAnimationTimeStamp, bone->animations[animationName].max_time_stamp);
+void ReadAnimations(const aiScene* importer_scene, const std::shared_ptr<Animation>& animator,
+                    std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map) {
+  for (int i = 0; i < importer_scene->mNumAnimations; i++) {
+    const aiAnimation* importer_animation = importer_scene->mAnimations[i];
+    const std::string animation_name = importer_animation->mName.C_Str();
+    float max_animation_time_stamp = 0.0f;
+    for (int j = 0; j < importer_animation->mNumChannels; j++) {
+      const aiNodeAnim* importer_node_animation = importer_animation->mChannels[j];
+      const std::string node_name = importer_node_animation->mNodeName.C_Str();
+      if (const auto search = bones_map.find(node_name); search != bones_map.end()) {
+        const auto& bone = search->second;
+        bone->animations[animation_name] = BoneKeyFrames();
+        ReadKeyFrame(bone->animations[animation_name], importer_node_animation);
+        max_animation_time_stamp = glm::max(max_animation_time_stamp, bone->animations[animation_name].max_time_stamp);
       }
     }
-    animator->animation_length[animationName] = maxAnimationTimeStamp;
+    animator->animation_length[animation_name] = max_animation_time_stamp;
   }
 }
 std::shared_ptr<Texture2D> CollectTexture(const std::string& directory, const std::string& path,
-                                          std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures) {
-  const auto fullPathStr = directory + "\\" + path;
-  std::string fullPath = std::filesystem::absolute(std::filesystem::path(fullPathStr)).string();
-  if (!std::filesystem::exists(fullPath)) {
-    fullPath = std::filesystem::absolute(path).string();
+                                          std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures) {
+  const auto full_path_str = directory + "\\" + path;
+  std::string full_path = std::filesystem::absolute(std::filesystem::path(full_path_str)).string();
+  if (!std::filesystem::exists(full_path)) {
+    full_path = std::filesystem::absolute(path).string();
   }
-  if (!std::filesystem::exists(fullPath)) {
-    fullPath = std::filesystem::absolute(directory + "\\" + std::filesystem::path(path).filename().string()).string();
+  if (!std::filesystem::exists(full_path)) {
+    full_path = std::filesystem::absolute(directory + "\\" + std::filesystem::path(path).filename().string()).string();
   }
 
-  if (!std::filesystem::exists(fullPath)) {
-    auto baseDir = std::filesystem::absolute(directory);
-    fullPath =
-        std::filesystem::absolute(baseDir.parent_path() / std::filesystem::path(path).filename().string()).string();
+  if (!std::filesystem::exists(full_path)) {
+    const auto base_dir = std::filesystem::absolute(directory);
+    full_path =
+        std::filesystem::absolute(base_dir.parent_path() / std::filesystem::path(path).filename().string()).string();
   }
-  if (!std::filesystem::exists(fullPath)) {
-    auto baseDir = std::filesystem::absolute(directory);
-    fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "textures" /
+  if (!std::filesystem::exists(full_path)) {
+    const auto base_dir = std::filesystem::absolute(directory);
+    full_path = std::filesystem::absolute(base_dir.parent_path().parent_path() / "textures" /
                                          std::filesystem::path(path).filename().string())
                    .string();
   }
-  if (!std::filesystem::exists(fullPath)) {
-    auto baseDir = std::filesystem::absolute(directory);
-    fullPath = std::filesystem::absolute(baseDir.parent_path().parent_path() / "texture" /
+  if (!std::filesystem::exists(full_path)) {
+    const auto base_dir = std::filesystem::absolute(directory);
+    full_path = std::filesystem::absolute(base_dir.parent_path().parent_path() / "texture" /
                                          std::filesystem::path(path).filename().string())
                    .string();
   }
-  if (!std::filesystem::exists(fullPath)) {
+  if (!std::filesystem::exists(full_path)) {
     return Resources::GetResource<Texture2D>("TEXTURE_MISSING");
   }
-  if (const auto search = loadedTextures.find(fullPath); search != loadedTextures.end()) {
+  if (const auto search = loaded_textures.find(full_path); search != loaded_textures.end()) {
     return search->second;
   }
-  std::shared_ptr<Texture2D> texture2D;
-  if (ProjectManager::IsInProjectFolder(fullPath)) {
-    texture2D = std::dynamic_pointer_cast<Texture2D>(
-        ProjectManager::GetOrCreateAsset(ProjectManager::GetPathRelativeToProject(fullPath)));
+  std::shared_ptr<Texture2D> texture_2d;
+  if (ProjectManager::IsInProjectFolder(full_path)) {
+    texture_2d = std::dynamic_pointer_cast<Texture2D>(
+        ProjectManager::GetOrCreateAsset(ProjectManager::GetPathRelativeToProject(full_path)));
   } else {
-    texture2D = ProjectManager::CreateTemporaryAsset<Texture2D>();
-    texture2D->Import(fullPath);
+    texture_2d = ProjectManager::CreateTemporaryAsset<Texture2D>();
+    texture_2d->Import(full_path);
   }
-  loadedTextures[fullPath] = texture2D;
-  return texture2D;
+  loaded_textures[full_path] = texture_2d;
+  return texture_2d;
 }
-std::shared_ptr<Material> ReadMaterial(
-    const std::string& directory, std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loadedTextures,
-    std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
-    const aiMaterial* importerMaterial) {
-  auto targetMaterial = ProjectManager::CreateTemporaryAsset<Material>();
-  if (importerMaterial) {
+auto ReadMaterial(
+    const std::string& directory, std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures,
+    std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
+    const aiMaterial* importer_material) -> std::shared_ptr<Material> {
+  auto target_material = ProjectManager::CreateTemporaryAsset<Material>();
+  if (importer_material) {
     // PBR
-    if (importerMaterial->GetTextureCount(aiTextureType_BASE_COLOR) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_BASE_COLOR) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &str);
-      targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_BASE_COLOR, 0, &str);
+      target_material->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &str);
-      targetMaterial->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_DIFFUSE, 0, &str);
+      target_material->SetAlbedoTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_NORMALS) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_NORMALS) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_NORMALS, 0, &str);
-      targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
-    } else if (importerMaterial->GetTextureCount(aiTextureType_HEIGHT) > 0) {
+      importer_material->GetTexture(aiTextureType_NORMALS, 0, &str);
+      target_material->SetNormalTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
+    } else if (importer_material->GetTextureCount(aiTextureType_HEIGHT) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_HEIGHT, 0, &str);
-      targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
-    } else if (importerMaterial->GetTextureCount(aiTextureType_NORMAL_CAMERA) > 0) {
+      importer_material->GetTexture(aiTextureType_HEIGHT, 0, &str);
+      target_material->SetNormalTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
+    } else if (importer_material->GetTextureCount(aiTextureType_NORMAL_CAMERA) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &str);
-      targetMaterial->SetNormalTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &str);
+      target_material->SetNormalTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
 
-    if (importerMaterial->GetTextureCount(aiTextureType_METALNESS) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_METALNESS) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_METALNESS, 0, &str);
-      targetMaterial->SetMetallicTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_METALNESS, 0, &str);
+      target_material->SetMetallicTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &str);
-      targetMaterial->SetRoughnessTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &str);
+      target_material->SetRoughnessTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &str);
-      targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+      importer_material->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &str);
+      target_material->SetAoTexture(CollectTexture(directory, str.C_Str(), loaded_textures));
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_OPACITY) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_OPACITY) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_OPACITY, 0, &str);
-      const auto opacityTexture = CollectTexture(directory, str.C_Str(), loadedTextures);
-      const auto albedoTexture = targetMaterial->GetAlbedoTexture();
+      importer_material->GetTexture(aiTextureType_OPACITY, 0, &str);
+      const auto opacity_texture = CollectTexture(directory, str.C_Str(), loaded_textures);
+      const auto albedo_texture = target_material->GetAlbedoTexture();
 
-      opacityMaps.emplace_back(albedoTexture, opacityTexture);
+      opacity_maps.emplace_back(albedo_texture, opacity_texture);
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_TRANSMISSION) > 0) {
+    if (importer_material->GetTextureCount(aiTextureType_TRANSMISSION) > 0) {
       aiString str;
-      importerMaterial->GetTexture(aiTextureType_TRANSMISSION, 0, &str);
-      const auto opacityTexture = CollectTexture(directory, str.C_Str(), loadedTextures);
-      const auto albedoTexture = targetMaterial->GetAlbedoTexture();
+      importer_material->GetTexture(aiTextureType_TRANSMISSION, 0, &str);
+      const auto opacity_texture = CollectTexture(directory, str.C_Str(), loaded_textures);
+      const auto albedo_texture = target_material->GetAlbedoTexture();
 
-      opacityMaps.emplace_back(albedoTexture, opacityTexture);
+      opacity_maps.emplace_back(albedo_texture, opacity_texture);
     }
-    /*
-    if (importerMaterial->GetTextureCount(aiTextureType_LIGHTMAP) > 0) {
-      aiString str;
-      importerMaterial->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
-      targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
+    
+    int unknown_texture_size = 0;
+    if (importer_material->GetTextureCount(aiTextureType_EMISSIVE) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0) {
-      aiString str;
-      importerMaterial->GetTexture(aiTextureType_AMBIENT, 0, &str);
-      targetMaterial->SetAOTexture(CollectTexture(directory, str.C_Str(), loadedTextures));
-    }*/
-    int unknownTextureSize = 0;
-    if (importerMaterial->GetTextureCount(aiTextureType_EMISSIVE) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_SHININESS) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_SHININESS) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_DISPLACEMENT) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_DISPLACEMENT) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_LIGHTMAP) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_LIGHTMAP) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_REFLECTION) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_REFLECTION) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_EMISSION_COLOR) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_EMISSION_COLOR) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_SHEEN) > 0) {
+      unknown_texture_size++;
     }
-    if (importerMaterial->GetTextureCount(aiTextureType_SHEEN) > 0) {
-      unknownTextureSize++;
-    }
-    if (importerMaterial->GetTextureCount(aiTextureType_CLEARCOAT) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_CLEARCOAT) > 0) {
+      unknown_texture_size++;
     }
 
-    if (importerMaterial->GetTextureCount(aiTextureType_UNKNOWN) > 0) {
-      unknownTextureSize++;
+    if (importer_material->GetTextureCount(aiTextureType_UNKNOWN) > 0) {
+      unknown_texture_size++;
     }
 
     aiColor3D color;
-    if (importerMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color) == aiReturn_SUCCESS) {
-      targetMaterial->m_materialProperties.m_albedoColor = glm::vec3(color.r, color.g, color.b);
-    } else if (importerMaterial->Get(AI_MATKEY_BASE_COLOR, color) == aiReturn_SUCCESS) {
-      targetMaterial->m_materialProperties.m_albedoColor = glm::vec3(color.r, color.g, color.b);
+    if (importer_material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == aiReturn_SUCCESS) {
+      target_material->material_properties.albedo_color = glm::vec3(color.r, color.g, color.b);
+    } else if (importer_material->Get(AI_MATKEY_BASE_COLOR, color) == aiReturn_SUCCESS) {
+      target_material->material_properties.albedo_color = glm::vec3(color.r, color.g, color.b);
     }
     ai_real factor;
-    if (importerMaterial->Get(AI_MATKEY_METALLIC_FACTOR, factor) == aiReturn_SUCCESS) {
-      targetMaterial->m_materialProperties.m_metallic = factor;
+    if (importer_material->Get(AI_MATKEY_METALLIC_FACTOR, factor) == aiReturn_SUCCESS) {
+      target_material->material_properties.metallic = factor;
     }
-    if (importerMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, factor) == aiReturn_SUCCESS) {
-      targetMaterial->m_materialProperties.m_roughness = factor;
+    if (importer_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, factor) == aiReturn_SUCCESS) {
+      target_material->material_properties.roughness = factor;
     }
-    if (importerMaterial->Get(AI_MATKEY_SPECULAR_FACTOR, factor) == aiReturn_SUCCESS) {
-      targetMaterial->m_materialProperties.m_specular = factor;
+    if (importer_material->Get(AI_MATKEY_SPECULAR_FACTOR, factor) == aiReturn_SUCCESS) {
+      target_material->material_properties.specular = factor;
     }
   }
-  return targetMaterial;
+  return target_material;
 }
-std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh) {
+std::shared_ptr<Mesh> ReadMesh(aiMesh* importer_mesh) {
   VertexAttributes attributes;
   std::vector<Vertex> vertices;
   std::vector<unsigned> indices;
-  if (importerMesh->mNumVertices == 0 || !importerMesh->HasFaces())
+  if (importer_mesh->mNumVertices == 0 || !importer_mesh->HasFaces())
     return nullptr;
-  vertices.resize(importerMesh->mNumVertices);
+  vertices.resize(importer_mesh->mNumVertices);
   // Walk through each of the mesh's vertices
-  for (int i = 0; i < importerMesh->mNumVertices; i++) {
+  for (int i = 0; i < importer_mesh->mNumVertices; i++) {
     Vertex vertex;
     glm::vec3 v3;  // we declare a placeholder vector since assimp uses its own vector class that doesn't directly
     // convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
     // positions
-    v3.x = importerMesh->mVertices[i].x;
-    v3.y = importerMesh->mVertices[i].y;
-    v3.z = importerMesh->mVertices[i].z;
+    v3.x = importer_mesh->mVertices[i].x;
+    v3.y = importer_mesh->mVertices[i].y;
+    v3.z = importer_mesh->mVertices[i].z;
     vertex.position = v3;
-    if (importerMesh->HasNormals()) {
-      v3.x = importerMesh->mNormals[i].x;
-      v3.y = importerMesh->mNormals[i].y;
-      v3.z = importerMesh->mNormals[i].z;
+    if (importer_mesh->HasNormals()) {
+      v3.x = importer_mesh->mNormals[i].x;
+      v3.y = importer_mesh->mNormals[i].y;
+      v3.z = importer_mesh->mNormals[i].z;
       vertex.normal = v3;
       attributes.normal = true;
     } else {
       attributes.normal = false;
     }
-    if (importerMesh->HasTangentsAndBitangents()) {
-      v3.x = importerMesh->mTangents[i].x;
-      v3.y = importerMesh->mTangents[i].y;
-      v3.z = importerMesh->mTangents[i].z;
+    if (importer_mesh->HasTangentsAndBitangents()) {
+      v3.x = importer_mesh->mTangents[i].x;
+      v3.y = importer_mesh->mTangents[i].y;
+      v3.z = importer_mesh->mTangents[i].z;
       vertex.m_tangent = v3;
       attributes.tangent = true;
     } else {
       attributes.tangent = false;
     }
-    if (importerMesh->HasVertexColors(0)) {
-      v3.x = importerMesh->mColors[0][i].r;
-      v3.y = importerMesh->mColors[0][i].g;
-      v3.z = importerMesh->mColors[0][i].b;
+    if (importer_mesh->HasVertexColors(0)) {
+      v3.x = importer_mesh->mColors[0][i].r;
+      v3.y = importer_mesh->mColors[0][i].g;
+      v3.z = importer_mesh->mColors[0][i].b;
       vertex.color = glm::vec4(v3, 1.0f);
       attributes.color = true;
     } else {
       attributes.color = false;
     }
-    if (importerMesh->HasTextureCoords(0)) {
+    if (importer_mesh->HasTextureCoords(0)) {
       glm::vec2 v2;
-      v2.x = importerMesh->mTextureCoords[0][i].x;
-      v2.y = importerMesh->mTextureCoords[0][i].y;
+      v2.x = importer_mesh->mTextureCoords[0][i].x;
+      v2.y = importer_mesh->mTextureCoords[0][i].y;
       vertex.tex_coord = v2;
       attributes.tex_coord = true;
     } else {
@@ -383,101 +371,101 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importerMesh) {
   }
   // now walk through each of the mesh's _Faces (a face is a mesh its triangle) and retrieve the corresponding vertex
   // indices.
-  for (int i = 0; i < importerMesh->mNumFaces; i++) {
+  for (int i = 0; i < importer_mesh->mNumFaces; i++) {
     assert(importerMesh->mFaces[i].mNumIndices == 3);
     // retrieve all indices of the face and store them in the indices vector
     for (int j = 0; j < 3; j++)
-      indices.push_back(importerMesh->mFaces[i].mIndices[j]);
+      indices.push_back(importer_mesh->mFaces[i].mIndices[j]);
   }
   auto mesh = ProjectManager::CreateTemporaryAsset<Mesh>();
   mesh->SetVertices(attributes, vertices, indices);
   return mesh;
 }
-std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap,
-                                             aiMesh* importerMesh) {
-  SkinnedVertexAttributes skinnedVertexAttributes{};
+std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map,
+                                             aiMesh* importer_mesh) {
+  SkinnedVertexAttributes skinned_vertex_attributes{};
   std::vector<SkinnedVertex> vertices;
   std::vector<unsigned> indices;
-  if (importerMesh->mNumVertices == 0 || !importerMesh->HasFaces())
+  if (importer_mesh->mNumVertices == 0 || !importer_mesh->HasFaces())
     return nullptr;
-  vertices.resize(importerMesh->mNumVertices);
+  vertices.resize(importer_mesh->mNumVertices);
   // Walk through each of the mesh's vertices
-  for (int i = 0; i < importerMesh->mNumVertices; i++) {
+  for (int i = 0; i < importer_mesh->mNumVertices; i++) {
     SkinnedVertex vertex;
     glm::vec3 v3;  // we declare a placeholder vector since assimp uses its own vector class that doesn't directly
     // convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
     // positions
-    v3.x = importerMesh->mVertices[i].x;
-    v3.y = importerMesh->mVertices[i].y;
-    v3.z = importerMesh->mVertices[i].z;
+    v3.x = importer_mesh->mVertices[i].x;
+    v3.y = importer_mesh->mVertices[i].y;
+    v3.z = importer_mesh->mVertices[i].z;
     vertex.position = v3;
-    if (importerMesh->HasNormals()) {
-      v3.x = importerMesh->mNormals[i].x;
-      v3.y = importerMesh->mNormals[i].y;
-      v3.z = importerMesh->mNormals[i].z;
+    if (importer_mesh->HasNormals()) {
+      v3.x = importer_mesh->mNormals[i].x;
+      v3.y = importer_mesh->mNormals[i].y;
+      v3.z = importer_mesh->mNormals[i].z;
       vertex.normal = v3;
-      skinnedVertexAttributes.normal = true;
+      skinned_vertex_attributes.normal = true;
     }
-    if (importerMesh->HasTangentsAndBitangents()) {
-      v3.x = importerMesh->mTangents[i].x;
-      v3.y = importerMesh->mTangents[i].y;
-      v3.z = importerMesh->mTangents[i].z;
+    if (importer_mesh->HasTangentsAndBitangents()) {
+      v3.x = importer_mesh->mTangents[i].x;
+      v3.y = importer_mesh->mTangents[i].y;
+      v3.z = importer_mesh->mTangents[i].z;
       vertex.tangent = v3;
-      skinnedVertexAttributes.tangent = true;
+      skinned_vertex_attributes.tangent = true;
     }
-    if (importerMesh->HasVertexColors(0)) {
-      v3.x = importerMesh->mColors[0][i].r;
-      v3.y = importerMesh->mColors[0][i].g;
-      v3.z = importerMesh->mColors[0][i].b;
+    if (importer_mesh->HasVertexColors(0)) {
+      v3.x = importer_mesh->mColors[0][i].r;
+      v3.y = importer_mesh->mColors[0][i].g;
+      v3.z = importer_mesh->mColors[0][i].b;
       vertex.color = glm::vec4(v3, 1.0f);
-      skinnedVertexAttributes.color = true;
+      skinned_vertex_attributes.color = true;
     }
     glm::vec2 v2;
-    if (importerMesh->HasTextureCoords(0)) {
-      v2.x = importerMesh->mTextureCoords[0][i].x;
-      v2.y = importerMesh->mTextureCoords[0][i].y;
+    if (importer_mesh->HasTextureCoords(0)) {
+      v2.x = importer_mesh->mTextureCoords[0][i].x;
+      v2.y = importer_mesh->mTextureCoords[0][i].y;
       vertex.tex_coord = v2;
-      skinnedVertexAttributes.tex_coord = true;
+      skinned_vertex_attributes.tex_coord = true;
     } else {
       vertex.tex_coord = glm::vec2(0.0f, 0.0f);
-      skinnedVertexAttributes.tex_coord = true;
+      skinned_vertex_attributes.tex_coord = true;
     }
     vertices[i] = vertex;
   }
   // now walk through each of the mesh's _Faces (a face is a mesh its triangle) and retrieve the corresponding vertex
   // indices.
-  for (int i = 0; i < importerMesh->mNumFaces; i++) {
+  for (int i = 0; i < importer_mesh->mNumFaces; i++) {
     assert(importerMesh->mFaces[i].mNumIndices == 3);
     // retrieve all indices of the face and store them in the indices vector
     for (int j = 0; j < 3; j++)
-      indices.push_back(importerMesh->mFaces[i].mIndices[j]);
+      indices.push_back(importer_mesh->mFaces[i].mIndices[j]);
   }
-  auto skinnedMesh = ProjectManager::CreateTemporaryAsset<SkinnedMesh>();
+  auto skinned_mesh = ProjectManager::CreateTemporaryAsset<SkinnedMesh>();
 #pragma region Read bones
-  std::vector<std::vector<std::pair<int, float>>> verticesBoneIdWeights;
-  verticesBoneIdWeights.resize(vertices.size());
-  for (unsigned i = 0; i < importerMesh->mNumBones; i++) {
-    aiBone* importerBone = importerMesh->mBones[i];
-    auto name = importerBone->mName.C_Str();
-    if (const auto search = bonesMap.find(name); search == bonesMap.end())  // If we can't find this bone
+  std::vector<std::vector<std::pair<int, float>>> vertices_bone_id_weights;
+  vertices_bone_id_weights.resize(vertices.size());
+  for (unsigned i = 0; i < importer_mesh->mNumBones; i++) {
+    aiBone* importer_bone = importer_mesh->mBones[i];
+    auto name = importer_bone->mName.C_Str();
+    if (const auto search = bones_map.find(name); search == bones_map.end())  // If we can't find this bone
     {
-      std::shared_ptr<Bone> bone = std::make_shared<Bone>();
+      auto bone = std::make_shared<Bone>();
       bone->name = name;
-      bone->offset_matrix.value = mat4_cast(importerBone->mOffsetMatrix);
-      bonesMap[name] = bone;
-      skinnedMesh->bones.push_back(bone);
+      bone->offset_matrix.value = Mat4Cast(importer_bone->mOffsetMatrix);
+      bones_map[name] = bone;
+      skinned_mesh->bones.push_back(bone);
     } else {
-      skinnedMesh->bones.push_back(search->second);
+      skinned_mesh->bones.push_back(search->second);
     }
 
-    for (int j = 0; j < importerBone->mNumWeights; j++) {
-      verticesBoneIdWeights[importerBone->mWeights[j].mVertexId].emplace_back(i, importerBone->mWeights[j].mWeight);
+    for (int j = 0; j < importer_bone->mNumWeights; j++) {
+      vertices_bone_id_weights[importer_bone->mWeights[j].mVertexId].emplace_back(i, importer_bone->mWeights[j].mWeight);
     }
   }
-  for (unsigned i = 0; i < verticesBoneIdWeights.size(); i++) {
+  for (unsigned i = 0; i < vertices_bone_id_weights.size(); i++) {
     auto ids = glm::ivec4(-1);
     auto weights = glm::vec4(0.0f);
-    auto& list = verticesBoneIdWeights[i];
+    auto& list = vertices_bone_id_weights[i];
     for (unsigned j = 0; j < 4; j++) {
       if (!list.empty()) {
         int extract = -1;
@@ -519,89 +507,89 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
     vertices[i].weight2 = weights;
   }
 #pragma endregion
-  skinnedMesh->SetVertices(skinnedVertexAttributes, vertices, indices);
-  return skinnedMesh;
+  skinned_mesh->SetVertices(skinned_vertex_attributes, vertices, indices);
+  return skinned_mesh;
 }
 
-bool ProcessNode(const std::string& directory, Prefab* modelNode,
-                 std::unordered_map<unsigned, std::shared_ptr<Material>>& loadedMaterials,
-                 std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture2DsLoaded,
-                 std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacityMaps,
-                 std::unordered_map<std::string, std::shared_ptr<Bone>>& bonesMap, const aiNode* importerNode,
-                 const std::shared_ptr<AssimpImportNode>& assimpNode, const aiScene* importerScene,
-                 const std::shared_ptr<Animation>& animation) {
-  bool addedMeshRenderer = false;
-  for (unsigned i = 0; i < importerNode->mNumMeshes; i++) {
+auto ProcessNode(const std::string& directory, Prefab* model_node,
+                 std::unordered_map<unsigned, std::shared_ptr<Material>>& loaded_materials,
+                 std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture_2ds_loaded,
+                 std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
+                 std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map, const aiNode* importer_node,
+                 const std::shared_ptr<AssimpImportNode>& assimp_node, const aiScene* importer_scene,
+                 const std::shared_ptr<Animation>& animation) -> bool {
+  bool added_mesh_renderer = false;
+  for (unsigned i = 0; i < importer_node->mNumMeshes; i++) {
     // the modelNode object only contains indices to index the actual objects in the scene.
     // the scene contains all the data, modelNode is just to keep stuff organized (like relations between nodes).
-    aiMesh* importerMesh = importerScene->mMeshes[importerNode->mMeshes[i]];
-    if (!importerMesh)
+    aiMesh* importer_mesh = importer_scene->mMeshes[importer_node->mMeshes[i]];
+    if (!importer_mesh)
       continue;
-    auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
-    childNode->instance_name = std::string(importerMesh->mName.C_Str());
-    const auto search = loadedMaterials.find(importerMesh->mMaterialIndex);
-    bool isSkinnedMesh = importerMesh->mNumBones != 0xffffffff && importerMesh->mBones;
+    auto child_node = ProjectManager::CreateTemporaryAsset<Prefab>();
+    child_node->instance_name = std::string(importer_mesh->mName.C_Str());
+    const auto search = loaded_materials.find(importer_mesh->mMaterialIndex);
+    const bool is_skinned_mesh = importer_mesh->mNumBones != 0xffffffff && importer_mesh->mBones;
     std::shared_ptr<Material> material;
-    if (search == loadedMaterials.end()) {
-      aiMaterial* importerMaterial = nullptr;
-      if (importerMesh->mMaterialIndex != 0xffffffff && importerMesh->mMaterialIndex < importerScene->mNumMaterials)
-        importerMaterial = importerScene->mMaterials[importerMesh->mMaterialIndex];
-      material = ReadMaterial(directory, texture2DsLoaded, opacityMaps, importerMaterial);
-      loadedMaterials[importerMesh->mMaterialIndex] = material;
+    if (search == loaded_materials.end()) {
+      const aiMaterial* importer_material = nullptr;
+      if (importer_mesh->mMaterialIndex != 0xffffffff && importer_mesh->mMaterialIndex < importer_scene->mNumMaterials)
+        importer_material = importer_scene->mMaterials[importer_mesh->mMaterialIndex];
+      material = ReadMaterial(directory, texture_2ds_loaded, opacity_maps, importer_material);
+      loaded_materials[importer_mesh->mMaterialIndex] = material;
     } else {
       material = search->second;
     }
 
-    if (isSkinnedMesh) {
-      auto skinnedMeshRenderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
-      skinnedMeshRenderer->m_material.Set<Material>(material);
-      skinnedMeshRenderer->m_skinnedMesh.Set<SkinnedMesh>(ReadSkinnedMesh(bonesMap, importerMesh));
-      if (!skinnedMeshRenderer->m_skinnedMesh.Get())
+    if (is_skinned_mesh) {
+      auto skinned_mesh_renderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
+      skinned_mesh_renderer->material.Set<Material>(material);
+      skinned_mesh_renderer->skinned_mesh.Set<SkinnedMesh>(ReadSkinnedMesh(bones_map, importer_mesh));
+      if (!skinned_mesh_renderer->skinned_mesh.Get())
         continue;
-      addedMeshRenderer = true;
+      added_mesh_renderer = true;
       PrivateComponentHolder holder;
       holder.enabled = true;
-      holder.private_component = std::static_pointer_cast<IPrivateComponent>(skinnedMeshRenderer);
-      childNode->private_components.push_back(holder);
+      holder.private_component = std::static_pointer_cast<IPrivateComponent>(skinned_mesh_renderer);
+      child_node->private_components.push_back(holder);
     } else {
-      auto meshRenderer = Serialization::ProduceSerializable<MeshRenderer>();
-      meshRenderer->m_material.Set<Material>(material);
-      meshRenderer->m_mesh.Set<Mesh>(ReadMesh(importerMesh));
-      if (!meshRenderer->m_mesh.Get())
+      auto mesh_renderer = Serialization::ProduceSerializable<MeshRenderer>();
+      mesh_renderer->material.Set<Material>(material);
+      mesh_renderer->mesh.Set<Mesh>(ReadMesh(importer_mesh));
+      if (!mesh_renderer->mesh.Get())
         continue;
-      addedMeshRenderer = true;
+      added_mesh_renderer = true;
       PrivateComponentHolder holder;
       holder.enabled = true;
-      holder.private_component = std::static_pointer_cast<IPrivateComponent>(meshRenderer);
-      childNode->private_components.push_back(holder);
+      holder.private_component = std::static_pointer_cast<IPrivateComponent>(mesh_renderer);
+      child_node->private_components.push_back(holder);
     }
     auto transform = std::make_shared<Transform>();
-    transform->value = mat4_cast(importerNode->mTransformation);
-    if (!importerNode->mParent)
+    transform->value = Mat4Cast(importer_node->mTransformation);
+    if (!importer_node->mParent)
       transform->value = Transform().value;
 
     DataComponentHolder holder;
     holder.data_component_type = Typeof<Transform>();
     holder.data_component = transform;
-    childNode->data_components.push_back(holder);
+    child_node->data_components.push_back(holder);
 
-    modelNode->child_prefabs.push_back(std::move(childNode));
+    model_node->child_prefabs.push_back(std::move(child_node));
   }
 
-  for (unsigned i = 0; i < importerNode->mNumChildren; i++) {
-    auto childNode = ProjectManager::CreateTemporaryAsset<Prefab>();
-    childNode->instance_name = std::string(importerNode->mChildren[i]->mName.C_Str());
-    auto childAssimpNode = std::make_shared<AssimpImportNode>(importerNode->mChildren[i]);
-    childAssimpNode->m_parent = assimpNode;
-    const bool childAdd = ProcessNode(directory, childNode.get(), loadedMaterials, texture2DsLoaded, opacityMaps,
-                                      bonesMap, importerNode->mChildren[i], childAssimpNode, importerScene, animation);
-    if (childAdd) {
-      modelNode->child_prefabs.push_back(std::move(childNode));
+  for (unsigned i = 0; i < importer_node->mNumChildren; i++) {
+    auto child_node = ProjectManager::CreateTemporaryAsset<Prefab>();
+    child_node->instance_name = std::string(importer_node->mChildren[i]->mName.C_Str());
+    auto child_assimp_node = std::make_shared<AssimpImportNode>(importer_node->mChildren[i]);
+    child_assimp_node->parent_node = assimp_node;
+    const bool child_add = ProcessNode(directory, child_node.get(), loaded_materials, texture_2ds_loaded, opacity_maps,
+                                      bones_map, importer_node->mChildren[i], child_assimp_node, importer_scene, animation);
+    if (child_add) {
+      model_node->child_prefabs.push_back(std::move(child_node));
     }
-    addedMeshRenderer = addedMeshRenderer | childAdd;
-    assimpNode->m_children.push_back(std::move(childAssimpNode));
+    added_mesh_renderer = added_mesh_renderer | child_add;
+    assimp_node->child_nodes.push_back(std::move(child_assimp_node));
   }
-  return addedMeshRenderer;
+  return added_mesh_renderer;
 }
 #pragma endregion
 
@@ -656,18 +644,18 @@ void Prefab::AttachChildren(const std::shared_ptr<Scene>& scene, const std::shar
 }
 
 void Prefab::AttachAnimator(Prefab* parent, const Handle& animator_entity_handle) {
-  if (const auto skinnedMeshRenderer = parent->GetPrivateComponent<SkinnedMeshRenderer>()) {
-    skinnedMeshRenderer->m_animator.entity_handle_ = animator_entity_handle;
-    skinnedMeshRenderer->m_animator.private_component_type_name_ = "Animator";
+  if (const auto skinned_mesh_renderer = parent->GetPrivateComponent<SkinnedMeshRenderer>()) {
+    skinned_mesh_renderer->animator.entity_handle_ = animator_entity_handle;
+    skinned_mesh_renderer->animator.private_component_type_name_ = "Animator";
   }
   for (auto& i : parent->child_prefabs) {
     AttachAnimator(i.get(), animator_entity_handle);
   }
 }
 void Prefab::ApplyBoneIndices(Prefab* node) {
-  if (const auto skinnedMeshRenderer = node->GetPrivateComponent<SkinnedMeshRenderer>()) {
-    skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->FetchIndices();
-    skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>()->bones.clear();
+  if (const auto skinned_mesh_renderer = node->GetPrivateComponent<SkinnedMeshRenderer>()) {
+    skinned_mesh_renderer->skinned_mesh.Get<SkinnedMesh>()->FetchIndices();
+    skinned_mesh_renderer->skinned_mesh.Get<SkinnedMesh>()->bones.clear();
   }
   for (auto& i : node->child_prefabs) {
     ApplyBoneIndices(i.get());
@@ -718,19 +706,19 @@ void Prefab::FromEntity(const Entity& entity) {
 bool Prefab::LoadInternal(const std::filesystem::path& path) {
   if (path.extension() == ".eveprefab") {
     std::ifstream stream(path.string());
-    std::stringstream stringStream;
-    stringStream << stream.rdbuf();
-    YAML::Node in = YAML::Load(stringStream.str());
+    std::stringstream string_stream;
+    string_stream << stream.rdbuf();
+    YAML::Node in = YAML::Load(string_stream.str());
 #pragma region Assets
-    if (const auto& inLocalAssets = in["LocalAssets"]) {
-      std::vector<std::shared_ptr<IAsset>> localAssets;
-      for (const auto& i : inLocalAssets) {
+    if (const auto& in_local_assets = in["LocalAssets"]) {
+      std::vector<std::shared_ptr<IAsset>> local_assets;
+      for (const auto& i : in_local_assets) {
         Handle handle = i["Handle"].as<uint64_t>();
-        localAssets.push_back(ProjectManager::CreateTemporaryAsset(i["TypeName"].as<std::string>(), handle));
+        local_assets.push_back(ProjectManager::CreateTemporaryAsset(i["TypeName"].as<std::string>(), handle));
       }
       int index = 0;
-      for (const auto& i : inLocalAssets) {
-        localAssets[index++]->Deserialize(i);
+      for (const auto& i : in_local_assets) {
+        local_assets[index++]->Deserialize(i);
       }
     }
 
@@ -757,57 +745,56 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
   // retrieve the directory path of the filepath
   auto temp = path;
   const std::string directory = temp.remove_filename().string();
-  std::unordered_map<std::string, std::shared_ptr<Texture2D>> loadedTextures;
   instance_name = path.filename().string();
-  std::unordered_map<unsigned, std::shared_ptr<Material>> loadedMaterials;
-  std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>> opacityMaps;
-  std::unordered_map<std::string, std::shared_ptr<Bone>> bonesMap;
+  std::unordered_map<unsigned, std::shared_ptr<Material>> loaded_materials;
+  std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>> opacity_maps;
+  std::unordered_map<std::string, std::shared_ptr<Bone>> bones_map;
   std::shared_ptr<Animation> animation;
-  if (!bonesMap.empty() || scene->HasAnimations()) {
+  if (!bones_map.empty() || scene->HasAnimations()) {
     animation = ProjectManager::CreateTemporaryAsset<Animation>();
   }
-  std::shared_ptr<AssimpImportNode> rootAssimpNode = std::make_shared<AssimpImportNode>(scene->mRootNode);
-  if (!ProcessNode(directory, this, loadedMaterials, loadedTextures, opacityMaps, bonesMap, scene->mRootNode,
-                   rootAssimpNode, scene, animation)) {
+  std::shared_ptr<AssimpImportNode> root_assimp_node = std::make_shared<AssimpImportNode>(scene->mRootNode);
+  if (std::unordered_map<std::string, std::shared_ptr<Texture2D>> loaded_textures; !ProcessNode(directory, this, loaded_materials, loaded_textures, opacity_maps, bones_map, scene->mRootNode,
+                                                                                               root_assimp_node, scene, animation)) {
     EVOENGINE_ERROR("Model is empty!");
     return false;
   }
 
-  for (auto& pair : opacityMaps) {
-    std::vector<glm::vec4> colorData;
-    const auto& albedoTexture = pair.first;
-    const auto& opacityTexture = pair.second;
-    if (!albedoTexture || !opacityTexture)
+  for (auto& pair : opacity_maps) {
+    std::vector<glm::vec4> color_data;
+    const auto& albedo_texture = pair.first;
+    const auto& opacity_texture = pair.second;
+    if (!albedo_texture || !opacity_texture)
       continue;
-    albedoTexture->GetRgbaChannelData(colorData);
-    std::vector<glm::vec4> alphaData;
-    const auto resolution = albedoTexture->GetResolution();
-    opacityTexture->GetRgbaChannelData(alphaData, resolution.x, resolution.y);
-    Jobs::RunParallelFor(colorData.size(), [&](unsigned i) {
-      colorData[i].a = alphaData[i].r;
+    albedo_texture->GetRgbaChannelData(color_data);
+    std::vector<glm::vec4> alpha_data;
+    const auto resolution = albedo_texture->GetResolution();
+    opacity_texture->GetRgbaChannelData(alpha_data, resolution.x, resolution.y);
+    Jobs::RunParallelFor(color_data.size(), [&](unsigned i) {
+      color_data[i].a = alpha_data[i].r;
     });
-    std::shared_ptr<Texture2D> replacementTexture = ProjectManager::CreateTemporaryAsset<Texture2D>();
-    replacementTexture->SetRgbaChannelData(colorData, albedoTexture->GetResolution());
-    pair.second = replacementTexture;
+    std::shared_ptr<Texture2D> replacement_texture = ProjectManager::CreateTemporaryAsset<Texture2D>();
+    replacement_texture->SetRgbaChannelData(color_data, albedo_texture->GetResolution());
+    pair.second = replacement_texture;
   }
 
-  for (const auto& material : loadedMaterials) {
-    const auto albedoTexture = material.second->GetAlbedoTexture();
-    if (!albedoTexture)
+  for (const auto& material : loaded_materials) {
+    const auto albedo_texture = material.second->GetAlbedoTexture();
+    if (!albedo_texture)
       continue;
-    for (const auto& pair : opacityMaps) {
-      if (albedoTexture->GetHandle() == pair.first->GetHandle()) {
+    for (const auto& pair : opacity_maps) {
+      if (albedo_texture->GetHandle() == pair.first->GetHandle()) {
         material.second->SetAlbedoTexture(pair.second);
       }
     }
   }
 
-  if (!bonesMap.empty() || scene->HasAnimations()) {
-    rootAssimpNode->NecessaryWalker(bonesMap);
+  if (!bones_map.empty() || scene->HasAnimations()) {
+    root_assimp_node->NecessaryWalker(bones_map);
     size_t index = 0;
-    rootAssimpNode->AttachToAnimator(animation, index);
+    root_assimp_node->AttachToAnimator(animation, index);
     animation->bone_size = index + 1;
-    ReadAnimations(scene, animation, bonesMap);
+    ReadAnimations(scene, animation, bones_map);
     ApplyBoneIndices(this);
 
     auto animator = Serialization::ProduceSerializable<Animator>();
@@ -826,184 +813,184 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 #pragma region Assimp Export
 
 struct AssimpExportNode {
-  int m_meshIndex = -1;
-  aiMatrix4x4 m_transform;
+  int mesh_index = -1;
+  aiMatrix4x4 transform;
 
-  std::vector<AssimpExportNode> m_children;
+  std::vector<AssimpExportNode> children;
 
-  void Collect(const std::shared_ptr<Prefab>& currentPrefab, std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
+  void Collect(const std::shared_ptr<Prefab>& current_prefab, std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
                std::vector<std::shared_ptr<Material>>& materials);
 
-  void Process(aiNode* exporterNode);
+  void Process(aiNode* exporter_node);
 };
 
-void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& currentPrefab,
+void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& current_prefab,
                                std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
                                std::vector<std::shared_ptr<Material>>& materials) {
-  m_meshIndex = -1;
-  for (const auto& dataComponent : currentPrefab->data_components) {
-    if (dataComponent.data_component_type == Typeof<Transform>()) {
-      m_transform = mat4_cast(std::reinterpret_pointer_cast<Transform>(dataComponent.data_component)->value);
+  mesh_index = -1;
+  for (const auto& data_component : current_prefab->data_components) {
+    if (data_component.data_component_type == Typeof<Transform>()) {
+      transform = Mat4Cast(std::reinterpret_pointer_cast<Transform>(data_component.data_component)->value);
     }
   }
-  for (const auto& privateComponent : currentPrefab->private_components) {
-    if (const auto meshRenderer = std::dynamic_pointer_cast<MeshRenderer>(privateComponent.private_component)) {
-      auto mesh = meshRenderer->m_mesh.Get<Mesh>();
-      auto material = meshRenderer->m_material.Get<Material>();
+  for (const auto& private_component : current_prefab->private_components) {
+    if (const auto mesh_renderer = std::dynamic_pointer_cast<MeshRenderer>(private_component.private_component)) {
+      auto mesh = mesh_renderer->mesh.Get<Mesh>();
+      auto material = mesh_renderer->material.Get<Material>();
       if (mesh && material) {
-        int targetMaterialIndex = -1;
-        for (int materialIndex = 0; materialIndex < materials.size(); materialIndex++) {
-          if (materials[materialIndex] == material) {
-            targetMaterialIndex = materialIndex;
+        int target_material_index = -1;
+        for (int material_index = 0; material_index < materials.size(); material_index++) {
+          if (materials[material_index] == material) {
+            target_material_index = material_index;
           }
         }
-        if (targetMaterialIndex == -1) {
-          targetMaterialIndex = materials.size();
+        if (target_material_index == -1) {
+          target_material_index = materials.size();
           materials.emplace_back(material);
         }
 
-        if (m_meshIndex == -1) {
-          m_meshIndex = meshes.size();
-          meshes.emplace_back(std::make_pair(mesh, targetMaterialIndex));
+        if (mesh_index == -1) {
+          mesh_index = meshes.size();
+          meshes.emplace_back(mesh, target_material_index);
         }
       }
     }
   }
 
-  for (const auto& childPrefab : currentPrefab->child_prefabs) {
-    m_children.emplace_back();
-    auto& newNode = m_children.back();
-    newNode.Collect(childPrefab, meshes, materials);
+  for (const auto& child_prefab : current_prefab->child_prefabs) {
+    children.emplace_back();
+    auto& new_node = children.back();
+    new_node.Collect(child_prefab, meshes, materials);
   }
 }
 
-void AssimpExportNode::Process(aiNode* exporterNode) {
-  if (m_meshIndex != -1) {
-    exporterNode->mNumMeshes = 1;
-    exporterNode->mMeshes = new unsigned int[1];
-    exporterNode->mMeshes[0] = m_meshIndex;
+void AssimpExportNode::Process(aiNode* exporter_node) {
+  if (mesh_index != -1) {
+    exporter_node->mNumMeshes = 1;
+    exporter_node->mMeshes = new unsigned int[1];
+    exporter_node->mMeshes[0] = mesh_index;
   }
-  exporterNode->mNumChildren = m_children.size();
-  if (m_children.empty()) {
-    exporterNode->mChildren = nullptr;
+  exporter_node->mNumChildren = children.size();
+  if (children.empty()) {
+    exporter_node->mChildren = nullptr;
   } else {
-    exporterNode->mChildren = new aiNode*[m_children.size()];
+    exporter_node->mChildren = new aiNode*[children.size()];
   }
-  for (int i = 0; i < m_children.size(); i++) {
-    exporterNode->mChildren[i] = new aiNode();
-    exporterNode->mChildren[i]->mParent = exporterNode;
-    m_children.at(i).Process(exporterNode->mChildren[i]);
+  for (int i = 0; i < children.size(); i++) {
+    exporter_node->mChildren[i] = new aiNode();
+    exporter_node->mChildren[i]->mParent = exporter_node;
+    children.at(i).Process(exporter_node->mChildren[i]);
   }
 }
 
 bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
   Assimp::Exporter exporter;
-  aiScene exporterScene{};
-  exporterScene.mMetaData = new aiMetadata();
+  aiScene exporter_scene{};
+  exporter_scene.mMetaData = new aiMetadata();
   std::vector<std::pair<std::shared_ptr<Mesh>, int>> meshes;
   std::vector<std::shared_ptr<Material>> materials;
 
-  AssimpExportNode rootNode;
-  rootNode.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, materials);
+  AssimpExportNode root_node;
+  root_node.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, materials);
 
-  exporterScene.mRootNode = new aiNode();
-  exporterScene.mNumMeshes = meshes.size();
+  exporter_scene.mRootNode = new aiNode();
+  exporter_scene.mNumMeshes = meshes.size();
   if (meshes.empty()) {
-    exporterScene.mMeshes = nullptr;
+    exporter_scene.mMeshes = nullptr;
   } else {
-    exporterScene.mMeshes = new aiMesh*[meshes.size()];
+    exporter_scene.mMeshes = new aiMesh*[meshes.size()];
   }
-  for (int meshIndex = 0; meshIndex < meshes.size(); meshIndex++) {
-    aiMesh* exporterMesh = exporterScene.mMeshes[meshIndex] = new aiMesh();
-    auto& mesh = meshes.at(meshIndex);
+  for (int mesh_index = 0; mesh_index < meshes.size(); mesh_index++) {
+    aiMesh* exporter_mesh = exporter_scene.mMeshes[mesh_index] = new aiMesh();
+    auto& mesh = meshes.at(mesh_index);
     const auto& vertices = mesh.first->UnsafeGetVertices();
     const auto& triangles = mesh.first->UnsafeGetTriangles();
-    exporterMesh->mNumVertices = vertices.size();
-    exporterMesh->mVertices = new aiVector3D[vertices.size()];
-    exporterMesh->mNormals = new aiVector3D[vertices.size()];
-    exporterMesh->mNumUVComponents[0] = 2;
-    exporterMesh->mTextureCoords[0] = new aiVector3D[vertices.size()];
-    exporterMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
-    for (int vertexIndex = 0; vertexIndex < vertices.size(); vertexIndex++) {
-      exporterMesh->mVertices[vertexIndex].x = vertices.at(vertexIndex).position.x;
-      exporterMesh->mVertices[vertexIndex].y = vertices.at(vertexIndex).position.y;
-      exporterMesh->mVertices[vertexIndex].z = vertices.at(vertexIndex).position.z;
+    exporter_mesh->mNumVertices = vertices.size();
+    exporter_mesh->mVertices = new aiVector3D[vertices.size()];
+    exporter_mesh->mNormals = new aiVector3D[vertices.size()];
+    exporter_mesh->mNumUVComponents[0] = 2;
+    exporter_mesh->mTextureCoords[0] = new aiVector3D[vertices.size()];
+    exporter_mesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
+    for (int vertex_index = 0; vertex_index < vertices.size(); vertex_index++) {
+      exporter_mesh->mVertices[vertex_index].x = vertices.at(vertex_index).position.x;
+      exporter_mesh->mVertices[vertex_index].y = vertices.at(vertex_index).position.y;
+      exporter_mesh->mVertices[vertex_index].z = vertices.at(vertex_index).position.z;
 
-      exporterMesh->mNormals[vertexIndex].x = vertices.at(vertexIndex).normal.x;
-      exporterMesh->mNormals[vertexIndex].y = vertices.at(vertexIndex).normal.y;
-      exporterMesh->mNormals[vertexIndex].z = vertices.at(vertexIndex).normal.z;
+      exporter_mesh->mNormals[vertex_index].x = vertices.at(vertex_index).normal.x;
+      exporter_mesh->mNormals[vertex_index].y = vertices.at(vertex_index).normal.y;
+      exporter_mesh->mNormals[vertex_index].z = vertices.at(vertex_index).normal.z;
 
-      exporterMesh->mTextureCoords[0][vertexIndex].x = vertices.at(vertexIndex).tex_coord.x;
-      exporterMesh->mTextureCoords[0][vertexIndex].y = vertices.at(vertexIndex).tex_coord.y;
-      exporterMesh->mTextureCoords[0][vertexIndex].z = 0.f;
+      exporter_mesh->mTextureCoords[0][vertex_index].x = vertices.at(vertex_index).tex_coord.x;
+      exporter_mesh->mTextureCoords[0][vertex_index].y = vertices.at(vertex_index).tex_coord.y;
+      exporter_mesh->mTextureCoords[0][vertex_index].z = 0.f;
     }
 
-    exporterMesh->mNumFaces = triangles.size();
+    exporter_mesh->mNumFaces = triangles.size();
     if (triangles.empty()) {
-      exporterMesh->mFaces = nullptr;
+      exporter_mesh->mFaces = nullptr;
     } else {
-      exporterMesh->mFaces = new aiFace[triangles.size()];
+      exporter_mesh->mFaces = new aiFace[triangles.size()];
     }
-    for (int triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++) {
-      exporterMesh->mFaces[triangleIndex].mIndices = new unsigned int[3];
-      exporterMesh->mFaces[triangleIndex].mNumIndices = 3;
-      exporterMesh->mFaces[triangleIndex].mIndices[0] = triangles[triangleIndex][0];
-      exporterMesh->mFaces[triangleIndex].mIndices[1] = triangles[triangleIndex][1];
-      exporterMesh->mFaces[triangleIndex].mIndices[2] = triangles[triangleIndex][2];
+    for (int triangle_index = 0; triangle_index < triangles.size(); triangle_index++) {
+      exporter_mesh->mFaces[triangle_index].mIndices = new unsigned int[3];
+      exporter_mesh->mFaces[triangle_index].mNumIndices = 3;
+      exporter_mesh->mFaces[triangle_index].mIndices[0] = triangles[triangle_index][0];
+      exporter_mesh->mFaces[triangle_index].mIndices[1] = triangles[triangle_index][1];
+      exporter_mesh->mFaces[triangle_index].mIndices[2] = triangles[triangle_index][2];
     }
-    exporterMesh->mMaterialIndex = mesh.second;
-    exporterMesh->mName = std::string("mesh_") + std::to_string(meshIndex);
+    exporter_mesh->mMaterialIndex = mesh.second;
+    exporter_mesh->mName = std::string("mesh_") + std::to_string(mesh_index);
   }
 
-  exporterScene.mNumMaterials = materials.size();
+  exporter_scene.mNumMaterials = materials.size();
   if (materials.empty()) {
-    exporterScene.mMaterials = nullptr;
+    exporter_scene.mMaterials = nullptr;
   } else {
-    exporterScene.mMaterials = new aiMaterial*[materials.size()];
+    exporter_scene.mMaterials = new aiMaterial*[materials.size()];
   }
 
-  const auto textureFolderPath = std::filesystem::absolute(path.parent_path() / "textures");
-  std::filesystem::create_directories(textureFolderPath);
+  const auto texture_folder_path = std::filesystem::absolute(path.parent_path() / "textures");
+  std::filesystem::create_directories(texture_folder_path);
 
   struct SeparatedTexturePath {
-    aiString m_color;
-    bool m_hasOpacity = false;
+    aiString color;
+    bool has_opacity = false;
     aiString m_opacity;
   };
 
-  std::unordered_map<std::shared_ptr<Texture2D>, SeparatedTexturePath> collectedTexture;
+  std::unordered_map<std::shared_ptr<Texture2D>, SeparatedTexturePath> collected_texture;
 
-  for (int materialIndex = 0; materialIndex < materials.size(); materialIndex++) {
-    aiMaterial* exporterMaterial = exporterScene.mMaterials[materialIndex] = new aiMaterial();
-    auto& material = materials.at(materialIndex);
-    exporterMaterial->mNumProperties = 0;
-    auto materialName = aiString(std::string("material_") + std::to_string(materialIndex));
+  for (int material_index = 0; material_index < materials.size(); material_index++) {
+    aiMaterial* exporter_material = exporter_scene.mMaterials[material_index] = new aiMaterial();
+    auto& material = materials.at(material_index);
+    exporter_material->mNumProperties = 0;
+    auto material_name = aiString(std::string("material_") + std::to_string(material_index));
 
-    exporterMaterial->AddProperty(&materialName, AI_MATKEY_NAME);
+    exporter_material->AddProperty(&material_name, AI_MATKEY_NAME);
 
-    if (const auto albedoTexture = material->GetAlbedoTexture()) {
-      const auto search = collectedTexture.find(albedoTexture);
+    if (const auto albedo_texture = material->GetAlbedoTexture()) {
+      const auto search = collected_texture.find(albedo_texture);
       SeparatedTexturePath info{};
-      if (search != collectedTexture.end()) {
+      if (search != collected_texture.end()) {
         info = search->second;
       } else {
-        if (albedoTexture->IsTemporary()) {
-          std::string diffuseTitle = std::to_string(materialIndex) + "_diffuse.png";
-          info.m_color = aiString((std::filesystem::path("textures") / diffuseTitle).string());
-          const auto succeed = albedoTexture->Export(textureFolderPath / diffuseTitle);
+        if (albedo_texture->IsTemporary()) {
+          std::string diffuse_title = std::to_string(material_index) + "_diffuse.png";
+          info.color = aiString((std::filesystem::path("textures") / diffuse_title).string());
+          const auto succeed = albedo_texture->Export(texture_folder_path / diffuse_title);
         } else {
-          info.m_color =
-              aiString((std::filesystem::path("textures") / albedoTexture->GetAbsolutePath().filename()).string());
-          std::filesystem::copy(albedoTexture->GetAbsolutePath(),
-                                textureFolderPath / albedoTexture->GetAbsolutePath().filename(),
+          info.color =
+              aiString((std::filesystem::path("textures") / albedo_texture->GetAbsolutePath().filename()).string());
+          std::filesystem::copy(albedo_texture->GetAbsolutePath(),
+                                texture_folder_path / albedo_texture->GetAbsolutePath().filename(),
                                 std::filesystem::copy_options::overwrite_existing);
         }
-        if (albedoTexture->m_alphaChannel) {
-          info.m_hasOpacity = true;
-          std::string opacityTitle = std::to_string(materialIndex) + "_opacity.png";
-          info.m_opacity = aiString((std::filesystem::path("textures") / opacityTitle).string());
+        if (albedo_texture->alpha_channel) {
+          info.has_opacity = true;
+          std::string opacity_title = std::to_string(material_index) + "_opacity.png";
+          info.m_opacity = aiString((std::filesystem::path("textures") / opacity_title).string());
           std::vector<glm::vec4> data;
-          albedoTexture->GetRgbaChannelData(data);
+          albedo_texture->GetRgbaChannelData(data);
           std::vector<float> src(data.size() * 4);
           Jobs::RunParallelFor(data.size(), [&](const unsigned i) {
             src[i * 4] = data[i].a;
@@ -1011,113 +998,113 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
             src[i * 4 + 2] = data[i].a;
             src[i * 4 + 3] = data[i].a;
           });
-          auto resolution = albedoTexture->GetResolution();
-          Texture2D::StoreToPng(textureFolderPath / opacityTitle, src, resolution.x, resolution.y, 4, 4);
+          auto resolution = albedo_texture->GetResolution();
+          Texture2D::StoreToPng(texture_folder_path / opacity_title, src, resolution.x, resolution.y, 4, 4);
         }
       }
 
-      exporterMaterial->AddProperty(&info.m_color, AI_MATKEY_TEXTURE_DIFFUSE(0));
-      if (info.m_hasOpacity) {
-        exporterMaterial->AddProperty(&info.m_opacity, AI_MATKEY_TEXTURE_OPACITY(0));
+      exporter_material->AddProperty(&info.color, AI_MATKEY_TEXTURE_DIFFUSE(0));
+      if (info.has_opacity) {
+        exporter_material->AddProperty(&info.m_opacity, AI_MATKEY_TEXTURE_OPACITY(0));
       }
     }
 
-    if (const auto normalTexture = material->GetNormalTexture()) {
-      const auto search = collectedTexture.find(normalTexture);
+    if (const auto normal_texture = material->GetNormalTexture()) {
+      const auto search = collected_texture.find(normal_texture);
       SeparatedTexturePath info{};
-      if (search != collectedTexture.end()) {
+      if (search != collected_texture.end()) {
         info = search->second;
       } else {
-        if (normalTexture->IsTemporary()) {
-          std::string title = std::to_string(materialIndex) + "_normal.png";
-          info.m_color = aiString((std::filesystem::path("textures") / title).string());
-          const auto succeed = normalTexture->Export(textureFolderPath / title);
+        if (normal_texture->IsTemporary()) {
+          std::string title = std::to_string(material_index) + "_normal.png";
+          info.color = aiString((std::filesystem::path("textures") / title).string());
+          const auto succeed = normal_texture->Export(texture_folder_path / title);
         } else {
-          info.m_color =
-              aiString((std::filesystem::path("textures") / normalTexture->GetAbsolutePath().filename()).string());
-          std::filesystem::copy(normalTexture->GetAbsolutePath(),
-                                textureFolderPath / normalTexture->GetAbsolutePath().filename(),
+          info.color =
+              aiString((std::filesystem::path("textures") / normal_texture->GetAbsolutePath().filename()).string());
+          std::filesystem::copy(normal_texture->GetAbsolutePath(),
+                                texture_folder_path / normal_texture->GetAbsolutePath().filename(),
                                 std::filesystem::copy_options::overwrite_existing);
         }
       }
 
-      exporterMaterial->AddProperty(&info.m_color, AI_MATKEY_TEXTURE_NORMALS(0));
+      exporter_material->AddProperty(&info.color, AI_MATKEY_TEXTURE_NORMALS(0));
     }
-    if (const auto metallicTexture = material->GetMetallicTexture()) {
-      const auto search = collectedTexture.find(metallicTexture);
+    if (const auto metallic_texture = material->GetMetallicTexture()) {
+      const auto search = collected_texture.find(metallic_texture);
       SeparatedTexturePath info{};
-      if (search != collectedTexture.end()) {
+      if (search != collected_texture.end()) {
         info = search->second;
       } else {
-        if (metallicTexture->IsTemporary()) {
-          std::string title = std::to_string(materialIndex) + "_metallic.png";
-          info.m_color = aiString((std::filesystem::path("textures") / title).string());
-          const auto succeed = metallicTexture->Export(textureFolderPath / title);
+        if (metallic_texture->IsTemporary()) {
+          std::string title = std::to_string(material_index) + "_metallic.png";
+          info.color = aiString((std::filesystem::path("textures") / title).string());
+          const auto succeed = metallic_texture->Export(texture_folder_path / title);
         } else {
-          info.m_color =
-              aiString((std::filesystem::path("textures") / metallicTexture->GetAbsolutePath().filename()).string());
-          std::filesystem::copy(metallicTexture->GetAbsolutePath(),
-                                textureFolderPath / metallicTexture->GetAbsolutePath().filename(),
+          info.color =
+              aiString((std::filesystem::path("textures") / metallic_texture->GetAbsolutePath().filename()).string());
+          std::filesystem::copy(metallic_texture->GetAbsolutePath(),
+                                texture_folder_path / metallic_texture->GetAbsolutePath().filename(),
                                 std::filesystem::copy_options::overwrite_existing);
         }
       }
-      exporterMaterial->AddProperty(&info.m_color, AI_MATKEY_TEXTURE_SHININESS(0));
+      exporter_material->AddProperty(&info.color, AI_MATKEY_TEXTURE_SHININESS(0));
     }
-    if (const auto roughnessTexture = material->GetRoughnessTexture()) {
-      const auto search = collectedTexture.find(roughnessTexture);
+    if (const auto roughness_texture = material->GetRoughnessTexture()) {
+      const auto search = collected_texture.find(roughness_texture);
       SeparatedTexturePath info{};
-      if (search != collectedTexture.end()) {
+      if (search != collected_texture.end()) {
         info = search->second;
       } else {
-        if (roughnessTexture->IsTemporary()) {
-          std::string title = std::to_string(materialIndex) + "_roughness.png";
-          info.m_color = aiString((std::filesystem::path("textures") / title).string());
-          const auto succeed = roughnessTexture->Export(textureFolderPath / title);
+        if (roughness_texture->IsTemporary()) {
+          std::string title = std::to_string(material_index) + "_roughness.png";
+          info.color = aiString((std::filesystem::path("textures") / title).string());
+          const auto succeed = roughness_texture->Export(texture_folder_path / title);
         } else {
-          info.m_color =
-              aiString((std::filesystem::path("textures") / roughnessTexture->GetAbsolutePath().filename()).string());
-          std::filesystem::copy(roughnessTexture->GetAbsolutePath(),
-                                textureFolderPath / roughnessTexture->GetAbsolutePath().filename(),
+          info.color =
+              aiString((std::filesystem::path("textures") / roughness_texture->GetAbsolutePath().filename()).string());
+          std::filesystem::copy(roughness_texture->GetAbsolutePath(),
+                                texture_folder_path / roughness_texture->GetAbsolutePath().filename(),
                                 std::filesystem::copy_options::overwrite_existing);
         }
       }
-      exporterMaterial->AddProperty(&info.m_color, AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE_ROUGHNESS, 0));
+      exporter_material->AddProperty(&info.color, AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE_ROUGHNESS, 0));
     }
-    if (const auto aoTexture = material->GetAoTexture()) {
-      const auto search = collectedTexture.find(aoTexture);
+    if (const auto ao_texture = material->GetAoTexture()) {
+      const auto search = collected_texture.find(ao_texture);
       SeparatedTexturePath info{};
-      if (search != collectedTexture.end()) {
+      if (search != collected_texture.end()) {
         info = search->second;
       } else {
-        if (aoTexture->IsTemporary()) {
-          std::string title = std::to_string(materialIndex) + "_ao.png";
-          info.m_color = aiString((std::filesystem::path("textures") / title).string());
-          const auto succeed = aoTexture->Export(textureFolderPath / title);
+        if (ao_texture->IsTemporary()) {
+          std::string title = std::to_string(material_index) + "_ao.png";
+          info.color = aiString((std::filesystem::path("textures") / title).string());
+          const auto succeed = ao_texture->Export(texture_folder_path / title);
         } else {
-          info.m_color =
-              aiString((std::filesystem::path("textures") / aoTexture->GetAbsolutePath().filename()).string());
-          std::filesystem::copy(aoTexture->GetAbsolutePath(),
-                                textureFolderPath / aoTexture->GetAbsolutePath().filename(),
+          info.color =
+              aiString((std::filesystem::path("textures") / ao_texture->GetAbsolutePath().filename()).string());
+          std::filesystem::copy(ao_texture->GetAbsolutePath(),
+                                texture_folder_path / ao_texture->GetAbsolutePath().filename(),
                                 std::filesystem::copy_options::overwrite_existing);
         }
       }
-      exporterMaterial->AddProperty(&info.m_color, AI_MATKEY_TEXTURE(aiTextureType_AMBIENT_OCCLUSION, 0));
+      exporter_material->AddProperty(&info.color, AI_MATKEY_TEXTURE(aiTextureType_AMBIENT_OCCLUSION, 0));
     }
   }
 
-  std::string formatId;
+  std::string format_id;
   if (path.extension().string() == ".obj") {
-    formatId = "obj";
+    format_id = "obj";
   } else if (path.extension().string() == ".fbx") {
-    formatId = "fbx";
+    format_id = "fbx";
   } else if (path.extension().string() == ".gltf") {
-    formatId = "gltf";
+    format_id = "gltf";
   } else if (path.extension().string() == ".dae") {
-    formatId = "dae";
+    format_id = "dae";
   }
 
-  rootNode.Process(exporterScene.mRootNode);
-  exporter.Export(&exporterScene, formatId.c_str(), path.string());
+  root_node.Process(exporter_scene.mRootNode);
+  exporter.Export(&exporter_scene, format_id.c_str(), path.string());
 
   return true;
 }
@@ -1125,7 +1112,7 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
 #pragma endregion
 
 Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool auto_adjust_size) const {
-  std::unordered_map<Handle, Handle> entityMap;
+  std::unordered_map<Handle, Handle> entity_map;
   std::vector<DataComponentType> types;
   types.reserve(data_components.size());
   for (auto& i : data_components) {
@@ -1133,14 +1120,14 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool auto_adjust_si
   }
   auto archetype = Entities::CreateEntityArchetype("", types);
   const Entity entity = scene->CreateEntity(archetype, instance_name);
-  entityMap[entity_handle] = scene->GetEntityHandle(entity);
+  entity_map[entity_handle] = scene->GetEntityHandle(entity);
   for (auto& i : data_components) {
     scene->SetDataComponent(entity.GetIndex(), i.data_component_type.type_index, i.data_component_type.type_size,
                             i.data_component.get());
   }
   int index = 0;
   for (const auto& i : child_prefabs) {
-    AttachChildren(scene, i, entity, entityMap);
+    AttachChildren(scene, i, entity, entity_map);
     index++;
   }
 
@@ -1154,11 +1141,11 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool auto_adjust_si
     scene->SetPrivateComponent(entity, ptr);
   }
   for (const auto& i : child_prefabs) {
-    AttachChildrenPrivateComponent(scene, i, entity, entityMap);
+    AttachChildrenPrivateComponent(scene, i, entity, entity_map);
     index++;
   }
 
-  RelinkChildren(scene, entity, entityMap);
+  RelinkChildren(scene, entity, entity_map);
 
   scene->SetEnable(entity, enabled_);
 
@@ -1249,20 +1236,20 @@ void Prefab::Deserialize(const YAML::Node& in) {
     }
   }
 
-  std::vector<std::pair<int, std::shared_ptr<IAsset>>> localAssets;
-  if (const auto inLocalAssets = in["LocalAssets"]) {
+  if (const auto in_local_assets = in["LocalAssets"]) {
+    std::vector<std::pair<int, std::shared_ptr<IAsset>>> local_assets;
     int index = 0;
-    for (const auto& i : inLocalAssets) {
-      // First, find the asset in assetregistry
-      if (const auto typeName = i["TypeName"].as<std::string>(); Serialization::HasSerializableType(typeName)) {
-        auto asset = ProjectManager::CreateTemporaryAsset(typeName, i["Handle"].as<uint64_t>());
-        localAssets.emplace_back(index, asset);
+    for (const auto& i : in_local_assets) {
+      // First, find the asset in asset registry
+      if (const auto type_name = i["TypeName"].as<std::string>(); Serialization::HasSerializableType(type_name)) {
+        auto asset = ProjectManager::CreateTemporaryAsset(type_name, i["Handle"].as<uint64_t>());
+        local_assets.emplace_back(index, asset);
       }
       index++;
     }
 
-    for (const auto& i : localAssets) {
-      i.second->Deserialize(inLocalAssets[i.first]);
+    for (const auto& i : local_assets) {
+      i.second->Deserialize(in_local_assets[i.first]);
     }
   }
 
@@ -1294,9 +1281,9 @@ void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& 
       map[asset->GetHandle()] = asset;
     }
   }
-  bool listCheck = true;
-  while (listCheck) {
-    size_t currentSize = map.size();
+  bool list_check = true;
+  while (list_check) {
+    const size_t current_size = map.size();
     list.clear();
     for (auto& i : map) {
       i.second->CollectAssetRef(list);
@@ -1307,8 +1294,8 @@ void Prefab::CollectAssets(std::unordered_map<Handle, std::shared_ptr<IAsset>>& 
         map[asset->GetHandle()] = asset;
       }
     }
-    if (map.size() == currentSize)
-      listCheck = false;
+    if (map.size() == current_size)
+      list_check = false;
   }
   for (auto& i : child_prefabs)
     i->CollectAssets(map);
@@ -1321,11 +1308,11 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const {
     YAML::Emitter out;
     out << YAML::BeginMap;
     Serialize(out);
-    std::unordered_map<Handle, std::shared_ptr<IAsset>> assetMap;
-    CollectAssets(assetMap);
-    if (!assetMap.empty()) {
+    std::unordered_map<Handle, std::shared_ptr<IAsset>> asset_map;
+    CollectAssets(asset_map);
+    if (!asset_map.empty()) {
       out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
-      for (auto& i : assetMap) {
+      for (auto& i : asset_map) {
         if (!i.second->Saved())
           i.second->Save();
         out << YAML::BeginMap;
@@ -1363,10 +1350,10 @@ void Prefab::LoadModel(const std::filesystem::path& path, const bool optimize, c
 void Prefab::GatherAssets() {
   collected_assets.clear();
   for (const auto& components : private_components) {
-    std::vector<AssetRef> assetRefs;
-    components.private_component->CollectAssetRef(assetRefs);
-    for (const auto& assetRef : assetRefs)
-      collected_assets[assetRef.GetAssetHandle()] = assetRef;
+    std::vector<AssetRef> asset_refs;
+    components.private_component->CollectAssetRef(asset_refs);
+    for (const auto& asset_ref : asset_refs)
+      collected_assets[asset_ref.GetAssetHandle()] = asset_ref;
   }
 
   for (const auto& child : child_prefabs)
@@ -1394,10 +1381,10 @@ bool Prefab::OnInspectWalker(const std::shared_ptr<Prefab>& walker) {
 
 void Prefab::GatherAssetsWalker(const std::shared_ptr<Prefab>& walker, std::unordered_map<Handle, AssetRef>& assets) {
   for (const auto& i : walker->private_components) {
-    std::vector<AssetRef> assetRefs;
-    i.private_component->CollectAssetRef(assetRefs);
-    for (const auto& assetRef : assetRefs)
-      assets[assetRef.GetAssetHandle()] = assetRef;
+    std::vector<AssetRef> asset_refs;
+    i.private_component->CollectAssetRef(asset_refs);
+    for (const auto& asset_ref : asset_refs)
+      assets[asset_ref.GetAssetHandle()] = asset_ref;
   }
 
   for (const auto& child : walker->child_prefabs)
@@ -1473,18 +1460,18 @@ void PrivateComponentHolder::Serialize(YAML::Emitter& out) const {
 }
 void PrivateComponentHolder::Deserialize(const YAML::Node& in) {
   enabled = in["enabled"].as<bool>();
-  auto typeName = in["type_name"].as<std::string>();
-  auto inData = in["private_component"];
-  if (Serialization::HasSerializableType(typeName)) {
-    size_t hashCode;
+  const auto type_name = in["type_name"].as<std::string>();
+  auto in_data = in["private_component"];
+  if (Serialization::HasSerializableType(type_name)) {
+    size_t hash_code;
     private_component = std::dynamic_pointer_cast<IPrivateComponent>(
-        Serialization::ProduceSerializable(typeName, hashCode, Handle(inData["handle"].as<uint64_t>())));
+        Serialization::ProduceSerializable(type_name, hash_code, Handle(in_data["handle"].as<uint64_t>())));
   } else {
-    size_t hashCode;
+    size_t hash_code;
     private_component = std::dynamic_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(
-        "UnknownPrivateComponent", hashCode, Handle(inData["handle"].as<uint64_t>())));
-    std::dynamic_pointer_cast<UnknownPrivateComponent>(private_component)->m_originalTypeName = typeName;
+        "UnknownPrivateComponent", hash_code, Handle(in_data["handle"].as<uint64_t>())));
+    std::dynamic_pointer_cast<UnknownPrivateComponent>(private_component)->original_type_name_ = type_name;
   }
   private_component->OnCreate();
-  private_component->Deserialize(inData);
+  private_component->Deserialize(in_data);
 }

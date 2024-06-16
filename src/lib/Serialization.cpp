@@ -209,7 +209,7 @@ void Serialization::ClonePrivateComponent(const std::shared_ptr<IPrivateComponen
                                           const std::shared_ptr<IPrivateComponent> &source) {
   const auto target_type_name = target->GetTypeName();
   const auto source_type_name = source->GetTypeName();
-  assert(targetTypeName == sourceTypeName);
+  assert(target_type_name == source_type_name);
   if (auto &serialization_manager = GetInstance(); serialization_manager.HasSerializableType(target_type_name)) {
     serialization_manager.private_component_cloners_[target_type_name](target, source);
   } else {
@@ -219,7 +219,7 @@ void Serialization::ClonePrivateComponent(const std::shared_ptr<IPrivateComponen
 void Serialization::CloneSystem(const std::shared_ptr<ISystem> &target, const std::shared_ptr<ISystem> &source) {
   const auto target_type_name = target->GetTypeName();
   auto source_type_name = source->GetTypeName();
-  assert(targetTypeName == sourceTypeName);
+  assert(target_type_name == source_type_name);
   auto &serialization_manager = GetInstance();
   if (serialization_manager.HasSerializableType(target_type_name)) {
     serialization_manager.system_cloners_[target_type_name](target, source);

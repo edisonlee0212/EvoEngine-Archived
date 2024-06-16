@@ -2,192 +2,176 @@
 
 using namespace evo_engine;
 
+void GraphicsPipelineStates::ResetAllStates(const size_t color_attachment_size) {
+  view_port = {};
+  view_port.width = 1;
+  view_port.height = 1;
+  scissor = {};
+  depth_clamp = false;
+  rasterizer_discard = false;
+  polygon_mode = VK_POLYGON_MODE_FILL;
+  cull_mode = VK_CULL_MODE_BACK_BIT;
+  front_face = VK_FRONT_FACE_CLOCKWISE;
+  depth_bias = false;
+  depth_bias_constant_clamp_slope = glm::vec3(0.0f);
+  line_width = 1.0f;
+  depth_test = true;
+  depth_write = true;
+  depth_compare = VK_COMPARE_OP_LESS;
+  depth_bound_test = false;
+  min_max_depth_bound = glm::vec2(0.0f, 1.0f);
+  stencil_test = false;
+  stencil_face_mask = VK_STENCIL_FACE_FRONT_BIT;
+  stencil_fail_op = VK_STENCIL_OP_ZERO;
+  stencil_pass_op = VK_STENCIL_OP_ZERO;
+  stencil_depth_fail_op = VK_STENCIL_OP_ZERO;
+  stencil_compare_op = VK_COMPARE_OP_LESS;
 
+  logic_op_enable = VK_FALSE;
+  logic_op = VK_LOGIC_OP_COPY;
+  color_blend_attachment_states.clear();
+  color_blend_attachment_states.resize(std::max(static_cast<size_t>(1), color_attachment_size));
+  for (auto& i : color_blend_attachment_states) {
+    i.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    i.blendEnable = VK_FALSE;
+    i.colorBlendOp = i.alphaBlendOp = VK_BLEND_OP_ADD;
 
-void GraphicsPipelineStates::ResetAllStates(const size_t colorAttachmentSize)
-{
-	m_viewPort = {};
-	m_viewPort.width = 1;
-	m_viewPort.height = 1;
-	m_scissor = {};
-	m_depthClamp = false;
-	m_rasterizerDiscard = false;
-	m_polygonMode = VK_POLYGON_MODE_FILL;
-	m_cullMode = VK_CULL_MODE_BACK_BIT;
-	m_frontFace = VK_FRONT_FACE_CLOCKWISE;
-	m_depthBias = false;
-	m_depthBiasConstantClampSlope = glm::vec3(0.0f);
-	m_lineWidth = 1.0f;
-	m_depthTest = true;
-	m_depthWrite = true;
-	m_depthCompare = VK_COMPARE_OP_LESS;
-	m_depthBoundTest = false;
-	m_minMaxDepthBound = glm::vec2(0.0f, 1.0f);
-	m_stencilTest = false;
-	m_stencilFaceMask = VK_STENCIL_FACE_FRONT_BIT;
-	m_stencilFailOp = VK_STENCIL_OP_ZERO;
-	m_stencilPassOp = VK_STENCIL_OP_ZERO;
-	m_stencilDepthFailOp = VK_STENCIL_OP_ZERO;
-	m_stencilCompareOp = VK_COMPARE_OP_LESS;
-
-	m_logicOpEnable = VK_FALSE;
-	m_logicOp = VK_LOGIC_OP_COPY;
-	m_colorBlendAttachmentStates.clear();
-	m_colorBlendAttachmentStates.resize(std::max(static_cast<size_t>(1), colorAttachmentSize));
-	for (auto& i : m_colorBlendAttachmentStates)
-	{
-		i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		i.blendEnable = VK_FALSE;
-		i.colorBlendOp = i.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		i.srcColorBlendFactor = i.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		i.dstColorBlendFactor = i.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-	}
-	m_blendConstants[0] = 0;
-	m_blendConstants[1] = 0;
-	m_blendConstants[2] = 0;
-	m_blendConstants[3] = 0;
+    i.srcColorBlendFactor = i.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    i.dstColorBlendFactor = i.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  }
+  blend_constants[0] = 0;
+  blend_constants[1] = 0;
+  blend_constants[2] = 0;
+  blend_constants[3] = 0;
 }
 
-void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer commandBuffer, const bool forceSet)
-{
-	if (forceSet
-		|| m_viewPortApplied.x != m_viewPort.x
-		|| m_viewPortApplied.y != m_viewPort.y
-		|| m_viewPortApplied.width != m_viewPort.width
-		|| m_viewPortApplied.height != m_viewPort.height
-		|| m_viewPortApplied.maxDepth != m_viewPort.maxDepth
-		|| m_viewPortApplied.minDepth != m_viewPort.minDepth) {
-		m_viewPortApplied = m_viewPort;
-		m_viewPortApplied.width = m_viewPort.width = glm::max(1.0f, m_viewPort.width);
-		m_viewPortApplied.height = m_viewPort.height = glm::max(1.0f, m_viewPort.height);
-		vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
+void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer command_buffer, const bool force_set) {
+  if (force_set || view_port_applied_.x != view_port.x || view_port_applied_.y != view_port.y ||
+      view_port_applied_.width != view_port.width || view_port_applied_.height != view_port.height ||
+      view_port_applied_.maxDepth != view_port.maxDepth || view_port_applied_.minDepth != view_port.minDepth) {
+    view_port_applied_ = view_port;
+    view_port_applied_.width = view_port.width = glm::max(1.0f, view_port.width);
+    view_port_applied_.height = view_port.height = glm::max(1.0f, view_port.height);
+    vkCmdSetViewport(command_buffer, 0, 1, &view_port_applied_);
+  }
+  if (force_set || scissor_applied_.extent.height != scissor.extent.height ||
+      scissor_applied_.extent.width != scissor.extent.width || scissor_applied_.offset.x != scissor.offset.x ||
+      scissor_applied_.offset.y != scissor.offset.y) {
+    scissor_applied_ = scissor;
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor_applied_);
+  }
 
-	}
-	if (forceSet
-		|| m_scissorApplied.extent.height != m_scissor.extent.height
-		|| m_scissorApplied.extent.width != m_scissor.extent.width
-		|| m_scissorApplied.offset.x != m_scissor.offset.x
-		|| m_scissorApplied.offset.y != m_scissor.offset.y) {
-		m_scissorApplied = m_scissor;
-		vkCmdSetScissor(commandBuffer, 0, 1, &m_scissorApplied);
-	}
+  if (force_set || depth_clamp_applied_ != depth_clamp) {
+    depth_clamp_applied_ = depth_clamp;
+    vkCmdSetDepthClampEnableEXT(command_buffer, depth_clamp_applied_);
+  }
+  if (force_set || rasterizer_discard_applied_ != rasterizer_discard) {
+    rasterizer_discard_applied_ = rasterizer_discard;
+    vkCmdSetRasterizerDiscardEnable(command_buffer, rasterizer_discard_applied_);
+  }
+  if (force_set || polygon_mode_applied_ != polygon_mode) {
+    polygon_mode_applied_ = polygon_mode;
+    vkCmdSetPolygonModeEXT(command_buffer, polygon_mode_applied_);
+  }
+  if (force_set || cull_mode_applied_ != cull_mode) {
+    cull_mode_applied_ = cull_mode;
+    vkCmdSetCullModeEXT(command_buffer, cull_mode_applied_);
+  }
+  if (force_set || front_face_applied_ != front_face) {
+    front_face_applied_ = front_face;
+    vkCmdSetFrontFace(command_buffer, front_face_applied_);
+  }
+  if (force_set || depth_bias_applied_ != depth_bias) {
+    depth_bias_applied_ = depth_bias;
+    vkCmdSetDepthBiasEnable(command_buffer, depth_bias_applied_);
+  }
+  if (force_set || depth_bias_constant_clamp_slope_applied_ != depth_bias_constant_clamp_slope) {
+    depth_bias_constant_clamp_slope_applied_ = depth_bias_constant_clamp_slope;
+    vkCmdSetDepthBias(command_buffer, depth_bias_constant_clamp_slope_applied_.x, depth_bias_constant_clamp_slope_applied_.y,
+                      depth_bias_constant_clamp_slope_applied_.z);
+  }
+  if (force_set || line_width_applied_ != line_width) {
+    line_width_applied_ = line_width;
+    vkCmdSetLineWidth(command_buffer, line_width_applied_);
+  }
+  if (force_set || depth_test_applied_ != depth_test) {
+    depth_test_applied_ = depth_test;
+    vkCmdSetDepthTestEnableEXT(command_buffer, depth_test_applied_);
+  }
+  if (force_set || depth_write_applied_ != depth_write) {
+    depth_write_applied_ = depth_write;
+    vkCmdSetDepthWriteEnableEXT(command_buffer, depth_write_applied_);
+  }
+  if (force_set || depth_compare_applied_ != depth_compare) {
+    depth_compare_applied_ = depth_compare;
+    vkCmdSetDepthCompareOpEXT(command_buffer, depth_compare_applied_);
+  }
+  if (force_set || depth_bound_test_applied_ != depth_bound_test) {
+    depth_bound_test_applied_ = depth_bound_test;
+    vkCmdSetDepthBoundsTestEnableEXT(command_buffer, depth_bound_test_applied_);
+  }
+  if (force_set || min_max_depth_bound_applied_ != min_max_depth_bound) {
+    min_max_depth_bound_applied_ = min_max_depth_bound;
+    vkCmdSetDepthBounds(command_buffer, min_max_depth_bound_applied_.x, min_max_depth_bound_applied_.y);
+  }
+  if (force_set || stencil_test_applied_ != stencil_test) {
+    stencil_test_applied_ = stencil_test;
+    vkCmdSetStencilTestEnableEXT(command_buffer, stencil_test_applied_);
+  }
+  if (force_set || front_face_applied_ != front_face || stencil_fail_op_applied_ != stencil_fail_op ||
+      stencil_pass_op_applied_ != stencil_pass_op || stencil_depth_fail_op_applied_ != stencil_depth_fail_op ||
+      stencil_compare_op_applied_ != stencil_compare_op) {
+    stencil_face_mask_applied_ = stencil_face_mask;
+    stencil_fail_op_applied_ = stencil_fail_op;
+    stencil_pass_op_applied_ = stencil_pass_op;
+    stencil_depth_fail_op_applied_ = stencil_depth_fail_op;
+    stencil_compare_op_applied_ = stencil_compare_op;
+    vkCmdSetStencilOpEXT(command_buffer, stencil_face_mask_applied_, stencil_fail_op_applied_, stencil_pass_op_applied_,
+                         stencil_depth_fail_op_applied_, stencil_compare_op_applied_);
+  }
 
-	if (forceSet || m_depthClampApplied != m_depthClamp) {
-		m_depthClampApplied = m_depthClamp;
-		vkCmdSetDepthClampEnableEXT(commandBuffer, m_depthClampApplied);
-	}
-	if (forceSet || m_rasterizerDiscardApplied != m_rasterizerDiscard) {
-		m_rasterizerDiscardApplied = m_rasterizerDiscard;
-		vkCmdSetRasterizerDiscardEnable(commandBuffer, m_rasterizerDiscardApplied);
-	}
-	if (forceSet || m_polygonModeApplied != m_polygonMode) {
-		m_polygonModeApplied = m_polygonMode;
-		vkCmdSetPolygonModeEXT(commandBuffer, m_polygonModeApplied);
-	}
-	if (forceSet || m_cullModeApplied != m_cullMode) {
-		m_cullModeApplied = m_cullMode;
-		vkCmdSetCullModeEXT(commandBuffer, m_cullModeApplied);
-	}
-	if (forceSet || m_frontFaceApplied != m_frontFace) {
-		m_frontFaceApplied = m_frontFace;
-		vkCmdSetFrontFace(commandBuffer, m_frontFaceApplied);
-	}
-	if (forceSet || m_depthBiasApplied != m_depthBias) {
-		m_depthBiasApplied = m_depthBias;
-		vkCmdSetDepthBiasEnable(commandBuffer, m_depthBiasApplied);
-	}
-	if (forceSet || m_depthBiasConstantClampSlopeApplied != m_depthBiasConstantClampSlope) {
-		m_depthBiasConstantClampSlopeApplied = m_depthBiasConstantClampSlope;
-		vkCmdSetDepthBias(commandBuffer, m_depthBiasConstantClampSlopeApplied.x, m_depthBiasConstantClampSlopeApplied.y, m_depthBiasConstantClampSlopeApplied.z);
-	}
-	if (forceSet || m_lineWidthApplied != m_lineWidth) {
-		m_lineWidthApplied = m_lineWidth;
-		vkCmdSetLineWidth(commandBuffer, m_lineWidthApplied);
-	}
-	if (forceSet || m_depthTestApplied != m_depthTest) {
-		m_depthTestApplied = m_depthTest;
-		vkCmdSetDepthTestEnableEXT(commandBuffer, m_depthTestApplied);
-	}
-	if (forceSet || m_depthWriteApplied != m_depthWrite) {
-		m_depthWriteApplied = m_depthWrite;
-		vkCmdSetDepthWriteEnableEXT(commandBuffer, m_depthWriteApplied);
-	}
-	if (forceSet || m_depthCompareApplied != m_depthCompare) {
-		m_depthCompareApplied = m_depthCompare;
-		vkCmdSetDepthCompareOpEXT(commandBuffer, m_depthCompareApplied);
-	}
-	if (forceSet || m_depthBoundTestApplied != m_depthBoundTest) {
-		m_depthBoundTestApplied = m_depthBoundTest;
-		vkCmdSetDepthBoundsTestEnableEXT(commandBuffer, m_depthBoundTestApplied);
-	}
-	if (forceSet || m_minMaxDepthBoundApplied != m_minMaxDepthBound) {
-		m_minMaxDepthBoundApplied = m_minMaxDepthBound;
-		vkCmdSetDepthBounds(commandBuffer, m_minMaxDepthBoundApplied.x, m_minMaxDepthBoundApplied.y);
-	}
-	if (forceSet || m_stencilTestApplied != m_stencilTest) {
-		m_stencilTestApplied = m_stencilTest;
-		vkCmdSetStencilTestEnableEXT(commandBuffer, m_stencilTestApplied);
-	}
-	if (forceSet ||
-		m_frontFaceApplied != m_frontFace
-		|| m_stencilFailOpApplied != m_stencilFailOp
-		|| m_stencilPassOpApplied != m_stencilPassOp
-		|| m_stencilDepthFailOpApplied != m_stencilDepthFailOp
-		|| m_stencilCompareOpApplied != m_stencilCompareOp) {
-		m_stencilFaceMaskApplied = m_stencilFaceMask;
-		m_stencilFailOpApplied = m_stencilFailOp;
-		m_stencilPassOpApplied = m_stencilPassOp;
-		m_stencilDepthFailOpApplied = m_stencilDepthFailOp;
-		m_stencilCompareOpApplied = m_stencilCompareOp;
-		vkCmdSetStencilOpEXT(commandBuffer, m_stencilFaceMaskApplied, m_stencilFailOpApplied, m_stencilPassOpApplied, m_stencilDepthFailOpApplied, m_stencilCompareOpApplied);
-	}
+  if (force_set || logic_op_enable_applied_ != logic_op_enable) {
+    vkCmdSetLogicOpEnableEXT(command_buffer, logic_op_enable_applied_);
+  }
 
-	if (forceSet || m_logicOpEnableApplied != m_logicOpEnable)
-	{
-		vkCmdSetLogicOpEnableEXT(commandBuffer, m_logicOpEnableApplied);
-	}
+  if (force_set || logic_op_applied_ != logic_op) {
+    vkCmdSetLogicOpEXT(command_buffer, logic_op_applied_);
+  }
+  if (color_blend_attachment_states.empty()) {
+    color_blend_attachment_states.emplace_back();
+  }
+  std::vector<VkBool32> color_write_masks = {};
+  color_write_masks.reserve(color_blend_attachment_states.size());
+  for (const auto& i : color_blend_attachment_states) {
+    color_write_masks.push_back(i.colorWriteMask);
+  }
+  if (!color_write_masks.empty())
+    vkCmdSetColorWriteMaskEXT(command_buffer, 0, color_write_masks.size(), color_write_masks.data());
 
-	if (forceSet || m_logicOpApplied != m_logicOp)
-	{
-		vkCmdSetLogicOpEXT(commandBuffer, m_logicOpApplied);
-	}
-	if(m_colorBlendAttachmentStates.empty())
-	{
-		m_colorBlendAttachmentStates.emplace_back();
-	}
-	std::vector<VkBool32> colorWriteMasks = {};
-	colorWriteMasks.reserve(m_colorBlendAttachmentStates.size());
-	for (const auto& i : m_colorBlendAttachmentStates)
-	{
-		colorWriteMasks.push_back(i.colorWriteMask);
-	}
-	if (!colorWriteMasks.empty()) vkCmdSetColorWriteMaskEXT(commandBuffer, 0, colorWriteMasks.size(), colorWriteMasks.data());
+  std::vector<VkBool32> color_blend_enable = {};
+  color_blend_enable.reserve(color_blend_attachment_states.size());
+  for (const auto& i : color_blend_attachment_states) {
+    color_blend_enable.push_back(i.blendEnable);
+  }
+  if (!color_blend_enable.empty())
+    vkCmdSetColorBlendEnableEXT(command_buffer, 0, color_blend_enable.size(), color_blend_enable.data());
 
-	std::vector<VkBool32> colorBlendEnable = {};
-	colorBlendEnable.reserve(m_colorBlendAttachmentStates.size());
-	for (const auto& i : m_colorBlendAttachmentStates)
-	{
-		colorBlendEnable.push_back(i.blendEnable);
-	}
-	if (!colorBlendEnable.empty()) vkCmdSetColorBlendEnableEXT(commandBuffer, 0, colorBlendEnable.size(), colorBlendEnable.data());
-
-	std::vector<VkColorBlendEquationEXT> equations{};
-	for (const auto& i : m_colorBlendAttachmentStates)
-	{
-		VkColorBlendEquationEXT equation;
-		equation.srcColorBlendFactor = i.srcColorBlendFactor;
-		equation.dstColorBlendFactor = i.dstColorBlendFactor;
-		equation.colorBlendOp = i.colorBlendOp;
-		equation.srcAlphaBlendFactor = i.srcAlphaBlendFactor;
-		equation.dstAlphaBlendFactor = i.dstAlphaBlendFactor;
-		equation.alphaBlendOp = i.alphaBlendOp;
-		equations.emplace_back(equation);
-	}
-	if (!equations.empty()) vkCmdSetColorBlendEquationEXT(commandBuffer, 0, equations.size(), equations.data());
-	else
-	{
-		int a = 0;
-	}
-	vkCmdSetBlendConstants(commandBuffer, m_blendConstantsApplied);
+  std::vector<VkColorBlendEquationEXT> equations{};
+  for (const auto& i : color_blend_attachment_states) {
+    VkColorBlendEquationEXT equation;
+    equation.srcColorBlendFactor = i.srcColorBlendFactor;
+    equation.dstColorBlendFactor = i.dstColorBlendFactor;
+    equation.colorBlendOp = i.colorBlendOp;
+    equation.srcAlphaBlendFactor = i.srcAlphaBlendFactor;
+    equation.dstAlphaBlendFactor = i.dstAlphaBlendFactor;
+    equation.alphaBlendOp = i.alphaBlendOp;
+    equations.emplace_back(equation);
+  }
+  if (!equations.empty())
+    vkCmdSetColorBlendEquationEXT(command_buffer, 0, equations.size(), equations.data());
+  else {
+    int a = 0;
+  }
+  vkCmdSetBlendConstants(command_buffer, blend_constants_applied_);
 }

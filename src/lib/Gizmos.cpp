@@ -5,8 +5,8 @@ using namespace evo_engine;
 
 void GizmoSettings::ApplySettings(GraphicsPipelineStates& global_pipeline_state) const {
   draw_settings.ApplySettings(global_pipeline_state);
-  global_pipeline_state.m_depthTest = depth_test;
-  global_pipeline_state.m_depthWrite = depth_write;
+  global_pipeline_state.depth_test = depth_test;
+  global_pipeline_state.depth_write = depth_write;
 }
 
 void EditorLayer::DrawGizmoMesh(const std::shared_ptr<Mesh>& mesh,
