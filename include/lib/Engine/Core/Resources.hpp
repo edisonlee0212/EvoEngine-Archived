@@ -39,7 +39,7 @@ class Resources : ISingleton<Resources> {
 template <class T>
 std::shared_ptr<T> Resources::CreateResource(const std::string& name) {
   auto& resources = GetInstance();
-  assert(resources.m_namedResources.find(name) == resources.m_namedResources.end());
+  assert(resources.named_resources_.find(name) == resources.named_resources_.end());
   auto type_name = Serialization::GetSerializableTypeName<T>();
   const auto handle = resources.GenerateNewHandle();
   auto ret_val = std::dynamic_pointer_cast<IAsset>(Serialization::ProduceSerializable<T>());

@@ -200,7 +200,6 @@ class RenderLayer final : public ILayer {
   [[nodiscard]] const std::shared_ptr<DescriptorSet>& GetPerFrameDescriptorSet() const;
 
  private:
-  std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras_;
   bool need_fade_ = false;
 #pragma region Render procedure
   RenderInstanceCollection deferred_render_instances_;

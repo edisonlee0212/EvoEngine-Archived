@@ -158,7 +158,7 @@ Bound SkinnedMesh::GetBound() const {
   return bound_;
 }
 
-void SkinnedMesh::FetchIndices() {
+void SkinnedMesh::FetchIndices(const std::vector<std::shared_ptr<Bone>>& bones) {
   bone_animator_indices.resize(bones.size());
   for (int i = 0; i < bones.size(); i++) {
     bone_animator_indices[i] = bones[i]->index;

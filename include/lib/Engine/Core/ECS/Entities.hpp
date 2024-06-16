@@ -89,21 +89,21 @@ class Entities final : ISingleton<Entities> {
 
 template <typename T, typename... Ts>
 void Entities::SetEntityQueryAllFilters(const EntityQuery &entity_query, T arg, Ts... args) {
-  assert(entityQuery.IsValid());
+  assert(entity_query.IsValid());
   GetInstance().entity_query_infos_[entity_query.index_].all_data_component_types =
       CollectDataComponentTypes(arg, args...);
 }
 
 template <typename T, typename... Ts>
 void Entities::SetEntityQueryAnyFilters(const EntityQuery &entity_query, T arg, Ts... args) {
-  assert(entityQuery.IsValid());
+  assert(entity_query.IsValid());
   GetInstance().entity_query_infos_[entity_query.index_].any_data_component_types =
       CollectDataComponentTypes(arg, args...);
 }
 
 template <typename T, typename... Ts>
 void Entities::SetEntityQueryNoneFilters(const EntityQuery &entity_query, T arg, Ts... args) {
-  assert(entityQuery.IsValid());
+  assert(entity_query.IsValid());
   GetInstance().entity_query_infos_[entity_query.index_].none_data_component_types =
       CollectDataComponentTypes(arg, args...);
 }

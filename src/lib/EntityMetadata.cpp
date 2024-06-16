@@ -8,32 +8,32 @@
 using namespace evo_engine;
 
 void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene) {
-  entity_name = in["entity_name"].as<std::string>();
+  entity_name = in["n"].as<std::string>();
   entity_version = 1;
-  entity_enabled = in["entity_enabled"].as<bool>();
-  entity_static = in["entity_static"].as<bool>();
-  entity_handle.value_ = in["m_handle"].as<uint64_t>();
+  entity_enabled = in["e"].as<bool>();
+  entity_static = in["s"].as<bool>();
+  entity_handle.value_ = in["h"].as<uint64_t>();
   ancestor_selected = false;
 }
 
 void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const {
   out << YAML::BeginMap;
   {
-    out << YAML::Key << "entity_name" << YAML::Value << entity_name;
-    out << YAML::Key << "m_handle" << YAML::Value << entity_handle.value_;
-    out << YAML::Key << "entity_enabled" << YAML::Value << entity_enabled;
-    out << YAML::Key << "entity_static" << YAML::Value << entity_static;
+    out << YAML::Key << "n" << YAML::Value << entity_name;
+    out << YAML::Key << "h" << YAML::Value << entity_handle.value_;
+    out << YAML::Key << "e" << YAML::Value << entity_enabled;
+    out << YAML::Key << "s" << YAML::Value << entity_static;
     if (parent.GetIndex() != 0)
-      out << YAML::Key << "Parent.Handle" << YAML::Value << scene->GetEntityHandle(parent);
+      out << YAML::Key << "p" << YAML::Value << scene->GetEntityHandle(parent);
     if (root.GetIndex() != 0)
-      out << YAML::Key << "Root.Handle" << YAML::Value << scene->GetEntityHandle(root);
+      out << YAML::Key << "r" << YAML::Value << scene->GetEntityHandle(root);
 
 #pragma region Private Components
-    out << YAML::Key << "private_component_elements" << YAML::Value << YAML::BeginSeq;
+    out << YAML::Key << "pc" << YAML::Value << YAML::BeginSeq;
     for (const auto &element : private_component_elements) {
       out << YAML::BeginMap;
-      out << YAML::Key << "type_name_" << YAML::Value << element.private_component_data->type_name_;
-      out << YAML::Key << "enabled_" << YAML::Value << element.private_component_data->enabled_;
+      out << YAML::Key << "tn" << YAML::Value << element.private_component_data->type_name_;
+      out << YAML::Key << "e" << YAML::Value << element.private_component_data->enabled_;
       element.private_component_data->Serialize(out);
       out << YAML::EndMap;
     }

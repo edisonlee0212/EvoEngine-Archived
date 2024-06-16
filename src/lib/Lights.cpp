@@ -134,7 +134,7 @@ bool DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_laye
   bool changed = false;
   if (ImGui::Checkbox("Cast Shadow", &cast_shadow))
     changed = false;
-  if (ImGui::ColorEdit3("Color", &m_diffuse[0]))
+  if (ImGui::ColorEdit3("Color", &diffuse[0]))
     changed = false;
   if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.1f, 0.0f, 999.0f))
     changed = false;
@@ -150,7 +150,7 @@ bool DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_laye
 void DirectionalLight::Serialize(YAML::Emitter& out) const {
   out << YAML::Key << "cast_shadow" << YAML::Value << cast_shadow;
   out << YAML::Key << "bias" << YAML::Value << bias;
-  out << YAML::Key << "diffuse" << YAML::Value << m_diffuse;
+  out << YAML::Key << "diffuse" << YAML::Value << diffuse;
   out << YAML::Key << "diffuse_brightness" << YAML::Value << diffuse_brightness;
   out << YAML::Key << "light_size" << YAML::Value << light_size;
   out << YAML::Key << "normal_offset" << YAML::Value << normal_offset;
@@ -159,7 +159,7 @@ void DirectionalLight::Serialize(YAML::Emitter& out) const {
 void DirectionalLight::Deserialize(const YAML::Node& in) {
   cast_shadow = in["cast_shadow"].as<bool>();
   bias = in["bias"].as<float>();
-  m_diffuse = in["diffuse"].as<glm::vec3>();
+  diffuse = in["diffuse"].as<glm::vec3>();
   diffuse_brightness = in["diffuse_brightness"].as<float>();
   light_size = in["light_size"].as<float>();
   normal_offset = in["normal_offset"].as<float>();

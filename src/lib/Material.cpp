@@ -345,7 +345,65 @@ bool Material::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   }
   return changed;
 }
+void SaveMaterialProperties(const std::string& name, const MaterialProperties& material_properties,
+                            YAML::Emitter& out) {
+  out << YAML::Key << name << YAML::Value << YAML::BeginMap;
+  out << YAML::Key << "albedo_color" << YAML::Value << material_properties.albedo_color;
+  out << YAML::Key << "subsurface_color" << YAML::Value << material_properties.subsurface_color;
+  out << YAML::Key << "subsurface_factor" << YAML::Value << material_properties.subsurface_factor;
+  out << YAML::Key << "subsurface_radius" << YAML::Value << material_properties.subsurface_radius;
 
+  out << YAML::Key << "metallic" << YAML::Value << material_properties.metallic;
+  out << YAML::Key << "specular" << YAML::Value << material_properties.specular;
+  out << YAML::Key << "specular_tint" << YAML::Value << material_properties.specular_tint;
+  out << YAML::Key << "roughness" << YAML::Value << material_properties.roughness;
+  out << YAML::Key << "sheen" << YAML::Value << material_properties.sheen;
+  out << YAML::Key << "sheen_tint" << YAML::Value << material_properties.sheen_tint;
+  out << YAML::Key << "clear_coat" << YAML::Value << material_properties.clear_coat;
+  out << YAML::Key << "clear_coat_roughness" << YAML::Value << material_properties.clear_coat_roughness;
+  out << YAML::Key << "ior" << YAML::Value << material_properties.ior;
+  out << YAML::Key << "transmission" << YAML::Value << material_properties.transmission;
+  out << YAML::Key << "transmission_roughness" << YAML::Value << material_properties.transmission_roughness;
+  out << YAML::Key << "emission" << YAML::Value << material_properties.emission;
+  out << YAML::EndMap;
+}
+void LoadMaterialProperties(const std::string& name, MaterialProperties& material_properties, const YAML::Node& in) {
+  if (in[name]) {
+    const auto& in_material_properties = in[name];
+    if (in_material_properties["albedo_color"])
+      material_properties.albedo_color = in_material_properties["albedo_color"].as<glm::vec3>();
+    if (in_material_properties["subsurface_color"])
+      material_properties.subsurface_color = in_material_properties["subsurface_color"].as<glm::vec3>();
+    if (in_material_properties["subsurface_factor"])
+      material_properties.subsurface_factor = in_material_properties["subsurface_factor"].as<float>();
+    if (in_material_properties["subsurface_radius"])
+      material_properties.subsurface_radius = in_material_properties["subsurface_radius"].as<glm::vec3>();
+    if (in_material_properties["metallic"])
+      material_properties.metallic = in_material_properties["metallic"].as<float>();
+    if (in_material_properties["specular"])
+      material_properties.specular = in_material_properties["specular"].as<float>();
+    if (in_material_properties["specular_tint"])
+      material_properties.specular_tint = in_material_properties["specular_tint"].as<float>();
+    if (in_material_properties["roughness"])
+      material_properties.roughness = in_material_properties["roughness"].as<float>();
+    if (in_material_properties["m_sheen"])
+      material_properties.sheen = in_material_properties["sheen"].as<float>();
+    if (in_material_properties["sheen_tint"])
+      material_properties.sheen_tint = in_material_properties["sheen_tint"].as<float>();
+    if (in_material_properties["clear_coat"])
+      material_properties.clear_coat = in_material_properties["clear_coat"].as<float>();
+    if (in_material_properties["clear_coat_roughness"])
+      material_properties.clear_coat_roughness = in_material_properties["clear_coat_roughness"].as<float>();
+    if (in_material_properties["ior"])
+      material_properties.ior = in_material_properties["ior"].as<float>();
+    if (in_material_properties["transmission"])
+      material_properties.transmission = in_material_properties["transmission"].as<float>();
+    if (in_material_properties["transmission_roughness"])
+      material_properties.transmission_roughness = in_material_properties["transmission_roughness"].as<float>();
+    if (in_material_properties["emission"])
+      material_properties.emission = in_material_properties["emission"].as<float>();
+  }
+}
 void Material::Serialize(YAML::Emitter& out) const {
   albedo_texture_.Save("albedo_texture_", out);
   normal_texture_.Save("normal_texture_", out);
@@ -354,27 +412,7 @@ void Material::Serialize(YAML::Emitter& out) const {
   ao_texture_.Save("ao_texture_", out);
 
   draw_settings.Save("draw_settings", out);
-
-  out << YAML::Key << "material_properties.albedo_color" << YAML::Value << material_properties.albedo_color;
-  out << YAML::Key << "material_properties.subsurface_color" << YAML::Value << material_properties.subsurface_color;
-  out << YAML::Key << "material_properties.subsurface_factor" << YAML::Value << material_properties.subsurface_factor;
-  out << YAML::Key << "material_properties.subsurface_radius" << YAML::Value << material_properties.subsurface_radius;
-
-  out << YAML::Key << "material_properties.metallic" << YAML::Value << material_properties.metallic;
-  out << YAML::Key << "material_properties.specular" << YAML::Value << material_properties.specular;
-  out << YAML::Key << "material_properties.specular_tint" << YAML::Value << material_properties.specular_tint;
-  out << YAML::Key << "material_properties.roughness" << YAML::Value << material_properties.roughness;
-  out << YAML::Key << "material_properties.sheen" << YAML::Value << material_properties.sheen;
-  out << YAML::Key << "material_properties.sheen_tint" << YAML::Value << material_properties.sheen_tint;
-  out << YAML::Key << "material_properties.clear_coat" << YAML::Value << material_properties.clear_coat;
-  out << YAML::Key << "material_properties.clear_coat_roughness" << YAML::Value
-      << material_properties.clear_coat_roughness;
-  out << YAML::Key << "material_properties.ior" << YAML::Value << material_properties.ior;
-  out << YAML::Key << "material_properties.transmission" << YAML::Value << material_properties.transmission;
-  out << YAML::Key << "material_properties.transmission_roughness" << YAML::Value
-      << material_properties.transmission_roughness;
-  out << YAML::Key << "material_properties.emission" << YAML::Value << material_properties.emission;
-
+  SaveMaterialProperties("material_properties", material_properties, out);
   out << YAML::Key << "vertex_color_only" << YAML::Value << vertex_color_only;
 }
 
@@ -386,39 +424,7 @@ void Material::Deserialize(const YAML::Node& in) {
   ao_texture_.Load("ao_texture_", in);
 
   draw_settings.Load("draw_settings", in);
-  if (in["material_properties.albedo_color"])
-    material_properties.albedo_color = in["material_properties.albedo_color"].as<glm::vec3>();
-  if (in["material_properties.subsurface_color"])
-    material_properties.subsurface_color = in["material_properties.subsurface_color"].as<glm::vec3>();
-  if (in["material_properties.subsurface_factor"])
-    material_properties.subsurface_factor = in["material_properties.subsurface_factor"].as<float>();
-  if (in["material_properties.subsurface_radius"])
-    material_properties.subsurface_radius = in["material_properties.subsurface_radius"].as<glm::vec3>();
-  if (in["material_properties.metallic"])
-    material_properties.metallic = in["material_properties.metallic"].as<float>();
-  if (in["material_properties.specular"])
-    material_properties.specular = in["material_properties.specular"].as<float>();
-  if (in["material_properties.specular_tint"])
-    material_properties.specular_tint = in["material_properties.specular_tint"].as<float>();
-  if (in["material_properties.roughness"])
-    material_properties.roughness = in["material_properties.roughness"].as<float>();
-  if (in["material_properties.m_sheen"])
-    material_properties.sheen = in["material_properties.sheen"].as<float>();
-  if (in["material_properties.sheen_tint"])
-    material_properties.sheen_tint = in["material_properties.sheen_tint"].as<float>();
-  if (in["material_properties.clear_coat"])
-    material_properties.clear_coat = in["material_properties.clear_coat"].as<float>();
-  if (in["material_properties.clear_coat_roughness"])
-    material_properties.clear_coat_roughness = in["material_properties.clear_coat_roughness"].as<float>();
-  if (in["material_properties.ior"])
-    material_properties.ior = in["material_properties.ior"].as<float>();
-  if (in["material_properties.transmission"])
-    material_properties.transmission = in["material_properties.transmission"].as<float>();
-  if (in["material_properties.transmission_roughness"])
-    material_properties.transmission_roughness = in["material_properties.transmission_roughness"].as<float>();
-  if (in["material_properties.emission"])
-    material_properties.emission = in["material_properties.emission"].as<float>();
-
+  LoadMaterialProperties("material_properties", material_properties, in);
   if (in["vertex_color_only"])
     vertex_color_only = in["vertex_color_only"].as<bool>();
   version_ = 0;

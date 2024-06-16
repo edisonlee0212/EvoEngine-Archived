@@ -91,7 +91,8 @@ void RenderLayer::RenderAllCameras() {
   const auto scene = GetScene();
   if (!scene)
     return;
-  CollectCameras(cameras_);
+  std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
+  CollectCameras(cameras);
   Bound world_bound{};
   total_mesh_triangles_ = 0;
 
@@ -132,7 +133,7 @@ void RenderLayer::RenderAllCameras() {
     editor_layer->MouseEntitySelection();
   }
 
-  CollectDirectionalLights(cameras_);
+  CollectDirectionalLights(cameras);
   CollectPointLights();
   CollectSpotLights();
 
@@ -211,7 +212,7 @@ void RenderLayer::RenderAllCameras() {
 
   PreparePointAndSpotLightShadowMap();
 
-  for (const auto& [cameraGlobalTransform, camera] : cameras_) {
+  for (const auto& [cameraGlobalTransform, camera] : cameras) {
     camera->rendered_ = false;
     if (camera->require_rendering_) {
       RenderToCamera(cameraGlobalTransform, camera);
@@ -358,7 +359,7 @@ void RenderLayer::RenderAllCameras() {
   mesh_draw_indexed_indirect_commands_.clear();
   mesh_draw_mesh_tasks_indirect_commands_.clear();
 
-  cameras_.clear();
+  cameras.clear();
 }
 
 void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
@@ -574,7 +575,7 @@ void RenderLayer::CollectDirectionalLights(
         const auto block_index = camera_index * Graphics::Settings::max_directional_light_size + directional_light_index;
         directional_light_info_blocks_[block_index].direction = glm::vec4(light_dir, 0.0f);
         directional_light_info_blocks_[block_index].diffuse =
-            glm::vec4(dlc->m_diffuse * dlc->diffuse_brightness, dlc->cast_shadow);
+            glm::vec4(dlc->diffuse * dlc->diffuse_brightness, dlc->cast_shadow);
         directional_light_info_blocks_[block_index].m_specular = glm::vec4(0.0f);
         for (int split = 0; split < 4; split++) {
           float split_start = 0;

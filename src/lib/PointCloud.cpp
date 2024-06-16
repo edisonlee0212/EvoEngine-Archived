@@ -138,23 +138,23 @@ bool PointCloud::Load(const PointCloudLoadSettings& settings, const std::filesys
       if (vertices->t == tinyply::Type::FLOAT64) {
         std::vector<glm::dvec3> tmp_points;
         tmp_points.resize(vertices->count);
-        this->points.resize(vertices->count);
+        this->positions.resize(vertices->count);
         std::memcpy(tmp_points.data(), vertices->buffer.get(), num_vertices_bytes);
         for (int i = 0; i < vertices->count; i++) {
-          this->points[i].x = tmp_points[i].x;
-          this->points[i].y = tmp_points[i].y;
-          this->points[i].z = tmp_points[i].z;
+          this->positions[i].x = tmp_points[i].x;
+          this->positions[i].y = tmp_points[i].y;
+          this->positions[i].z = tmp_points[i].z;
         }
       } else if (vertices->t == tinyply::Type::FLOAT32) {
         std::vector<glm::vec3> tmp_points;
         tmp_points.resize(vertices->count);
-        this->points.resize(vertices->count);
+        this->positions.resize(vertices->count);
         std::memcpy(tmp_points.data(), vertices->buffer.get(), num_vertices_bytes);
 
         for (int i = 0; i < vertices->count; i++) {
-          this->points[i].x = tmp_points[i].x;
-          this->points[i].y = tmp_points[i].y;
-          this->points[i].z = tmp_points[i].z;
+          this->positions[i].x = tmp_points[i].x;
+          this->positions[i].y = tmp_points[i].y;
+          this->positions[i].z = tmp_points[i].z;
         }
       }
     }
@@ -204,7 +204,7 @@ bool PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   ImGui::Text("Has Normals: %s", (has_normals ? "True" : "False"));
   if (ImGui::DragScalarN("Offset", ImGuiDataType_Double, &offset.x, 3))
     changed = true;
-  ImGui::Text(("Original amount: " + std::to_string(points.size())).c_str());
+  ImGui::Text(("Original amount: " + std::to_string(positions.size())).c_str());
   if (ImGui::DragFloat("Point size", &point_size, 0.01f, 0.01f, 100.0f))
     changed = true;
   if (ImGui::DragFloat("Compress factor", &compress_factor, 0.001f, 0.0001f, 10.0f))
@@ -238,8 +238,8 @@ bool PointCloud::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
                         }
                       },
                       false);
-  if (ImGui::Button("Clear all points")) {
-    points.clear();
+  if (ImGui::Button("Clear all positions")) {
+    positions.clear();
     changed = true;
   }
 
@@ -326,14 +326,14 @@ void PointCloud::Compress(std::vector<glm::dvec3>& points) {
   }
 }
 void PointCloud::RecalculateBoundingBox() {
-  if (points.empty()) {
+  if (positions.empty()) {
     min_ = glm::vec3(0.0f);
     max_ = glm::vec3(0.0f);
     return;
   }
   auto min_bound = glm::dvec3(INT_MAX);
   auto max_bound = glm::dvec3(-INT_MAX);
-  for (const auto& i : points) {
+  for (const auto& i : positions) {
     min_bound = glm::vec3((glm::min)(min_bound.x, i.x), (glm::min)(min_bound.y, i.y), (glm::min)(min_bound.z, i.z));
     max_bound = glm::vec3((glm::max)(max_bound.x, i.x), (glm::max)(max_bound.y, i.y), (glm::max)(max_bound.z, i.z));
   }
@@ -341,8 +341,8 @@ void PointCloud::RecalculateBoundingBox() {
   min_ = min_bound;
 
   auto avg = glm::dvec3(0);
-  for (const auto& i : points) {
-    avg += i / static_cast<double>(points.size());
+  for (const auto& i : positions) {
+    avg += i / static_cast<double>(positions.size());
   }
   offset = -min_;
 }
@@ -351,10 +351,10 @@ void PointCloud::Serialize(YAML::Emitter& out) const {
   out << YAML::Key << "point_size" << point_size;
   out << YAML::Key << "compress_factor" << compress_factor;
   out << YAML::Key << "min_" << min_;
-  out << YAML::Key << "max" << max_;
-  if (!points.empty()) {
-    out << YAML::Key << "points" << YAML::Value
-        << YAML::Binary((const unsigned char*)points.data(), points.size() * sizeof(glm::dvec3));
+  out << YAML::Key << "max_" << max_;
+  if (!positions.empty()) {
+    out << YAML::Key << "positions" << YAML::Value
+        << YAML::Binary((const unsigned char*)positions.data(), positions.size() * sizeof(glm::dvec3));
   }
   if (!normals.empty()) {
     out << YAML::Key << "normals" << YAML::Value
@@ -368,17 +368,19 @@ void PointCloud::Serialize(YAML::Emitter& out) const {
 void PointCloud::Deserialize(const YAML::Node& in) {
   if (in["offset"])
     offset = in["offset"].as<glm::dvec3>();
-  point_size = in["point_size"].as<float>();
-  compress_factor = in["compress_factor"].as<float>();
+  if (in["point_size"])
+    point_size = in["point_size"].as<float>();
+  if (in["compress_factor"])
+    compress_factor = in["compress_factor"].as<float>();
   if (in["min_"])
     min_ = in["min_"].as<glm::dvec3>();
   if (in["max_"])
     max_ = in["max_"].as<glm::dvec3>();
-  if (in["points"]) {
+  if (in["positions"]) {
     has_positions = true;
-    auto vertex_data = in["points"].as<YAML::Binary>();
-    points.resize(vertex_data.size() / sizeof(glm::dvec3));
-    std::memcpy(points.data(), vertex_data.data(), vertex_data.size());
+    auto vertex_data = in["positions"].as<YAML::Binary>();
+    positions.resize(vertex_data.size() / sizeof(glm::dvec3));
+    std::memcpy(positions.data(), vertex_data.data(), vertex_data.size());
   } else {
     has_positions = false;
   }
@@ -391,8 +393,17 @@ void PointCloud::Deserialize(const YAML::Node& in) {
   } else {
     has_colors = false;
   }
+
+  if (in["normals"]) {
+    has_normals = true;
+    const auto vertex_data = in["normals"].as<YAML::Binary>();
+    normals.resize(vertex_data.size() / sizeof(glm::vec3));
+    std::memcpy(normals.data(), vertex_data.data(), vertex_data.size());
+  } else {
+    has_normals = false;
+  }
 }
-void PointCloud::ApplyOriginal() {
+void PointCloud::ApplyOriginal() const {
   const auto scene = Application::GetActiveScene();
   const auto owner = scene->CreateEntity("Original Point Cloud");
   const auto particles = scene->GetOrSetPrivateComponent<Particles>(owner).lock();
@@ -401,10 +412,10 @@ void PointCloud::ApplyOriginal() {
   particles->particle_info_list = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
   const auto particle_info_list = particles->particle_info_list.Get<ParticleInfoList>();
   std::vector<ParticleInfo> particle_infos;
-  particle_infos.resize(points.size());
+  particle_infos.resize(positions.size());
   for (int i = 0; i < particle_infos.size(); i++) {
     particle_infos[i].instance_matrix.value =
-        glm::translate((glm::vec3)(points[i] + offset)) * glm::scale(glm::vec3(point_size));
+        glm::translate((glm::vec3)(positions[i] + offset)) * glm::scale(glm::vec3(point_size));
     particle_infos[i].instance_color = colors[i];
   }
   particle_info_list->SetParticleInfos(particle_infos);
@@ -415,8 +426,8 @@ bool PointCloud::Save(const PointCloudSaveSettings& settings, const std::filesys
     PlyFile cube_file;
     if (has_positions) {
       if (settings.double_precision) {
-        cube_file.add_properties_to_element("vertex", {"x", "y", "z"}, Type::FLOAT64, points.size(),
-                                            (uint8_t*)points.data(), Type::INVALID, 0);
+        cube_file.add_properties_to_element("vertex", {"x", "y", "z"}, Type::FLOAT64, positions.size(),
+                                            (uint8_t*)positions.data(), Type::INVALID, 0);
       } else {
         std::vector<glm::vec3> points;
         points.resize(points.size());

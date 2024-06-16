@@ -41,7 +41,7 @@ void Camera::UpdateGBuffer() {
     image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -88,7 +88,7 @@ void Camera::UpdateGBuffer() {
     image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -135,7 +135,7 @@ void Camera::UpdateGBuffer() {
     image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -219,8 +219,8 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& camera_info_block, const Glo
   camera_info_block.inverse_view = glm::inverse(camera_info_block.view);
   camera_info_block.inverse_projection_view =
       glm::inverse(camera_info_block.projection) * glm::inverse(camera_info_block.view);
-  camera_info_block.reserved_parameters1 = glm::vec4(near_distance, far_distance, glm::tan(glm::radians(fov * 0.5f)),
-                                                    glm::tan(glm::radians(fov * 0.25f)));
+  camera_info_block.reserved_parameters1 =
+      glm::vec4(near_distance, far_distance, glm::tan(glm::radians(fov * 0.5f)), glm::tan(glm::radians(fov * 0.25f)));
   camera_info_block.clear_color = glm::vec4(clear_color, 1.0f);
   camera_info_block.reserved_parameters2 = glm::vec4(size_.x, size_.y, static_cast<float>(size_.x) / size_.y, 0.0f);
   if (use_clear_color) {
@@ -296,8 +296,10 @@ void Camera::Resize(const glm::uvec2& size) {
   if (size_ == size)
     return;
   size_ = size;
-  render_texture_->Resize({size_.x, size_.y, 1});
-  UpdateGBuffer();
+  if (render_texture_) {
+    render_texture_->Resize({size_.x, size_.y, 1});
+    UpdateGBuffer();
+  }
 }
 
 void Camera::OnCreate() {
@@ -404,7 +406,8 @@ glm::quat Camera::ProcessMouseMovement(float yaw_angle, float pitch_angle, bool 
   return glm::quatLookAt(front, up);
 }
 
-void Camera::ReverseAngle(const glm::quat& rotation, float& pitch_angle, float& yaw_angle, const bool& constrain_pitch) {
+void Camera::ReverseAngle(const glm::quat& rotation, float& pitch_angle, float& yaw_angle,
+                          const bool& constrain_pitch) {
   const auto angle = glm::degrees(glm::eulerAngles(rotation));
   pitch_angle = angle.x;
   // yawAngle = glm::abs(angle.z) > 90.0f ? 90.0f - angle.y : -90.0f - angle.y;
@@ -455,8 +458,8 @@ Ray Camera::ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mouse_position) con
 }
 
 void Camera::Serialize(YAML::Emitter& out) const {
-  out << YAML::Key << "m_resolutionX" << YAML::Value << size_.x;
-  out << YAML::Key << "m_resolutionY" << YAML::Value << size_.y;
+  out << YAML::Key << "x" << YAML::Value << size_.x;
+  out << YAML::Key << "y" << YAML::Value << size_.y;
   out << YAML::Key << "use_clear_color" << YAML::Value << use_clear_color;
   out << YAML::Key << "clear_color" << YAML::Value << clear_color;
   out << YAML::Key << "near_distance" << YAML::Value << near_distance;
@@ -468,8 +471,8 @@ void Camera::Serialize(YAML::Emitter& out) const {
 }
 
 void Camera::Deserialize(const YAML::Node& in) {
-  int resolution_x = in["m_resolutionX"].as<int>();
-  int resolution_y = in["m_resolutionY"].as<int>();
+  int resolution_x = in["x"].as<int>();
+  int resolution_y = in["y"].as<int>();
   use_clear_color = in["use_clear_color"].as<bool>();
   clear_color = in["clear_color"].as<glm::vec3>();
   near_distance = in["near_distance"].as<float>();

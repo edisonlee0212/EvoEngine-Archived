@@ -92,10 +92,6 @@ void Application::PreUpdateInternal() {
     }
     break;
   }
-
-  if (const auto render_layer = GetLayer<RenderLayer>()) {
-    render_layer->ClearAllCameras();
-  }
 }
 
 void Application::UpdateInternal() {
@@ -188,7 +184,7 @@ void Application::LateUpdateInternal() {
           ProjectManager::GetOrCreateProject(path);
           if (ProjectManager::GetInstance().project_folder_) {
             window_layer->ResizeWindow(application.application_info_.default_window_size.x,
-                                      application.application_info_.default_window_size.y);
+                                       application.application_info_.default_window_size.y);
             application.application_status_ = ApplicationStatus::Stop;
           }
         }
@@ -250,6 +246,9 @@ void Application::LateUpdateInternal() {
     }
     for (auto i = application.layers_.rbegin(); i != application.layers_.rend(); ++i) {
       (*i)->LateUpdate();
+    }
+    if (const auto render_layer = GetLayer<RenderLayer>()) {
+      render_layer->ClearAllCameras();
     }
     if (application.application_status_ == ApplicationStatus::Step)
       application.application_status_ = ApplicationStatus::Pause;
@@ -316,7 +315,7 @@ void Application::Initialize(const ApplicationInfo& application_create_info) {
     if (ProjectManager::GetInstance().project_folder_) {
       if (window_layer) {
         window_layer->ResizeWindow(application.application_info_.default_window_size.x,
-                                  application.application_info_.default_window_size.y);
+                                   application.application_info_.default_window_size.y);
       }
       application.application_status_ = ApplicationStatus::Stop;
     }

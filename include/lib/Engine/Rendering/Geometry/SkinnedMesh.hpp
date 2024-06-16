@@ -50,13 +50,11 @@ class SkinnedMesh : public IAsset, public IGeometry {
   bool SaveInternal(const std::filesystem::path& path) const override;
 
  public:
-  std::vector<std::shared_ptr<Bone>> bones;
   ~SkinnedMesh() override;
   void DrawIndexed(VkCommandBuffer vk_command_buffer, GraphicsPipelineStates& global_pipeline_state,
                    int instances_count) const override;
   void OnCreate() override;
-  void FetchIndices();
-  // Need serialize
+  void FetchIndices(const std::vector<std::shared_ptr<Bone>>& bones);
   std::vector<unsigned> bone_animator_indices;
   bool OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
   [[nodiscard]] glm::vec3 GetCenter() const;

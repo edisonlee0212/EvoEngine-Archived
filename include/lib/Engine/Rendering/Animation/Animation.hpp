@@ -59,7 +59,7 @@ struct Bone {
   std::string name;
   Transform offset_matrix = Transform();
   size_t index;
-  std::vector<std::shared_ptr<Bone>> m_children;
+  std::vector<std::shared_ptr<Bone>> children;
   /* Interpolates b/w positions,rotations & scaling keys based on the current time of the
   animation and prepares the local transformation matrix by combining all keys transformations */
   void Animate(const std::string &name, const float &animation_time, const glm::mat4 &parent_transform,

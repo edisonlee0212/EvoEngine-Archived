@@ -531,7 +531,7 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle) {
       storage.skinned_meshlet_range_descriptor_[skinned_meshlet_range_descriptor_index];
   const uint32_t remove_chunk_size = skinned_meshlet_range_descriptor->range;
   storage.skinned_meshlets_.erase(storage.skinned_meshlets_.begin() + skinned_meshlet_range_descriptor->offset,
-                                  storage.skinned_meshlets_.begin() + remove_chunk_size);
+                                  storage.skinned_meshlets_.begin() + skinned_meshlet_range_descriptor->offset + remove_chunk_size);
   storage.skinned_vertex_data_chunks_.erase(
       storage.skinned_vertex_data_chunks_.begin() + skinned_meshlet_range_descriptor->offset,
       storage.skinned_vertex_data_chunks_.begin() + skinned_meshlet_range_descriptor->offset + remove_chunk_size);

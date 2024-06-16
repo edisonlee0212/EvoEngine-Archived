@@ -71,52 +71,6 @@ bool Animator::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
       }
       ImGui::SliderFloat("Animation time", &current_animation_time_, 0.0f,
                          animation->GetAnimationLength(current_activated_animation_));
-      /*
-      static bool autoPlay = false;
-      if(!Application::IsPlaying()) ImGui::Checkbox("AutoPlay", &autoPlay);
-      static std::weak_ptr<Animator> previousAnimatorPtr;
-      static std::string lastAnimationName = {};
-      static float lastAnimationTime = 0;
-      if (autoPlay) {
-              static float autoPlaySpeed = 30;
-              if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() != this)
-              {
-                      const auto previousAnimator = previousAnimatorPtr.lock();
-                      previousAnimator->Animate(lastAnimationName, lastAnimationTime);
-                      if (animation->HasAnimation(current_activated_animation_)) {
-                              lastAnimationName = current_activated_animation_;
-                              lastAnimationTime = current_animation_time_;
-                      }else
-                      {
-                              lastAnimationName = {};
-                              lastAnimationTime = 0.0f;
-                      }
-                      previousAnimatorPtr = std::dynamic_pointer_cast<Animator>(ProjectManager::GetAsset(GetHandle()));
-              }
-
-              ImGui::DragFloat("AutoPlay Speed", &autoPlaySpeed, 1.0f);
-              if (animation->HasAnimation(current_activated_animation_)) {
-                      current_animation_time_ += Times::DeltaTime() * autoPlaySpeed;
-                      const float animationLength = animation->GetAnimationLength(current_activated_animation_);
-                      if (current_animation_time_ > animationLength)
-                              current_animation_time_ =
-                              glm::mod(current_animation_time_, animationLength);
-              }
-      }else if(!previousAnimatorPtr.expired() && previousAnimatorPtr.lock().get() == this)
-      {
-              const auto previousAnimator = previousAnimatorPtr.lock();
-              previousAnimator->Animate(lastAnimationName, lastAnimationTime);
-              if (animation->HasAnimation(current_activated_animation_)) {
-                      lastAnimationName = current_activated_animation_;
-                      lastAnimationTime = current_animation_time_;
-              }
-              else
-              {
-                      lastAnimationName = {};
-                      lastAnimationTime = 0.0f;
-              }
-              previousAnimatorPtr.reset();
-      }*/
     }
   }
   return changed;
@@ -135,7 +89,7 @@ void Animator::Animate(const std::string& animation_name, const float time) {
     return;
   const auto search = animation->UnsafeGetAnimationLengths().find(animation_name);
   if (search == animation->UnsafeGetAnimationLengths().end()) {
-    EVOENGINE_ERROR("Animation not found!");
+    EVOENGINE_ERROR("Animation not found!")
     return;
   }
   current_activated_animation_ = animation_name;
@@ -164,7 +118,7 @@ void Animator::Apply() {
 void Animator::BoneSetter(const std::shared_ptr<Bone>& bone_walker) {
   names_[bone_walker->index] = bone_walker->name;
   bones_[bone_walker->index] = bone_walker;
-  for (auto& i : bone_walker->m_children) {
+  for (auto& i : bone_walker->children) {
     BoneSetter(i);
   }
 }

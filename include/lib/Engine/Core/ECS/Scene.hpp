@@ -66,6 +66,8 @@ class Scene final : public IAsset {
   std::map<Handle, std::shared_ptr<ISystem>> mapped_systems_;
   Bound world_bound_;
   void SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out) const;
+  void DeserializeDataComponentStorage(size_t storage_index, DataComponentStorage& data_component_storage, const YAML::Node& in);
+
   static void SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitter& out);
 #pragma region Entity Management
   void DeleteEntityInternal(unsigned entity_index);

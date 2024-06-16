@@ -32,7 +32,8 @@ class Prefab : public IAsset {
   bool enabled_ = true;
 #pragma region Model Loading
   static void AttachAnimator(Prefab* parent, const Handle& animator_entity_handle);
-  static void ApplyBoneIndices(Prefab* node);
+  static void ApplyBoneIndices(const std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
+                               Prefab* node);
   static void AttachChildren(const std::shared_ptr<Scene>& scene, const std::shared_ptr<Prefab>& model_node,
                              Entity parent_entity, std::unordered_map<Handle, Handle>& map);
 

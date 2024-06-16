@@ -6,7 +6,7 @@ namespace evo_engine {
 class Texture2DStorage;
 struct TextureStorageHandle;
 
-enum class TextureColorType { Red = 1, RG = 2, RGB = 3, RGBA = 4 };
+enum class TextureColorType { Red = 1, Rg = 2, Rgb = 3, Rgba = 4 };
 
 class Texture2D : public IAsset {
   friend class EditorLayer;
@@ -44,7 +44,7 @@ class Texture2D : public IAsset {
 
   void Serialize(YAML::Emitter& out) const override;
   void Deserialize(const YAML::Node& in) override;
-  bool m_hdr = false;
+  bool hdr = false;
   Texture2D();
   const Texture2DStorage& PeekTexture2DStorage() const;
   Texture2DStorage& RefTexture2DStorage() const;

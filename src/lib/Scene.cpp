@@ -295,8 +295,8 @@ void Scene::Serialize(YAML::Emitter& out) const {
     out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
     for (auto& i : asset_map) {
       out << YAML::BeginMap;
-      out << YAML::Key << "m_typeName" << YAML::Value << i.second->GetTypeName();
-      out << YAML::Key << "m_handle" << YAML::Value << i.second->GetHandle();
+      out << YAML::Key << "type_name" << YAML::Value << i.second->GetTypeName();
+      out << YAML::Key << "handle" << YAML::Value << i.second->GetHandle();
       i.second->Serialize(out);
       out << YAML::EndMap;
     }
@@ -340,16 +340,16 @@ void Scene::Deserialize(const YAML::Node& in) {
   current_index = 1;
   for (const auto& in_entity_metadata : in_entity_metadata_list) {
     auto& metadata = scene_data_storage_.entity_metadata_list[current_index];
-    if (in_entity_metadata["Parent.Handle"]) {
-      metadata.parent = scene_data_storage_.entity_map[Handle(in_entity_metadata["Parent.Handle"].as<uint64_t>())];
+    if (in_entity_metadata["p"]) {
+      metadata.parent = scene_data_storage_.entity_map[Handle(in_entity_metadata["p"].as<uint64_t>())];
       auto& parent_metadata = scene_data_storage_.entity_metadata_list[metadata.parent.index_];
       Entity entity;
       entity.version_ = 1;
       entity.index_ = current_index;
       parent_metadata.children.push_back(entity);
     }
-    if (in_entity_metadata["Root.Handle"])
-      metadata.root = scene_data_storage_.entity_map[Handle(in_entity_metadata["Root.Handle"].as<uint64_t>())];
+    if (in_entity_metadata["r"])
+      metadata.root = scene_data_storage_.entity_map[Handle(in_entity_metadata["r"].as<uint64_t>())];
     current_index++;
   }
 #pragma endregion
@@ -360,65 +360,20 @@ void Scene::Deserialize(const YAML::Node& in) {
   for (const auto& in_data_component_storage : in_data_component_storages) {
     scene_data_storage_.data_component_storage_list.emplace_back();
     auto& data_component_storage = scene_data_storage_.data_component_storage_list.back();
-    data_component_storage.entity_size = in_data_component_storage["entity_size"].as<size_t>();
-    data_component_storage.chunk_capacity = in_data_component_storage["chunk_capacity"].as<size_t>();
-    data_component_storage.entity_alive_count = data_component_storage.entity_count =
-        in_data_component_storage["entity_alive_count"].as<size_t>();
-    data_component_storage.chunk_array.entity_array.resize(data_component_storage.entity_alive_count);
-    const size_t chunk_size = data_component_storage.entity_count / data_component_storage.chunk_capacity + 1;
-    while (data_component_storage.chunk_array.chunk_array.size() <= chunk_size) {
-      // Allocate new chunk;
-      ComponentDataChunk chunk = {};
-      chunk.chunk_data = calloc(1, Entities::GetArchetypeChunkSize());
-      data_component_storage.chunk_array.chunk_array.push_back(chunk);
-    }
-    auto in_data_component_types = in_data_component_storage["data_component_types"];
-    for (const auto& in_data_component_type : in_data_component_types) {
-      DataComponentType data_component_type;
-      data_component_type.type_name = in_data_component_type["type_name"].as<std::string>();
-      data_component_type.type_size = in_data_component_type["type_size"].as<size_t>();
-      data_component_type.type_offset = in_data_component_type["type_offset"].as<size_t>();
-      data_component_type.type_index = Serialization::GetDataComponentTypeId(data_component_type.type_name);
-      data_component_storage.data_component_types.push_back(data_component_type);
-    }
-    auto in_data_chunk_array = in_data_component_storage["chunk_array"];
-    int chunk_array_index = 0;
-    for (const auto& entity_data_component : in_data_chunk_array) {
-      Handle handle = entity_data_component["m_handle"].as<uint64_t>();
-      Entity entity = scene_data_storage_.entity_map[handle];
-      data_component_storage.chunk_array.entity_array[chunk_array_index] = entity;
-      auto& metadata = scene_data_storage_.entity_metadata_list[entity.index_];
-      metadata.data_component_storage_index = storage_index;
-      metadata.chunk_array_index = chunk_array_index;
-      const auto chunk_index = metadata.chunk_array_index / data_component_storage.chunk_capacity;
-      const auto chunk_pointer = metadata.chunk_array_index % data_component_storage.chunk_capacity;
-      const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
-
-      int type_index = 0;
-      for (const auto& in_data_component : entity_data_component["DataComponents"]) {
-        auto& type = data_component_storage.data_component_types[type_index];
-        auto data = in_data_component["Data"].as<YAML::Binary>();
-        std::memcpy(chunk.GetDataPointer(type.type_offset * data_component_storage.chunk_capacity +
-                                         chunk_pointer * type.type_size),
-                    data.data(), data.size());
-        type_index++;
-      }
-
-      chunk_array_index++;
-    }
+    DeserializeDataComponentStorage(storage_index, data_component_storage, in_data_component_storage);
     storage_index++;
   }
   auto self = std::dynamic_pointer_cast<Scene>(GetSelf());
 #pragma endregion
   main_camera.Load("main_camera", in, self);
 #pragma region Assets
+  std::vector<std::pair<int, std::shared_ptr<IAsset>>> local_assets;
   if (const auto in_local_assets = in["LocalAssets"]) {
-    std::vector<std::pair<int, std::shared_ptr<IAsset>>> local_assets;
     int index = 0;
     for (const auto& i : in_local_assets) {
       // First, find the asset in assetregistry
-      if (const auto type_name = i["m_typeName"].as<std::string>(); Serialization::HasSerializableType(type_name)) {
-        auto asset = ProjectManager::CreateTemporaryAsset(type_name, i["m_handle"].as<uint64_t>());
+      if (const auto type_name = i["type_name"].as<std::string>(); Serialization::HasSerializableType(type_name)) {
+        auto asset = ProjectManager::CreateTemporaryAsset(type_name, i["handle"].as<uint64_t>());
         local_assets.emplace_back(index, asset);
       }
       index++;
@@ -428,7 +383,9 @@ void Scene::Deserialize(const YAML::Node& in) {
       i.second->Deserialize(in_local_assets[i.first]);
     }
   }
-
+#ifdef _DEBUG
+  EVOENGINE_LOG(std::string("Scene Deserialization: Loaded " + std::to_string(local_assets.size()) + " assets."))
+#endif
 #pragma endregion
   if (in["environment"])
     environment.Deserialize(in["environment"]);
@@ -436,13 +393,13 @@ void Scene::Deserialize(const YAML::Node& in) {
   for (const auto& in_entity_info : in_entity_metadata_list) {
     auto& entity_metadata = scene_data_storage_.entity_metadata_list.at(entity_index);
     auto entity = scene_data_storage_.entities[entity_index];
-    if (auto in_private_components = in_entity_info["private_component_elements"]) {
+    if (auto in_private_components = in_entity_info["pc"]) {
       for (const auto& in_private_component : in_private_components) {
-        const auto name = in_private_component["m_typeName"].as<std::string>();
+        const auto name = in_private_component["tn"].as<std::string>();
         size_t hash_code;
         if (Serialization::HasSerializableType(name)) {
           auto ptr = std::static_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(name, hash_code));
-          ptr->enabled_ = in_private_component["enabled_"].as<bool>();
+          ptr->enabled_ = in_private_component["e"].as<bool>();
           ptr->started_ = false;
           scene_data_storage_.entity_private_component_storage.SetPrivateComponent(entity, hash_code);
           entity_metadata.private_component_elements.emplace_back(hash_code, ptr, entity, self);
@@ -465,7 +422,7 @@ void Scene::Deserialize(const YAML::Node& in) {
     std::vector<std::pair<int, std::shared_ptr<ISystem>>> systems;
     int index = 0;
     for (const auto& in_system : in_systems) {
-      if (const auto type_name = in_system["m_typeName"].as<std::string>();
+      if (const auto type_name = in_system["type_name"].as<std::string>();
           Serialization::HasSerializableType(type_name)) {
         size_t hash_code;
         if (const auto ptr =
@@ -487,14 +444,15 @@ void Scene::Deserialize(const YAML::Node& in) {
 #pragma endregion
 
     entity_index = 1;
-    for (const auto& in_entity_info : in_entity_metadata_list) {
+    for (const auto& in_entity_metadata : in_entity_metadata_list) {
       auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity_index);
-      if (auto in_private_components = in_entity_info["private_component_elements"]) {
+      if (auto in_private_components = in_entity_metadata["pc"]) {
         int component_index = 0;
         for (const auto& in_private_component : in_private_components) {
-          auto name = in_private_component["m_typeName"].as<std::string>();
+          auto name = in_private_component["tn"].as<std::string>();
           auto ptr = entity_info.private_component_elements[component_index].private_component_data;
           ptr->Deserialize(in_private_component);
+          ptr->enabled_ = in_private_component["e"].as<bool>();
           component_index++;
         }
       }
@@ -530,7 +488,7 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
 
       out << YAML::BeginMap;
       auto& entity_info = scene_data_storage_.entity_metadata_list.at(entity.index_);
-      out << YAML::Key << "entity_handle" << YAML::Value << entity_info.entity_handle;
+      out << YAML::Key << "h" << YAML::Value << entity_info.entity_handle;
 
       auto& data_component_storage =
           scene_data_storage_.data_component_storage_list[entity_info.data_component_storage_index];
@@ -538,10 +496,10 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
       const auto chunk_pointer = entity_info.chunk_array_index % data_component_storage.chunk_capacity;
       const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
 
-      out << YAML::Key << "DataComponents" << YAML::Value << YAML::BeginSeq;
+      out << YAML::Key << "dc" << YAML::Value << YAML::BeginSeq;
       for (const auto& type : data_component_storage.data_component_types) {
         out << YAML::BeginMap;
-        out << YAML::Key << "Data" << YAML::Value
+        out << YAML::Key << "d" << YAML::Value
             << YAML::Binary(
                    (const unsigned char*)chunk.GetDataPointer(type.type_offset * data_component_storage.chunk_capacity +
                                                               chunk_pointer * type.type_size),
@@ -556,10 +514,66 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
   }
   out << YAML::EndMap;
 }
+
+void Scene::DeserializeDataComponentStorage(const size_t storage_index, DataComponentStorage& data_component_storage,
+                                            const YAML::Node& in) {
+  if (in["entity_size"])
+    data_component_storage.entity_size = in["entity_size"].as<size_t>();
+  if (in["chunk_capacity"])
+    data_component_storage.chunk_capacity = in["chunk_capacity"].as<size_t>();
+  if (in["entity_alive_count"])
+    data_component_storage.entity_alive_count = data_component_storage.entity_count =
+        in["entity_alive_count"].as<size_t>();
+  data_component_storage.chunk_array.entity_array.resize(data_component_storage.entity_alive_count);
+  const size_t chunk_size = data_component_storage.entity_count / data_component_storage.chunk_capacity + 1;
+  while (data_component_storage.chunk_array.chunk_array.size() <= chunk_size) {
+    // Allocate new chunk;
+    ComponentDataChunk chunk = {};
+    chunk.chunk_data = calloc(1, Entities::GetArchetypeChunkSize());
+    data_component_storage.chunk_array.chunk_array.push_back(chunk);
+  }
+  auto in_data_component_types = in["data_component_types"];
+  for (const auto& in_data_component_type : in_data_component_types) {
+    DataComponentType data_component_type;
+    if (in_data_component_type["type_name"])
+      data_component_type.type_name = in_data_component_type["type_name"].as<std::string>();
+    if (in_data_component_type["type_size"])
+      data_component_type.type_size = in_data_component_type["type_size"].as<size_t>();
+    if (in_data_component_type["type_offset"])
+      data_component_type.type_offset = in_data_component_type["type_offset"].as<size_t>();
+    data_component_type.type_index = Serialization::GetDataComponentTypeId(data_component_type.type_name);
+    data_component_storage.data_component_types.push_back(data_component_type);
+  }
+  auto in_data_chunk_array = in["chunk_array"];
+  int chunk_array_index = 0;
+  for (const auto& entity_data_component : in_data_chunk_array) {
+    Handle handle = entity_data_component["h"].as<uint64_t>();
+    const Entity entity = scene_data_storage_.entity_map[handle];
+    data_component_storage.chunk_array.entity_array[chunk_array_index] = entity;
+    auto& metadata = scene_data_storage_.entity_metadata_list[entity.index_];
+    metadata.data_component_storage_index = storage_index;
+    metadata.chunk_array_index = chunk_array_index;
+    const auto chunk_index = metadata.chunk_array_index / data_component_storage.chunk_capacity;
+    const auto chunk_pointer = metadata.chunk_array_index % data_component_storage.chunk_capacity;
+    const auto chunk = data_component_storage.chunk_array.chunk_array[chunk_index];
+
+    int type_index = 0;
+    for (const auto& in_data_component : entity_data_component["dc"]) {
+      auto& type = data_component_storage.data_component_types[type_index];
+      auto data = in_data_component["d"].as<YAML::Binary>();
+      std::memcpy(chunk.GetDataPointer(type.type_offset * data_component_storage.chunk_capacity +
+                                       chunk_pointer * type.type_size),
+                  data.data(), data.size());
+      type_index++;
+    }
+    chunk_array_index++;
+  }
+}
+
 void Scene::SerializeSystem(const std::shared_ptr<ISystem>& system, YAML::Emitter& out) {
   out << YAML::BeginMap;
   {
-    out << YAML::Key << "m_typeName" << YAML::Value << system->GetTypeName();
+    out << YAML::Key << "type_name" << YAML::Value << system->GetTypeName();
     out << YAML::Key << "enabled_" << YAML::Value << system->enabled_;
     out << YAML::Key << "rank_" << YAML::Value << system->rank_;
     out << YAML::Key << "handle_" << YAML::Value << system->handle_;

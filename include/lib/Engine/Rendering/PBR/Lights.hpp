@@ -16,7 +16,7 @@ struct DirectionalLightInfo {
 class DirectionalLight : public IPrivateComponent {
  public:
   bool cast_shadow = true;
-  glm::vec3 m_diffuse = glm::vec3(1.0f);
+  glm::vec3 diffuse = glm::vec3(1.0f);
   float diffuse_brightness = 1.f;
   float bias = 0.1f;
   float normal_offset = 0.05f;

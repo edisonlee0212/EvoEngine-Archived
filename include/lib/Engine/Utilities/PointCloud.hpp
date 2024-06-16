@@ -24,7 +24,7 @@ class PointCloud : public IAsset {
   bool has_positions = false;
   bool has_normals = false;
   bool has_colors = false;
-  std::vector<glm::dvec3> points;
+  std::vector<glm::dvec3> positions;
   std::vector<glm::dvec3> normals;
   std::vector<glm::vec4> colors;
   float point_size = 0.01f;
@@ -36,7 +36,7 @@ class PointCloud : public IAsset {
   bool OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
   void Compress(std::vector<glm::dvec3>& points);
   void ApplyCompressed();
-  void ApplyOriginal();
+  void ApplyOriginal() const;
   void RecalculateBoundingBox();
   static void Crop(std::vector<glm::dvec3>& points, const glm::dvec3& min, const glm::dvec3& max);
   void Serialize(YAML::Emitter& out) const override;

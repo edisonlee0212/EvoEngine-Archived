@@ -51,13 +51,13 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path) {
     Deserialize(in);
     return true;
   }
-  m_hdr = false;
+  hdr = false;
   if (path.extension() == ".hdr")
-    m_hdr = true;
+    hdr = true;
   stbi_set_flip_vertically_on_load(true);
   int width, height, nr_components;
 
-  float actual_gamma = m_hdr ? 2.2f : 1.f;
+  float actual_gamma = hdr ? 2.2f : 1.f;
 
   stbi_hdr_to_ldr_gamma(actual_gamma);
   stbi_ldr_to_hdr_gamma(actual_gamma);
@@ -119,17 +119,17 @@ void Texture2D::ApplyOpacityMap(const std::shared_ptr<Texture2D>& target) {
 void Texture2D::Serialize(YAML::Emitter& out) const {
   std::vector<glm::vec4> pixels;
   GetRgbaChannelData(pixels);
-  out << YAML::Key << "m_hdr" << YAML::Value << m_hdr;
+  out << YAML::Key << "hdr" << YAML::Value << hdr;
 
   out << YAML::Key << "red_channel" << YAML::Value << red_channel;
   out << YAML::Key << "green_channel" << YAML::Value << green_channel;
   out << YAML::Key << "blue_channel" << YAML::Value << blue_channel;
   out << YAML::Key << "alpha_channel" << YAML::Value << alpha_channel;
   auto resolution = GetResolution();
-  out << YAML::Key << "m_resolution" << YAML::Value << resolution;
+  out << YAML::Key << "resolution" << YAML::Value << resolution;
   if (resolution.x != 0 && resolution.y != 0) {
-    if (m_hdr) {
-      Serialization::SerializeVector("m_pixels", pixels, out);
+    if (hdr) {
+      Serialization::SerializeVector("pixels", pixels, out);
     } else {
       std::vector<unsigned char> transferred_pixels;
       size_t target_channel_size = 0;
@@ -149,7 +149,7 @@ void Texture2D::Serialize(YAML::Emitter& out) const {
               static_cast<unsigned char>(glm::clamp(pixels[i][channel] * 255.9f, 0.f, 255.f));
         }
       });
-      Serialization::SerializeVector("m_pixels", transferred_pixels, out);
+      Serialization::SerializeVector("pixels", transferred_pixels, out);
     }
   }
 }
@@ -167,15 +167,15 @@ void Texture2D::Deserialize(const YAML::Node& in) {
   if (in["alpha_channel"])
     alpha_channel = in["alpha_channel"].as<bool>();
 
-  if (in["m_hdr"])
-    m_hdr = in["m_hdr"].as<bool>();
+  if (in["hdr"])
+    hdr = in["hdr"].as<bool>();
 
-  if (in["m_resolution"])
-    resolution = in["m_resolution"].as<glm::ivec2>();
+  if (in["resolution"])
+    resolution = in["resolution"].as<glm::ivec2>();
 
   if (resolution.x != 0 && resolution.y != 0) {
-    if (m_hdr) {
-      Serialization::DeserializeVector("m_pixels", pixels, in);
+    if (hdr) {
+      Serialization::DeserializeVector("pixels", pixels, in);
       SetRgbaChannelData(pixels, resolution);
     } else {
       size_t target_channel_size = 0;
@@ -190,7 +190,7 @@ void Texture2D::Deserialize(const YAML::Node& in) {
 
       std::vector<unsigned char> transferred_pixels;
 
-      Serialization::DeserializeVector("m_pixels", transferred_pixels, in);
+      Serialization::DeserializeVector("pixels", transferred_pixels, in);
       transferred_pixels.resize(resolution.x * resolution.y * target_channel_size);
       pixels.resize(resolution.x * resolution.y);
 

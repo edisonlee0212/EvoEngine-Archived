@@ -74,7 +74,7 @@ void AssimpImportNode::AttachToAnimator(const std::shared_ptr<Animation>& animat
 }
 void AssimpImportNode::AttachChild(const std::shared_ptr<Bone>& parent, size_t& index) const {
   bone->index = index;
-  parent->m_children.push_back(bone);
+  parent->children.push_back(bone);
   for (auto& i : child_nodes) {
     index += 1;
     i->AttachChild(bone, index);
@@ -156,8 +156,9 @@ void ReadAnimations(const aiScene* importer_scene, const std::shared_ptr<Animati
     animator->animation_length[animation_name] = max_animation_time_stamp;
   }
 }
-std::shared_ptr<Texture2D> CollectTexture(const std::string& directory, const std::string& path,
-                                          std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures) {
+std::shared_ptr<Texture2D> CollectTexture(
+    const std::string& directory, const std::string& path,
+    std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures) {
   const auto full_path_str = directory + "\\" + path;
   std::string full_path = std::filesystem::absolute(std::filesystem::path(full_path_str)).string();
   if (!std::filesystem::exists(full_path)) {
@@ -175,14 +176,14 @@ std::shared_ptr<Texture2D> CollectTexture(const std::string& directory, const st
   if (!std::filesystem::exists(full_path)) {
     const auto base_dir = std::filesystem::absolute(directory);
     full_path = std::filesystem::absolute(base_dir.parent_path().parent_path() / "textures" /
-                                         std::filesystem::path(path).filename().string())
-                   .string();
+                                          std::filesystem::path(path).filename().string())
+                    .string();
   }
   if (!std::filesystem::exists(full_path)) {
     const auto base_dir = std::filesystem::absolute(directory);
     full_path = std::filesystem::absolute(base_dir.parent_path().parent_path() / "texture" /
-                                         std::filesystem::path(path).filename().string())
-                   .string();
+                                          std::filesystem::path(path).filename().string())
+                    .string();
   }
   if (!std::filesystem::exists(full_path)) {
     return Resources::GetResource<Texture2D>("TEXTURE_MISSING");
@@ -201,10 +202,10 @@ std::shared_ptr<Texture2D> CollectTexture(const std::string& directory, const st
   loaded_textures[full_path] = texture_2d;
   return texture_2d;
 }
-auto ReadMaterial(
-    const std::string& directory, std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures,
-    std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
-    const aiMaterial* importer_material) -> std::shared_ptr<Material> {
+auto ReadMaterial(const std::string& directory,
+                  std::unordered_map<std::string, std::shared_ptr<Texture2D>>& loaded_textures,
+                  std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
+                  const aiMaterial* importer_material) -> std::shared_ptr<Material> {
   auto target_material = ProjectManager::CreateTemporaryAsset<Material>();
   if (importer_material) {
     // PBR
@@ -263,7 +264,7 @@ auto ReadMaterial(
 
       opacity_maps.emplace_back(albedo_texture, opacity_texture);
     }
-    
+
     int unknown_texture_size = 0;
     if (importer_material->GetTextureCount(aiTextureType_EMISSIVE) > 0) {
       unknown_texture_size++;
@@ -372,7 +373,7 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importer_mesh) {
   // now walk through each of the mesh's _Faces (a face is a mesh its triangle) and retrieve the corresponding vertex
   // indices.
   for (int i = 0; i < importer_mesh->mNumFaces; i++) {
-    assert(importerMesh->mFaces[i].mNumIndices == 3);
+    assert(importer_mesh->mFaces[i].mNumIndices == 3);
     // retrieve all indices of the face and store them in the indices vector
     for (int j = 0; j < 3; j++)
       indices.push_back(importer_mesh->mFaces[i].mIndices[j]);
@@ -381,7 +382,8 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importer_mesh) {
   mesh->SetVertices(attributes, vertices, indices);
   return mesh;
 }
-std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map,
+std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists, 
+                                          std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map,
                                              aiMesh* importer_mesh) {
   SkinnedVertexAttributes skinned_vertex_attributes{};
   std::vector<SkinnedVertex> vertices;
@@ -435,7 +437,7 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
   // now walk through each of the mesh's _Faces (a face is a mesh its triangle) and retrieve the corresponding vertex
   // indices.
   for (int i = 0; i < importer_mesh->mNumFaces; i++) {
-    assert(importerMesh->mFaces[i].mNumIndices == 3);
+    assert(importer_mesh->mFaces[i].mNumIndices == 3);
     // retrieve all indices of the face and store them in the indices vector
     for (int j = 0; j < 3; j++)
       indices.push_back(importer_mesh->mFaces[i].mIndices[j]);
@@ -453,13 +455,14 @@ std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<std::string, std
       bone->name = name;
       bone->offset_matrix.value = Mat4Cast(importer_bone->mOffsetMatrix);
       bones_map[name] = bone;
-      skinned_mesh->bones.push_back(bone);
+      bones_lists[skinned_mesh->GetHandle()].push_back(bone);
     } else {
-      skinned_mesh->bones.push_back(search->second);
+      bones_lists[skinned_mesh->GetHandle()].push_back(search->second);
     }
 
     for (int j = 0; j < importer_bone->mNumWeights; j++) {
-      vertices_bone_id_weights[importer_bone->mWeights[j].mVertexId].emplace_back(i, importer_bone->mWeights[j].mWeight);
+      vertices_bone_id_weights[importer_bone->mWeights[j].mVertexId].emplace_back(i,
+                                                                                  importer_bone->mWeights[j].mWeight);
     }
   }
   for (unsigned i = 0; i < vertices_bone_id_weights.size(); i++) {
@@ -515,9 +518,10 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
                  std::unordered_map<unsigned, std::shared_ptr<Material>>& loaded_materials,
                  std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture_2ds_loaded,
                  std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
+                std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
                  std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map, const aiNode* importer_node,
-                 const std::shared_ptr<AssimpImportNode>& assimp_node, const aiScene* importer_scene,
-                 const std::shared_ptr<Animation>& animation) -> bool {
+                 const std::shared_ptr<AssimpImportNode>& assimp_node,
+                 const aiScene* importer_scene, const std::shared_ptr<Animation>& animation) -> bool {
   bool added_mesh_renderer = false;
   for (unsigned i = 0; i < importer_node->mNumMeshes; i++) {
     // the modelNode object only contains indices to index the actual objects in the scene.
@@ -543,7 +547,7 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
     if (is_skinned_mesh) {
       auto skinned_mesh_renderer = Serialization::ProduceSerializable<SkinnedMeshRenderer>();
       skinned_mesh_renderer->material.Set<Material>(material);
-      skinned_mesh_renderer->skinned_mesh.Set<SkinnedMesh>(ReadSkinnedMesh(bones_map, importer_mesh));
+      skinned_mesh_renderer->skinned_mesh.Set<SkinnedMesh>(ReadSkinnedMesh(bones_lists, bones_map, importer_mesh));
       if (!skinned_mesh_renderer->skinned_mesh.Get())
         continue;
       added_mesh_renderer = true;
@@ -581,8 +585,9 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
     child_node->instance_name = std::string(importer_node->mChildren[i]->mName.C_Str());
     auto child_assimp_node = std::make_shared<AssimpImportNode>(importer_node->mChildren[i]);
     child_assimp_node->parent_node = assimp_node;
-    const bool child_add = ProcessNode(directory, child_node.get(), loaded_materials, texture_2ds_loaded, opacity_maps,
-                                      bones_map, importer_node->mChildren[i], child_assimp_node, importer_scene, animation);
+    const bool child_add =
+        ProcessNode(directory, child_node.get(), loaded_materials, texture_2ds_loaded, opacity_maps, bones_lists, bones_map,
+                    importer_node->mChildren[i], child_assimp_node, importer_scene, animation);
     if (child_add) {
       model_node->child_prefabs.push_back(std::move(child_node));
     }
@@ -592,7 +597,16 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
   return added_mesh_renderer;
 }
 #pragma endregion
-
+void Prefab::ApplyBoneIndices(const std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
+                              Prefab* node) {
+  if (const auto skinned_mesh_renderer = node->GetPrivateComponent<SkinnedMeshRenderer>()) {
+    const auto skinned_mesh = skinned_mesh_renderer->skinned_mesh.Get<SkinnedMesh>();
+    skinned_mesh->FetchIndices(bones_lists.at(skinned_mesh->GetHandle()));
+  }
+  for (auto& i : node->child_prefabs) {
+    ApplyBoneIndices(bones_lists, i.get());
+  }
+}
 #pragma region Model Loading
 void Prefab::AttachChildrenPrivateComponent(const std::shared_ptr<Scene>& scene,
                                             const std::shared_ptr<Prefab>& model_node, const Entity& parent_entity,
@@ -652,15 +666,7 @@ void Prefab::AttachAnimator(Prefab* parent, const Handle& animator_entity_handle
     AttachAnimator(i.get(), animator_entity_handle);
   }
 }
-void Prefab::ApplyBoneIndices(Prefab* node) {
-  if (const auto skinned_mesh_renderer = node->GetPrivateComponent<SkinnedMeshRenderer>()) {
-    skinned_mesh_renderer->skinned_mesh.Get<SkinnedMesh>()->FetchIndices();
-    skinned_mesh_renderer->skinned_mesh.Get<SkinnedMesh>()->bones.clear();
-  }
-  for (auto& i : node->child_prefabs) {
-    ApplyBoneIndices(i.get());
-  }
-}
+
 void Prefab::FromEntity(const Entity& entity) {
   const auto scene = Application::GetActiveScene();
   if (!scene) {
@@ -754,9 +760,12 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     animation = ProjectManager::CreateTemporaryAsset<Animation>();
   }
   std::shared_ptr<AssimpImportNode> root_assimp_node = std::make_shared<AssimpImportNode>(scene->mRootNode);
-  if (std::unordered_map<std::string, std::shared_ptr<Texture2D>> loaded_textures; !ProcessNode(directory, this, loaded_materials, loaded_textures, opacity_maps, bones_map, scene->mRootNode,
-                                                                                               root_assimp_node, scene, animation)) {
-    EVOENGINE_ERROR("Model is empty!");
+
+  std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>> bones_lists;
+  if (std::unordered_map<std::string, std::shared_ptr<Texture2D>> loaded_textures;
+      !ProcessNode(directory, this, loaded_materials, loaded_textures, opacity_maps, bones_lists, bones_map, scene->mRootNode,
+                   root_assimp_node, scene, animation)) {
+    EVOENGINE_ERROR("Model is empty!")
     return false;
   }
 
@@ -795,7 +804,7 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     root_assimp_node->AttachToAnimator(animation, index);
     animation->bone_size = index + 1;
     ReadAnimations(scene, animation, bones_map);
-    ApplyBoneIndices(this);
+    ApplyBoneIndices(bones_lists, this);
 
     auto animator = Serialization::ProduceSerializable<Animator>();
     animator->Setup(animation);
@@ -818,7 +827,8 @@ struct AssimpExportNode {
 
   std::vector<AssimpExportNode> children;
 
-  void Collect(const std::shared_ptr<Prefab>& current_prefab, std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
+  void Collect(const std::shared_ptr<Prefab>& current_prefab,
+               std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
                std::vector<std::shared_ptr<Material>>& materials);
 
   void Process(aiNode* exporter_node);
@@ -1171,29 +1181,29 @@ Entity Prefab::ToEntity(const std::shared_ptr<Scene>& scene, bool auto_adjust_si
 }
 
 void DataComponentHolder::Serialize(YAML::Emitter& out) const {
-  out << YAML::Key << "m_type.type_name" << YAML::Value << data_component_type.type_name;
-  out << YAML::Key << "data_component" << YAML::Value
+  out << YAML::Key << "tn" << YAML::Value << data_component_type.type_name;
+  out << YAML::Key << "dc" << YAML::Value
       << YAML::Binary((const unsigned char*)data_component.get(), data_component_type.type_size);
 }
 bool DataComponentHolder::Deserialize(const YAML::Node& in) {
-  data_component_type.type_name = in["m_type.type_name"].as<std::string>();
+  data_component_type.type_name = in["tn"].as<std::string>();
   if (!Serialization::HasComponentDataType(data_component_type.type_name))
     return false;
   data_component = Serialization::ProduceDataComponent(data_component_type.type_name, data_component_type.type_index,
                                                        data_component_type.type_size);
-  if (in["data_component"]) {
-    YAML::Binary data = in["data_component"].as<YAML::Binary>();
+  if (in["dc"]) {
+    YAML::Binary data = in["dc"].as<YAML::Binary>();
     std::memcpy(data_component.get(), data.data(), data.size());
   }
   return true;
 }
 void Prefab::Serialize(YAML::Emitter& out) const {
-  out << YAML::Key << "instance_name" << YAML::Value << instance_name;
-  out << YAML::Key << "enabled_" << YAML::Value << enabled_;
-  out << YAML::Key << "entity_handle_" << YAML::Value << entity_handle.GetValue();
+  out << YAML::Key << "in" << YAML::Value << instance_name;
+  out << YAML::Key << "e" << YAML::Value << enabled_;
+  out << YAML::Key << "eh" << YAML::Value << entity_handle.GetValue();
 
   if (!data_components.empty()) {
-    out << YAML::Key << "data_components" << YAML::BeginSeq;
+    out << YAML::Key << "dc" << YAML::BeginSeq;
     for (auto& i : data_components) {
       out << YAML::BeginMap;
       i.Serialize(out);
@@ -1203,7 +1213,7 @@ void Prefab::Serialize(YAML::Emitter& out) const {
   }
 
   if (!private_components.empty()) {
-    out << YAML::Key << "private_components" << YAML::BeginSeq;
+    out << YAML::Key << "pc" << YAML::BeginSeq;
     for (auto& i : private_components) {
       out << YAML::BeginMap;
       i.Serialize(out);
@@ -1213,10 +1223,10 @@ void Prefab::Serialize(YAML::Emitter& out) const {
   }
 
   if (!child_prefabs.empty()) {
-    out << YAML::Key << "child_prefabs" << YAML::BeginSeq;
+    out << YAML::Key << "c" << YAML::BeginSeq;
     for (auto& i : child_prefabs) {
       out << YAML::BeginMap;
-      out << YAML::Key << "m_handle" << i->GetHandle().GetValue();
+      out << YAML::Key << "h" << i->GetHandle().GetValue();
       i->Serialize(out);
       out << YAML::EndMap;
     }
@@ -1224,20 +1234,19 @@ void Prefab::Serialize(YAML::Emitter& out) const {
   }
 }
 void Prefab::Deserialize(const YAML::Node& in) {
-  instance_name = in["instance_name"].as<std::string>();
-  enabled_ = in["enabled_"].as<bool>();
-  entity_handle = Handle(in["entity_handle_"].as<uint64_t>());
-  if (in["data_components"]) {
-    for (const auto& i : in["data_components"]) {
+  instance_name = in["in"].as<std::string>();
+  enabled_ = in["e"].as<bool>();
+  entity_handle = Handle(in["eh"].as<uint64_t>());
+  if (in["dc"]) {
+    for (const auto& i : in["dc"]) {
       DataComponentHolder holder;
       if (holder.Deserialize(i)) {
         data_components.push_back(holder);
       }
     }
   }
-
+  std::vector<std::pair<int, std::shared_ptr<IAsset>>> local_assets;
   if (const auto in_local_assets = in["LocalAssets"]) {
-    std::vector<std::pair<int, std::shared_ptr<IAsset>>> local_assets;
     int index = 0;
     for (const auto& i : in_local_assets) {
       // First, find the asset in asset registry
@@ -1252,19 +1261,21 @@ void Prefab::Deserialize(const YAML::Node& in) {
       i.second->Deserialize(in_local_assets[i.first]);
     }
   }
-
-  if (in["private_components"]) {
-    for (const auto& i : in["private_components"]) {
+#ifdef _DEBUG
+  EVOENGINE_LOG(std::string("Prefab Deserialization: Loaded " + std::to_string(local_assets.size()) + " assets."))
+#endif
+  if (in["pc"]) {
+    for (const auto& i : in["pc"]) {
       PrivateComponentHolder holder;
       holder.Deserialize(i);
       private_components.push_back(holder);
     }
   }
 
-  if (in["child_prefabs"]) {
-    for (const auto& i : in["child_prefabs"]) {
+  if (in["c"]) {
+    for (const auto& i : in["c"]) {
       auto child = ProjectManager::CreateTemporaryAsset<Prefab>();
-      child->handle_ = i["m_handle"].as<uint64_t>();
+      child->handle_ = i["h"].as<uint64_t>();
       child->Deserialize(i);
       child_prefabs.push_back(child);
     }
@@ -1313,8 +1324,6 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const {
     if (!asset_map.empty()) {
       out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
       for (auto& i : asset_map) {
-        if (!i.second->Saved())
-          i.second->Save();
         out << YAML::BeginMap;
         out << YAML::Key << "TypeName" << YAML::Value << i.second->GetTypeName();
         out << YAML::Key << "Handle" << YAML::Value << i.first.GetValue();
@@ -1450,26 +1459,26 @@ bool Prefab::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
 }
 
 void PrivateComponentHolder::Serialize(YAML::Emitter& out) const {
-  out << YAML::Key << "enabled" << YAML::Value << enabled;
-  out << YAML::Key << "type_name" << YAML::Value << private_component->GetTypeName();
-
-  out << YAML::Key << "private_component" << YAML::BeginMap;
-  out << YAML::Key << "handle" << private_component->GetHandle().GetValue();
+  out << YAML::Key << "e" << YAML::Value << enabled;
+  out << YAML::Key << "tn" << YAML::Value << private_component->GetTypeName();
+  out << YAML::Key << "h" << private_component->GetHandle().GetValue();
+  out << YAML::Key << "pc" << YAML::BeginMap;
   private_component->Serialize(out);
   out << YAML::EndMap;
 }
 void PrivateComponentHolder::Deserialize(const YAML::Node& in) {
-  enabled = in["enabled"].as<bool>();
-  const auto type_name = in["type_name"].as<std::string>();
-  auto in_data = in["private_component"];
+  enabled = in["e"].as<bool>();
+  const auto type_name = in["tn"].as<std::string>();
+  const auto handle = Handle(in["h"].as<uint64_t>());
+  const auto& in_data = in["pc"];
   if (Serialization::HasSerializableType(type_name)) {
     size_t hash_code;
-    private_component = std::dynamic_pointer_cast<IPrivateComponent>(
-        Serialization::ProduceSerializable(type_name, hash_code, Handle(in_data["handle"].as<uint64_t>())));
+    private_component =
+        std::dynamic_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(type_name, hash_code, handle));
   } else {
     size_t hash_code;
-    private_component = std::dynamic_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(
-        "UnknownPrivateComponent", hash_code, Handle(in_data["handle"].as<uint64_t>())));
+    private_component = std::dynamic_pointer_cast<IPrivateComponent>(
+        Serialization::ProduceSerializable("UnknownPrivateComponent", hash_code, handle));
     std::dynamic_pointer_cast<UnknownPrivateComponent>(private_component)->original_type_name_ = type_name;
   }
   private_component->OnCreate();
