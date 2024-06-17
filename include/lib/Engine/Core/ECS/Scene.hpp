@@ -750,7 +750,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&>(func), check_enable);
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -763,7 +763,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&>(func), check_enable);
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -777,7 +777,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job = ForEachStorage(
-            dependencies, i.get(), std::forward<std::function<void(int, Entity, T1&, T2&, T3&)>>(func), check_enable);
+            dependencies, i.get(), std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -791,7 +791,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job =
-            ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable);
+            ForEachStorage(dependencies, i.get(), std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -804,7 +804,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   const auto queried_storage_list = QueryDataComponentStorageList(entity_query);
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
-    if (const auto job = ForEachStorage(dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func),
+    if (const auto job = ForEachStorage(dependencies, i.get(), std::move(func),
                                         check_enable);
         job.Valid())
       jobs.emplace_back(job);
@@ -820,7 +820,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job = ForEachStorage(dependencies, i.get(),
-                                        std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func), check_enable);
+                                        std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -835,7 +835,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   std::vector<JobHandle> jobs;
   for (const auto i : queried_storage_list) {
     if (const auto job = ForEachStorage(
-            dependencies, i.get(), std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable);
+            dependencies, i.get(), std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -851,7 +851,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies, const Entit
   for (const auto i : queried_storage_list) {
     if (const auto job =
             ForEachStorage(dependencies, i.get(),
-                           std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable);
+                           std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -864,7 +864,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&>(func), check_enable);
+    if (const auto job = ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -877,7 +877,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&>(func), check_enable);
+    if (const auto job = ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -890,7 +890,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&>(func), check_enable);
+    if (const auto job = ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -904,7 +904,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job =
-            ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&>(func), check_enable);
+            ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -918,7 +918,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job =
-            ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&>(func), check_enable);
+            ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -932,8 +932,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   auto& storage_list = scene_data_storage_.data_component_storage_list;
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
-    if (const auto job = ForEachStorage(dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&>(func),
-                                        check_enable);
+    if (const auto job = ForEachStorage(dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -948,7 +947,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job = ForEachStorage(
-            dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&>(func), check_enable);
+            dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
@@ -963,7 +962,7 @@ JobHandle Scene::ForEach(const std::vector<JobHandle>& dependencies,
   std::vector<JobHandle> jobs;
   for (auto i = storage_list.begin() + 1; i < storage_list.end(); ++i) {
     if (const auto job = ForEachStorage(
-            dependencies, *i, std::forward<int, Entity, T1&, T2&, T3&, T4&, T5&, T6&, T7&, T8&>(func), check_enable);
+            dependencies, *i, std::move(func), check_enable);
         job.Valid())
       jobs.emplace_back(job);
   }
