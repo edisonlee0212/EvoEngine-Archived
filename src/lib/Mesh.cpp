@@ -287,7 +287,7 @@ void Mesh::RecalculateTangent() {
     for (auto j : tangent_lists[i]) {
       tangent += j;
     }
-    vertices_[i].m_tangent = glm::normalize(tangent);
+    vertices_[i].tangent = glm::normalize(tangent);
   }
 }
 

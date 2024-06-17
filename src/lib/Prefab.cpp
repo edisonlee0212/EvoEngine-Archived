@@ -344,7 +344,7 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importer_mesh) {
       v3.x = importer_mesh->mTangents[i].x;
       v3.y = importer_mesh->mTangents[i].y;
       v3.z = importer_mesh->mTangents[i].z;
-      vertex.m_tangent = v3;
+      vertex.tangent = v3;
       attributes.tangent = true;
     } else {
       attributes.tangent = false;

@@ -55,7 +55,7 @@ const std::vector<VkVertexInputAttributeDescription>& IGeometry::GetVertexAttrib
     mesh[2].binding = 0;
     mesh[2].location = 2;
     mesh[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-    mesh[2].offset = offsetof(Vertex, m_tangent);
+    mesh[2].offset = offsetof(Vertex, tangent);
 
     mesh[3].binding = 0;
     mesh[3].location = 3;

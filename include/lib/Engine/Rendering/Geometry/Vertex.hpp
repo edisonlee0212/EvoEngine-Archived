@@ -8,7 +8,7 @@ namespace evo_engine
         float vertex_info1 = 0.0f;
     	glm::vec3 normal = glm::vec3(0.0f);
         float vertex_info2 = 0.0f;
-        glm::vec3 m_tangent = glm::vec3(0.0f);
+        glm::vec3 tangent = glm::vec3(0.0f);
         float vertex_info3 = 0.0f;
         glm::vec4 color = glm::vec4(1.0f);
         glm::vec2 tex_coord = glm::vec2(0.0f);
