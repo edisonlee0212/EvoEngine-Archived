@@ -12,6 +12,6 @@ namespace EvoEngine
 		void Initialize(uint32_t resolution = 32);
 		void ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap);
 		[[nodiscard]] std::shared_ptr<Cubemap> GetCubemap() const;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 	};
 }

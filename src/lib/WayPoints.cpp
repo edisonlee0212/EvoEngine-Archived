@@ -3,7 +3,7 @@
 #include "EditorLayer.hpp"
 using namespace EvoEngine;
 
-void WayPoints::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool WayPoints::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	EntityRef tempEntityHolder;
 	auto scene = GetScene();
@@ -57,6 +57,7 @@ void WayPoints::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 			i--;
 		}
 	}
+	return changed;
 }
 
 void WayPoints::OnCreate()

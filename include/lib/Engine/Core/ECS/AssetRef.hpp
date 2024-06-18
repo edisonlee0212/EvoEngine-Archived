@@ -3,7 +3,7 @@
 #include <IAsset.hpp>
 namespace EvoEngine
 {
-class AssetRef final
+class AssetRef final : public ISerializable
 {
     friend class Prefab;
     
@@ -13,12 +13,12 @@ class AssetRef final
     std::string m_assetTypeName;
     bool Update();
   public:
-    void Serialize(YAML::Emitter &out) const
+    void Serialize(YAML::Emitter &out) const override
     {
         out << YAML::Key << "m_assetHandle" << YAML::Value << m_assetHandle;
         out << YAML::Key << "m_assetTypeName" << YAML::Value << m_assetTypeName;
     }
-    void Deserialize(const YAML::Node &in)
+    void Deserialize(const YAML::Node &in) override
     {
         m_assetHandle = Handle(in["m_assetHandle"].as<uint64_t>());
         m_assetTypeName = in["m_assetTypeName"].as<std::string>();
@@ -30,7 +30,8 @@ class AssetRef final
         m_assetTypeName = "";
         m_value.reset();
     }
-    ~AssetRef(){
+    ~AssetRef() override
+    {
         m_assetHandle = Handle(0);
         m_assetTypeName = "";
         m_value.reset();
@@ -87,37 +88,5 @@ class AssetRef final
     {
         return m_assetHandle;
     }
-
-    void Save(const std::string &name, YAML::Emitter &out) const
-    {
-        out << YAML::Key << name << YAML::Value << YAML::BeginMap;
-        Serialize(out);
-        out << YAML::EndMap;
-    }
-    void Load(const std::string &name, const YAML::Node &in)
-    {
-        if (in[name]) Deserialize(in[name]);
-    }
 };
-
-inline void SaveList(const std::string& name, const std::vector<AssetRef>& target, YAML::Emitter &out){
-    if(target.empty()) return;
-    out << YAML::Key << name << YAML::Value << YAML::BeginSeq;
-    for (auto &i: target) {
-        out << YAML::BeginMap;
-        i.Serialize(out);
-        out << YAML::EndMap;
-    }
-    out << YAML::EndSeq;
-}
-inline void LoadList(const std::string& name, std::vector<AssetRef>& target, const YAML::Node &in){
-    if(in[name]){
-        target.clear();
-        for(const auto& i : in[name]){
-            AssetRef instance;
-            instance.Deserialize(i);
-            target.push_back(instance);
-        }
-    }
-}
 } // namespace EvoEngine

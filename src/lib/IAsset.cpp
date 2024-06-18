@@ -32,7 +32,7 @@ std::shared_ptr<IAsset> IAsset::GetSelf() const
     return m_self.lock();
 }
 
-bool IAsset::SaveInternal(const std::filesystem::path &path)
+bool IAsset::SaveInternal(const std::filesystem::path &path) const
 {
     try
     {
@@ -78,7 +78,7 @@ void IAsset::OnCreate()
 {
 }
 
-bool IAsset::Export(const std::filesystem::path &path)
+bool IAsset::Export(const std::filesystem::path &path) const
 {
     if (ProjectManager::IsInProjectFolder(path))
     {
@@ -99,7 +99,8 @@ bool IAsset::Import(const std::filesystem::path &path)
 
 void IAsset::SetUnsaved()
 {
-    m_saved = true;
+    m_saved = false;
+    m_version++;
 }
 bool IAsset::Saved() const
 {

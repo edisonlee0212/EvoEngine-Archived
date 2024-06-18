@@ -1,5 +1,5 @@
 #include "LightProbe.hpp"
-
+#include "TextureStorage.hpp"
 #include "EditorLayer.hpp"
 #include "Mesh.hpp"
 
@@ -18,7 +18,7 @@ void LightProbe::Initialize(uint32_t resolution)
 
 #pragma endregion
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 }
@@ -30,7 +30,7 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 {
 	if (!m_cubemap) Initialize();
 
-	if (!targetCubemap->m_image) {
+	if (!targetCubemap->RefStorage().m_image) {
 		EVOENGINE_ERROR("Target cubemap doesn't contain any content!");
 		return;
 	}
@@ -40,8 +40,8 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 	VkImageCreateInfo depthImageInfo{};
 	depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-	depthImageInfo.extent.width = m_cubemap->m_image->GetExtent().width;
-	depthImageInfo.extent.height = m_cubemap->m_image->GetExtent().height;
+	depthImageInfo.extent.width = m_cubemap->RefStorage().m_image->GetExtent().width;
+	depthImageInfo.extent.height = m_cubemap->RefStorage().m_image->GetExtent().height;
 	depthImageInfo.extent.depth = 1;
 	depthImageInfo.mipLevels = 1;
 	depthImageInfo.arrayLayers = 1;
@@ -92,24 +92,24 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 
 	auto irradianceConstruct = Graphics::GetGraphicsPipeline("IRRADIANCE_CONSTRUCT");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
-		renderArea.extent.width = m_cubemap->m_image->GetExtent().width;
-		renderArea.extent.height = m_cubemap->m_image->GetExtent().height;
+		renderArea.extent.width = m_cubemap->RefStorage().m_image->GetExtent().width;
+		renderArea.extent.height = m_cubemap->RefStorage().m_image->GetExtent().height;
 		VkViewport viewport;
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = m_cubemap->m_image->GetExtent().width;
-		viewport.height = m_cubemap->m_image->GetExtent().height;
+		viewport.width = m_cubemap->RefStorage().m_image->GetExtent().width;
+		viewport.height = m_cubemap->RefStorage().m_image->GetExtent().height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor;
 		scissor.offset = { 0, 0 };
-		scissor.extent.width = m_cubemap->m_image->GetExtent().width;
-		scissor.extent.height = m_cubemap->m_image->GetExtent().height;
+		scissor.extent.width = m_cubemap->RefStorage().m_image->GetExtent().width;
+		scissor.extent.height = m_cubemap->RefStorage().m_image->GetExtent().height;
 		irradianceConstruct->m_states.m_viewPort = viewport;
 		irradianceConstruct->m_states.m_scissor = scissor;
 #pragma endregion
@@ -125,7 +125,7 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 			attachment.clearValue = { 0, 0, 0, 1 };
-			attachment.imageView = m_cubemap->m_faceViews[i]->GetVkImageView();
+			attachment.imageView = m_cubemap->RefStorage().m_faceViews[i]->GetVkImageView();
 
 			VkRenderingAttachmentInfo depthAttachment{};
 			depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -165,23 +165,26 @@ void LightProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCube
 
 			Graphics::EverythingBarrier(commandBuffer);
 		}
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 
 }
 
-void LightProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool LightProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	if (!m_cubemap->m_imTextureIds.empty()) {
+	bool changed = false;
+	if (!m_cubemap->RefStorage().m_imTextureIds.empty()) {
 		static float debugSacle = 0.25f;
 		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
 		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
 		for (int i = 0; i < 6; i++) {
-			ImGui::Image(m_cubemap->m_imTextureIds[i],
-				ImVec2(m_cubemap->m_image->GetExtent().width * debugSacle, m_cubemap->m_image->GetExtent().height * debugSacle),
+			ImGui::Image(m_cubemap->RefStorage().m_imTextureIds[i],
+				ImVec2(m_cubemap->RefStorage().m_image->GetExtent().width * debugSacle, m_cubemap->RefStorage().m_image->GetExtent().height * debugSacle),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 		}
 	}
+
+	return changed;
 }

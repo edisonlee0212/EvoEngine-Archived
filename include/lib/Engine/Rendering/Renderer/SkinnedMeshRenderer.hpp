@@ -16,7 +16,6 @@ namespace EvoEngine
 		bool m_ragDoll = false;
 		std::vector<glm::mat4> m_ragDollTransformChain;
 		std::vector<EntityRef> m_boundEntities;
-		void DebugBoneRender(const glm::vec4& color, const float& size);
 	public:
 		void UpdateBoneMatrices();
 		bool m_ragDollFreeze = false;
@@ -27,10 +26,10 @@ namespace EvoEngine
 		bool m_castShadow = true;
 		AssetRef m_skinnedMesh;
 		AssetRef m_material;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void OnCreate() override;
 		void OnDestroy() override;
-		void Serialize(YAML::Emitter& out) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 		void Relink(const std::unordered_map<Handle, Handle>& map, const std::shared_ptr<Scene>& scene) override;
 		void CollectAssetRef(std::vector<AssetRef>& list) override;

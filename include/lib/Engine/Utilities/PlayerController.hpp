@@ -14,8 +14,8 @@ namespace EvoEngine
         float m_sensitivity = 0.1f;
         void OnCreate() override;
         void LateUpdate() override;
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-        void Serialize(YAML::Emitter& out) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
     };

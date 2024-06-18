@@ -18,9 +18,9 @@ using namespace EvoEngine;
 
 void EditorLayer::OnCreate()
 {
-	if (Application::GetLayer<WindowLayer>())
+	if (!Application::GetLayer<WindowLayer>())
 	{
-		std::runtime_error("EditorLayer requires WindowLayer!");
+		throw std::runtime_error("EditorLayer requires WindowLayer!");
 	}
 
 	m_basicEntityArchetype = Entities::CreateEntityArchetype("General", GlobalTransform(), Transform());
@@ -289,7 +289,7 @@ void EditorLayer::PreUpdate()
 	}
 
 
-	m_mouseSceneWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	m_mouseSceneWindowPosition = glm::vec2(FLT_MAX, -FLT_MAX);
 	if (m_showSceneWindow) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		if (ImGui::Begin("Scene")) {
@@ -308,7 +308,7 @@ void EditorLayer::PreUpdate()
 		ImGui::PopStyleVar();
 	}
 
-	m_mouseCameraWindowPosition = glm::vec2(FLT_MAX, FLT_MIN);
+	m_mouseCameraWindowPosition = glm::vec2(FLT_MAX, -FLT_MAX);
 	if (m_showCameraWindow) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		if (ImGui::Begin("Camera")) {
@@ -594,7 +594,7 @@ void EditorLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 							if (ImGui::TreeNodeEx(
 								("Component Settings##" + std::to_string(i)).c_str(),
 								ImGuiTreeNodeFlags_DefaultOpen)) {
-								data.m_privateComponentData->OnInspect(editorLayer);
+								if (data.m_privateComponentData->OnInspect(editorLayer)) scene->SetUnsaved();
 								ImGui::TreePop();
 							}
 						}
@@ -976,7 +976,7 @@ void EditorLayer::SceneCameraWindow()
 
 		}
 #pragma region Gizmos and Entity Selection
-		bool mouseSelectEntity = true;
+		m_usingGizmo = false;
 		if (m_enableGizmos) {
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
@@ -1011,7 +1011,7 @@ void EditorLayer::SceneCameraWindow()
 					scene->SetDataComponent(m_selectedEntity, transform);
 					transform.Decompose(
 						m_previouslyStoredPosition, m_previouslyStoredRotation, m_previouslyStoredScale);
-					mouseSelectEntity = false;
+					m_usingGizmo = true;
 				}
 			}
 			if (m_enableViewGizmos) {
@@ -1022,42 +1022,7 @@ void EditorLayer::SceneCameraWindow()
 				}
 			}
 		}
-		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
-		{
-			SetSelectedEntity(Entity());
-		}
-
-		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && mouseSelectEntity
-			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
-			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
-				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
-			if (const auto focusedEntity = MouseEntitySelection(sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
-				SetSelectedEntity(Entity());
-			}
-			else {
-				Entity walker = focusedEntity;
-				bool found = false;
-				while (walker.GetIndex() != 0) {
-					if (walker == m_selectedEntity) {
-						found = true;
-						break;
-					}
-					walker = scene->GetParent(walker);
-				}
-				if (found) {
-					walker = scene->GetParent(walker);
-					if (walker.GetIndex() == 0) {
-						SetSelectedEntity(focusedEntity);
-					}
-					else {
-						SetSelectedEntity(walker);
-					}
-				}
-				else {
-					SetSelectedEntity(focusedEntity);
-				}
-			}
-		}
+		
 #pragma endregion
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
 			m_sceneCameraWindowFocused = true;
@@ -1291,7 +1256,7 @@ glm::vec2 EditorLayer::GetMouseSceneCameraPosition() const
 	return m_mouseSceneWindowPosition;
 }
 
-KeyActionType EditorLayer::GetKey(const int key) const
+KeyActionType EditorLayer::GetKey(const int key)
 {
 	return Input::GetKey(key);
 }
@@ -1560,6 +1525,64 @@ bool EditorLayer::Remove(EntityRef& entityRef)
 	return statusChanged;
 }
 
+void EditorLayer::MouseEntitySelection()
+{
+	const auto scene = GetScene();
+	auto windowLayer = Application::GetLayer<WindowLayer>();
+	auto& [sceneCameraRotation, sceneCameraPosition, sceneCamera] = m_editorCameras.at(m_sceneCameraHandle);
+#pragma region Scene Window
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	if (ImGui::Begin("Scene")) {
+		ImVec2 viewPortSize;
+		// Using a Child allow to fill all the space of the window.
+		// It also allows customization
+		if (ImGui::BeginChild("SceneCameraRenderer", ImVec2(0, 0), false)) {
+			viewPortSize = ImGui::GetWindowSize();
+		}
+#pragma region Gizmos and Entity Selection
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && Input::GetKey(GLFW_KEY_ESCAPE) == KeyActionType::Press)
+		{
+			SetSelectedEntity(Entity());
+		}
+		if (m_sceneCameraWindowFocused && !m_lockEntitySelection && !m_usingGizmo
+			&& Input::GetKey(GLFW_MOUSE_BUTTON_LEFT) == KeyActionType::Press &&
+			!(m_mouseSceneWindowPosition.x < 0 || m_mouseSceneWindowPosition.y < 0 ||
+				m_mouseSceneWindowPosition.x > viewPortSize.x || m_mouseSceneWindowPosition.y > viewPortSize.y)) {
+			if (const auto focusedEntity = MouseEntitySelection(sceneCamera, m_mouseSceneWindowPosition); focusedEntity == Entity()) {
+				SetSelectedEntity(Entity());
+			}
+			else {
+				Entity walker = focusedEntity;
+				bool found = false;
+				while (walker.GetIndex() != 0) {
+					if (walker == m_selectedEntity) {
+						found = true;
+						break;
+					}
+					walker = scene->GetParent(walker);
+				}
+				if (found) {
+					walker = scene->GetParent(walker);
+					if (walker.GetIndex() == 0) {
+						SetSelectedEntity(focusedEntity);
+					}
+					else {
+						SetSelectedEntity(walker);
+					}
+				}
+				else {
+					SetSelectedEntity(focusedEntity);
+				}
+			}
+		}
+#pragma endregion
+		ImGui::EndChild();
+	}
+	ImGui::End();
+	ImGui::PopStyleVar();
+#pragma endregion
+}
+
 Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const
 {
 	Entity retVal;
@@ -1594,7 +1617,7 @@ Entity EditorLayer::MouseEntitySelection(const std::shared_ptr<Camera>& targetCa
 	return retVal;
 }
 
-bool EditorLayer::RenameEntity(const Entity& entity) const
+bool EditorLayer::RenameEntity(const Entity& entity)
 {
 	bool statusChanged = false;
 	auto scene = Application::GetActiveScene();
@@ -1768,7 +1791,7 @@ void EditorLayer::CameraWindowDragAndDrop() {
 		}
 
 		else if (asset->GetTypeName() == "Prefab") {
-			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene);
+			auto entity = std::dynamic_pointer_cast<Prefab>(asset)->ToEntity(scene, true);
 			scene->SetEntityName(entity, asset->GetTitle());
 		}
 		else if (asset->GetTypeName() == "Mesh") {

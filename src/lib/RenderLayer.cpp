@@ -11,6 +11,7 @@
 #include "PostProcessingStack.hpp"
 #include "Jobs.hpp"
 #include "GeometryStorage.hpp"
+#include "LODGroup.hpp"
 #include "PostProcessingStack.hpp"
 #include "StrandsRenderer.hpp"
 #include "TextureStorage.hpp"
@@ -87,17 +88,58 @@ void RenderLayer::OnDestroy()
 	m_instanceInfoDescriptorBuffers.clear();
 }
 
-void RenderLayer::PreUpdate()
+void RenderLayer::ClearAllCameras()
 {
-
-	
-
 	const auto scene = GetScene();
 	if (!scene) return;
+	std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>> cameras;
+	CollectCameras(cameras);
 
+	Graphics::AppendCommands([&](const VkCommandBuffer commandBuffer)
+		{
+			for (const auto& i : cameras)
+			{
+				if (const auto renderTexture = i.second->GetRenderTexture()) renderTexture->Clear(commandBuffer);
+			}
+		}
+	);
+}
+
+void RenderLayer::RenderAllCameras()
+{
+	const auto scene = GetScene();
+	if (!scene) return;
 	CollectCameras(m_cameras);
-	Bound worldBound {};
+	Bound worldBound{};
 	m_totalMeshTriangles = 0;
+
+	glm::vec3 lodCenter = glm::vec3(0.f);
+	float lodMaxDistance = FLT_MAX;
+	bool lodSet = false;
+	if (const auto mainCamera = scene->m_mainCamera.Get<Camera>())
+	{
+		const auto mainCameraOwner = mainCamera->GetOwner();
+		if (scene->IsEntityValid(mainCameraOwner))
+		{
+			lodCenter = scene->GetDataComponent<GlobalTransform>(mainCameraOwner).GetPosition();
+			lodMaxDistance = mainCamera->m_farDistance;
+			lodSet = true;
+		}
+	}
+	if (!lodSet)
+	{
+		if (const auto editorLayer = Application::GetLayer<EditorLayer>())
+		{
+			if (const auto sceneCamera = editorLayer->GetSceneCamera())
+			{
+				lodCenter = editorLayer->GetSceneCameraPosition();
+				lodMaxDistance = sceneCamera->m_farDistance;
+				lodSet = true;
+			}
+		}
+	}
+
+	CalculateLodFactor(lodCenter, lodMaxDistance);
 
 	if (CollectRenderInstances(worldBound)) {
 		worldBound.m_min - glm::vec3(0.1f);
@@ -107,29 +149,21 @@ void RenderLayer::PreUpdate()
 	else
 	{
 		worldBound.m_min = worldBound.m_max = glm::vec3(0.0f);
-		worldBound.m_min - glm::vec3(0.1f);
-		worldBound.m_max + glm::vec3(0.1f);
+		worldBound.m_min - glm::vec3(1.f);
+		worldBound.m_max + glm::vec3(1.f);
 		scene->SetBound(worldBound);
 	}
+
+
+	if(const auto editorLayer = Application::GetLayer<EditorLayer>())
+	{
+		editorLayer->MouseEntitySelection();
+	}
+
 	CollectDirectionalLights(m_cameras);
 	CollectPointLights();
 	CollectSpotLights();
-}
-
-void RenderLayer::LateUpdate()
-{
-	const auto scene = GetScene();
-	if (!scene) return;
-
-	Graphics::AppendCommands([&](VkCommandBuffer commandBuffer)
-		{
-			for (const auto& i : m_cameras)
-			{
-				auto renderTexture = i.second->GetRenderTexture();
-				if(renderTexture) renderTexture->Clear(commandBuffer);
-			}
-		}
-	);
+	
 
 	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
 	auto& graphics = Graphics::GetInstance();
@@ -137,7 +171,7 @@ void RenderLayer::LateUpdate()
 	graphics.m_strandsSegments[currentFrameIndex] = 0;
 	graphics.m_drawCall[currentFrameIndex] = 0;
 
-	
+
 
 	ApplyAnimator();
 	//The following data stays consistent during entire frame.
@@ -223,7 +257,7 @@ void RenderLayer::LateUpdate()
 		}
 	}
 
-	
+
 
 	m_deferredRenderInstances.m_renderCommands.clear();
 	m_deferredSkinnedRenderInstances.m_renderCommands.clear();
@@ -401,14 +435,15 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		ImGui::Checkbox("Enable Particles", &m_enableParticles);
 		ImGui::Checkbox("Enable StrandsRenderer", &m_enableStrandsRenderer);
 
-		ImGui::Checkbox("Count drawcall for shadows", &m_countShadowRenderingDrawCalls);
+		ImGui::Checkbox("Count dc for shadows", &m_countShadowRenderingDrawCalls);
 		ImGui::Checkbox("Wireframe", &m_wireFrame);
-		if(Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
-		if(!Graphics::Settings::USE_MESH_SHADER) ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
+		if (Graphics::Constants::ENABLE_MESH_SHADER) ImGui::Checkbox("Meshlet", &Graphics::Settings::USE_MESH_SHADER);
+		if (!Graphics::Settings::USE_MESH_SHADER) ImGui::Checkbox("Indirect Rendering", &m_enableIndirectRendering);
 		const bool useMeshShader = Graphics::Constants::ENABLE_MESH_SHADER && Graphics::Settings::USE_MESH_SHADER;
 		if (useMeshShader) {
 			ImGui::Checkbox("Show meshlets", &m_enableDebugVisualization);
-		}else
+		}
+		else
 		{
 			ImGui::Checkbox("Show meshes", &m_enableDebugVisualization);
 		}
@@ -548,7 +583,7 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 				GlobalTransform sceneCameraGT;
 				sceneCameraGT.SetValue(editorCamera.m_position, editorCamera.m_rotation, glm::vec3(1.0f));
 				editorCamera.m_camera->UpdateCameraInfoBlock(cameraInfoBlock, sceneCameraGT);
-				RegisterCameraIndex(cameraHandle, cameraInfoBlock);
+				const auto index = RegisterCameraIndex(cameraHandle, cameraInfoBlock);
 
 				cameras.emplace_back(sceneCameraGT, editorCamera.m_camera);
 			}
@@ -566,12 +601,14 @@ void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::sha
 			cameraPairs.emplace_back(camera, cameraGlobalTransform.GetPosition());
 			CameraInfoBlock cameraInfoBlock;
 			camera->UpdateCameraInfoBlock(cameraInfoBlock, cameraGlobalTransform);
-			RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
+			const auto index = RegisterCameraIndex(camera->GetHandle(), cameraInfoBlock);
 
 			cameras.emplace_back(cameraGlobalTransform, camera);
 		}
 	}
 }
+
+
 
 void RenderLayer::CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras)
 {
@@ -770,7 +807,10 @@ void RenderLayer::CollectPointLights()
 	glm::vec3 mainCameraPosition = { 0, 0, 0 };
 	if (mainCamera)
 	{
-		mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCamera->GetOwner()).GetPosition();
+		auto mainCameraOwner = mainCamera->GetOwner();
+		if (scene->IsEntityValid(mainCameraOwner)) {
+			mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCameraOwner).GetPosition();
+		}
 	}
 	const std::vector<Entity>* pointLightEntities =
 		scene->UnsafeGetPrivateComponentOwnersList<PointLight>();
@@ -846,7 +886,10 @@ void RenderLayer::CollectSpotLights()
 	glm::vec3 mainCameraPosition = { 0, 0, 0 };
 	if (mainCamera)
 	{
-		mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCamera->GetOwner()).GetPosition();
+		auto mainCameraOwner = mainCamera->GetOwner();
+		if (scene->IsEntityValid(mainCameraOwner)) {
+			mainCameraPosition = scene->GetDataComponent<GlobalTransform>(mainCameraOwner).GetPosition();
+		}
 	}
 
 	m_renderInfoBlock.m_spotLightSize = 0;
@@ -1002,7 +1045,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowPipeline->m_states.ResetAllStates(0);
 					pointLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowPipeline->m_states.m_scissor = scissor;
@@ -1029,8 +1072,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = 0;
 							pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							pointLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 						else {
@@ -1044,16 +1087,16 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 									pointLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 									if (useMeshShader)
 									{
-										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 
 										const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
 										vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 									}
 									else {
 										const auto mesh = renderCommand.m_mesh;
-										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										mesh->DrawIndexed(commandBuffer, pointLightShadowPipeline->m_states, 1);
 									}
 								}
@@ -1071,7 +1114,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowInstancedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowInstancedPipeline->m_states.ResetAllStates(0);
 					pointLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowInstancedPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowInstancedPipeline->m_states.m_scissor = scissor;
@@ -1099,8 +1142,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
 								mesh->DrawIndexed(commandBuffer, pointLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 							}
 						);
@@ -1117,7 +1160,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowSkinnedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowSkinnedPipeline->m_states.ResetAllStates(0);
 					pointLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
@@ -1145,8 +1188,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto skinnedMesh = renderCommand.m_skinnedMesh;
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 								skinnedMesh->DrawIndexed(commandBuffer, pointLightShadowSkinnedPipeline->m_states, 1);
 							}
 						);
@@ -1163,7 +1206,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 					renderInfo.colorAttachmentCount = 0;
 					renderInfo.pColorAttachments = nullptr;
 					renderInfo.pDepthAttachment = &depthAttachment;
-					pointLightShadowStrandsPipeline->m_states.ResetAllStates(commandBuffer, 0);
+					pointLightShadowStrandsPipeline->m_states.ResetAllStates(0);
 					pointLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 					pointLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
 					pointLightShadowStrandsPipeline->m_states.m_scissor = scissor;
@@ -1190,8 +1233,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								pointLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, pointLightShadowStrandsPipeline->m_states, 1);
 							}
 						);
@@ -1229,7 +1272,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowPipeline->m_states.ResetAllStates(0);
 				spotLightShadowPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowPipeline->m_states.m_scissor = scissor;
@@ -1254,8 +1297,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 						pushConstant.m_instanceIndex = 0;
 						spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 						spotLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-						if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-						if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+						if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+						if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 						vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 					}
 					else {
@@ -1269,15 +1312,15 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 								spotLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 								if (useMeshShader)
 								{
-									if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-									if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+									if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+									if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 									const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
 									vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
 								}
 								else {
 									const auto mesh = renderCommand.m_mesh;
-									if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-									if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+									if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+									if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 									mesh->DrawIndexed(commandBuffer, spotLightShadowPipeline->m_states, 1);
 								}
 							}
@@ -1295,7 +1338,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowInstancedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowInstancedPipeline->m_states.ResetAllStates(0);
 				spotLightShadowInstancedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowInstancedPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowInstancedPipeline->m_states.m_scissor = scissor;
@@ -1321,8 +1364,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowInstancedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto mesh = renderCommand.m_mesh;
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+							if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
 							mesh->DrawIndexed(commandBuffer, spotLightShadowInstancedPipeline->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 						}
 					);
@@ -1339,7 +1382,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowSkinnedPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowSkinnedPipeline->m_states.ResetAllStates(0);
 				spotLightShadowSkinnedPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowSkinnedPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowSkinnedPipeline->m_states.m_scissor = scissor;
@@ -1365,8 +1408,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowSkinnedPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto skinnedMesh = renderCommand.m_skinnedMesh;
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
+							if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_skinnedMesh->m_skinnedTriangles.size();
 							skinnedMesh->DrawIndexed(commandBuffer, spotLightShadowSkinnedPipeline->m_states, 1);
 						}
 					);
@@ -1383,7 +1426,7 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 				renderInfo.colorAttachmentCount = 0;
 				renderInfo.pColorAttachments = nullptr;
 				renderInfo.pDepthAttachment = &depthAttachment;
-				spotLightShadowStrandsPipeline->m_states.ResetAllStates(commandBuffer, 0);
+				spotLightShadowStrandsPipeline->m_states.ResetAllStates(0);
 				spotLightShadowStrandsPipeline->m_states.m_cullMode = VK_CULL_MODE_NONE;
 				spotLightShadowStrandsPipeline->m_states.m_viewPort = viewport;
 				spotLightShadowStrandsPipeline->m_states.m_scissor = scissor;
@@ -1408,8 +1451,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 							pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 							spotLightShadowStrandsPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							const auto strands = renderCommand.m_strands;
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+							if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if (countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 							strands->DrawIndexed(commandBuffer, spotLightShadowStrandsPipeline->m_states, 1);
 						}
 					);
@@ -1421,6 +1464,24 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const
 		});
 }
 
+void RenderLayer::CalculateLodFactor(const glm::vec3& center, const float maxDistance) const
+{
+	const auto scene = GetScene();
+	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<LodGroup>()) {
+		for (auto owner : *owners)
+		{
+			const auto lodGroup = scene->GetOrSetPrivateComponent<LodGroup>(owner).lock();
+			if (!lodGroup->m_overrideLodFactor)
+			{
+				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+				const auto distance = glm::distance(gt.GetPosition(), center);
+				const auto distanceFactor = glm::clamp(distance / maxDistance, 0.f, 1.f);
+				lodGroup->m_lodFactor = glm::clamp(distanceFactor * distanceFactor, 0.f, 1.f);
+			}
+		}
+	}
+}
+
 bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 {
 	m_needFade = false;
@@ -1430,8 +1491,77 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 	auto& minBound = worldBound.m_min;
 	auto& maxBound = worldBound.m_max;
 	minBound = glm::vec3(FLT_MAX);
-	maxBound = glm::vec3(FLT_MIN);
+	maxBound = glm::vec3(-FLT_MAX);
+
 	bool hasRenderInstance = false;
+	std::unordered_set<Handle> lodGroupRenderers{};
+	if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<LodGroup>()) {
+		for (auto owner : *owners)
+		{
+			const auto lodGroup = scene->GetOrSetPrivateComponent<LodGroup>(owner).lock();
+			for (auto it = lodGroup->m_lods.begin(); it != lodGroup->m_lods.end(); ++it)
+			{
+				auto& lod = *it;
+				bool renderCurrentLevel = true;
+				if (lodGroup->m_lodFactor > it->m_lodOffset)
+				{
+					renderCurrentLevel = false;
+				}
+				if (renderCurrentLevel && it != lodGroup->m_lods.begin() && lodGroup->m_lodFactor < (it - 1)->m_lodOffset)
+				{
+					renderCurrentLevel = false;
+				}
+				for (auto& renderer : lod.m_renderers)
+				{
+					if (const auto meshRenderer = renderer.Get<MeshRenderer>())
+					{
+						lodGroupRenderers.insert(meshRenderer->GetHandle());
+						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(meshRenderer->GetOwner()) && meshRenderer->IsEnabled())
+						{
+							if (TryRegisterRenderer(scene, owner, meshRenderer, minBound, maxBound, enableSelectionHighLight))
+							{
+								hasRenderInstance = true;
+							}
+						}
+					}
+					else if (const auto skinnedMeshRenderer = renderer.Get<SkinnedMeshRenderer>())
+					{
+						lodGroupRenderers.insert(skinnedMeshRenderer->GetHandle());
+						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(skinnedMeshRenderer->GetOwner()) && skinnedMeshRenderer->IsEnabled())
+						{
+							if (TryRegisterRenderer(scene, owner, skinnedMeshRenderer, minBound, maxBound, enableSelectionHighLight))
+							{
+								hasRenderInstance = true;
+							}
+						}
+					}
+					else if (const auto particles = renderer.Get<Particles>())
+					{
+						lodGroupRenderers.insert(particles->GetHandle());
+						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(particles->GetOwner()) && particles->IsEnabled())
+						{
+							if (TryRegisterRenderer(scene, owner, particles, minBound, maxBound, enableSelectionHighLight))
+							{
+								hasRenderInstance = true;
+							}
+						}
+					}
+					else if (const auto strandsRenderer = renderer.Get<StrandsRenderer>())
+					{
+						lodGroupRenderers.insert(strandsRenderer->GetHandle());
+						if (renderCurrentLevel && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(strandsRenderer->GetOwner()) && strandsRenderer->IsEnabled())
+						{
+							if (TryRegisterRenderer(scene, owner, strandsRenderer, minBound, maxBound, enableSelectionHighLight))
+							{
+								hasRenderInstance = true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	if (m_enableMeshRenderer) {
 		if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<MeshRenderer>())
 		{
@@ -1440,76 +1570,11 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				if (!scene->IsEntityEnabled(owner))
 					continue;
 				auto meshRenderer = scene->GetOrSetPrivateComponent<MeshRenderer>(owner).lock();
-				auto material = meshRenderer->m_material.Get<Material>();
-				auto mesh = meshRenderer->m_mesh.Get<Mesh>();
-				if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
-					continue;
-				if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) continue;
-				hasRenderInstance = true;
-
-				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-				auto ltw = gt.m_value;
-				auto meshBound = mesh->GetBound();
-				meshBound.ApplyTransform(ltw);
-				glm::vec3 center = meshBound.Center();
-
-				glm::vec3 size = meshBound.Size();
-				minBound = glm::vec3(
-					(glm::min)(minBound.x, center.x - size.x),
-					(glm::min)(minBound.y, center.y - size.y),
-					(glm::min)(minBound.z, center.z - size.z));
-				maxBound = glm::vec3(
-					(glm::max)(maxBound.x, center.x + size.x),
-					(glm::max)(maxBound.y, center.y + size.y),
-					(glm::max)(maxBound.z, center.z + size.z));
-
-				MaterialInfoBlock materialInfoBlock;
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
-				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-				InstanceInfoBlock instanceInfoBlock;
-				instanceInfoBlock.m_model = gt;
-				instanceInfoBlock.m_materialIndex = materialIndex;
-				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-
-				instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
-				instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
-
-				auto entityHandle = scene->GetEntityHandle(owner);
-				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-				RenderInstance renderInstance;
-				renderInstance.m_commandType = RenderCommandType::FromRenderer;
-				renderInstance.m_owner = owner;
-				renderInstance.m_mesh = mesh;
-				renderInstance.m_castShadow = meshRenderer->m_castShadow;
-				renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
-				renderInstance.m_instanceIndex = instanceIndex;
-
-				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-				if (material->m_drawSettings.m_blending)
+				if (lodGroupRenderers.find(meshRenderer->GetHandle()) != lodGroupRenderers.end()) continue;
+				if (TryRegisterRenderer(scene, owner, meshRenderer, minBound, maxBound, enableSelectionHighLight))
 				{
-					m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
+					hasRenderInstance = true;
 				}
-				else
-				{
-					m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
-				}
-
-				auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
-				newMeshTask.groupCountX = 1;
-				newMeshTask.groupCountY = 1;
-				newMeshTask.groupCountZ = 1;
-
-				auto& newDrawTask = m_meshDrawIndexedIndirectCommands.emplace_back();
-				newDrawTask.instanceCount = 1;
-				newDrawTask.firstIndex = mesh->m_triangleRange->m_offset * 3;
-				newDrawTask.indexCount = static_cast<uint32_t>(mesh->m_triangles.size() * 3);
-				newDrawTask.vertexOffset = 0;
-				newDrawTask.firstInstance = 0;
-
-				m_totalMeshTriangles += mesh->m_triangles.size();
 			}
 		}
 	}
@@ -1521,68 +1586,10 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				if (!scene->IsEntityEnabled(owner))
 					continue;
 				auto skinnedMeshRenderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owner).lock();
-				auto material = skinnedMeshRenderer->m_material.Get<Material>();
-				auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
-				if (!skinnedMeshRenderer->IsEnabled() || !material || !skinnedMesh || !skinnedMesh->m_skinnedMeshletRange || !skinnedMesh->m_skinnedTriangleRange)
-					continue;
-				if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) continue;
-				GlobalTransform gt;
-				if (auto animator = skinnedMeshRenderer->m_animator.Get<Animator>(); !animator)
+				if (lodGroupRenderers.find(skinnedMeshRenderer->GetHandle()) != lodGroupRenderers.end()) continue;
+				if (TryRegisterRenderer(scene, owner, skinnedMeshRenderer, minBound, maxBound, enableSelectionHighLight))
 				{
-					continue;
-				}
-				hasRenderInstance = true;
-				if (!skinnedMeshRenderer->m_ragDoll)
-				{
-					gt = scene->GetDataComponent<GlobalTransform>(owner);
-				}
-				auto ltw = gt.m_value;
-				auto meshBound = skinnedMesh->GetBound();
-				meshBound.ApplyTransform(ltw);
-				glm::vec3 center = meshBound.Center();
-
-				glm::vec3 size = meshBound.Size();
-				minBound = glm::vec3(
-					(glm::min)(minBound.x, center.x - size.x),
-					(glm::min)(minBound.y, center.y - size.y),
-					(glm::min)(minBound.z, center.z - size.z));
-				maxBound = glm::vec3(
-					(glm::max)(maxBound.x, center.x + size.x),
-					(glm::max)(maxBound.y, center.y + size.y),
-					(glm::max)(maxBound.z, center.z + size.z));
-
-				MaterialInfoBlock materialInfoBlock;
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
-				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-				InstanceInfoBlock instanceInfoBlock;
-				instanceInfoBlock.m_model = gt;
-				instanceInfoBlock.m_materialIndex = materialIndex;
-				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-				instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
-				auto entityHandle = scene->GetEntityHandle(owner);
-				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-
-				SkinnedRenderInstance renderInstance;
-				renderInstance.m_commandType = RenderCommandType::FromRenderer;
-				renderInstance.m_owner = owner;
-				renderInstance.m_skinnedMesh = skinnedMesh;
-				renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
-				renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
-				renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
-				renderInstance.m_instanceIndex = instanceIndex;
-
-				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-
-				if (material->m_drawSettings.m_blending)
-				{
-					m_transparentSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
-				}
-				else
-				{
-					m_deferredSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+					hasRenderInstance = true;
 				}
 			}
 		}
@@ -1595,65 +1602,10 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				if (!scene->IsEntityEnabled(owner))
 					continue;
 				auto particles = scene->GetOrSetPrivateComponent<Particles>(owner).lock();
-				auto material = particles->m_material.Get<Material>();
-				auto mesh = particles->m_mesh.Get<Mesh>();
-				auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
-				if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
-					continue;
-				if (particleInfoList->PeekParticleInfoList().empty()) continue;
-
-				hasRenderInstance = true;
-				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-				auto ltw = gt.m_value;
-				auto meshBound = mesh->GetBound();
-				meshBound.ApplyTransform(ltw);
-				glm::vec3 center = meshBound.Center();
-
-				glm::vec3 size = meshBound.Size();
-				minBound = glm::vec3(
-					(glm::min)(minBound.x, center.x - size.x),
-					(glm::min)(minBound.y, center.y - size.y),
-					(glm::min)(minBound.z, center.z - size.z));
-
-				maxBound = glm::vec3(
-					(glm::max)(maxBound.x, center.x + size.x),
-					(glm::max)(maxBound.y, center.y + size.y),
-					(glm::max)(maxBound.z, center.z + size.z));
-
-				MaterialInfoBlock materialInfoBlock;
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
-				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-				InstanceInfoBlock instanceInfoBlock;
-				instanceInfoBlock.m_model = gt;
-				instanceInfoBlock.m_materialIndex = materialIndex;
-				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-				instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
-				auto entityHandle = scene->GetEntityHandle(owner);
-				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-
-				InstancedRenderInstance renderInstance;
-				renderInstance.m_commandType = RenderCommandType::FromRenderer;
-				renderInstance.m_owner = owner;
-				renderInstance.m_mesh = mesh;
-				renderInstance.m_castShadow = particles->m_castShadow;
-				renderInstance.m_particleInfos = particleInfoList;
-				renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
-
-				renderInstance.m_instanceIndex = instanceIndex;
-
-				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-
-				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-
-				if (material->m_drawSettings.m_blending)
+				if (lodGroupRenderers.find(particles->GetHandle()) != lodGroupRenderers.end()) continue;
+				if (TryRegisterRenderer(scene, owner, particles, minBound, maxBound, enableSelectionHighLight))
 				{
-					m_transparentInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
-				}
-				else
-				{
-					m_deferredInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+					hasRenderInstance = true;
 				}
 			}
 		}
@@ -1666,61 +1618,10 @@ bool RenderLayer::CollectRenderInstances(Bound& worldBound)
 				if (!scene->IsEntityEnabled(owner))
 					continue;
 				auto strandsRenderer = scene->GetOrSetPrivateComponent<StrandsRenderer>(owner).lock();
-				auto material = strandsRenderer->m_material.Get<Material>();
-				auto strands = strandsRenderer->m_strands.Get<Strands>();
-				if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
-					continue;
-
-				hasRenderInstance = true;
-				auto gt = scene->GetDataComponent<GlobalTransform>(owner);
-				auto ltw = gt.m_value;
-				auto meshBound = strands->m_bound;
-				meshBound.ApplyTransform(ltw);
-				glm::vec3 center = meshBound.Center();
-
-				glm::vec3 size = meshBound.Size();
-				minBound = glm::vec3(
-					(glm::min)(minBound.x, center.x - size.x),
-					(glm::min)(minBound.y, center.y - size.y),
-					(glm::min)(minBound.z, center.z - size.z));
-				maxBound = glm::vec3(
-					(glm::max)(maxBound.x, center.x + size.x),
-					(glm::max)(maxBound.y, center.y + size.y),
-					(glm::max)(maxBound.z, center.z + size.z));
-
-				MaterialInfoBlock materialInfoBlock;
-				material->UpdateMaterialInfoBlock(materialInfoBlock);
-				auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
-				InstanceInfoBlock instanceInfoBlock;
-				instanceInfoBlock.m_model = gt;
-				instanceInfoBlock.m_materialIndex = materialIndex;
-				instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
-				instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_range;
-				auto entityHandle = scene->GetEntityHandle(owner);
-				auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
-
-				StrandsRenderInstance renderInstance;
-				renderInstance.m_commandType = RenderCommandType::FromRenderer;
-				renderInstance.m_owner = owner;
-				renderInstance.m_strands = strands;
-				renderInstance.m_castShadow = strandsRenderer->m_castShadow;
-				renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_range;
-
-				renderInstance.m_instanceIndex = instanceIndex;
-
-				renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
-				renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
-				renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
-
-				if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
-
-				if (material->m_drawSettings.m_blending)
+				if (lodGroupRenderers.find(strandsRenderer->GetHandle()) != lodGroupRenderers.end()) continue;
+				if (TryRegisterRenderer(scene, owner, strandsRenderer, minBound, maxBound, enableSelectionHighLight))
 				{
-					m_transparentStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
-				}
-				else
-				{
-					m_deferredStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+					hasRenderInstance = true;
 				}
 			}
 		}
@@ -1809,6 +1710,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 {
 	m_environmentalBRDFLut.reset();
 	m_environmentalBRDFLut = ProjectManager::CreateTemporaryAsset<Texture2D>();
+	auto& environmentalBRDFLutTextureStorage = m_environmentalBRDFLut->RefTexture2DStorage();
 	auto brdfLutResolution = 512;
 	{
 		VkImageCreateInfo imageInfo{};
@@ -1826,7 +1728,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		m_environmentalBRDFLut->m_image = std::make_unique<Image>(imageInfo);
+		environmentalBRDFLutTextureStorage.m_image = std::make_unique<Image>(imageInfo);
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1839,7 +1741,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		m_environmentalBRDFLut->m_imageView = std::make_unique<ImageView>(viewInfo);
+		environmentalBRDFLutTextureStorage.m_imageView = std::make_unique<ImageView>(viewInfo);
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1856,12 +1758,11 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		m_environmentalBRDFLut->m_sampler = std::make_unique<Sampler>(samplerInfo);
+		environmentalBRDFLutTextureStorage.m_sampler = std::make_unique<Sampler>(samplerInfo);
 	}
-	TextureStorage::RegisterTexture2D(m_environmentalBRDFLut);
 	auto environmentalBrdfPipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		environmentalBRDFLutTextureStorage.m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
 		VkRect2D renderArea;
 		renderArea.offset = { 0, 0 };
@@ -1892,7 +1793,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 			attachment.clearValue = { 0, 0, 0, 1 };
-			attachment.imageView = m_environmentalBRDFLut->m_imageView->GetVkImageView();
+			attachment.imageView = environmentalBRDFLutTextureStorage.m_imageView->GetVkImageView();
 
 			VkRenderingInfo renderInfo{};
 			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1916,7 +1817,7 @@ void RenderLayer::PrepareEnvironmentalBrdfLut()
 			vkCmdEndRendering(commandBuffer);
 #pragma endregion
 		}
-		m_environmentalBRDFLut->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		environmentalBRDFLutTextureStorage.m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 }
@@ -2003,8 +1904,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 							pushConstant.m_instanceIndex = 0;
 							directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 							directionalLightShadowPipeline->m_states.ApplyAllStates(commandBuffer);
-							if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-							if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
+							if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+							if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += m_totalMeshTriangles;
 							vkCmdDrawIndexedIndirect(commandBuffer, m_meshDrawIndexedIndirectCommandsBuffers[currentFrameIndex]->GetVkBuffer(), 0, m_meshDrawIndexedIndirectCommands.size(), sizeof(VkDrawIndexedIndirectCommand));
 						}
 						else {
@@ -2018,8 +1919,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									directionalLightShadowPipeline->PushConstant(commandBuffer, 0, pushConstant);
 									if (useMeshShader)
 									{
-										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 
 										const uint32_t count = (renderCommand.m_meshletSize + taskWorkGroupInvocations - 1) / taskWorkGroupInvocations;
 										vkCmdDrawMeshTasksEXT(commandBuffer, count, 1, 1);
@@ -2027,8 +1928,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 									else {
 										const auto mesh = renderCommand.m_mesh;
 										GeometryStorage::BindVertices(commandBuffer);
-										if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-										if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
+										if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+										if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size();
 										mesh->DrawIndexed(commandBuffer, directionalLightShadowPipeline->m_states, 1);
 									}
 								}
@@ -2079,8 +1980,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineInstanced->PushConstant(commandBuffer, 0, pushConstant);
 								const auto mesh = renderCommand.m_mesh;
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_triangles[currentFrameIndex] += renderCommand.m_mesh->m_triangles.size() * renderCommand.m_particleInfos->PeekParticleInfoList().size();
 								mesh->DrawIndexed(commandBuffer, directionalLightShadowPipelineInstanced->m_states, renderCommand.m_particleInfos->PeekParticleInfoList().size());
 							}
 						);
@@ -2178,8 +2079,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 								pushConstant.m_instanceIndex = renderCommand.m_instanceIndex;
 								directionalLightShadowPipelineStrands->PushConstant(commandBuffer, 0, pushConstant);
 								const auto strands = renderCommand.m_strands;
-								if(countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
-								if(countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
+								if (countShadowRenderingDrawCalls) graphics.m_drawCall[currentFrameIndex]++;
+								if (countShadowRenderingDrawCalls) graphics.m_strandsSegments[currentFrameIndex] += renderCommand.m_strands->m_segments.size();
 								strands->DrawIndexed(commandBuffer, directionalLightShadowPipelineStrands->m_states, 1);
 							}
 						);
@@ -2240,7 +2141,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredPrepassPipeline = m_enableDebugVisualization ? useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS") : useMeshShader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
-			deferredPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
+			deferredPrepassPipeline->m_states.ResetAllStates(colorAttachmentInfos.size());
 			deferredPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredPrepassPipeline->m_states.m_scissor = scissor;
 			deferredPrepassPipeline->m_states.m_polygonMode = m_wireFrame ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
@@ -2299,7 +2200,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredInstancedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_INSTANCED_DEFERRED_PREPASS");
-			deferredInstancedPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
+			deferredInstancedPrepassPipeline->m_states.ResetAllStates(colorAttachmentInfos.size());
 			deferredInstancedPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredInstancedPrepassPipeline->m_states.m_scissor = scissor;
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
@@ -2335,13 +2236,13 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredSkinnedPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
-			deferredSkinnedPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
+			deferredSkinnedPrepassPipeline->m_states.ResetAllStates(colorAttachmentInfos.size());
 			deferredSkinnedPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredSkinnedPrepassPipeline->m_states.m_scissor = scissor;
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredSkinnedPrepassPipeline->Bind(commandBuffer);
 			deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
-			
+
 			m_deferredSkinnedRenderInstances.Dispatch([&](const SkinnedRenderInstance& renderCommand)
 				{
 					deferredSkinnedPrepassPipeline->BindDescriptorSet(commandBuffer, 1, renderCommand.m_boneMatrices->GetDescriptorSet()->GetVkDescriptorSet());
@@ -2372,10 +2273,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			renderInfo.pColorAttachments = colorAttachmentInfos.data();
 
 			const auto& deferredStrandsPrepassPipeline = Graphics::GetGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS");
-			deferredStrandsPrepassPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
+			deferredStrandsPrepassPipeline->m_states.ResetAllStates(colorAttachmentInfos.size());
 			deferredStrandsPrepassPipeline->m_states.m_viewPort = viewport;
 			deferredStrandsPrepassPipeline->m_states.m_scissor = scissor;
-			
+
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
 			deferredStrandsPrepassPipeline->Bind(commandBuffer);
 			deferredStrandsPrepassPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
@@ -2416,9 +2317,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 			m_lighting->m_directionalLightShadowMap->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			const auto& deferredLightingPipeline = isSceneCamera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA") : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
 			vkCmdBeginRendering(commandBuffer, &renderInfo);
-			deferredLightingPipeline->m_states.ResetAllStates(commandBuffer, colorAttachmentInfos.size());
+			deferredLightingPipeline->m_states.ResetAllStates(colorAttachmentInfos.size());
 			deferredLightingPipeline->m_states.m_depthTest = false;
-			
+
 			deferredLightingPipeline->Bind(commandBuffer);
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 0, m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
 			deferredLightingPipeline->BindDescriptorSet(commandBuffer, 1, camera->m_gBufferDescriptorSet->GetVkDescriptorSet());
@@ -2452,6 +2353,216 @@ void RenderLayer::RenderToCamera(const GlobalTransform& cameraGlobalTransform, c
 
 	camera->m_rendered = true;
 	camera->m_requireRendering = false;
+}
+
+bool RenderLayer::TryRegisterRenderer(
+	const std::shared_ptr<Scene>& scene, const Entity& owner,
+	const std::shared_ptr<MeshRenderer>& meshRenderer, glm::vec3& minBound, glm::vec3& maxBound, const bool enableSelectionHighLight)
+{
+	auto material = meshRenderer->m_material.Get<Material>();
+	auto mesh = meshRenderer->m_mesh.Get<Mesh>();
+	if (!meshRenderer->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange)
+		return false;
+	if (mesh->UnsafeGetVertices().empty() || mesh->UnsafeGetTriangles().empty()) return false;
+
+	auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+	auto ltw = gt.m_value;
+	auto meshBound = mesh->GetBound();
+	meshBound.ApplyTransform(ltw);
+	glm::vec3 center = meshBound.Center();
+
+	glm::vec3 size = meshBound.Size();
+	minBound = glm::vec3(
+		(glm::min)(minBound.x, center.x - size.x),
+		(glm::min)(minBound.y, center.y - size.y),
+		(glm::min)(minBound.z, center.z - size.z));
+	maxBound = glm::vec3(
+		(glm::max)(maxBound.x, center.x + size.x),
+		(glm::max)(maxBound.y, center.y + size.y),
+		(glm::max)(maxBound.z, center.z + size.z));
+
+	MaterialInfoBlock materialInfoBlock;
+	material->UpdateMaterialInfoBlock(materialInfoBlock);
+	auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+	InstanceInfoBlock instanceInfoBlock;
+	instanceInfoBlock.m_model = gt;
+	instanceInfoBlock.m_materialIndex = materialIndex;
+	instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+
+	instanceInfoBlock.m_meshletIndexOffset = mesh->m_meshletRange->m_offset;
+	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
+
+	auto entityHandle = scene->GetEntityHandle(owner);
+	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+	RenderInstance renderInstance;
+	renderInstance.m_commandType = RenderCommandType::FromRenderer;
+	renderInstance.m_owner = owner;
+	renderInstance.m_mesh = mesh;
+	renderInstance.m_castShadow = meshRenderer->m_castShadow;
+	renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
+	renderInstance.m_instanceIndex = instanceIndex;
+
+	renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+	renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+	renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+	if (material->m_drawSettings.m_blending)
+	{
+		m_transparentRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	else
+	{
+		m_deferredRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+
+	auto& newMeshTask = m_meshDrawMeshTasksIndirectCommands.emplace_back();
+	newMeshTask.groupCountX = 1;
+	newMeshTask.groupCountY = 1;
+	newMeshTask.groupCountZ = 1;
+
+	auto& newDrawTask = m_meshDrawIndexedIndirectCommands.emplace_back();
+	newDrawTask.instanceCount = 1;
+	newDrawTask.firstIndex = mesh->m_triangleRange->m_offset * 3;
+	newDrawTask.indexCount = static_cast<uint32_t>(mesh->m_triangles.size() * 3);
+	newDrawTask.vertexOffset = 0;
+	newDrawTask.firstInstance = 0;
+
+	m_totalMeshTriangles += mesh->m_triangles.size();
+	return true;
+}
+
+bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+	const std::shared_ptr<SkinnedMeshRenderer>& skinnedMeshRenderer, glm::vec3& minBound, glm::vec3& maxBound,
+	bool enableSelectionHighLight)
+{
+	auto material = skinnedMeshRenderer->m_material.Get<Material>();
+	auto skinnedMesh = skinnedMeshRenderer->m_skinnedMesh.Get<SkinnedMesh>();
+	if (!skinnedMeshRenderer->IsEnabled() || !material || !skinnedMesh || !skinnedMesh->m_skinnedMeshletRange || !skinnedMesh->m_skinnedTriangleRange)
+		return false;
+	if (skinnedMesh->m_skinnedVertices.empty() || skinnedMesh->m_skinnedTriangles.empty()) return false;
+	GlobalTransform gt;
+	if (auto animator = skinnedMeshRenderer->m_animator.Get<Animator>(); !animator)
+	{
+		return false;
+	}
+	if (!skinnedMeshRenderer->m_ragDoll)
+	{
+		gt = scene->GetDataComponent<GlobalTransform>(owner);
+	}
+	auto ltw = gt.m_value;
+	auto meshBound = skinnedMesh->GetBound();
+	meshBound.ApplyTransform(ltw);
+	glm::vec3 center = meshBound.Center();
+
+	glm::vec3 size = meshBound.Size();
+	minBound = glm::vec3(
+		(glm::min)(minBound.x, center.x - size.x),
+		(glm::min)(minBound.y, center.y - size.y),
+		(glm::min)(minBound.z, center.z - size.z));
+	maxBound = glm::vec3(
+		(glm::max)(maxBound.x, center.x + size.x),
+		(glm::max)(maxBound.y, center.y + size.y),
+		(glm::max)(maxBound.z, center.z + size.z));
+
+	MaterialInfoBlock materialInfoBlock;
+	material->UpdateMaterialInfoBlock(materialInfoBlock);
+	auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+	InstanceInfoBlock instanceInfoBlock;
+	instanceInfoBlock.m_model = gt;
+	instanceInfoBlock.m_materialIndex = materialIndex;
+	instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+	instanceInfoBlock.m_meshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
+	auto entityHandle = scene->GetEntityHandle(owner);
+	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+	SkinnedRenderInstance renderInstance;
+	renderInstance.m_commandType = RenderCommandType::FromRenderer;
+	renderInstance.m_owner = owner;
+	renderInstance.m_skinnedMesh = skinnedMesh;
+	renderInstance.m_castShadow = skinnedMeshRenderer->m_castShadow;
+	renderInstance.m_boneMatrices = skinnedMeshRenderer->m_boneMatrices;
+	renderInstance.m_skinnedMeshletSize = skinnedMesh->m_skinnedMeshletRange->m_range;
+	renderInstance.m_instanceIndex = instanceIndex;
+
+	renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+	renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+	renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+	if (material->m_drawSettings.m_blending)
+	{
+		m_transparentSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	else
+	{
+		m_deferredSkinnedRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	return true;
+}
+
+bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+	const std::shared_ptr<Particles>& particles, glm::vec3& minBound, glm::vec3& maxBound,
+	bool enableSelectionHighLight)
+{
+	auto material = particles->m_material.Get<Material>();
+	auto mesh = particles->m_mesh.Get<Mesh>();
+	auto particleInfoList = particles->m_particleInfoList.Get<ParticleInfoList>();
+	if (!particles->IsEnabled() || !material || !mesh || !mesh->m_meshletRange || !mesh->m_triangleRange || !particleInfoList)
+		return false;
+	if (particleInfoList->PeekParticleInfoList().empty()) return false;
+	auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+	auto ltw = gt.m_value;
+	auto meshBound = mesh->GetBound();
+	meshBound.ApplyTransform(ltw);
+	glm::vec3 center = meshBound.Center();
+
+	glm::vec3 size = meshBound.Size();
+	minBound = glm::vec3(
+		(glm::min)(minBound.x, center.x - size.x),
+		(glm::min)(minBound.y, center.y - size.y),
+		(glm::min)(minBound.z, center.z - size.z));
+
+	maxBound = glm::vec3(
+		(glm::max)(maxBound.x, center.x + size.x),
+		(glm::max)(maxBound.y, center.y + size.y),
+		(glm::max)(maxBound.z, center.z + size.z));
+
+	MaterialInfoBlock materialInfoBlock;
+	material->UpdateMaterialInfoBlock(materialInfoBlock);
+	auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+	InstanceInfoBlock instanceInfoBlock;
+	instanceInfoBlock.m_model = gt;
+	instanceInfoBlock.m_materialIndex = materialIndex;
+	instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+	instanceInfoBlock.m_meshletSize = mesh->m_meshletRange->m_range;
+	auto entityHandle = scene->GetEntityHandle(owner);
+	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+	InstancedRenderInstance renderInstance;
+	renderInstance.m_commandType = RenderCommandType::FromRenderer;
+	renderInstance.m_owner = owner;
+	renderInstance.m_mesh = mesh;
+	renderInstance.m_castShadow = particles->m_castShadow;
+	renderInstance.m_particleInfos = particleInfoList;
+	renderInstance.m_meshletSize = mesh->m_meshletRange->m_range;
+
+	renderInstance.m_instanceIndex = instanceIndex;
+
+	renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+	renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+	renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
+	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+	if (material->m_drawSettings.m_blending)
+	{
+		m_transparentInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	else
+	{
+		m_deferredInstancedRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	return true;
 }
 
 void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material,
@@ -2505,4 +2616,65 @@ void RenderLayer::DrawMesh(const std::shared_ptr<Mesh>& mesh, const std::shared_
 const std::shared_ptr<DescriptorSet>& RenderLayer::GetPerFrameDescriptorSet() const
 {
 	return m_perFrameDescriptorSets[Graphics::GetCurrentFrameIndex()];
+}
+
+bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const Entity& owner,
+	const std::shared_ptr<StrandsRenderer>& strandsRenderer, glm::vec3& minBound, glm::vec3& maxBound,
+	bool enableSelectionHighLight)
+{
+	auto material = strandsRenderer->m_material.Get<Material>();
+	auto strands = strandsRenderer->m_strands.Get<Strands>();
+	if (!strandsRenderer->IsEnabled() || !material || !strands || !strands->m_strandMeshletRange || !strands->m_segmentRange)
+		return false;
+	auto gt = scene->GetDataComponent<GlobalTransform>(owner);
+	auto ltw = gt.m_value;
+	auto meshBound = strands->m_bound;
+	meshBound.ApplyTransform(ltw);
+	glm::vec3 center = meshBound.Center();
+
+	glm::vec3 size = meshBound.Size();
+	minBound = glm::vec3(
+		(glm::min)(minBound.x, center.x - size.x),
+		(glm::min)(minBound.y, center.y - size.y),
+		(glm::min)(minBound.z, center.z - size.z));
+	maxBound = glm::vec3(
+		(glm::max)(maxBound.x, center.x + size.x),
+		(glm::max)(maxBound.y, center.y + size.y),
+		(glm::max)(maxBound.z, center.z + size.z));
+
+	MaterialInfoBlock materialInfoBlock;
+	material->UpdateMaterialInfoBlock(materialInfoBlock);
+	auto materialIndex = RegisterMaterialIndex(material->GetHandle(), materialInfoBlock);
+	InstanceInfoBlock instanceInfoBlock;
+	instanceInfoBlock.m_model = gt;
+	instanceInfoBlock.m_materialIndex = materialIndex;
+	instanceInfoBlock.m_entitySelected = enableSelectionHighLight && scene->IsEntityAncestorSelected(owner) ? 1 : 0;
+	instanceInfoBlock.m_meshletSize = strands->m_strandMeshletRange->m_range;
+	auto entityHandle = scene->GetEntityHandle(owner);
+	auto instanceIndex = RegisterInstanceIndex(entityHandle, instanceInfoBlock);
+
+	StrandsRenderInstance renderInstance;
+	renderInstance.m_commandType = RenderCommandType::FromRenderer;
+	renderInstance.m_owner = owner;
+	renderInstance.m_strands = strands;
+	renderInstance.m_castShadow = strandsRenderer->m_castShadow;
+	renderInstance.m_strandMeshletSize = strands->m_strandMeshletRange->m_range;
+
+	renderInstance.m_instanceIndex = instanceIndex;
+
+	renderInstance.m_lineWidth = material->m_drawSettings.m_lineWidth;
+	renderInstance.m_cullMode = material->m_drawSettings.m_cullMode;
+	renderInstance.m_polygonMode = material->m_drawSettings.m_polygonMode;
+
+	if (instanceInfoBlock.m_entitySelected == 1) m_needFade = true;
+
+	if (material->m_drawSettings.m_blending)
+	{
+		m_transparentStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	else
+	{
+		m_deferredStrandsRenderInstances.m_renderCommands.push_back(renderInstance);
+	}
+	return true;
 }

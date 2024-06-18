@@ -29,8 +29,8 @@ namespace EvoEngine
 		[[nodiscard]] size_t GetVersion() const;
 		void SetEnabled(const bool& value);
 		[[nodiscard]] bool IsEnabled() const;
-		bool Started() const;
-		virtual void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {}
+		[[nodiscard]] bool Started() const;
+		virtual bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) { return false; }
 		virtual void FixedUpdate() {}
 		virtual void Update() {}
 		virtual void LateUpdate() {}

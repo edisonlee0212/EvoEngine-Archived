@@ -4,7 +4,9 @@
 
 #include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
-void UnknownPrivateComponent::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool UnknownPrivateComponent::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
 	ImGui::Text(std::string("Type: " + m_originalTypeName).c_str());
+
+	return false;
 }

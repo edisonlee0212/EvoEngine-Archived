@@ -128,7 +128,7 @@ namespace EvoEngine
 
 		[[nodiscard]] glm::vec2 GetMouseSceneCameraPosition() const;
 
-		[[nodiscard]] KeyActionType GetKey(int key) const;
+		[[nodiscard]] static KeyActionType GetKey(int key);
 		[[nodiscard]] std::shared_ptr<Camera> GetSceneCamera();
 		[[nodiscard]] glm::vec3 GetSceneCameraPosition() const;
 		[[nodiscard]] glm::quat GetSceneCameraRotation() const;
@@ -193,47 +193,57 @@ namespace EvoEngine
 		void RegisterComponentDataInspector(
 			const std::function<bool(Entity entity, IDataComponent* data, bool isRoot)>& func);
 
-		bool DragAndDropButton(
+		static bool DragAndDropButton(
 			AssetRef& target,
 			const std::string& name,
 			const std::vector<std::string>& acceptableTypeNames,
 			bool modifiable = true);
-		bool DragAndDropButton(
+		static bool DragAndDropButton(
 			PrivateComponentRef& target,
 			const std::string& name,
 			const std::vector<std::string>& acceptableTypeNames,
 			bool modifiable = true);
 
 		template <typename T = IAsset>
-		bool DragAndDropButton(AssetRef& target, const std::string& name, bool modifiable = true);
+		static bool DragAndDropButton(AssetRef& target, const std::string& name, bool modifiable = true);
 		template <typename T = IPrivateComponent>
-		bool DragAndDropButton(PrivateComponentRef& target, const std::string& name, bool modifiable = true);
-		bool DragAndDropButton(EntityRef& entityRef, const std::string& name, bool modifiable = true);
+		static bool DragAndDropButton(PrivateComponentRef& target, const std::string& name, bool modifiable = true);
+		static bool DragAndDropButton(EntityRef& entityRef, const std::string& name, bool modifiable = true);
 
-		template <typename T = IAsset>  void Draggable(AssetRef& target);
-		template <typename T = IPrivateComponent>  void Draggable(PrivateComponentRef& target);
-		void Draggable(EntityRef& entityRef);
+		template <typename T = IAsset>
+		static void Draggable(AssetRef& target);
+		template <typename T = IPrivateComponent>
+		static void Draggable(PrivateComponentRef& target);
+		static void Draggable(EntityRef& entityRef);
 
-		template <typename T = IAsset>  void DraggableAsset(const std::shared_ptr<T>& target);
-		template <typename T = IPrivateComponent>  void DraggablePrivateComponent(const std::shared_ptr<T>& target);
-		void DraggableEntity(const Entity& entity);
+		template <typename T = IAsset>
+		static void DraggableAsset(const std::shared_ptr<T>& target);
+		template <typename T = IPrivateComponent>
+		static void DraggablePrivateComponent(const std::shared_ptr<T>& target);
+		static void DraggableEntity(const Entity& entity);
 
-		bool UnsafeDroppableAsset(AssetRef& target, const std::vector<std::string>& typeNames);
-		bool UnsafeDroppablePrivateComponent(PrivateComponentRef& target, const std::vector<std::string>& typeNames);
+		static bool UnsafeDroppableAsset(AssetRef& target, const std::vector<std::string>& typeNames);
+		static bool UnsafeDroppablePrivateComponent(PrivateComponentRef& target, const std::vector<std::string>& typeNames);
 
-		template <typename T = IAsset>  bool Droppable(AssetRef& target);
-		template <typename T = IPrivateComponent>  bool Droppable(PrivateComponentRef& target);
-		bool Droppable(EntityRef& entityRef);
+		template <typename T = IAsset>
+		static bool Droppable(AssetRef& target);
+		template <typename T = IPrivateComponent>
+		static bool Droppable(PrivateComponentRef& target);
+		static bool Droppable(EntityRef& entityRef);
 
-		template <typename T = IAsset>  bool Rename(AssetRef& target);
-		bool Rename(EntityRef& entityRef);
+		template <typename T = IAsset>
+		static bool Rename(AssetRef& target);
+		static bool Rename(EntityRef& entityRef);
 
-		template <typename T = IAsset>  bool RenameAsset(const std::shared_ptr<T>& target);
-		[[nodiscard]] bool RenameEntity(const Entity& entity) const;
+		template <typename T = IAsset>
+		static bool RenameAsset(const std::shared_ptr<T>& target);
+		[[nodiscard]] static bool RenameEntity(const Entity& entity);
 
-		template <typename T = IAsset>  bool Remove(AssetRef& target) const;
-		template <typename T = IPrivateComponent>  bool Remove(PrivateComponentRef& target) const;
-		[[nodiscard]] bool Remove(EntityRef& entityRef);
+		template <typename T = IAsset>
+		static bool Remove(AssetRef& target);
+		template <typename T = IPrivateComponent>
+		static bool Remove(PrivateComponentRef& target);
+		[[nodiscard]] static bool Remove(EntityRef& entityRef);
 
 #pragma endregion
 
@@ -306,9 +316,10 @@ namespace EvoEngine
 #pragma endregion
 	private:
 		int m_selectionAlpha = 0;
-
+		bool m_usingGizmo = false;
 		glm::detail::hdata* m_mappedEntityIndexData;
 		std::unique_ptr<Buffer> m_entityIndexReadBuffer;
+		void MouseEntitySelection();
 		[[nodiscard]] Entity MouseEntitySelection(const std::shared_ptr<Camera>& targetCamera, const glm::vec2& mousePosition) const;
 
 		EntityArchetype m_basicEntityArchetype;
@@ -458,7 +469,8 @@ namespace EvoEngine
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.5f, 0, 1));
 		if (ptr)
 		{
-			ImGui::Button(ptr->GetTitle().c_str());
+			const std::string tag = "##" + ptr->GetTypeName() + std::to_string(ptr->GetHandle());
+			ImGui::Button((ptr->GetTitle() + tag).c_str());
 			Draggable(target);
 			if (modifiable)
 			{
@@ -555,7 +567,7 @@ namespace EvoEngine
 	{
 		return RenameAsset(target.Get<IAsset>());
 	}
-	template <typename T> bool EditorLayer::Remove(AssetRef& target) const
+	template <typename T> bool EditorLayer::Remove(AssetRef& target)
 	{
 		bool statusChanged = false;
 		if (const auto ptr = target.Get<IAsset>())
@@ -574,7 +586,7 @@ namespace EvoEngine
 		}
 		return statusChanged;
 	}
-	template <typename T> bool EditorLayer::Remove(PrivateComponentRef& target) const
+	template <typename T> bool EditorLayer::Remove(PrivateComponentRef& target)
 	{
 		bool statusChanged = false;
 		if (const auto ptr = target.Get<IPrivateComponent>())

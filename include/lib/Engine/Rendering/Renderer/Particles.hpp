@@ -14,8 +14,8 @@ namespace EvoEngine
         AssetRef m_mesh;
         AssetRef m_material;
         void RecalculateBoundingBox();
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-        void Serialize(YAML::Emitter& out) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
         void CollectAssetRef(std::vector<AssetRef>& list) override;

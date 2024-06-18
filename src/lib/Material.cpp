@@ -6,7 +6,7 @@
 using namespace EvoEngine;
 
 static const char* PolygonMode[]{ "Point", "Line", "Fill" };
-static const char* CullingMode[]{ "Front", "Back", "FrontAndBack" };
+static const char* CullingMode[]{ "Front", "Back", "FrontAndBack", "None" };
 static const char* BlendingFactor[]{ "Zero", "One", "SrcColor", "OneMinusSrcColor", "DstColor", "OneMinusDstColor",
                                     "SrcAlpha", "OneMinusSrcAlpha",
                                     "DstAlpha", "OneMinusDstAlpha", "ConstantColor", "OneMinusConstantColor",
@@ -42,6 +42,7 @@ bool DrawSettings::OnInspect() {
         case 0: m_polygonMode = VK_POLYGON_MODE_POINT; break;
         case 1: m_polygonMode = VK_POLYGON_MODE_LINE; break;
         case 2: m_polygonMode = VK_POLYGON_MODE_FILL; break;
+        
         }
     }
     if (m_polygonMode == VK_POLYGON_MODE_LINE)
@@ -54,6 +55,7 @@ bool DrawSettings::OnInspect() {
     case VK_CULL_MODE_FRONT_BIT: cullFaceMode = 0; break;
     case VK_CULL_MODE_BACK_BIT: cullFaceMode = 1; break;
     case VK_CULL_MODE_FRONT_AND_BACK: cullFaceMode = 2; break;
+    case VK_CULL_MODE_NONE: cullFaceMode = 3; break;
     }
     if (ImGui::Combo(
         "Cull Face Mode",
@@ -66,6 +68,7 @@ bool DrawSettings::OnInspect() {
         case 0: m_cullMode = VK_CULL_MODE_FRONT_BIT; break;
         case 1: m_cullMode = VK_CULL_MODE_BACK_BIT; break;
         case 2: m_cullMode = VK_CULL_MODE_FRONT_AND_BACK; break;
+        case 3: m_cullMode = VK_CULL_MODE_NONE; break;
         }
     }
 
@@ -130,6 +133,15 @@ void DrawSettings::Load(const std::string& name, const YAML::Node& in) {
     }
 }
 
+Material::~Material()
+{
+    m_albedoTexture.Clear();
+    m_normalTexture.Clear();
+    m_metallicTexture.Clear();
+    m_roughnessTexture.Clear();
+    m_aoTexture.Clear();
+}
+
 void Material::SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture)
 {
     m_albedoTexture = texture;
@@ -185,15 +197,6 @@ std::shared_ptr<Texture2D> Material::GetAoTexture()
     return m_aoTexture.Get<Texture2D>();
 }
 
-
-void Material::OnCreate()
-{
-}
-
-Material::~Material()
-{
-}
-
 void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
 {
 	if (const auto albedoTexture = m_albedoTexture.Get<Texture2D>(); albedoTexture && albedoTexture->GetVkSampler())
@@ -245,7 +248,7 @@ void Material::UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock)
     materialInfoBlock.m_emissionVal = m_materialProperties.m_emission;
 }
 
-void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
+bool Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
     bool changed = false;
     
     if (ImGui::Checkbox("Vertex color only", &m_vertexColorOnly)) {
@@ -334,12 +337,11 @@ void Material::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {
     }
     if (changed) {
         m_needUpdate = true;
-        m_saved = false;
-        m_version++;
     }
+    return changed;
 }
 
-void Material::Serialize(YAML::Emitter& out) {
+void Material::Serialize(YAML::Emitter& out) const {
     m_albedoTexture.Save("m_albedoTexture", out);
     m_normalTexture.Save("m_normalTexture", out);
     m_metallicTexture.Save("m_metallicTexture", out);

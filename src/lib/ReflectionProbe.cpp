@@ -1,5 +1,5 @@
 #include "ReflectionProbe.hpp"
-
+#include "TextureStorage.hpp"
 #include "EditorLayer.hpp"
 #include "Mesh.hpp"
 
@@ -20,9 +20,9 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 
 #pragma endregion
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		m_cubemap->m_image->GenerateMipmaps(commandBuffer);
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		m_cubemap->RefStorage().m_image->GenerateMipmaps(commandBuffer);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 
@@ -33,7 +33,7 @@ void ReflectionProbe::Initialize(uint32_t resolution)
 		{
 			VkImageViewCreateInfo viewInfo{};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = m_cubemap->m_image->GetVkImage();
+			viewInfo.image = m_cubemap->RefStorage().m_image->GetVkImage();
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			viewInfo.format = Graphics::Constants::TEXTURE_2D;
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -54,7 +54,7 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 {
 	if (!m_cubemap) Initialize();
 
-	if (!targetCubemap->m_image) {
+	if (!targetCubemap->RefStorage().m_image) {
 		EVOENGINE_ERROR("Target cubemap doesn't contain any content!");
 		return;
 	}
@@ -64,8 +64,8 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 	VkImageCreateInfo depthImageInfo{};
 	depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-	depthImageInfo.extent.width = m_cubemap->m_image->GetExtent().width;
-	depthImageInfo.extent.height = m_cubemap->m_image->GetExtent().height;
+	depthImageInfo.extent.width = m_cubemap->RefStorage().m_image->GetExtent().width;
+	depthImageInfo.extent.height = m_cubemap->RefStorage().m_image->GetExtent().height;
 	depthImageInfo.extent.depth = 1;
 	depthImageInfo.mipLevels = 1;
 	depthImageInfo.arrayLayers = 1;
@@ -113,15 +113,15 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)) };
-	const auto maxMipLevels = m_cubemap->m_image->GetMipLevels();
+	const auto maxMipLevels = m_cubemap->RefStorage().m_image->GetMipLevels();
 
 	const auto prefilterConstruct = Graphics::GetGraphicsPipeline("PREFILTER_CONSTRUCT");
 	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 
 		for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
 		{
-			unsigned int mipWidth = m_cubemap->m_image->GetExtent().width * std::pow(0.5, mip);
+			unsigned int mipWidth = m_cubemap->RefStorage().m_image->GetExtent().width * std::pow(0.5, mip);
 			float roughness = (float)mip / (float)(maxMipLevels - 1);
 #pragma region Viewport and scissor
 			VkRect2D renderArea;
@@ -197,23 +197,26 @@ void ReflectionProbe::ConstructFromCubemap(const std::shared_ptr<Cubemap>& targe
 				Graphics::EverythingBarrier(commandBuffer);
 			}
 		}
-		m_cubemap->m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_cubemap->RefStorage().m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 	);
 
 }
 
-void ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool ReflectionProbe::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	if (!m_cubemap->m_imTextureIds.empty()) {
+	bool changed = false;
+	if (!m_cubemap->RefStorage().m_imTextureIds.empty()) {
 		static float debugSacle = 0.25f;
 		ImGui::DragFloat("Scale", &debugSacle, 0.01f, 0.1f, 1.0f);
 		debugSacle = glm::clamp(debugSacle, 0.1f, 1.0f);
 		for (int i = 0; i < 6; i++) {
-			ImGui::Image(m_cubemap->m_imTextureIds[i],
-				ImVec2(m_cubemap->m_image->GetExtent().width * debugSacle, m_cubemap->m_image->GetExtent().height * debugSacle),
+			ImGui::Image(m_cubemap->RefStorage().m_imTextureIds[i],
+				ImVec2(m_cubemap->RefStorage().m_image->GetExtent().width * debugSacle, m_cubemap->RefStorage().m_image->GetExtent().height * debugSacle),
 				ImVec2(0, 1),
 				ImVec2(1, 0));
 		}
 	}
+
+	return changed;
 }

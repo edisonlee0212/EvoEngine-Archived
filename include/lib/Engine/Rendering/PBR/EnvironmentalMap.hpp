@@ -20,6 +20,6 @@ namespace EvoEngine
         void ConstructFromCubemap(const std::shared_ptr<Cubemap>& targetCubemap);
         void ConstructFromTexture2D(const std::shared_ptr<Texture2D>& targetTexture2D);
         void ConstructFromRenderTexture(const std::shared_ptr<RenderTexture>& targetRenderTexture);
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
     };
 }

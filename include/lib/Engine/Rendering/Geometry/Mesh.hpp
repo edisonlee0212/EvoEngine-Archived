@@ -25,15 +25,17 @@ namespace EvoEngine
 	public:
 		void OnCreate() override;
 		~ParticleInfoList() override;
-		void Serialize(YAML::Emitter& out) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
-		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth);
-		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth);
+		void ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth) const;
+		void ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth) const;
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
-			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth);
+			const std::vector<glm::vec3>& ends, const glm::vec4& color, float rayWidth) const;
 		void ApplyConnections(const std::vector<glm::vec3>& starts,
-			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth);
-		void SetParticleInfos(const std::vector<ParticleInfo>& particleInfos);
+			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, float rayWidth) const;
+		void ApplyConnections(const std::vector<glm::vec3>& starts,
+			const std::vector<glm::vec3>& ends, const std::vector<glm::vec4>& colors, const std::vector<float>& rayWidths) const;
+		void SetParticleInfos(const std::vector<ParticleInfo>& particleInfos) const;
 		const std::vector<ParticleInfo>& PeekParticleInfoList() const;
 		[[nodiscard]] const std::shared_ptr<DescriptorSet>& GetDescriptorSet() const;
 	};
@@ -50,9 +52,9 @@ namespace EvoEngine
 		std::shared_ptr<RangeDescriptor> m_triangleRange;
 		std::shared_ptr<RangeDescriptor> m_meshletRange;
 	protected:
-		bool SaveInternal(const std::filesystem::path& path) override;
+		bool SaveInternal(const std::filesystem::path& path) const override;
 	public:
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void OnCreate() override;
 		~Mesh() override;
 		void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instancesCount) const override;
@@ -67,12 +69,13 @@ namespace EvoEngine
 		void RecalculateNormal();
 		void RecalculateTangent();
 
-		
+		[[nodiscard]] float CalculateTriangleArea(const glm::uvec3& triangle) const;
+		[[nodiscard]] glm::vec3 CalculateCentroid(const glm::uvec3& triangle) const;
 		[[nodiscard]] std::vector<Vertex>& UnsafeGetVertices();
 		[[nodiscard]] std::vector<glm::uvec3>& UnsafeGetTriangles();
 		[[nodiscard]] Bound GetBound() const;
 		
-		void Serialize(YAML::Emitter& out) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 	};
 }

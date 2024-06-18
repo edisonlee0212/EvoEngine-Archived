@@ -25,11 +25,14 @@ void AnimationPlayer::Update()
 	}
 }
 
-void AnimationPlayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool AnimationPlayer::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	ImGui::Checkbox("AutoPlay", &m_autoPlay);
 	if(m_autoPlay)
 	{
 		ImGui::DragFloat("AutoPlay Speed", &m_autoPlaySpeed, 1.0f);
 	}
+
+	return changed;
 }

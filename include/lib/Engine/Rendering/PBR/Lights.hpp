@@ -21,13 +21,13 @@ namespace EvoEngine
     public:
         bool m_castShadow = true;
         glm::vec3 m_diffuse = glm::vec3(1.0f);
-        float m_diffuseBrightness = 0.8f;
+        float m_diffuseBrightness = 1.f;
         float m_bias = 0.1f;
-        float m_normalOffset = 0.001f;
+        float m_normalOffset = 0.05f;
         float m_lightSize = 0.01f;
         void OnCreate() override;
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-        void Serialize(YAML::Emitter& out) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
     };
@@ -53,9 +53,9 @@ namespace EvoEngine
         glm::vec3 m_diffuse = glm::vec3(1.0f);
         float m_diffuseBrightness = 0.8f;
         float m_lightSize = 0.01f;
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
         void OnCreate() override;
-        void Serialize(YAML::Emitter& out) override;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
         [[nodiscard]] float GetFarPlane() const;
         void PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) override;
@@ -84,9 +84,9 @@ namespace EvoEngine
         glm::vec3 m_diffuse = glm::vec3(1.0f);
         float m_diffuseBrightness = 0.8f;
         float m_lightSize = 0.01f;
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
         void OnCreate() override;
-        void Serialize(YAML::Emitter& out) override;
+        void Serialize(YAML::Emitter& out) const override;
         void Deserialize(const YAML::Node& in) override;
         [[nodiscard]] float GetFarPlane() const;
 

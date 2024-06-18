@@ -4,7 +4,7 @@ using namespace EvoEngine;
 
 
 
-void GraphicsPipelineStates::ResetAllStates(const VkCommandBuffer commandBuffer, size_t colorAttachmentSize)
+void GraphicsPipelineStates::ResetAllStates(const size_t colorAttachmentSize)
 {
 	m_viewPort = {};
 	m_viewPort.width = 1;
@@ -33,8 +33,8 @@ void GraphicsPipelineStates::ResetAllStates(const VkCommandBuffer commandBuffer,
 	m_logicOpEnable = VK_FALSE;
 	m_logicOp = VK_LOGIC_OP_COPY;
 	m_colorBlendAttachmentStates.clear();
-	m_colorBlendAttachmentStates.resize(colorAttachmentSize);
-	for(auto& i : m_colorBlendAttachmentStates)
+	m_colorBlendAttachmentStates.resize(std::max(static_cast<size_t>(1), colorAttachmentSize));
+	for (auto& i : m_colorBlendAttachmentStates)
 	{
 		i.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		i.blendEnable = VK_FALSE;
@@ -62,7 +62,7 @@ void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer commandBuffer,
 		m_viewPortApplied.width = m_viewPort.width = glm::max(1.0f, m_viewPort.width);
 		m_viewPortApplied.height = m_viewPort.height = glm::max(1.0f, m_viewPort.height);
 		vkCmdSetViewport(commandBuffer, 0, 1, &m_viewPortApplied);
-		
+
 	}
 	if (forceSet
 		|| m_scissorApplied.extent.height != m_scissor.extent.height
@@ -152,78 +152,42 @@ void GraphicsPipelineStates::ApplyAllStates(const VkCommandBuffer commandBuffer,
 	{
 		vkCmdSetLogicOpEXT(commandBuffer, m_logicOpApplied);
 	}
-
-	bool updateBlendingStates = false;
-	if (m_colorBlendAttachmentStates.size() != m_colorBlendAttachmentStatesApplied.size())
+	if(m_colorBlendAttachmentStates.empty())
 	{
-		updateBlendingStates = true;
+		m_colorBlendAttachmentStates.emplace_back();
 	}
+	std::vector<VkBool32> colorWriteMasks = {};
+	colorWriteMasks.reserve(m_colorBlendAttachmentStates.size());
+	for (const auto& i : m_colorBlendAttachmentStates)
+	{
+		colorWriteMasks.push_back(i.colorWriteMask);
+	}
+	if (!colorWriteMasks.empty()) vkCmdSetColorWriteMaskEXT(commandBuffer, 0, colorWriteMasks.size(), colorWriteMasks.data());
+
+	std::vector<VkBool32> colorBlendEnable = {};
+	colorBlendEnable.reserve(m_colorBlendAttachmentStates.size());
+	for (const auto& i : m_colorBlendAttachmentStates)
+	{
+		colorBlendEnable.push_back(i.blendEnable);
+	}
+	if (!colorBlendEnable.empty()) vkCmdSetColorBlendEnableEXT(commandBuffer, 0, colorBlendEnable.size(), colorBlendEnable.data());
+
+	std::vector<VkColorBlendEquationEXT> equations{};
+	for (const auto& i : m_colorBlendAttachmentStates)
+	{
+		VkColorBlendEquationEXT equation;
+		equation.srcColorBlendFactor = i.srcColorBlendFactor;
+		equation.dstColorBlendFactor = i.dstColorBlendFactor;
+		equation.colorBlendOp = i.colorBlendOp;
+		equation.srcAlphaBlendFactor = i.srcAlphaBlendFactor;
+		equation.dstAlphaBlendFactor = i.dstAlphaBlendFactor;
+		equation.alphaBlendOp = i.alphaBlendOp;
+		equations.emplace_back(equation);
+	}
+	if (!equations.empty()) vkCmdSetColorBlendEquationEXT(commandBuffer, 0, equations.size(), equations.data());
 	else
 	{
-		for (int i = 0; i < m_colorBlendAttachmentStates.size(); i++)
-		{
-			if (m_colorBlendAttachmentStates[i].blendEnable != m_colorBlendAttachmentStatesApplied[i].blendEnable
-				|| m_colorBlendAttachmentStates[i].srcColorBlendFactor != m_colorBlendAttachmentStatesApplied[i].srcColorBlendFactor
-				|| m_colorBlendAttachmentStates[i].dstColorBlendFactor != m_colorBlendAttachmentStatesApplied[i].dstColorBlendFactor
-				|| m_colorBlendAttachmentStates[i].colorBlendOp != m_colorBlendAttachmentStatesApplied[i].colorBlendOp
-				|| m_colorBlendAttachmentStates[i].srcAlphaBlendFactor != m_colorBlendAttachmentStatesApplied[i].srcAlphaBlendFactor
-				|| m_colorBlendAttachmentStates[i].dstAlphaBlendFactor != m_colorBlendAttachmentStatesApplied[i].dstAlphaBlendFactor
-				|| m_colorBlendAttachmentStates[i].alphaBlendOp != m_colorBlendAttachmentStatesApplied[i].alphaBlendOp
-				|| m_colorBlendAttachmentStates[i].colorWriteMask != m_colorBlendAttachmentStatesApplied[i].colorWriteMask)
-			{
-				updateBlendingStates = true;
-				break;
-			}
-		}
+		int a = 0;
 	}
-	if (forceSet || updateBlendingStates)
-	{
-		m_colorBlendAttachmentStatesApplied = m_colorBlendAttachmentStates;
-	}
-	if (forceSet || updateBlendingStates)
-	{
-		std::vector<VkBool32> colorWriteMasks = {};
-		colorWriteMasks.reserve(m_colorBlendAttachmentStatesApplied.size());
-		for (const auto& i : m_colorBlendAttachmentStatesApplied)
-		{
-			colorWriteMasks.push_back(i.colorWriteMask);
-		}
-		if(!colorWriteMasks.empty()) vkCmdSetColorWriteMaskEXT(commandBuffer, 0, colorWriteMasks.size(), colorWriteMasks.data());
-	}
-
-	if (forceSet || updateBlendingStates)
-	{
-		std::vector<VkBool32> colorBlendEnable = {};
-		colorBlendEnable.reserve(m_colorBlendAttachmentStatesApplied.size());
-		for (const auto& i : m_colorBlendAttachmentStatesApplied)
-		{
-			colorBlendEnable.push_back(i.blendEnable);
-		}
-		if (!colorBlendEnable.empty()) vkCmdSetColorBlendEnableEXT(commandBuffer, 0, colorBlendEnable.size(), colorBlendEnable.data());
-	}
-	if (forceSet || updateBlendingStates)
-	{
-		std::vector<VkColorBlendEquationEXT> equations{};
-		for (const auto& i : m_colorBlendAttachmentStatesApplied)
-		{
-			VkColorBlendEquationEXT equation;
-			equation.srcColorBlendFactor = i.srcColorBlendFactor;
-			equation.dstColorBlendFactor = i.dstColorBlendFactor;
-			equation.colorBlendOp = i.colorBlendOp;
-			equation.srcAlphaBlendFactor = i.srcAlphaBlendFactor;
-			equation.dstAlphaBlendFactor = i.dstAlphaBlendFactor;
-			equation.alphaBlendOp = i.alphaBlendOp;
-			equations.emplace_back(equation);
-		}
-		if (!equations.empty()) vkCmdSetColorBlendEquationEXT(commandBuffer, 0, equations.size(), equations.data());
-	}
-
-	if (forceSet
-		|| m_blendConstantsApplied[0] != m_blendConstants[0]
-		|| m_blendConstantsApplied[1] != m_blendConstants[1]
-		|| m_blendConstantsApplied[2] != m_blendConstants[2]
-		|| m_blendConstantsApplied[3] != m_blendConstants[3])
-	{
-		vkCmdSetBlendConstants(commandBuffer, m_blendConstantsApplied);
-	}
+	vkCmdSetBlendConstants(commandBuffer, m_blendConstantsApplied);
 }

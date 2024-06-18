@@ -34,13 +34,8 @@ bool PrivateComponentRef::Update()
 void PrivateComponentRef::Clear()
 {
     m_value.reset();
-    m_entityHandle = Handle(0);
+    m_entityHandle = m_handle = Handle(0);
     m_scene.reset();
+    m_privateComponentTypeName = {};
 }
-PrivateComponentRef &PrivateComponentRef::operator=(const PrivateComponentRef &other)
-{
-    m_entityHandle = other.m_entityHandle;
-    m_privateComponentTypeName = other.m_privateComponentTypeName;
-    m_scene = other.m_scene;
-    return *this;
-}
+

@@ -650,6 +650,7 @@ void Graphics::SelectPhysicalDevice()
 
 	
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
+	m_requiredDeviceExtensions.emplace_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
 	m_requiredDeviceExtensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
@@ -732,8 +733,6 @@ void Graphics::CreateLogicalDevice()
 
 #pragma region Logical Device
 
-	
-
 	VkPhysicalDeviceVulkan12Features vkPhysicalDeviceVulkan12Features{};
 	vkPhysicalDeviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vkPhysicalDeviceVulkan12Features.shaderInt8 = VK_TRUE;
@@ -755,9 +754,24 @@ void Graphics::CreateLogicalDevice()
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 	dynamicRenderingFeatures.pNext = &shaderDrawParametersFeatures;
 
+	VkPhysicalDeviceFragmentShadingRateFeaturesKHR physicalDeviceFragmentShadingRateFeatures{};
+	physicalDeviceFragmentShadingRateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+	physicalDeviceFragmentShadingRateFeatures.pNext = &dynamicRenderingFeatures;
+	physicalDeviceFragmentShadingRateFeatures.attachmentFragmentShadingRate = VK_FALSE;
+	physicalDeviceFragmentShadingRateFeatures.pipelineFragmentShadingRate = VK_FALSE;
+	physicalDeviceFragmentShadingRateFeatures.primitiveFragmentShadingRate = VK_FALSE;
+
+
+	VkPhysicalDeviceMultiviewFeatures physicalDeviceMultiviewFeatures{};
+	physicalDeviceMultiviewFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+	physicalDeviceMultiviewFeatures.pNext = &physicalDeviceFragmentShadingRateFeatures;
+	physicalDeviceMultiviewFeatures.multiview = VK_FALSE;
+	physicalDeviceMultiviewFeatures.multiviewGeometryShader = VK_FALSE;
+	physicalDeviceMultiviewFeatures.multiviewTessellationShader = VK_FALSE;
+
 	VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeaturesExt{};
 	meshShaderFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
-	meshShaderFeaturesExt.pNext = &dynamicRenderingFeatures;
+	meshShaderFeaturesExt.pNext = &physicalDeviceMultiviewFeatures;
 	meshShaderFeaturesExt.meshShader = VK_TRUE;
 	meshShaderFeaturesExt.taskShader = VK_TRUE;
 	meshShaderFeaturesExt.multiviewMeshShader = VK_FALSE;

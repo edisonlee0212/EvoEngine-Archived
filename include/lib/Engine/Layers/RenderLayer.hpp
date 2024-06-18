@@ -5,6 +5,7 @@
 #include "Mesh.hpp"
 #include "IGeometry.hpp"
 #include "Lights.hpp"
+#include "MeshRenderer.hpp"
 #include "SkinnedMeshRenderer.hpp"
 #include "Strands.hpp"
 
@@ -109,7 +110,7 @@ namespace EvoEngine
 		alignas(4) int m_pcfSampleAmount = 32;
 		alignas(4) int m_blockerSearchAmount = 8;
 		alignas(4) float m_seamFixRatio = 0.1f;
-		alignas(4) float m_gamma = 2.2f;
+		alignas(4) float m_gamma = 1.f;
 
 		alignas(4) float m_strandsSubdivisionXFactor = 50.0f;
 		alignas(4) float m_strandsSubdivisionYFactor = 50.0f;
@@ -149,10 +150,9 @@ namespace EvoEngine
 		friend class Material;
 		friend class Lighting;
 		friend class PostProcessingStack;
+		friend class Application;
 		void OnCreate() override;
 		void OnDestroy() override;
-		void PreUpdate() override;
-		void LateUpdate() override;
 		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
 		void PreparePointAndSpotLightShadowMap() const;
@@ -160,6 +160,21 @@ namespace EvoEngine
 		void PrepareEnvironmentalBrdfLut();
 		void RenderToCamera(const GlobalTransform& cameraGlobalTransform, const std::shared_ptr<Camera>& camera);
 
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<MeshRenderer>& meshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<SkinnedMeshRenderer>& skinnedMeshRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<Particles>& particles, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+		bool TryRegisterRenderer(
+			const std::shared_ptr<Scene>& scene, const Entity& owner,
+			const std::shared_ptr<StrandsRenderer>& strandsRenderer, glm::vec3& minBound, glm::vec3& maxBound, bool enableSelectionHighLight);
+
+		void ClearAllCameras();
+		void RenderAllCameras();
 	public:
 		bool m_wireFrame = false;
 
@@ -205,6 +220,9 @@ namespace EvoEngine
 		StrandsRenderInstanceCollection m_transparentStrandsRenderInstances;
 
 		void CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
+
+		void CalculateLodFactor(const glm::vec3& center, float maxDistance) const;
+
 		[[nodiscard]] bool CollectRenderInstances(Bound& worldBound);
 		void CollectDirectionalLights(const std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras);
 		void CollectPointLights();

@@ -25,17 +25,16 @@ namespace EvoEngine
 		void Enable();
 		void Disable();
 		[[nodiscard]] bool Enabled() const;
-		virtual void OnCreate() {};
-		virtual void Start() {};
-		virtual void OnDestroy() {};
-		virtual void Update() {};
-		virtual void FixedUpdate() {};
-		virtual void LateUpdate() {};
+		virtual void OnCreate() {}
+		virtual void Start() {}
+		virtual void OnDestroy() {}
+		virtual void Update() {}
+		virtual void FixedUpdate() {}
+		virtual void LateUpdate() {}
 		// Will only exec when editor is enabled, and no matter application is running or not.
-		virtual void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) {}
-		virtual void CollectAssetRef(std::vector<AssetRef>& list) {};
-
-		virtual void PostCloneAction(const std::shared_ptr<ISystem>& target) {};
+		virtual bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) { return false; }
+		virtual void CollectAssetRef(std::vector<AssetRef>& list) {}
+		virtual void PostCloneAction(const std::shared_ptr<ISystem>& target) {}
 	};
 
 	class SystemRef : public ISerializable
@@ -47,7 +46,7 @@ namespace EvoEngine
 		bool Update();
 
 	protected:
-		void Serialize(YAML::Emitter& out) override
+		void Serialize(YAML::Emitter& out) const override
 		{
 			out << YAML::Key << "m_systemHandle" << YAML::Value << m_systemHandle;
 			out << YAML::Key << "m_systemTypeName" << YAML::Value << m_systemTypeName;
@@ -132,17 +131,6 @@ namespace EvoEngine
 		[[nodiscard]] Handle GetEntityHandle() const
 		{
 			return m_systemHandle;
-		}
-
-		void Save(const std::string& name, YAML::Emitter& out)
-		{
-			out << YAML::Key << name << YAML::Value << YAML::BeginMap;
-			Serialize(out);
-			out << YAML::EndMap;
-		}
-		void Load(const std::string& name, const YAML::Node& in)
-		{
-			Deserialize(in[name]);
 		}
 	};
 } // namespace EvoEngine

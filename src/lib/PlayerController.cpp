@@ -98,7 +98,7 @@ void PlayerController::LateUpdate()
 void PlayerController::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target)
 {
 }
-void PlayerController::Serialize(YAML::Emitter& out)
+void PlayerController::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_velocity" << YAML::Value << m_velocity;
 	out << YAML::Key << "m_sensitivity" << YAML::Value << m_sensitivity;
@@ -112,10 +112,14 @@ void PlayerController::Deserialize(const YAML::Node& in)
 	if (in["m_sceneCameraYawAngle"]) m_sceneCameraYawAngle = in["m_sceneCameraYawAngle"].as<float>();
 	if (in["m_sceneCameraPitchAngle"]) m_sceneCameraPitchAngle = in["m_sceneCameraPitchAngle"].as<float>();
 }
-void PlayerController::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool PlayerController::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
-	ImGui::DragFloat("Velocity", &m_velocity, 0.01f);
-	ImGui::DragFloat("Mouse sensitivity", &m_sensitivity, 0.01f);
-	ImGui::DragFloat("Yaw angle", &m_sceneCameraYawAngle, 0.01f);
-	ImGui::DragFloat("Pitch angle", &m_sceneCameraPitchAngle, 0.01f);
+	bool changed = false;
+
+	if(ImGui::DragFloat("Velocity", &m_velocity, 0.01f)) changed = true;
+	if (ImGui::DragFloat("Mouse sensitivity", &m_sensitivity, 0.01f)) changed = true;
+	if (ImGui::DragFloat("Yaw angle", &m_sceneCameraYawAngle, 0.01f)) changed = true;
+	if (ImGui::DragFloat("Pitch angle", &m_sceneCameraPitchAngle, 0.01f)) changed = true;
+
+	return changed;
 }

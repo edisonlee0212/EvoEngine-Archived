@@ -23,10 +23,10 @@ void GeometryStorage::UploadData()
 		m_requireStrandMeshDataDeviceUpdate = false;
 	}
 
-	for(int index = 0; index < m_particleInfoListDataList.size(); index++)
+	for (int index = 0; index < m_particleInfoListDataList.size(); index++)
 	{
 		auto& particleInfoListData = m_particleInfoListDataList.at(index);
-		if(particleInfoListData.m_status == ParticleInfoListDataStatus::Removed)
+		if (particleInfoListData.m_status == ParticleInfoListDataStatus::Removed)
 		{
 			m_particleInfoListDataList.at(index) = m_particleInfoListDataList.back();
 			m_particleInfoListDataList.pop_back();
@@ -40,7 +40,7 @@ void GeometryStorage::UploadData()
 			bufferInfo.range = VK_WHOLE_SIZE;
 			bufferInfo.buffer = particleInfoListData.m_buffer->GetVkBuffer();
 			particleInfoListData.m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
-			
+
 			particleInfoListData.m_status = ParticleInfoListDataStatus::Updated;
 		}
 	}
@@ -81,39 +81,39 @@ void GeometryStorage::Initialize()
 	VkBufferCreateInfo storageBufferCreateInfo{};
 	storageBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	storageBufferCreateInfo.size = 1;
-	
+
 	storageBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
 	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		storage.m_vertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		storage.m_meshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-		
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		storage.m_triangleBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	
+
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	storage.m_vertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	storage.m_meshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	storage.m_triangleBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+
 	storage.m_requireMeshDataDeviceUpdate = false;
 
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		storage.m_skinnedVertexBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		storage.m_skinnedMeshletBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	storage.m_skinnedVertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	storage.m_skinnedMeshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
 
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		storage.m_skinnedTriangleBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	storage.m_skinnedTriangleBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+
 	storage.m_requireSkinnedMeshDataDeviceUpdate = false;
 
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		storage.m_strandPointBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		storage.m_strandMeshletBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	storage.m_strandPointBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	storage.m_strandMeshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
 
-		storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		storage.m_segmentBuffer=std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	
+	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	storage.m_segmentBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+
 	storage.m_requireStrandMeshDataDeviceUpdate = false;
 }
 
@@ -218,18 +218,18 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 	std::vector<meshopt_Meshlet> meshletsResults;
 	std::vector<unsigned> meshletResultVertices;
 	std::vector<unsigned char> meshletResultTriangles;
-	const auto maxMeshlets = 
+	const auto maxMeshlets =
 		meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
 	meshletsResults.resize(maxMeshlets);
 	meshletResultVertices.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE);
 	meshletResultTriangles.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3);
 	const auto meshletSize = meshopt_buildMeshlets(
-		meshletsResults.data(), meshletResultVertices.data(), meshletResultTriangles.data(), 
+		meshletsResults.data(), meshletResultVertices.data(), meshletResultTriangles.data(),
 		&triangles.at(0).x, triangles.size() * 3, &vertices.at(0).m_position.x, vertices.size(), sizeof(Vertex),
 		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
 
 	targetMeshletRange->m_range = meshletSize;
-	for(size_t meshletIndex = 0; meshletIndex < meshletSize; meshletIndex++)
+	for (size_t meshletIndex = 0; meshletIndex < meshletSize; meshletIndex++)
 	{
 		const uint32_t currentMeshletIndex = storage.m_meshlets.size();
 		storage.m_meshlets.emplace_back();
@@ -240,7 +240,7 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 		auto& currentChunk = storage.m_vertexDataChunks[currentMeshlet.m_vertexChunkIndex];
 
 		const auto& meshletResult = meshletsResults.at(meshletIndex);
-		for(unsigned vi = 0; vi < meshletResult.vertex_count; vi++)
+		for (unsigned vi = 0; vi < meshletResult.vertex_count; vi++)
 		{
 			currentChunk.m_vertexData[vi] = vertices[meshletResultVertices.at(meshletResult.vertex_offset + vi)];
 		}
@@ -251,7 +251,7 @@ void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Verte
 			auto& currentMeshletTriangle = currentMeshlet.m_triangles[ti];
 			currentMeshletTriangle = glm::u8vec3(
 				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset],
-				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 1], 
+				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 1],
 				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 2]);
 
 			auto& globalTriangle = storage.m_triangles.emplace_back();
@@ -276,7 +276,7 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 		throw std::runtime_error("Empty skinned vertices or skinnedTriangles!");
 	}
 	auto& storage = GetInstance();
-	
+
 	targetSkinnedMeshletRange->m_handle = handle;
 	targetSkinnedMeshletRange->m_offset = storage.m_skinnedMeshlets.size();
 	targetSkinnedMeshletRange->m_range = 0;
@@ -334,19 +334,19 @@ void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vecto
 	storage.m_skinnedMeshletRangeDescriptor.push_back(targetSkinnedMeshletRange);
 	storage.m_skinnedTriangleRangeDescriptor.push_back(targetSkinnedTriangleRange);
 	storage.m_requireSkinnedMeshDataDeviceUpdate = true;
-	
+
 }
 
 void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints,
-	const std::vector<glm::uvec4>& segments, 
-	const std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange, 
+	const std::vector<glm::uvec4>& segments,
+	const std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange,
 	const std::shared_ptr<RangeDescriptor>& targetSegmentRange)
 {
 	if (strandPoints.empty() || segments.empty()) {
 		throw std::runtime_error("Empty strand points or strand segments!");
 	}
 	auto& storage = GetInstance();
-	
+
 	uint32_t currentSegmentIndex = 0;
 	targetStrandMeshletRange->m_handle = handle;
 	targetStrandMeshletRange->m_offset = storage.m_strandMeshlets.size();
@@ -470,7 +470,7 @@ void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<St
 	storage.m_strandMeshletRangeDescriptor.push_back(targetStrandMeshletRange);
 	storage.m_segmentRangeDescriptor.push_back(targetSegmentRange);
 	storage.m_requireStrandMeshDataDeviceUpdate = true;
-	
+
 }
 
 void GeometryStorage::FreeMesh(const Handle& handle)
@@ -492,7 +492,7 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
 	const uint32_t removeChunkSize = meshletRangeDescriptor->m_range;
 	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
-	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset, 
+	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset,
 		storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
 	for (uint32_t i = meshletRangeDescriptorIndex; i < storage.m_meshlets.size(); i++)
 	{
@@ -506,9 +506,9 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 	storage.m_meshletRangeDescriptor.erase(storage.m_meshletRangeDescriptor.begin() + meshletRangeDescriptorIndex);
 
 	uint32_t triangleRangeDescriptorIndex = UINT_MAX;
-	for(uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
+	for (uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
 	{
-		if(storage.m_triangleRangeDescriptor[i]->m_handle == handle)
+		if (storage.m_triangleRangeDescriptor[i]->m_handle == handle)
 		{
 			triangleRangeDescriptorIndex = i;
 			break;
@@ -519,7 +519,7 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 		return;
 	}
 	const auto& triangleRangeDescriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
-	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset, 
+	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset,
 		storage.m_triangles.begin() + triangleRangeDescriptor->m_offset + triangleRangeDescriptor->m_range);
 	for (uint32_t i = triangleRangeDescriptorIndex + 1; i < storage.m_triangleRangeDescriptor.size(); i++)
 	{
@@ -527,7 +527,7 @@ void GeometryStorage::FreeMesh(const Handle& handle)
 		storage.m_triangleRangeDescriptor[i]->m_offset -= triangleRangeDescriptor->m_range;
 	}
 
-	for(uint32_t i = triangleRangeDescriptor->m_offset; i < storage.m_triangles.size(); i++)
+	for (uint32_t i = triangleRangeDescriptor->m_offset; i < storage.m_triangles.size(); i++)
 	{
 		storage.m_triangles[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
 		storage.m_triangles[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
@@ -560,7 +560,7 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 		storage.m_skinnedVertexDataChunks.begin() + skinnedMeshletRangeDescriptor->m_offset + removeChunkSize);
 	for (uint32_t i = skinnedMeshletRangeDescriptorIndex; i < storage.m_skinnedMeshlets.size(); i++)
 	{
-		storage.m_skinnedMeshlets[i].m_skinnedVertexChunkIndex= i;
+		storage.m_skinnedMeshlets[i].m_skinnedVertexChunkIndex = i;
 	}
 	for (uint32_t i = skinnedMeshletRangeDescriptorIndex + 1; i < storage.m_skinnedMeshletRangeDescriptor.size(); i++)
 	{
@@ -583,7 +583,7 @@ void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
 		return;
 	}
 	const auto& skinnedTriangleRangeDescriptor = storage.m_skinnedTriangleRangeDescriptor[skinnedTriangleRangeDescriptorIndex];
-	storage.m_skinnedTriangles.erase(storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset, 
+	storage.m_skinnedTriangles.erase(storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset,
 		storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset + skinnedTriangleRangeDescriptor->m_range);
 	for (uint32_t i = skinnedTriangleRangeDescriptorIndex + 1; i < storage.m_skinnedTriangleRangeDescriptor.size(); i++)
 	{
@@ -648,7 +648,7 @@ void GeometryStorage::FreeStrands(const Handle& handle)
 		return;
 	}
 	const auto& segmentRangeDescriptor = storage.m_segmentRangeDescriptor[segmentRangeDescriptorIndex];
-	storage.m_segments.erase(storage.m_segments.begin() + segmentRangeDescriptor->m_offset, 
+	storage.m_segments.erase(storage.m_segments.begin() + segmentRangeDescriptor->m_offset,
 		storage.m_segments.begin() + segmentRangeDescriptor->m_offset + segmentRangeDescriptor->m_range);
 	for (uint32_t i = segmentRangeDescriptorIndex + 1; i < storage.m_segmentRangeDescriptor.size(); i++)
 	{

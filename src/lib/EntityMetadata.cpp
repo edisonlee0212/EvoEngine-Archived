@@ -17,7 +17,7 @@ void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Sce
     m_ancestorSelected = false;
 }
 
-void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene)
+void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const
 {
     out << YAML::BeginMap;
     {

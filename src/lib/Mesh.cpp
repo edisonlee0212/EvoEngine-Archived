@@ -7,7 +7,7 @@
 #include "GeometryStorage.hpp"
 using namespace EvoEngine;
 
-bool Mesh::SaveInternal(const std::filesystem::path& path)
+bool Mesh::SaveInternal(const std::filesystem::path& path) const
 {
 	if (path.extension() == ".evemesh") {
 		return IAsset::SaveInternal(path);
@@ -78,8 +78,9 @@ bool Mesh::SaveInternal(const std::filesystem::path& path)
 	return false;
 }
 
-void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	ImGui::Text(("Vertices size: " + std::to_string(m_vertices.size())).c_str());
 	ImGui::Text(("Triangle amount: " + std::to_string(m_triangles.size())).c_str());
 	if (!m_vertices.empty()) {
@@ -121,6 +122,7 @@ void Mesh::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 	}
 	*/
+	return changed;
 }
 
 void Mesh::OnCreate()
@@ -202,7 +204,7 @@ void Mesh::SetVertices(const VertexAttributes& vertexAttributes, const std::vect
 
 	if (m_version != 0) GeometryStorage::FreeMesh(GetHandle());
 	GeometryStorage::AllocateMesh(GetHandle(), m_vertices, m_triangles, m_meshletRange, m_triangleRange);
-	
+
 	m_version++;
 	m_saved = false;
 }
@@ -321,6 +323,31 @@ void Mesh::RecalculateTangent()
 	}
 }
 
+float Mesh::CalculateTriangleArea(const glm::uvec3& triangle) const
+{
+	const auto& p0 = m_vertices[triangle.x].m_position;
+	const auto& p1 = m_vertices[triangle.y].m_position;
+	const auto& p2 = m_vertices[triangle.z].m_position;
+	const float a = glm::length(p0 - p1);
+	const float b = glm::length(p2 - p1);
+	const float c = glm::length(p0 - p2);
+	const float d = (a + b + c) / 2;
+	return glm::sqrt(d * (d - a) * (d - b) * (d - c));
+}
+
+glm::vec3 Mesh::CalculateCentroid(const glm::uvec3& triangle) const
+{
+	const auto& a = m_vertices[triangle.x].m_position;
+	const auto& b = m_vertices[triangle.y].m_position;
+	const auto& c = m_vertices[triangle.z].m_position;
+
+	return {
+		(a.x + b.x + c.x) / 3,
+			(a.y + b.y + c.y) / 3,
+			(a.z + b.z + c.z) / 3
+	};
+}
+
 std::vector<Vertex>& Mesh::UnsafeGetVertices()
 {
 	return m_vertices;
@@ -337,7 +364,7 @@ Bound Mesh::GetBound() const
 }
 
 
-void Mesh::Serialize(YAML::Emitter& out)
+void Mesh::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_vertexAttributes" << YAML::BeginMap;
 	m_vertexAttributes.Serialize(out);
@@ -366,7 +393,7 @@ void Mesh::Deserialize(const YAML::Node& in)
 		m_vertexAttributes.m_texCoord = true;
 		m_vertexAttributes.m_color = true;
 	}
-	
+
 	if (in["m_vertices"] && in["m_triangles"])
 	{
 		auto vertexData = in["m_vertices"].as<YAML::Binary>();
@@ -410,29 +437,22 @@ ParticleInfoList::~ParticleInfoList()
 }
 
 
-void ParticleInfoList::Serialize(YAML::Emitter& out)
+void ParticleInfoList::Serialize(YAML::Emitter& out) const
 {
-	const auto particleInfos = GeometryStorage::PeekParticleInfoList(m_rangeDescriptor);
-	if (!particleInfos.empty())
-	{
-		out << YAML::Key << "m_particleInfos" << YAML::Value
-			<< YAML::Binary(reinterpret_cast<const unsigned char*>(particleInfos.data()), particleInfos.size() * sizeof(ParticleInfo));
-	}
+	Serialization::SerializeVector("m_particleInfos", GeometryStorage::PeekParticleInfoList(m_rangeDescriptor), out);
 }
 
 void ParticleInfoList::Deserialize(const YAML::Node& in)
 {
 	if (in["m_particleInfos"])
 	{
-		const auto& vertexData = in["m_particleInfos"].as<YAML::Binary>();
 		std::vector<ParticleInfo> particleInfos;
-		particleInfos.resize(vertexData.size() / sizeof(ParticleInfo));
-		std::memcpy(particleInfos.data(), vertexData.data(), vertexData.size());
+		Serialization::DeserializeVector("m_particleInfos", particleInfos, in);
 		GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 	}
 }
 
-void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, float rayWidth)
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& color, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());
@@ -452,7 +472,7 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const glm::vec4& 
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
-void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, float rayWidth)
+void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector<glm::vec4>& colors, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(rays.size());
@@ -474,15 +494,15 @@ void ParticleInfoList::ApplyRays(const std::vector<Ray>& rays, const std::vector
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
-	const glm::vec4& color, float rayWidth)
+	const glm::vec4& color, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
 	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
-			auto& start = starts[i];
-			auto& end = ends[i];
+			const auto& start = starts[i];
+			const auto& end = ends[i];
 			const auto direction = glm::normalize(end - start);
 			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
 			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
@@ -497,15 +517,15 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 }
 
 void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
-	const std::vector<glm::vec4>& colors, float rayWidth)
+	const std::vector<glm::vec4>& colors, const float rayWidth) const
 {
 	std::vector<ParticleInfo> particleInfos;
 	particleInfos.resize(starts.size());
 	Jobs::RunParallelFor(
 		starts.size(),
 		[&](unsigned i) {
-			auto& start = starts[i];
-			auto& end = ends[i];
+			const auto& start = starts[i];
+			const auto& end = ends[i];
 			const auto direction = glm::normalize(end - start);
 			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
 			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
@@ -519,7 +539,31 @@ void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, co
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }
 
-void ParticleInfoList::SetParticleInfos(const std::vector<ParticleInfo>& particleInfos)
+void ParticleInfoList::ApplyConnections(const std::vector<glm::vec3>& starts, const std::vector<glm::vec3>& ends,
+	const std::vector<glm::vec4>& colors, const std::vector<float>& rayWidths) const
+{
+	std::vector<ParticleInfo> particleInfos;
+	particleInfos.resize(starts.size());
+	Jobs::RunParallelFor(
+		starts.size(),
+		[&](unsigned i) {
+			const auto& start = starts[i];
+			const auto& end = ends[i];
+			const auto& width = rayWidths[i];
+			const auto direction = glm::normalize(end - start);
+			glm::quat rotation = glm::quatLookAt(direction, glm::vec3(direction.y, direction.z, direction.x));
+			rotation *= glm::quat(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+			const glm::mat4 rotationMat = glm::mat4_cast(rotation);
+			const auto model = glm::translate((start + end) / 2.0f) * rotationMat *
+				glm::scale(glm::vec3(width, glm::distance(end, start), width));
+			particleInfos[i].m_instanceMatrix.m_value = model;
+			particleInfos[i].m_instanceColor = colors[i];
+		}
+	);
+	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
+}
+
+void ParticleInfoList::SetParticleInfos(const std::vector<ParticleInfo>& particleInfos) const
 {
 	GeometryStorage::UpdateParticleInfo(m_rangeDescriptor, particleInfos);
 }

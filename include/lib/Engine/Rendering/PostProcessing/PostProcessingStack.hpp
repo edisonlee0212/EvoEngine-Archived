@@ -60,7 +60,7 @@ namespace EvoEngine
 	public:
 
 		void OnCreate() override;
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void Process(const std::shared_ptr<Camera>& targetCamera);
 		SSAOSettings m_SSAOSettings {};
 		BloomSettings m_bloomSettings{};

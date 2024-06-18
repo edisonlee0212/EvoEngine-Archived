@@ -5,13 +5,19 @@
 #include "EntityMetadata.hpp"
 #include "ClassRegistry.hpp"
 #include "Jobs.hpp"
+#include "Lights.hpp"
+#include "MeshRenderer.hpp"
+#include "SkinnedMeshRenderer.hpp"
 #include "UnknownPrivateComponent.hpp"
 using namespace EvoEngine;
 
 void Scene::Purge()
 {
 	m_pressedKeys.clear();
+	m_mainCamera.Clear();
+
 	m_sceneDataStorage.m_entityPrivateComponentStorage = PrivateComponentStorage();
+	m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 	m_sceneDataStorage.m_entities.clear();
 	m_sceneDataStorage.m_entityMetadataList.clear();
 	for (int index = 1; index < m_sceneDataStorage.m_dataComponentStorages.size(); index++)
@@ -175,39 +181,40 @@ void Scene::FixedUpdate() const
 
 }
 static const char* EnvironmentTypes[]{ "Environmental Map", "Color" };
-void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool modified = false;
 	if (this == Application::GetActiveScene().get())
 		if (editorLayer->DragAndDropButton<Camera>(m_mainCamera, "Main Camera", true))
-			m_saved = false;
+			modified = true;
 	if (ImGui::TreeNodeEx("Environment Settings", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		static int type = static_cast<int>(m_environment.m_environmentType);
 		if (ImGui::Combo("Environment type", &type, EnvironmentTypes, IM_ARRAYSIZE(EnvironmentTypes)))
 		{
 			m_environment.m_environmentType = static_cast<EnvironmentType>(type);
-			m_saved = false;
+			modified = true;
 		}
 		switch (m_environment.m_environmentType)
 		{
 		case EnvironmentType::EnvironmentalMap: {
 			if (editorLayer->DragAndDropButton<EnvironmentalMap>(
 				m_environment.m_environmentalMap, "Environmental Map"))
-				m_saved = false;
+				modified = true;
 		}
 											  break;
 		case EnvironmentType::Color: {
 			if (ImGui::ColorEdit3("Background Color", &m_environment.m_backgroundColor.x))
-				m_saved = false;
+				modified = true;
 		}
 								   break;
 		}
 		if (ImGui::DragFloat(
 			"Environmental light intensity", &m_environment.m_ambientLightIntensity, 0.01f, 0.0f, 10.0f))
-			m_saved = false;
+			modified = true;
 		if (ImGui::DragFloat("Environmental light gamma", &m_environment.m_environmentGamma, 0.01f, 0.0f, 10.0f))
 		{
-			m_saved = false;
+			modified = true;
 		}
 		ImGui::TreePop();
 	}
@@ -238,10 +245,12 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 						if (enabled)
 						{
 							i.second->Enable();
+							modified = true;
 						}
 						else
 						{
 							i.second->Disable();
+							modified = true;
 						}
 					}
 				}
@@ -250,7 +259,7 @@ void Scene::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}
 		ImGui::TreePop();
 	}
-
+	return modified;
 }
 
 std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName, float order)
@@ -265,11 +274,11 @@ std::shared_ptr<ISystem> Scene::GetOrCreateSystem(const std::string& systemName,
 	m_mappedSystems[system->m_handle] = system;
 	system->m_started = false;
 	system->OnCreate();
-	m_saved = false;
+	SetUnsaved();
 	return std::dynamic_pointer_cast<ISystem>(ptr);
 }
 
-void Scene::Serialize(YAML::Emitter& out)
+void Scene::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_environment" << YAML::Value << YAML::BeginMap;
 	m_environment.Serialize(out);
@@ -376,6 +385,7 @@ void Scene::Serialize(YAML::Emitter& out)
 }
 void Scene::Deserialize(const YAML::Node& in)
 {
+	Purge();
 	auto scene = std::dynamic_pointer_cast<Scene>(GetSelf());
 	m_sceneDataStorage.m_entities.clear();
 	m_sceneDataStorage.m_entityMetadataList.clear();
@@ -383,6 +393,7 @@ void Scene::Deserialize(const YAML::Node& in)
 	m_sceneDataStorage.m_entities.emplace_back();
 	m_sceneDataStorage.m_entityMetadataList.emplace_back();
 	m_sceneDataStorage.m_dataComponentStorages.emplace_back();
+
 #pragma region EntityMetadata
 	auto inEntityMetadataList = in["m_entityMetadataList"];
 	int currentIndex = 1;
@@ -593,7 +604,7 @@ void Scene::Deserialize(const YAML::Node& in)
 		}
 	}
 }
-void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out)
+void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, YAML::Emitter& out) const
 {
 	out << YAML::BeginMap;
 	{
@@ -634,8 +645,7 @@ void Scene::SerializeDataComponentStorage(const DataComponentStorage& storage, Y
 				out << YAML::BeginMap;
 				out << YAML::Key << "Data" << YAML::Value
 					<< YAML::Binary(
-						(const unsigned char*)chunk.GetDataPointer(static_cast<size_t>(
-							type.m_offset * dataComponentStorage.m_chunkCapacity + chunkPointer * type.m_size)),
+						(const unsigned char*)chunk.GetDataPointer(type.m_offset * dataComponentStorage.m_chunkCapacity + chunkPointer * type.m_size),
 						type.m_size);
 				out << YAML::EndMap;
 			}
@@ -666,6 +676,38 @@ void Scene::OnCreate()
 	m_sceneDataStorage.m_entityMetadataList.emplace_back();
 	m_sceneDataStorage.m_dataComponentStorages.emplace_back();
 	m_sceneDataStorage.m_entityPrivateComponentStorage.m_scene = std::dynamic_pointer_cast<Scene>(GetSelf());
+	
+#pragma region Main Camera
+	const auto mainCameraEntity = CreateEntity("Main Camera");
+	Transform ltw;
+	ltw.SetPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+	ltw.SetScale(glm::vec3(1, 1, 1));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
+	SetDataComponent(mainCameraEntity, ltw);
+	auto mainCameraComponent = GetOrSetPrivateComponent<Camera>(mainCameraEntity).lock();
+	m_mainCamera = mainCameraComponent;
+	mainCameraComponent->m_skybox = Resources::GetResource<Cubemap>("DEFAULT_SKYBOX");
+#pragma endregion
+
+#pragma region Directional Light
+	const auto directionalLightEntity = CreateEntity("Directional Light");
+	ltw.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(90, 0, 0)));
+	SetDataComponent(directionalLightEntity, ltw);
+	auto directionLight = GetOrSetPrivateComponent<DirectionalLight>(directionalLightEntity).lock();
+#pragma endregion
+
+#pragma region Ground
+	const auto groundEntity = CreateEntity("Ground");
+	ltw.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+	ltw.SetScale(glm::vec3(10, 1, 10));
+	ltw.SetEulerRotation(glm::radians(glm::vec3(0, 0, 0)));
+	SetDataComponent(groundEntity, ltw);
+	auto groundMeshRendererComponent = GetOrSetPrivateComponent<MeshRenderer>(groundEntity).lock();
+	groundMeshRendererComponent->m_material = ProjectManager::CreateTemporaryAsset<Material>();
+	groundMeshRendererComponent->m_mesh = Resources::GetResource<Mesh>("PRIMITIVE_QUAD");
+#pragma endregion
+
 }
 
 
@@ -727,12 +769,12 @@ std::shared_ptr<ReflectionProbe> Environment::GetReflectionProbe(const glm::vec3
 	return nullptr;
 }
 
-void Environment::Serialize(YAML::Emitter& out)
+void Environment::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_backgroundColor" << YAML::Value << m_backgroundColor;
 	out << YAML::Key << "m_environmentGamma" << YAML::Value << m_environmentGamma;
 	out << YAML::Key << "m_ambientLightIntensity" << YAML::Value << m_ambientLightIntensity;
-	out << YAML::Key << "m_environmentType" << YAML::Value << (unsigned)m_environmentType;
+	out << YAML::Key << "m_environmentType" << YAML::Value << static_cast<unsigned>(m_environmentType);
 	m_environmentalMap.Save("m_environment", out);
 }
 void Environment::Deserialize(const YAML::Node& in)
@@ -915,7 +957,7 @@ void Scene::GetEntityStorage(const DataComponentStorage& storage, std::vector<En
 			if (!m_sceneDataStorage.m_entityMetadataList.at(entity.m_index).m_enabled)
 				return;
 			tempStorage[workerIndex].push_back(entity);
-			}, 
+			},
 			threadSize
 		);
 		for (auto& i : tempStorage)
@@ -993,7 +1035,7 @@ Entity Scene::CreateEntity(const std::string& name)
 Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& name, const Handle& handle)
 {
 	assert(archetype.IsValid());
-	m_saved = false;
+
 	Entity retVal;
 	auto search = GetDataComponentStorage(archetype);
 	DataComponentStorage& storage = search->first;
@@ -1053,6 +1095,7 @@ Entity Scene::CreateEntity(const EntityArchetype& archetype, const std::string& 
 	SetDataComponent(retVal, Transform());
 	SetDataComponent(retVal, GlobalTransform());
 	SetDataComponent(retVal, TransformUpdateFlag());
+	SetUnsaved();
 	return retVal;
 }
 
@@ -1061,7 +1104,6 @@ std::vector<Entity> Scene::CreateEntities(
 {
 	assert(archetype.IsValid());
 	std::vector<Entity> retVal;
-	m_saved = false;
 	auto search = GetDataComponentStorage(archetype);
 	DataComponentStorage& storage = search->first;
 	auto remainAmount = amount;
@@ -1147,6 +1189,7 @@ std::vector<Entity> Scene::CreateEntities(
 
 	retVal.insert(
 		retVal.end(), m_sceneDataStorage.m_entities.begin() + originalSize, m_sceneDataStorage.m_entities.end());
+	SetUnsaved();
 	return retVal;
 }
 
@@ -1161,7 +1204,6 @@ void Scene::DeleteEntity(const Entity& entity)
 	{
 		return;
 	}
-	m_saved = false;
 	const size_t entityIndex = entity.m_index;
 	auto children = m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_children;
 	for (const auto& child : children)
@@ -1171,6 +1213,7 @@ void Scene::DeleteEntity(const Entity& entity)
 	if (m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_parent.m_index != 0)
 		RemoveChild(entity, m_sceneDataStorage.m_entityMetadataList.at(entityIndex).m_parent);
 	DeleteEntityInternal(entity.m_index);
+	SetUnsaved();
 }
 
 std::string Scene::GetEntityName(const Entity& entity)
@@ -1194,21 +1237,20 @@ void Scene::SetEntityName(const Entity& entity, const std::string& name)
 		EVOENGINE_ERROR("Child already deleted!");
 		return;
 	}
-	m_saved = false;
 	if (name.length() != 0)
 	{
 		m_sceneDataStorage.m_entityMetadataList.at(index).m_name = name;
 		return;
 	}
 	m_sceneDataStorage.m_entityMetadataList.at(index).m_name = "Unnamed";
+	SetUnsaved();
 }
 void Scene::SetEntityStatic(const Entity& entity, bool value)
 {
 	assert(IsEntityValid(entity));
-	const size_t childIndex = entity.m_index;
 	auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(GetRoot(entity).m_index);
 	entityInfo.m_static = value;
-	m_saved = false;
+	SetUnsaved();
 }
 void Scene::SetParent(const Entity& child, const Entity& parent, const bool& recalculateTransform)
 {
@@ -1221,7 +1263,6 @@ void Scene::SetParent(const Entity& child, const Entity& parent, const bool& rec
 		if (i == child)
 			return;
 	}
-	m_saved = false;
 	auto& childEntityInfo = m_sceneDataStorage.m_entityMetadataList.at(childIndex);
 	if (childEntityInfo.m_parent.GetIndex() != 0)
 	{
@@ -1258,16 +1299,17 @@ void Scene::SetParent(const Entity& child, const Entity& parent, const bool& rec
 	parentEntityInfo.m_children.push_back(child);
 	if (parentEntityInfo.m_ancestorSelected)
 	{
-		const auto descendents = GetDescendants(child);
-		for (const auto& i : descendents)
+		const auto descendants = GetDescendants(child);
+		for (const auto& i : descendants)
 		{
 			GetEntityMetadata(i).m_ancestorSelected = true;
 		}
 		childEntityInfo.m_ancestorSelected = true;
 	}
+	SetUnsaved();
 }
 
-Entity Scene::GetParent(const Entity& entity)
+Entity Scene::GetParent(const Entity& entity) const
 {
 	assert(IsEntityValid(entity));
 	const size_t entityIndex = entity.m_index;
@@ -1320,13 +1362,12 @@ void Scene::RemoveChild(const Entity& child, const Entity& parent)
 	{
 		EVOENGINE_ERROR("No child by the parent!");
 	}
-	m_saved = false;
 	childEntityMetadata.m_parent = Entity();
 	childEntityMetadata.m_root = child;
 	if (parentEntityMetadata.m_ancestorSelected)
 	{
-		const auto descendents = GetDescendants(child);
-		for (const auto& i : descendents)
+		const auto descendants = GetDescendants(child);
+		for (const auto& i : descendants)
 		{
 			GetEntityMetadata(i).m_ancestorSelected = false;
 		}
@@ -1347,6 +1388,7 @@ void Scene::RemoveChild(const Entity& child, const Entity& parent)
 	Transform childTransform;
 	childTransform.m_value = childGlobalTransform.m_value;
 	SetDataComponent(child, childTransform);
+	SetUnsaved();
 }
 
 void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)
@@ -1419,12 +1461,11 @@ void Scene::RemoveDataComponent(const Entity& entity, const size_t& typeID)
 		.m_chunkArray.m_entities[newEntityInfo.m_chunkArrayIndex] = newEntity;
 	DeleteEntity(newEntity);
 #pragma endregion
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size, IDataComponent* data)
 {
-	m_saved = false;
 	auto& entityInfo = m_sceneDataStorage.m_entityMetadataList.at(entityIndex);
 	auto& dataComponentStorage = m_sceneDataStorage.m_dataComponentStorages[entityInfo.m_dataComponentStorageIndex];
 	const auto chunkIndex = entityInfo.m_chunkArrayIndex / dataComponentStorage.m_chunkCapacity;
@@ -1477,6 +1518,7 @@ void Scene::SetDataComponent(const unsigned& entityIndex, size_t id, size_t size
 		}
 		EVOENGINE_LOG("ComponentData doesn't exist");
 	}
+	SetUnsaved();
 }
 IDataComponent* Scene::GetDataComponentPointer(unsigned entityIndex, const size_t& id)
 {
@@ -1565,7 +1607,7 @@ void Scene::SetPrivateComponent(const Entity& entity, const std::shared_ptr<IPri
 	auto id = Serialization::GetSerializableTypeId(typeName);
 	m_sceneDataStorage.m_entityPrivateComponentStorage.SetPrivateComponent(entity, id);
 	elements.emplace_back(id, ptr, entity, std::dynamic_pointer_cast<Scene>(GetSelf()));
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::ForEachDescendantHelper(const Entity& target, const std::function<void(const Entity& entity)>& func)
@@ -1605,7 +1647,7 @@ void Scene::RemovePrivateComponent(const Entity& entity, size_t typeId)
 			m_sceneDataStorage.m_entityPrivateComponentStorage.RemovePrivateComponent(
 				entity, typeId, privateComponentElements[i].m_privateComponentData);
 			privateComponentElements.erase(privateComponentElements.begin() + i);
-			m_saved = false;
+			SetUnsaved();
 			break;
 		}
 	}
@@ -1634,7 +1676,7 @@ void Scene::SetEnable(const Entity& entity, const bool& value)
 	{
 		SetEnable(i, value);
 	}
-	m_saved = false;
+	SetUnsaved();
 }
 
 void Scene::SetEnableSingle(const Entity& entity, const bool& value)
@@ -1671,6 +1713,61 @@ void Scene::ForAllEntities(const std::function<void(int i, Entity entity)>& func
 			func(index, m_sceneDataStorage.m_entities.at(index));
 		}
 	}
+}
+
+Bound Scene::GetEntityBoundingBox(const Entity& entity)
+{
+	auto descendants = GetDescendants(entity);
+	descendants.emplace_back(entity);
+
+	Bound retVal{};
+
+	for (const auto& walker : descendants)
+	{
+		auto gt = GetDataComponent<GlobalTransform>(walker);
+		if (HasPrivateComponent<MeshRenderer>(walker))
+		{
+			auto meshRenderer = GetOrSetPrivateComponent<MeshRenderer>(walker).lock();
+			if (const auto mesh = meshRenderer->m_mesh.Get<Mesh>())
+			{
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(gt.m_value);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				retVal.m_min = glm::vec3(
+					(glm::min)(retVal.m_min.x, center.x - size.x),
+					(glm::min)(retVal.m_min.y, center.y - size.y),
+					(glm::min)(retVal.m_min.z, center.z - size.z));
+				retVal.m_max = glm::vec3(
+					(glm::max)(retVal.m_max.x, center.x + size.x),
+					(glm::max)(retVal.m_max.y, center.y + size.y),
+					(glm::max)(retVal.m_max.z, center.z + size.z));
+			}
+		}
+		else if (HasPrivateComponent<SkinnedMeshRenderer>(walker))
+		{
+			auto meshRenderer = GetOrSetPrivateComponent<SkinnedMeshRenderer>(walker).lock();
+			if (const auto mesh = meshRenderer->m_skinnedMesh.Get<SkinnedMesh>())
+			{
+				auto meshBound = mesh->GetBound();
+				meshBound.ApplyTransform(gt.m_value);
+				glm::vec3 center = meshBound.Center();
+
+				glm::vec3 size = meshBound.Size();
+				retVal.m_min = glm::vec3(
+					(glm::min)(retVal.m_min.x, center.x - size.x),
+					(glm::min)(retVal.m_min.y, center.y - size.y),
+					(glm::min)(retVal.m_min.z, center.z - size.z));
+				retVal.m_max = glm::vec3(
+					(glm::max)(retVal.m_max.x, center.x + size.x),
+					(glm::max)(retVal.m_max.y, center.y + size.y),
+					(glm::max)(retVal.m_max.z, center.z + size.z));
+			}
+		}
+	}
+
+	return retVal;
 }
 
 void Scene::GetEntityArray(const EntityQuery& entityQuery, std::vector<Entity>& container, bool checkEnable)
@@ -1713,6 +1810,7 @@ size_t Scene::GetEntityAmount(EntityQuery entityQuery, bool checkEnable)
 std::vector<Entity> Scene::GetDescendants(const Entity& entity)
 {
 	std::vector<Entity> retVal;
+	if(!IsEntityValid(entity)) return retVal;
 	GetDescendantsHelper(entity, retVal);
 	return retVal;
 }

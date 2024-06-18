@@ -19,9 +19,9 @@ namespace EvoEngine
     public:
         [[nodiscard]] std::vector<glm::uint>& UnsafeGetSegments();
         [[nodiscard]] std::vector<StrandPoint>& UnsafeGetStrandPoints();
-        void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 
-        void Serialize(YAML::Emitter& out) override;
+        void Serialize(YAML::Emitter& out) const override;
 
         void Deserialize(const YAML::Node& in) override;
 

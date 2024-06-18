@@ -28,25 +28,15 @@ void SetupDemoScene(DemoSetup demoSetup, ApplicationInfo& applicationInfo);
 #pragma endregion
 
 int main() {
-	DemoSetup demoSetup = DemoSetup::Rendering;
+	DemoSetup demoSetup = DemoSetup::Empty;
 	Application::PushLayer<WindowLayer>();
 	Application::PushLayer<EditorLayer>();
 	Application::PushLayer<RenderLayer>();
-	Graphics::Settings::USE_MESH_SHADER = true;
-
-
 
 	ApplicationInfo applicationInfo;
 	SetupDemoScene(demoSetup, applicationInfo);
 
 	Application::Initialize(applicationInfo);
-
-#ifdef BUILD_WITH_RAYTRACER
-	const auto rayTracerLayer = Application::GetLayer<RayTracerLayer>();
-	rayTracerLayer->m_showCameraWindow = false;
-	rayTracerLayer->m_showSceneWindow = false;
-	rayTracerLayer->m_showRayTracerWindow = false;
-#endif
 
 	Application::Start();
 	Application::Run();

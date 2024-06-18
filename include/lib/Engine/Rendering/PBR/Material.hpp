@@ -29,7 +29,7 @@ namespace EvoEngine
 
 	struct DrawSettings {
 		float m_lineWidth = 1.0f;
-		VkCullModeFlags m_cullMode = VK_CULL_MODE_BACK_BIT;
+		VkCullModeFlags m_cullMode = VK_CULL_MODE_NONE;
 		VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
 
 		bool m_blending = false;
@@ -54,6 +54,7 @@ namespace EvoEngine
 		AssetRef m_roughnessTexture;
 		AssetRef m_aoTexture;
 	public:
+		~Material() override;
 		void SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetNormalTexture(const std::shared_ptr<Texture2D>& texture);
 		void SetMetallicTexture(const std::shared_ptr<Texture2D>& texture);
@@ -64,18 +65,15 @@ namespace EvoEngine
 		[[nodiscard]] std::shared_ptr<Texture2D> GetMetallicTexture();
 		[[nodiscard]] std::shared_ptr<Texture2D> GetRoughnessTexture();
 		[[nodiscard]] std::shared_ptr<Texture2D> GetAoTexture();
-		void OnCreate() override;
-		~Material() override;
-		
 
 		bool m_vertexColorOnly = false;
 		MaterialProperties m_materialProperties;
 		DrawSettings m_drawSettings;
 
 		void UpdateMaterialInfoBlock(MaterialInfoBlock& materialInfoBlock);
-		void OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
+		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
 		void CollectAssetRef(std::vector<AssetRef>& list) override;
-		void Serialize(YAML::Emitter& out) override;
+		void Serialize(YAML::Emitter& out) const override;
 		void Deserialize(const YAML::Node& in) override;
 	};
 }

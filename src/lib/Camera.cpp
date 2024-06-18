@@ -488,7 +488,7 @@ Ray Camera::ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mousePosition) cons
 	return { glm::vec3(ltw.m_value[3]) + m_nearDistance * dir, glm::vec3(ltw.m_value[3]) + m_farDistance * dir };
 }
 
-void Camera::Serialize(YAML::Emitter& out)
+void Camera::Serialize(YAML::Emitter& out) const
 {
 	out << YAML::Key << "m_resolutionX" << YAML::Value << m_size.x;
 	out << YAML::Key << "m_resolutionY" << YAML::Value << m_size.y;
@@ -525,8 +525,9 @@ void Camera::OnDestroy()
 
 }
 
-void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
+bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 {
+	bool changed = false;
 	if (ImGui::TreeNode("Contents"))
 	{
 		m_requireRendering = true;
@@ -614,7 +615,7 @@ void Camera::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
 		}, false
 	);
 
-
+	return changed;
 }
 
 void Camera::CollectAssetRef(std::vector<AssetRef>& list)

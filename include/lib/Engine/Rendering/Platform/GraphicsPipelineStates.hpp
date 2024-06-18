@@ -31,10 +31,9 @@ namespace EvoEngine
 		bool m_logicOpEnableApplied = VK_FALSE;
 		VkLogicOp m_logicOpApplied = VK_LOGIC_OP_COPY;
 		
-		std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachmentStatesApplied = {};
 		float m_blendConstantsApplied[4] = { 0, 0, 0, 0 };
 	public:
-		void ResetAllStates(VkCommandBuffer commandBuffer, size_t colorAttachmentSize);
+		void ResetAllStates(size_t colorAttachmentSize);
 		VkViewport m_viewPort = {};
 		VkRect2D m_scissor = {};
 		bool m_depthClamp = false;
