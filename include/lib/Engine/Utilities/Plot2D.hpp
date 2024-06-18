@@ -231,7 +231,7 @@ template <class T>
 Plot2D<T>::Plot2D(T min, T max, const evo_engine::Curve2D curve) {
   min_value = min;
   max_value = max;
-  curve = curve;
+  this->curve = curve;
 }
 template <class T>
 T Plot2D<T>::GetValue(const float t) const {
