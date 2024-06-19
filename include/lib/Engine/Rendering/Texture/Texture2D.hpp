@@ -2,76 +2,76 @@
 #include "GraphicsResources.hpp"
 #include "IAsset.hpp"
 
-namespace EvoEngine
-{
-	class Texture2DStorage;
-	struct TextureStorageHandle;
+namespace evo_engine {
+class Texture2DStorage;
+struct TextureStorageHandle;
 
-	enum class TextureColorType {
-		Red = 1,
-		RG = 2,
-		RGB = 3,
-		RGBA = 4
-	};
+enum class TextureColorType { Red = 1, Rg = 2, Rgb = 3, Rgba = 4 };
 
-	class Texture2D : public IAsset
-	{
-		friend class EditorLayer;
-		friend class Resources;
-		friend class Cubemap;
-		friend class TextureStorage;
-		friend class RenderLayer;
-		
-		std::shared_ptr<TextureStorageHandle> m_textureStorageHandle;
-		
+class Texture2D : public IAsset {
+  friend class EditorLayer;
+  friend class Resources;
+  friend class Cubemap;
+  friend class TextureStorage;
+  friend class RenderLayer;
 
-		void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const;
-		
-	protected:
-		bool SaveInternal(const std::filesystem::path& path) const override;
-		bool LoadInternal(const std::filesystem::path& path) override;
-	public:
-		bool m_redChannel = false;
-		bool m_greenChannel = false;
-		bool m_blueChannel = false;
-		bool m_alphaChannel = false;
+  std::shared_ptr<TextureStorageHandle> texture_storage_handle_;
 
-		static void StoreToPng(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, unsigned compressionLevel = 8, int resizeX = -1, int resizeY = -1);
-		static void StoreToJpg(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, unsigned quality = 100, int resizeX = -1, int resizeY = -1);
-		static void StoreToTga(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, int resizeX = -1, int resizeY = -1);
-		static void StoreToHdr(const std::filesystem::path& path, const std::vector<float>& srcData, int srcX, int srcY, int srcChannelSize, int targetChannelSize, int resizeX = -1, int resizeY = -1);
+  void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const;
 
-		void ApplyOpacityMap(const std::shared_ptr<Texture2D>& target);
+ protected:
+  bool SaveInternal(const std::filesystem::path& path) const override;
+  bool LoadInternal(const std::filesystem::path& path) override;
 
-		void Serialize(YAML::Emitter& out) const override;
-		void Deserialize(const YAML::Node& in) override;
-		bool m_hdr = false;
-		Texture2D();
-		const Texture2DStorage& PeekTexture2DStorage() const;
-		Texture2DStorage& RefTexture2DStorage() const;
-		[[nodiscard]] VkImageLayout GetLayout() const;
-		[[nodiscard]] VkImage GetVkImage() const;
-		[[nodiscard]] VkImageView GetVkImageView() const;
-		[[nodiscard]] VkSampler GetVkSampler() const;
-		[[nodiscard]] std::shared_ptr<Image> GetImage() const;
-		ImTextureID GetImTextureId() const;
-		[[nodiscard]] uint32_t GetTextureStorageIndex() const;
-		~Texture2D() override;
-		bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-		[[nodiscard]] glm::ivec2 GetResolution() const;
-		void StoreToPng(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1, unsigned compressionLevel = 8) const;
-		void StoreToTga(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1) const;
-		void StoreToJpg(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1, unsigned quality = 100) const;
-		void StoreToHdr(const std::filesystem::path& path, int resizeX = -1, int resizeY = -1) const;
-		
-		void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resizeX = -1, int resizeY = -1) const;
-		void GetRgbChannelData(std::vector<glm::vec3>& dst, int resizeX = -1, int resizeY = -1) const;
-		void GetRgChannelData(std::vector<glm::vec2>& dst, int resizeX = -1, int resizeY = -1) const;
-		void GetRedChannelData(std::vector<float>& dst, int resizeX = -1, int resizeY = -1) const;
+ public:
+  bool red_channel = false;
+  bool green_channel = false;
+  bool blue_channel = false;
+  bool alpha_channel = false;
 
-		void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
-		void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
-		void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
-		void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
-	};
-}
+  static void StoreToPng(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
+                         int src_channel_size, int target_channel_size, unsigned compression_level = 8, int resize_x = -1,
+                         int resize_y = -1);
+  static auto StoreToJpg(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
+                         int src_channel_size, int target_channel_size, unsigned quality = 100, int resize_x = -1,
+                         int resize_y = -1) -> void;
+  static void StoreToTga(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
+                         int src_channel_size, int target_channel_size, int resize_x = -1, int resize_y = -1);
+  static void StoreToHdr(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
+                         int src_channel_size, int target_channel_size, int resize_x = -1, int resize_y = -1);
+
+  void ApplyOpacityMap(const std::shared_ptr<Texture2D>& target);
+
+  void Serialize(YAML::Emitter& out) const override;
+  void Deserialize(const YAML::Node& in) override;
+  bool hdr = false;
+  Texture2D();
+  const Texture2DStorage& PeekTexture2DStorage() const;
+  Texture2DStorage& RefTexture2DStorage() const;
+  [[nodiscard]] VkImageLayout GetLayout() const;
+  [[nodiscard]] VkImage GetVkImage() const;
+  [[nodiscard]] VkImageView GetVkImageView() const;
+  [[nodiscard]] VkSampler GetVkSampler() const;
+  [[nodiscard]] std::shared_ptr<Image> GetImage() const;
+  ImTextureID GetImTextureId() const;
+  [[nodiscard]] uint32_t GetTextureStorageIndex() const;
+  ~Texture2D() override;
+  bool OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
+  [[nodiscard]] glm::ivec2 GetResolution() const;
+  void StoreToPng(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1,
+                  unsigned compression_level = 8) const;
+  void StoreToTga(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1) const;
+  void StoreToJpg(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1, unsigned quality = 100) const;
+  void StoreToHdr(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1) const;
+
+  void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resize_x = -1, int resize_y = -1) const;
+  void GetRgbChannelData(std::vector<glm::vec3>& dst, int resize_x = -1, int resize_y = -1) const;
+  void GetRgChannelData(std::vector<glm::vec2>& dst, int resize_x = -1, int resize_y = -1) const;
+  void GetRedChannelData(std::vector<float>& dst, int resize_x = -1, int resize_y = -1) const;
+
+  void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
+  void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
+  void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
+  void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
+};
+}  // namespace evo_engine

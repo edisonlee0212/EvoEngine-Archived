@@ -1,740 +1,706 @@
 #include "GeometryStorage.hpp"
 #include "meshoptimizer.h"
-using namespace EvoEngine;
+using namespace evo_engine;
 
-void GeometryStorage::UploadData()
-{
-	if (m_requireMeshDataDeviceUpdate) {
-		m_vertexBuffer->UploadVector(m_vertexDataChunks);
-		m_meshletBuffer->UploadVector(m_meshlets);
-		m_triangleBuffer->UploadVector(m_triangles);
-		m_requireMeshDataDeviceUpdate = false;
-	}
-	if (m_requireSkinnedMeshDataDeviceUpdate) {
-		m_skinnedVertexBuffer->UploadVector(m_skinnedVertexDataChunks);
-		m_skinnedMeshletBuffer->UploadVector(m_skinnedMeshlets);
-		m_skinnedTriangleBuffer->UploadVector(m_skinnedTriangles);
-		m_requireSkinnedMeshDataDeviceUpdate = false;
-	}
-	if (m_requireStrandMeshDataDeviceUpdate) {
-		m_strandPointBuffer->UploadVector(m_strandPointDataChunks);
-		m_strandMeshletBuffer->UploadVector(m_strandMeshlets);
-		m_segmentBuffer->UploadVector(m_segments);
-		m_requireStrandMeshDataDeviceUpdate = false;
-	}
+void GeometryStorage::UploadData() {
+  if (require_mesh_data_device_update_) {
+    vertex_buffer_->UploadVector(vertex_data_chunks_);
+    meshlet_buffer_->UploadVector(meshlets_);
+    triangle_buffer_->UploadVector(triangles_);
+    require_mesh_data_device_update_ = false;
+  }
+  if (require_skinned_mesh_data_device_update_) {
+    skinned_vertex_buffer_->UploadVector(skinned_vertex_data_chunks_);
+    skinned_meshlet_buffer_->UploadVector(skinned_meshlets_);
+    skinned_triangle_buffer_->UploadVector(skinned_triangles_);
+    require_skinned_mesh_data_device_update_ = false;
+  }
+  if (require_strand_mesh_data_device_update_) {
+    strand_point_buffer_->UploadVector(strand_point_data_chunks_);
+    strand_meshlet_buffer_->UploadVector(strand_meshlets_);
+    segment_buffer_->UploadVector(segments_);
+    require_strand_mesh_data_device_update_ = false;
+  }
 
-	for (int index = 0; index < m_particleInfoListDataList.size(); index++)
-	{
-		auto& particleInfoListData = m_particleInfoListDataList.at(index);
-		if (particleInfoListData.m_status == ParticleInfoListDataStatus::Removed)
-		{
-			m_particleInfoListDataList.at(index) = m_particleInfoListDataList.back();
-			m_particleInfoListDataList.pop_back();
-			index--;
-		}
-		else if (particleInfoListData.m_status == ParticleInfoListDataStatus::UpdatePending)
-		{
-			particleInfoListData.m_buffer->UploadVector(particleInfoListData.m_particleInfoList);
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.offset = 0;
-			bufferInfo.range = VK_WHOLE_SIZE;
-			bufferInfo.buffer = particleInfoListData.m_buffer->GetVkBuffer();
-			particleInfoListData.m_descriptorSet->UpdateBufferDescriptorBinding(18, bufferInfo, 0);
+  for (int index = 0; index < particle_info_list_data_list_.size(); index++) {
+    if (auto& particle_info_list_data = particle_info_list_data_list_.at(index);
+        particle_info_list_data.m_status == ParticleInfoListDataStatus::Removed) {
+      particle_info_list_data_list_.at(index) = particle_info_list_data_list_.back();
+      particle_info_list_data_list_.pop_back();
+      index--;
+    } else if (particle_info_list_data.m_status == ParticleInfoListDataStatus::UpdatePending) {
+      particle_info_list_data.m_buffer->UploadVector(particle_info_list_data.particle_info_list);
+      VkDescriptorBufferInfo buffer_info{};
+      buffer_info.offset = 0;
+      buffer_info.range = VK_WHOLE_SIZE;
+      buffer_info.buffer = particle_info_list_data.m_buffer->GetVkBuffer();
+      particle_info_list_data.descriptor_set->UpdateBufferDescriptorBinding(18, buffer_info, 0);
 
-			particleInfoListData.m_status = ParticleInfoListDataStatus::Updated;
-		}
-	}
-	for (int index = 0; index < m_particleInfoListDataList.size(); index++)
-	{
-		const auto& particleInfoListData = m_particleInfoListDataList.at(index);
-		particleInfoListData.m_rangeDescriptor->m_offset = index;
-	}
-	const auto& storage = GetInstance();
-	for (const auto& triangleRange : storage.m_triangleRangeDescriptor)
-	{
-		triangleRange->m_prevFrameIndexCount = triangleRange->m_indexCount;
-		triangleRange->m_prevFrameOffset = triangleRange->m_offset;
-	}
+      particle_info_list_data.m_status = ParticleInfoListDataStatus::Updated;
+    }
+  }
+  for (int index = 0; index < particle_info_list_data_list_.size(); index++) {
+    const auto& particle_info_list_data = particle_info_list_data_list_.at(index);
+    particle_info_list_data.range_descriptor->offset = index;
+  }
+  const auto& storage = GetInstance();
+  for (const auto& triangle_range : storage.triangle_range_descriptor_) {
+    triangle_range->prev_frame_index_count = triangle_range->index_count;
+    triangle_range->prev_frame_offset = triangle_range->offset;
+  }
 
-	for (const auto& triangleRange : storage.m_skinnedTriangleRangeDescriptor)
-	{
-		triangleRange->m_prevFrameIndexCount = triangleRange->m_indexCount;
-		triangleRange->m_prevFrameOffset = triangleRange->m_offset;
-	}
+  for (const auto& triangle_range : storage.skinned_triangle_range_descriptor_) {
+    triangle_range->prev_frame_index_count = triangle_range->index_count;
+    triangle_range->prev_frame_offset = triangle_range->offset;
+  }
 
-	for (const auto& triangleRange : storage.m_segmentRangeDescriptor)
-	{
-		triangleRange->m_prevFrameIndexCount = triangleRange->m_indexCount;
-		triangleRange->m_prevFrameOffset = triangleRange->m_offset;
-	}
+  for (const auto& triangle_range : storage.segment_range_descriptor_) {
+    triangle_range->prev_frame_index_count = triangle_range->index_count;
+    triangle_range->prev_frame_offset = triangle_range->offset;
+  }
 }
 
-void GeometryStorage::DeviceSync()
-{
-	auto& storage = GetInstance();
-	storage.UploadData();
+void GeometryStorage::DeviceSync() {
+  auto& storage = GetInstance();
+  storage.UploadData();
 }
 
-void GeometryStorage::Initialize()
-{
-	auto& storage = GetInstance();
-	VkBufferCreateInfo storageBufferCreateInfo{};
-	storageBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	storageBufferCreateInfo.size = 1;
+void GeometryStorage::Initialize() {
+  auto& storage = GetInstance();
+  VkBufferCreateInfo storage_buffer_create_info{};
+  storage_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  storage_buffer_create_info.size = 1;
 
-	storageBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo verticesVmaAllocationCreateInfo{};
-	verticesVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  storage_buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  VmaAllocationCreateInfo vertices_vma_allocation_create_info{};
+  vertices_vma_allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	storage.m_vertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	storage.m_meshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  storage.vertex_buffer_ = std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
+  storage_buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  storage.meshlet_buffer_ = std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	storage.m_triangleBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  storage.triangle_buffer_ = std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storage.m_requireMeshDataDeviceUpdate = false;
+  storage.require_mesh_data_device_update_ = false;
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	storage.m_skinnedVertexBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	storage.m_skinnedMeshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  storage.skinned_vertex_buffer_ =
+      std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
+  storage_buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  storage.skinned_meshlet_buffer_ =
+      std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	storage.m_skinnedTriangleBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  storage.skinned_triangle_buffer_ =
+      std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storage.m_requireSkinnedMeshDataDeviceUpdate = false;
+  storage.require_skinned_mesh_data_device_update_ = false;
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	storage.m_strandPointBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	storage.m_strandMeshletBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  storage.strand_point_buffer_ =
+      std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
+  storage_buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  storage.strand_meshlet_buffer_ =
+      std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	storage.m_segmentBuffer = std::make_unique<Buffer>(storageBufferCreateInfo, verticesVmaAllocationCreateInfo);
+  storage_buffer_create_info.usage =
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  storage.segment_buffer_ = std::make_unique<Buffer>(storage_buffer_create_info, vertices_vma_allocation_create_info);
 
-	storage.m_requireStrandMeshDataDeviceUpdate = false;
+  storage.require_strand_mesh_data_device_update_ = false;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetVertexBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_vertexBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetVertexBuffer() {
+  const auto& storage = GetInstance();
+  return storage.vertex_buffer_;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetMeshletBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_meshletBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetMeshletBuffer() {
+  const auto& storage = GetInstance();
+  return storage.meshlet_buffer_;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetSkinnedVertexBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_skinnedVertexBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetSkinnedVertexBuffer() {
+  const auto& storage = GetInstance();
+  return storage.skinned_vertex_buffer_;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetSkinnedMeshletBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_skinnedMeshletBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetSkinnedMeshletBuffer() {
+  const auto& storage = GetInstance();
+  return storage.skinned_meshlet_buffer_;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetStrandPointBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_strandPointBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetStrandPointBuffer() {
+  const auto& storage = GetInstance();
+  return storage.strand_point_buffer_;
 }
 
-const std::unique_ptr<Buffer>& GeometryStorage::GetStrandMeshletBuffer()
-{
-	const auto& storage = GetInstance();
-	return storage.m_strandMeshletBuffer;
+const std::unique_ptr<Buffer>& GeometryStorage::GetStrandMeshletBuffer() {
+  const auto& storage = GetInstance();
+  return storage.strand_meshlet_buffer_;
 }
 
-void GeometryStorage::BindVertices(const VkCommandBuffer commandBuffer)
-{
-	const auto& storage = GetInstance();
-	constexpr VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &storage.m_vertexBuffer->GetVkBuffer(), offsets);
-	vkCmdBindIndexBuffer(commandBuffer, storage.m_triangleBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+void GeometryStorage::BindVertices(const VkCommandBuffer command_buffer) {
+  const auto& storage = GetInstance();
+  constexpr VkDeviceSize offsets[1] = {};
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, &storage.vertex_buffer_->GetVkBuffer(), offsets);
+  vkCmdBindIndexBuffer(command_buffer, storage.triangle_buffer_->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
-void GeometryStorage::BindSkinnedVertices(const VkCommandBuffer commandBuffer)
-{
-	const auto& storage = GetInstance();
-	constexpr VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &storage.m_skinnedVertexBuffer->GetVkBuffer(), offsets);
-	vkCmdBindIndexBuffer(commandBuffer, storage.m_skinnedTriangleBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+void GeometryStorage::BindSkinnedVertices(const VkCommandBuffer command_buffer) {
+  const auto& storage = GetInstance();
+  constexpr VkDeviceSize offsets[1] = {};
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, &storage.skinned_vertex_buffer_->GetVkBuffer(), offsets);
+  vkCmdBindIndexBuffer(command_buffer, storage.skinned_triangle_buffer_->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
-void GeometryStorage::BindStrandPoints(const VkCommandBuffer commandBuffer)
-{
-	const auto& storage = GetInstance();
-	constexpr VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &storage.m_strandPointBuffer->GetVkBuffer(), offsets);
-	vkCmdBindIndexBuffer(commandBuffer, storage.m_segmentBuffer->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+void GeometryStorage::BindStrandPoints(const VkCommandBuffer command_buffer) {
+  const auto& storage = GetInstance();
+  constexpr VkDeviceSize offsets[1] = {};
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, &storage.strand_point_buffer_->GetVkBuffer(), offsets);
+  vkCmdBindIndexBuffer(command_buffer, storage.segment_buffer_->GetVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
-const Vertex& GeometryStorage::PeekVertex(const size_t vertexIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_vertexDataChunks[vertexIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_vertexData[vertexIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE];
+const Vertex& GeometryStorage::PeekVertex(const size_t vertex_index) {
+  const auto& storage = GetInstance();
+  return storage.vertex_data_chunks_[vertex_index / Graphics::Constants::meshlet_max_vertices_size]
+      .vertex_data[vertex_index % Graphics::Constants::meshlet_max_vertices_size];
 }
 
-const SkinnedVertex& GeometryStorage::PeekSkinnedVertex(const size_t skinnedVertexIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_skinnedVertexDataChunks[skinnedVertexIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_skinnedVertexData[skinnedVertexIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE];
+const SkinnedVertex& GeometryStorage::PeekSkinnedVertex(const size_t skinned_vertex_index) {
+  const auto& storage = GetInstance();
+  return storage.skinned_vertex_data_chunks_[skinned_vertex_index / Graphics::Constants::meshlet_max_vertices_size]
+      .skinned_vertex_data[skinned_vertex_index % Graphics::Constants::meshlet_max_vertices_size];
 }
 
-const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strandPointIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_strandPointDataChunks[strandPointIndex / Graphics::Constants::MESHLET_MAX_VERTICES_SIZE].m_strandPointData[strandPointIndex % Graphics::Constants::MESHLET_MAX_VERTICES_SIZE];
+const StrandPoint& GeometryStorage::PeekStrandPoint(const size_t strand_point_index) {
+  const auto& storage = GetInstance();
+  return storage.strand_point_data_chunks_[strand_point_index / Graphics::Constants::meshlet_max_vertices_size]
+      .strand_point_data[strand_point_index % Graphics::Constants::meshlet_max_vertices_size];
 }
 
-void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& triangles,
-	const std::shared_ptr<RangeDescriptor>& targetMeshletRange, const std::shared_ptr<RangeDescriptor>& targetTriangleRange)
-{
-	if (vertices.empty() || triangles.empty())
-	{
-		throw std::runtime_error("Empty vertices or triangles!");
-	}
-	auto& storage = GetInstance();
+void GeometryStorage::AllocateMesh(const Handle& handle, const std::vector<Vertex>& vertices,
+                                   const std::vector<glm::uvec3>& triangles,
+                                   const std::shared_ptr<RangeDescriptor>& target_meshlet_range,
+                                   const std::shared_ptr<RangeDescriptor>& target_triangle_range) {
+  if (vertices.empty() || triangles.empty()) {
+    throw std::runtime_error("Empty vertices or triangles!");
+  }
+  auto& storage = GetInstance();
 
-	//const auto meshletRange = std::make_shared<RangeDescriptor>();
-	targetMeshletRange->m_handle = handle;
-	targetMeshletRange->m_offset = storage.m_meshlets.size();
-	targetMeshletRange->m_range = 0;
+  // const auto meshletRange = std::make_shared<RangeDescriptor>();
+  target_meshlet_range->handle_ = handle;
+  target_meshlet_range->offset = storage.meshlets_.size();
+  target_meshlet_range->range = 0;
 
-	//const auto triangleRange = std::make_shared<RangeDescriptor>();
-	targetTriangleRange->m_handle = handle;
-	targetTriangleRange->m_offset = storage.m_triangles.size();
-	targetTriangleRange->m_range = 0;
-	targetTriangleRange->m_indexCount = triangles.size();
+  // const auto triangleRange = std::make_shared<RangeDescriptor>();
+  target_triangle_range->handle_ = handle;
+  target_triangle_range->offset = storage.triangles_.size();
+  target_triangle_range->range = 0;
+  target_triangle_range->index_count = triangles.size();
 
-	std::vector<meshopt_Meshlet> meshletsResults;
-	std::vector<unsigned> meshletResultVertices;
-	std::vector<unsigned char> meshletResultTriangles;
-	const auto maxMeshlets =
-		meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
-	meshletsResults.resize(maxMeshlets);
-	meshletResultVertices.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE);
-	meshletResultTriangles.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3);
-	const auto meshletSize = meshopt_buildMeshlets(
-		meshletsResults.data(), meshletResultVertices.data(), meshletResultTriangles.data(),
-		&triangles.at(0).x, triangles.size() * 3, &vertices.at(0).m_position.x, vertices.size(), sizeof(Vertex),
-		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
+  std::vector<meshopt_Meshlet> meshlets_results;
+  std::vector<unsigned> meshlet_result_vertices;
+  std::vector<unsigned char> meshlet_result_triangles;
+  const auto max_meshlets =
+      meshopt_buildMeshletsBound(triangles.size() * 3, Graphics::Constants::meshlet_max_vertices_size,
+                                 Graphics::Constants::meshlet_max_triangles_size);
+  meshlets_results.resize(max_meshlets);
+  meshlet_result_vertices.resize(max_meshlets * Graphics::Constants::meshlet_max_vertices_size);
+  meshlet_result_triangles.resize(max_meshlets * Graphics::Constants::meshlet_max_triangles_size * 3);
+  const auto meshlet_size = meshopt_buildMeshlets(
+      meshlets_results.data(), meshlet_result_vertices.data(), meshlet_result_triangles.data(), &triangles.at(0).x,
+      triangles.size() * 3, &vertices.at(0).position.x, vertices.size(), sizeof(Vertex),
+      Graphics::Constants::meshlet_max_vertices_size, Graphics::Constants::meshlet_max_triangles_size, 0);
 
-	targetMeshletRange->m_range = meshletSize;
-	for (size_t meshletIndex = 0; meshletIndex < meshletSize; meshletIndex++)
-	{
-		const uint32_t currentMeshletIndex = storage.m_meshlets.size();
-		storage.m_meshlets.emplace_back();
-		auto& currentMeshlet = storage.m_meshlets[currentMeshletIndex];
+  target_meshlet_range->range = meshlet_size;
+  for (size_t meshlet_index = 0; meshlet_index < meshlet_size; meshlet_index++) {
+    const uint32_t current_meshlet_index = storage.meshlets_.size();
+    storage.meshlets_.emplace_back();
+    auto& current_meshlet = storage.meshlets_[current_meshlet_index];
 
-		currentMeshlet.m_vertexChunkIndex = storage.m_vertexDataChunks.size();
-		storage.m_vertexDataChunks.emplace_back();
-		auto& currentChunk = storage.m_vertexDataChunks[currentMeshlet.m_vertexChunkIndex];
+    current_meshlet.vertex_chunk_index = storage.vertex_data_chunks_.size();
+    storage.vertex_data_chunks_.emplace_back();
+    auto& current_chunk = storage.vertex_data_chunks_[current_meshlet.vertex_chunk_index];
 
-		const auto& meshletResult = meshletsResults.at(meshletIndex);
-		for (unsigned vi = 0; vi < meshletResult.vertex_count; vi++)
-		{
-			currentChunk.m_vertexData[vi] = vertices[meshletResultVertices.at(meshletResult.vertex_offset + vi)];
-		}
-		currentMeshlet.m_verticesSize = meshletResult.vertex_count;
-		currentMeshlet.m_triangleSize = meshletResult.triangle_count;
-		for (unsigned ti = 0; ti < meshletResult.triangle_count; ti++)
-		{
-			auto& currentMeshletTriangle = currentMeshlet.m_triangles[ti];
-			currentMeshletTriangle = glm::u8vec3(
-				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset],
-				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 1],
-				meshletResultTriangles[ti * 3 + meshletResult.triangle_offset + 2]);
+    const auto& meshlet_result = meshlets_results.at(meshlet_index);
+    for (unsigned vi = 0; vi < meshlet_result.vertex_count; vi++) {
+      current_chunk.vertex_data[vi] = vertices[meshlet_result_vertices.at(meshlet_result.vertex_offset + vi)];
+    }
+    current_meshlet.vertices_size = meshlet_result.vertex_count;
+    current_meshlet.triangle_size = meshlet_result.triangle_count;
+    for (unsigned ti = 0; ti < meshlet_result.triangle_count; ti++) {
+      auto& current_meshlet_triangle = current_meshlet.triangles[ti];
+      current_meshlet_triangle = glm::u8vec3(meshlet_result_triangles[ti * 3 + meshlet_result.triangle_offset],
+                                             meshlet_result_triangles[ti * 3 + meshlet_result.triangle_offset + 1],
+                                             meshlet_result_triangles[ti * 3 + meshlet_result.triangle_offset + 2]);
 
-			auto& globalTriangle = storage.m_triangles.emplace_back();
-			globalTriangle.x = currentMeshletTriangle.x + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.y = currentMeshletTriangle.y + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.z = currentMeshletTriangle.z + currentMeshlet.m_vertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		}
-		targetTriangleRange->m_range += currentMeshlet.m_triangleSize;
-	}
+      auto& global_triangle = storage.triangles_.emplace_back();
+      global_triangle.x = current_meshlet_triangle.x +
+                          current_meshlet.vertex_chunk_index * Graphics::Constants::meshlet_max_vertices_size;
+      global_triangle.y = current_meshlet_triangle.y +
+                          current_meshlet.vertex_chunk_index * Graphics::Constants::meshlet_max_vertices_size;
+      global_triangle.z = current_meshlet_triangle.z +
+                          current_meshlet.vertex_chunk_index * Graphics::Constants::meshlet_max_vertices_size;
+    }
+    target_triangle_range->range += current_meshlet.triangle_size;
+  }
 
-	storage.m_meshletRangeDescriptor.push_back(targetMeshletRange);
-	storage.m_triangleRangeDescriptor.push_back(targetTriangleRange);
-	storage.m_requireMeshDataDeviceUpdate = true;
+  storage.meshlet_range_descriptor_.push_back(target_meshlet_range);
+  storage.triangle_range_descriptor_.push_back(target_triangle_range);
+  storage.require_mesh_data_device_update_ = true;
 }
 
-void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinnedVertices,
-	const std::vector<glm::uvec3>& skinnedTriangles,
-	const std::shared_ptr<RangeDescriptor>& targetSkinnedMeshletRange,
-	const std::shared_ptr<RangeDescriptor>& targetSkinnedTriangleRange)
-{
-	if (skinnedVertices.empty() || skinnedTriangles.empty()) {
-		throw std::runtime_error("Empty skinned vertices or skinnedTriangles!");
-	}
-	auto& storage = GetInstance();
+void GeometryStorage::AllocateSkinnedMesh(const Handle& handle, const std::vector<SkinnedVertex>& skinned_vertices,
+                                          const std::vector<glm::uvec3>& skinned_triangles,
+                                          const std::shared_ptr<RangeDescriptor>& target_skinned_meshlet_range,
+                                          const std::shared_ptr<RangeDescriptor>& target_skinned_triangle_range) {
+  if (skinned_vertices.empty() || skinned_triangles.empty()) {
+    throw std::runtime_error("Empty skinned vertices or skinned_triangles!");
+  }
+  auto& storage = GetInstance();
 
-	targetSkinnedMeshletRange->m_handle = handle;
-	targetSkinnedMeshletRange->m_offset = storage.m_skinnedMeshlets.size();
-	targetSkinnedMeshletRange->m_range = 0;
+  target_skinned_meshlet_range->handle_ = handle;
+  target_skinned_meshlet_range->offset = storage.skinned_meshlets_.size();
+  target_skinned_meshlet_range->range = 0;
 
-	targetSkinnedTriangleRange->m_handle = handle;
-	targetSkinnedTriangleRange->m_offset = storage.m_skinnedTriangles.size();
-	targetSkinnedTriangleRange->m_range = 0;
-	targetSkinnedTriangleRange->m_indexCount = skinnedTriangles.size();
-	std::vector<meshopt_Meshlet> skinnedMeshletsResults{};
-	std::vector<unsigned> skinnedMeshletResultVertices{};
-	std::vector<unsigned char> skinnedMeshletResultTriangles{};
-	const auto maxMeshlets =
-		meshopt_buildMeshletsBound(skinnedTriangles.size() * 3, Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE);
-	skinnedMeshletsResults.resize(maxMeshlets);
-	skinnedMeshletResultVertices.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE);
-	skinnedMeshletResultTriangles.resize(maxMeshlets * Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE * 3);
-	const auto skinnedMeshletSize = meshopt_buildMeshlets(
-		skinnedMeshletsResults.data(), skinnedMeshletResultVertices.data(), skinnedMeshletResultTriangles.data(),
-		&skinnedTriangles.at(0).x, skinnedTriangles.size() * 3, &skinnedVertices.at(0).m_position.x, skinnedVertices.size(), sizeof(SkinnedVertex),
-		Graphics::Constants::MESHLET_MAX_VERTICES_SIZE, Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE, 0);
+  target_skinned_triangle_range->handle_ = handle;
+  target_skinned_triangle_range->offset = storage.skinned_triangles_.size();
+  target_skinned_triangle_range->range = 0;
+  target_skinned_triangle_range->index_count = skinned_triangles.size();
+  std::vector<meshopt_Meshlet> skinned_meshlets_results{};
+  std::vector<unsigned> skinned_meshlet_result_vertices{};
+  std::vector<unsigned char> skinned_meshlet_result_triangles{};
+  const auto max_meshlets =
+      meshopt_buildMeshletsBound(skinned_triangles.size() * 3, Graphics::Constants::meshlet_max_vertices_size,
+                                 Graphics::Constants::meshlet_max_triangles_size);
+  skinned_meshlets_results.resize(max_meshlets);
+  skinned_meshlet_result_vertices.resize(max_meshlets * Graphics::Constants::meshlet_max_vertices_size);
+  skinned_meshlet_result_triangles.resize(max_meshlets * Graphics::Constants::meshlet_max_triangles_size * 3);
+  const auto skinned_meshlet_size = meshopt_buildMeshlets(
+      skinned_meshlets_results.data(), skinned_meshlet_result_vertices.data(), skinned_meshlet_result_triangles.data(),
+      &skinned_triangles.at(0).x, skinned_triangles.size() * 3, &skinned_vertices.at(0).position.x,
+      skinned_vertices.size(), sizeof(SkinnedVertex), Graphics::Constants::meshlet_max_vertices_size,
+      Graphics::Constants::meshlet_max_triangles_size, 0);
 
-	targetSkinnedMeshletRange->m_range = skinnedMeshletSize;
-	for (size_t skinnedMeshletIndex = 0; skinnedMeshletIndex < skinnedMeshletSize; skinnedMeshletIndex++)
-	{
-		storage.m_skinnedMeshlets.emplace_back();
-		auto& currentSkinnedMeshlet = storage.m_skinnedMeshlets.back();
+  target_skinned_meshlet_range->range = skinned_meshlet_size;
+  for (size_t skinned_meshlet_index = 0; skinned_meshlet_index < skinned_meshlet_size; skinned_meshlet_index++) {
+    storage.skinned_meshlets_.emplace_back();
+    auto& current_skinned_meshlet = storage.skinned_meshlets_.back();
 
-		currentSkinnedMeshlet.m_skinnedVertexChunkIndex = storage.m_skinnedVertexDataChunks.size();
-		storage.m_skinnedVertexDataChunks.emplace_back();
-		auto& currentSkinnedChunk = storage.m_skinnedVertexDataChunks.back();
+    current_skinned_meshlet.skinned_vertex_chunk_index = storage.skinned_vertex_data_chunks_.size();
+    storage.skinned_vertex_data_chunks_.emplace_back();
+    auto& current_skinned_chunk = storage.skinned_vertex_data_chunks_.back();
 
-		const auto& skinnedMeshletResult = skinnedMeshletsResults.at(skinnedMeshletIndex);
-		for (unsigned vi = 0; vi < skinnedMeshletResult.vertex_count; vi++)
-		{
-			currentSkinnedChunk.m_skinnedVertexData[vi] = skinnedVertices[skinnedMeshletResultVertices.at(skinnedMeshletResult.vertex_offset + vi)];
-		}
-		currentSkinnedMeshlet.m_skinnedVerticesSize = skinnedMeshletResult.vertex_count;
-		currentSkinnedMeshlet.m_skinnedTriangleSize = skinnedMeshletResult.triangle_count;
-		for (unsigned ti = 0; ti < skinnedMeshletResult.triangle_count; ti++)
-		{
-			auto& currentMeshletTriangle = currentSkinnedMeshlet.m_skinnedTriangles[ti];
-			currentMeshletTriangle = glm::u8vec3(
-				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset],
-				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 1],
-				skinnedMeshletResultTriangles[ti * 3 + skinnedMeshletResult.triangle_offset + 2]);
+    const auto& skinned_meshlet_result = skinned_meshlets_results.at(skinned_meshlet_index);
+    for (unsigned vi = 0; vi < skinned_meshlet_result.vertex_count; vi++) {
+      current_skinned_chunk.skinned_vertex_data[vi] =
+          skinned_vertices[skinned_meshlet_result_vertices.at(skinned_meshlet_result.vertex_offset + vi)];
+    }
+    current_skinned_meshlet.skinned_vertices_size = skinned_meshlet_result.vertex_count;
+    current_skinned_meshlet.skinned_triangle_size = skinned_meshlet_result.triangle_count;
+    for (unsigned ti = 0; ti < skinned_meshlet_result.triangle_count; ti++) {
+      auto& current_meshlet_triangle = current_skinned_meshlet.skinned_triangles[ti];
+      current_meshlet_triangle =
+          glm::u8vec3(skinned_meshlet_result_triangles[ti * 3 + skinned_meshlet_result.triangle_offset],
+                      skinned_meshlet_result_triangles[ti * 3 + skinned_meshlet_result.triangle_offset + 1],
+                      skinned_meshlet_result_triangles[ti * 3 + skinned_meshlet_result.triangle_offset + 2]);
 
-			storage.m_skinnedTriangles.emplace_back();
-			auto& globalTriangle = storage.m_skinnedTriangles.back();
-			globalTriangle.x = currentMeshletTriangle.x + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.y = currentMeshletTriangle.y + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalTriangle.z = currentMeshletTriangle.z + currentSkinnedMeshlet.m_skinnedVertexChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		}
-		targetSkinnedTriangleRange->m_range += currentSkinnedMeshlet.m_skinnedTriangleSize;
-	}
-	storage.m_skinnedMeshletRangeDescriptor.push_back(targetSkinnedMeshletRange);
-	storage.m_skinnedTriangleRangeDescriptor.push_back(targetSkinnedTriangleRange);
-	storage.m_requireSkinnedMeshDataDeviceUpdate = true;
-
+      storage.skinned_triangles_.emplace_back();
+      auto& global_triangle = storage.skinned_triangles_.back();
+      global_triangle.x = current_meshlet_triangle.x + current_skinned_meshlet.skinned_vertex_chunk_index *
+                                                           Graphics::Constants::meshlet_max_vertices_size;
+      global_triangle.y = current_meshlet_triangle.y + current_skinned_meshlet.skinned_vertex_chunk_index *
+                                                           Graphics::Constants::meshlet_max_vertices_size;
+      global_triangle.z = current_meshlet_triangle.z + current_skinned_meshlet.skinned_vertex_chunk_index *
+                                                           Graphics::Constants::meshlet_max_vertices_size;
+    }
+    target_skinned_triangle_range->range += current_skinned_meshlet.skinned_triangle_size;
+  }
+  storage.skinned_meshlet_range_descriptor_.push_back(target_skinned_meshlet_range);
+  storage.skinned_triangle_range_descriptor_.push_back(target_skinned_triangle_range);
+  storage.require_skinned_mesh_data_device_update_ = true;
 }
 
-void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strandPoints,
-	const std::vector<glm::uvec4>& segments,
-	const std::shared_ptr<RangeDescriptor>& targetStrandMeshletRange,
-	const std::shared_ptr<RangeDescriptor>& targetSegmentRange)
-{
-	if (strandPoints.empty() || segments.empty()) {
-		throw std::runtime_error("Empty strand points or strand segments!");
-	}
-	auto& storage = GetInstance();
+void GeometryStorage::AllocateStrands(const Handle& handle, const std::vector<StrandPoint>& strand_points,
+                                      const std::vector<glm::uvec4>& segments,
+                                      const std::shared_ptr<RangeDescriptor>& target_strand_meshlet_range,
+                                      const std::shared_ptr<RangeDescriptor>& target_segment_range) {
+  if (strand_points.empty() || segments.empty()) {
+    throw std::runtime_error("Empty strand points or strand segments!");
+  }
+  auto& storage = GetInstance();
 
-	uint32_t currentSegmentIndex = 0;
-	targetStrandMeshletRange->m_handle = handle;
-	targetStrandMeshletRange->m_offset = storage.m_strandMeshlets.size();
-	targetStrandMeshletRange->m_range = 0;
+  uint32_t current_segment_index = 0;
+  target_strand_meshlet_range->handle_ = handle;
+  target_strand_meshlet_range->offset = storage.strand_meshlets_.size();
+  target_strand_meshlet_range->range = 0;
 
-	targetSegmentRange->m_handle = handle;
-	targetSegmentRange->m_offset = storage.m_segments.size();
-	targetSegmentRange->m_range = 0;
-	targetSegmentRange->m_indexCount = segments.size();
+  target_segment_range->handle_ = handle;
+  target_segment_range->offset = storage.segments_.size();
+  target_segment_range->range = 0;
+  target_segment_range->index_count = segments.size();
 
-	while (currentSegmentIndex < segments.size())
-	{
-		targetStrandMeshletRange->m_range++;
-		const uint32_t currentStrandMeshletIndex = storage.m_strandMeshlets.size();
-		storage.m_strandMeshlets.emplace_back();
-		auto& currentStrandMeshlet = storage.m_strandMeshlets[currentStrandMeshletIndex];
+  while (current_segment_index < segments.size()) {
+    target_strand_meshlet_range->range++;
+    const uint32_t current_strand_meshlet_index = storage.strand_meshlets_.size();
+    storage.strand_meshlets_.emplace_back();
+    auto& current_strand_meshlet = storage.strand_meshlets_[current_strand_meshlet_index];
 
-		currentStrandMeshlet.m_strandPointChunkIndex = storage.m_strandPointDataChunks.size();
-		storage.m_strandPointDataChunks.emplace_back();
-		auto& currentChunk = storage.m_strandPointDataChunks[currentStrandMeshlet.m_strandPointChunkIndex];
+    current_strand_meshlet.strand_point_chunk_index = storage.strand_point_data_chunks_.size();
+    storage.strand_point_data_chunks_.emplace_back();
+    auto& current_chunk = storage.strand_point_data_chunks_[current_strand_meshlet.strand_point_chunk_index];
 
-		currentStrandMeshlet.m_strandPointsSize = currentStrandMeshlet.m_segmentSize = 0;
+    current_strand_meshlet.strand_points_size = current_strand_meshlet.segment_size = 0;
 
-		std::unordered_map<uint32_t, uint32_t> assignedStrandPoints{};
-		while (currentStrandMeshlet.m_segmentSize < Graphics::Constants::MESHLET_MAX_TRIANGLES_SIZE && currentSegmentIndex < segments.size())
-		{
-			const auto& currentSegment = segments[currentSegmentIndex];
-			uint32_t newStrandPointsAmount = 0;
-			auto searchX = assignedStrandPoints.find(currentSegment.x);
-			if (searchX == assignedStrandPoints.end()) newStrandPointsAmount++;
+    std::unordered_map<uint32_t, uint32_t> assigned_strand_points{};
+    while (current_strand_meshlet.segment_size < Graphics::Constants::meshlet_max_triangles_size &&
+           current_segment_index < segments.size()) {
+      const auto& current_segment = segments[current_segment_index];
+      uint32_t new_strand_points_amount = 0;
+      auto search_x = assigned_strand_points.find(current_segment.x);
+      if (search_x == assigned_strand_points.end())
+        new_strand_points_amount++;
 
-			auto searchY = assignedStrandPoints.find(currentSegment.y);
-			if (searchY == assignedStrandPoints.end()) newStrandPointsAmount++;
+      auto search_y = assigned_strand_points.find(current_segment.y);
+      if (search_y == assigned_strand_points.end())
+        new_strand_points_amount++;
 
-			auto searchZ = assignedStrandPoints.find(currentSegment.z);
-			if (searchZ == assignedStrandPoints.end()) newStrandPointsAmount++;
+      auto search_z = assigned_strand_points.find(current_segment.z);
+      if (search_z == assigned_strand_points.end())
+        new_strand_points_amount++;
 
-			auto searchW = assignedStrandPoints.find(currentSegment.w);
-			if (searchW == assignedStrandPoints.end()) newStrandPointsAmount++;
+      auto search_w = assigned_strand_points.find(current_segment.w);
+      if (search_w == assigned_strand_points.end())
+        new_strand_points_amount++;
 
-			if (currentStrandMeshlet.m_strandPointsSize + newStrandPointsAmount > Graphics::Constants::MESHLET_MAX_VERTICES_SIZE)
-			{
-				break;
-			}
-			auto& currentStrandMeshletSegment = currentStrandMeshlet.m_segments[currentStrandMeshlet.m_segmentSize];
+      if (current_strand_meshlet.strand_points_size + new_strand_points_amount >
+          Graphics::Constants::meshlet_max_vertices_size) {
+        break;
+      }
+      auto& current_strand_meshlet_segment = current_strand_meshlet.segments[current_strand_meshlet.segment_size];
 
-			if (searchX != assignedStrandPoints.end())
-			{
-				currentStrandMeshletSegment.x = searchX->second;
-			}
-			else
-			{
-				//Add current strandPoint index into the map.
-				assignedStrandPoints[currentSegment.x] = currentStrandMeshlet.m_strandPointsSize;
+      if (search_x != assigned_strand_points.end()) {
+        current_strand_meshlet_segment.x = search_x->second;
+      } else {
+        // Add current strandPoint index into the map.
+        assigned_strand_points[current_segment.x] = current_strand_meshlet.strand_points_size;
 
-				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.x];
-				currentStrandMeshletSegment.x = currentStrandMeshlet.m_strandPointsSize;
-				currentStrandMeshlet.m_strandPointsSize++;
-			}
+        // Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
+        current_chunk.strand_point_data[current_strand_meshlet.strand_points_size] = strand_points[current_segment.x];
+        current_strand_meshlet_segment.x = current_strand_meshlet.strand_points_size;
+        current_strand_meshlet.strand_points_size++;
+      }
 
-			searchY = assignedStrandPoints.find(currentSegment.y);
-			if (searchY != assignedStrandPoints.end())
-			{
-				currentStrandMeshletSegment.y = searchY->second;
-			}
-			else
-			{
-				//Add current strandPoint index into the map.
-				assignedStrandPoints[currentSegment.y] = currentStrandMeshlet.m_strandPointsSize;
+      search_y = assigned_strand_points.find(current_segment.y);
+      if (search_y != assigned_strand_points.end()) {
+        current_strand_meshlet_segment.y = search_y->second;
+      } else {
+        // Add current strandPoint index into the map.
+        assigned_strand_points[current_segment.y] = current_strand_meshlet.strand_points_size;
 
-				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.y];
-				currentStrandMeshletSegment.y = currentStrandMeshlet.m_strandPointsSize;
-				currentStrandMeshlet.m_strandPointsSize++;
-			}
+        // Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
+        current_chunk.strand_point_data[current_strand_meshlet.strand_points_size] = strand_points[current_segment.y];
+        current_strand_meshlet_segment.y = current_strand_meshlet.strand_points_size;
+        current_strand_meshlet.strand_points_size++;
+      }
 
-			searchZ = assignedStrandPoints.find(currentSegment.z);
-			if (searchZ != assignedStrandPoints.end())
-			{
-				currentStrandMeshletSegment.z = searchZ->second;
-			}
-			else
-			{
-				//Add current strandPoint index into the map.
-				assignedStrandPoints[currentSegment.z] = currentStrandMeshlet.m_strandPointsSize;
+      search_z = assigned_strand_points.find(current_segment.z);
+      if (search_z != assigned_strand_points.end()) {
+        current_strand_meshlet_segment.z = search_z->second;
+      } else {
+        // Add current strandPoint index into the map.
+        assigned_strand_points[current_segment.z] = current_strand_meshlet.strand_points_size;
 
-				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.z];
-				currentStrandMeshletSegment.z = currentStrandMeshlet.m_strandPointsSize;
-				currentStrandMeshlet.m_strandPointsSize++;
-			}
+        // Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
+        current_chunk.strand_point_data[current_strand_meshlet.strand_points_size] = strand_points[current_segment.z];
+        current_strand_meshlet_segment.z = current_strand_meshlet.strand_points_size;
+        current_strand_meshlet.strand_points_size++;
+      }
 
-			searchW = assignedStrandPoints.find(currentSegment.w);
-			if (searchW != assignedStrandPoints.end())
-			{
-				currentStrandMeshletSegment.w = searchW->second;
-			}
-			else
-			{
-				//Add current strandPoint index into the map.
-				assignedStrandPoints[currentSegment.w] = currentStrandMeshlet.m_strandPointsSize;
+      search_w = assigned_strand_points.find(current_segment.w);
+      if (search_w != assigned_strand_points.end()) {
+        current_strand_meshlet_segment.w = search_w->second;
+      } else {
+        // Add current strandPoint index into the map.
+        assigned_strand_points[current_segment.w] = current_strand_meshlet.strand_points_size;
 
-				//Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
-				currentChunk.m_strandPointData[currentStrandMeshlet.m_strandPointsSize] = strandPoints[currentSegment.w];
-				currentStrandMeshletSegment.w = currentStrandMeshlet.m_strandPointsSize;
-				currentStrandMeshlet.m_strandPointsSize++;
-			}
-			currentStrandMeshlet.m_segmentSize++;
-			currentSegmentIndex++;
+        // Assign new strandPoint in strandMeshlet, and retrieve actual strandPoint index in strandPoint data chunks.
+        current_chunk.strand_point_data[current_strand_meshlet.strand_points_size] = strand_points[current_segment.w];
+        current_strand_meshlet_segment.w = current_strand_meshlet.strand_points_size;
+        current_strand_meshlet.strand_points_size++;
+      }
+      current_strand_meshlet.segment_size++;
+      current_segment_index++;
 
-			auto& globalSegment = storage.m_segments.emplace_back();
-			globalSegment.x = currentStrandMeshletSegment.x + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalSegment.y = currentStrandMeshletSegment.y + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalSegment.z = currentStrandMeshletSegment.z + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			globalSegment.w = currentStrandMeshletSegment.w + currentStrandMeshlet.m_strandPointChunkIndex * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-			targetSegmentRange->m_range++;
-		}
-	}
+      auto& global_segment = storage.segments_.emplace_back();
+      global_segment.x = current_strand_meshlet_segment.x + current_strand_meshlet.strand_point_chunk_index *
+                                                                Graphics::Constants::meshlet_max_vertices_size;
+      global_segment.y = current_strand_meshlet_segment.y + current_strand_meshlet.strand_point_chunk_index *
+                                                                Graphics::Constants::meshlet_max_vertices_size;
+      global_segment.z = current_strand_meshlet_segment.z + current_strand_meshlet.strand_point_chunk_index *
+                                                                Graphics::Constants::meshlet_max_vertices_size;
+      global_segment.w = current_strand_meshlet_segment.w + current_strand_meshlet.strand_point_chunk_index *
+                                                                Graphics::Constants::meshlet_max_vertices_size;
+      target_segment_range->range++;
+    }
+  }
 
-	storage.m_strandMeshletRangeDescriptor.push_back(targetStrandMeshletRange);
-	storage.m_segmentRangeDescriptor.push_back(targetSegmentRange);
-	storage.m_requireStrandMeshDataDeviceUpdate = true;
-
+  storage.strand_meshlet_range_descriptor_.push_back(target_strand_meshlet_range);
+  storage.segment_range_descriptor_.push_back(target_segment_range);
+  storage.require_strand_mesh_data_device_update_ = true;
 }
 
-void GeometryStorage::FreeMesh(const Handle& handle)
-{
-	auto& storage = GetInstance();
-	uint32_t meshletRangeDescriptorIndex = UINT_MAX;
-	for (int i = 0; i < storage.m_meshletRangeDescriptor.size(); i++)
-	{
-		if (storage.m_meshletRangeDescriptor[i]->m_handle == handle)
-		{
-			meshletRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (meshletRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	}
-	const auto& meshletRangeDescriptor = storage.m_meshletRangeDescriptor[meshletRangeDescriptorIndex];
-	const uint32_t removeChunkSize = meshletRangeDescriptor->m_range;
-	storage.m_meshlets.erase(storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset, storage.m_meshlets.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
-	storage.m_vertexDataChunks.erase(storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset,
-		storage.m_vertexDataChunks.begin() + meshletRangeDescriptor->m_offset + removeChunkSize);
-	for (uint32_t i = meshletRangeDescriptorIndex; i < storage.m_meshlets.size(); i++)
-	{
-		storage.m_meshlets[i].m_vertexChunkIndex = i;
-	}
-	for (uint32_t i = meshletRangeDescriptorIndex + 1; i < storage.m_meshletRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_meshletRangeDescriptor[i]->m_offset >= meshletRangeDescriptor->m_range);
-		storage.m_meshletRangeDescriptor[i]->m_offset -= meshletRangeDescriptor->m_range;
-	}
-	storage.m_meshletRangeDescriptor.erase(storage.m_meshletRangeDescriptor.begin() + meshletRangeDescriptorIndex);
+void GeometryStorage::FreeMesh(const Handle& handle) {
+  auto& storage = GetInstance();
+  uint32_t meshlet_range_descriptor_index = UINT_MAX;
+  for (int i = 0; i < storage.meshlet_range_descriptor_.size(); i++) {
+    if (storage.meshlet_range_descriptor_[i]->handle_ == handle) {
+      meshlet_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (meshlet_range_descriptor_index == UINT_MAX) {
+    return;
+  }
+  const auto& meshlet_range_descriptor = storage.meshlet_range_descriptor_[meshlet_range_descriptor_index];
+  const uint32_t remove_chunk_size = meshlet_range_descriptor->range;
+  storage.meshlets_.erase(storage.meshlets_.begin() + meshlet_range_descriptor->offset,
+                          storage.meshlets_.begin() + meshlet_range_descriptor->offset + remove_chunk_size);
+  storage.vertex_data_chunks_.erase(
+      storage.vertex_data_chunks_.begin() + meshlet_range_descriptor->offset,
+      storage.vertex_data_chunks_.begin() + meshlet_range_descriptor->offset + remove_chunk_size);
+  for (uint32_t i = meshlet_range_descriptor_index; i < storage.meshlets_.size(); i++) {
+    storage.meshlets_[i].vertex_chunk_index = i;
+  }
+  for (uint32_t i = meshlet_range_descriptor_index + 1; i < storage.meshlet_range_descriptor_.size(); i++) {
+    assert(storage.meshlet_range_descriptor_[i]->offset >= meshlet_range_descriptor->range);
+    storage.meshlet_range_descriptor_[i]->offset -= meshlet_range_descriptor->range;
+  }
+  storage.meshlet_range_descriptor_.erase(storage.meshlet_range_descriptor_.begin() + meshlet_range_descriptor_index);
 
-	uint32_t triangleRangeDescriptorIndex = UINT_MAX;
-	for (uint32_t i = 0; i < storage.m_triangleRangeDescriptor.size(); i++)
-	{
-		if (storage.m_triangleRangeDescriptor[i]->m_handle == handle)
-		{
-			triangleRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (triangleRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	}
-	const auto& triangleRangeDescriptor = storage.m_triangleRangeDescriptor[triangleRangeDescriptorIndex];
-	storage.m_triangles.erase(storage.m_triangles.begin() + triangleRangeDescriptor->m_offset,
-		storage.m_triangles.begin() + triangleRangeDescriptor->m_offset + triangleRangeDescriptor->m_range);
-	for (uint32_t i = triangleRangeDescriptorIndex + 1; i < storage.m_triangleRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_triangleRangeDescriptor[i]->m_offset >= triangleRangeDescriptor->m_range);
-		storage.m_triangleRangeDescriptor[i]->m_offset -= triangleRangeDescriptor->m_range;
-	}
+  uint32_t triangle_range_descriptor_index = UINT_MAX;
+  for (uint32_t i = 0; i < storage.triangle_range_descriptor_.size(); i++) {
+    if (storage.triangle_range_descriptor_[i]->handle_ == handle) {
+      triangle_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (triangle_range_descriptor_index == UINT_MAX) {
+    return;
+  }
+  const auto& triangle_range_descriptor = storage.triangle_range_descriptor_[triangle_range_descriptor_index];
+  storage.triangles_.erase(
+      storage.triangles_.begin() + triangle_range_descriptor->offset,
+      storage.triangles_.begin() + triangle_range_descriptor->offset + triangle_range_descriptor->range);
+  for (uint32_t i = triangle_range_descriptor_index + 1; i < storage.triangle_range_descriptor_.size(); i++) {
+    assert(storage.triangle_range_descriptor_[i]->offset >= triangle_range_descriptor->range);
+    storage.triangle_range_descriptor_[i]->offset -= triangle_range_descriptor->range;
+  }
 
-	for (uint32_t i = triangleRangeDescriptor->m_offset; i < storage.m_triangles.size(); i++)
-	{
-		storage.m_triangles[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_triangles[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_triangles[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-	}
-	storage.m_triangleRangeDescriptor.erase(storage.m_triangleRangeDescriptor.begin() + triangleRangeDescriptorIndex);
-	storage.m_requireMeshDataDeviceUpdate = true;
+  for (uint32_t i = triangle_range_descriptor->offset; i < storage.triangles_.size(); i++) {
+    storage.triangles_[i].x -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.triangles_[i].y -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.triangles_[i].z -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+  }
+  storage.triangle_range_descriptor_.erase(storage.triangle_range_descriptor_.begin() +
+                                           triangle_range_descriptor_index);
+  storage.require_mesh_data_device_update_ = true;
 }
 
-void GeometryStorage::FreeSkinnedMesh(const Handle& handle)
-{
-	auto& storage = GetInstance();
-	uint32_t skinnedMeshletRangeDescriptorIndex = UINT_MAX;
-	for (int i = 0; i < storage.m_skinnedMeshletRangeDescriptor.size(); i++)
-	{
-		if (storage.m_skinnedMeshletRangeDescriptor[i]->m_handle == handle)
-		{
-			skinnedMeshletRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (skinnedMeshletRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	};
-	const auto& skinnedMeshletRangeDescriptor = storage.m_skinnedMeshletRangeDescriptor[skinnedMeshletRangeDescriptorIndex];
-	const uint32_t removeChunkSize = skinnedMeshletRangeDescriptor->m_range;
-	storage.m_skinnedMeshlets.erase(storage.m_skinnedMeshlets.begin() + skinnedMeshletRangeDescriptor->m_offset, storage.m_skinnedMeshlets.begin() + removeChunkSize);
-	storage.m_skinnedVertexDataChunks.erase(storage.m_skinnedVertexDataChunks.begin() + skinnedMeshletRangeDescriptor->m_offset,
-		storage.m_skinnedVertexDataChunks.begin() + skinnedMeshletRangeDescriptor->m_offset + removeChunkSize);
-	for (uint32_t i = skinnedMeshletRangeDescriptorIndex; i < storage.m_skinnedMeshlets.size(); i++)
-	{
-		storage.m_skinnedMeshlets[i].m_skinnedVertexChunkIndex = i;
-	}
-	for (uint32_t i = skinnedMeshletRangeDescriptorIndex + 1; i < storage.m_skinnedMeshletRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_skinnedMeshletRangeDescriptor[i]->m_offset >= skinnedMeshletRangeDescriptor->m_range);
-		storage.m_skinnedMeshletRangeDescriptor[i]->m_offset -= skinnedMeshletRangeDescriptor->m_range;
-	}
-	storage.m_skinnedMeshletRangeDescriptor.erase(storage.m_skinnedMeshletRangeDescriptor.begin() + skinnedMeshletRangeDescriptorIndex);
+void GeometryStorage::FreeSkinnedMesh(const Handle& handle) {
+  auto& storage = GetInstance();
+  uint32_t skinned_meshlet_range_descriptor_index = UINT_MAX;
+  for (int i = 0; i < storage.skinned_meshlet_range_descriptor_.size(); i++) {
+    if (storage.skinned_meshlet_range_descriptor_[i]->handle_ == handle) {
+      skinned_meshlet_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (skinned_meshlet_range_descriptor_index == UINT_MAX) {
+    return;
+  };
+  const auto& skinned_meshlet_range_descriptor =
+      storage.skinned_meshlet_range_descriptor_[skinned_meshlet_range_descriptor_index];
+  const uint32_t remove_chunk_size = skinned_meshlet_range_descriptor->range;
+  storage.skinned_meshlets_.erase(storage.skinned_meshlets_.begin() + skinned_meshlet_range_descriptor->offset,
+                                  storage.skinned_meshlets_.begin() + skinned_meshlet_range_descriptor->offset + remove_chunk_size);
+  storage.skinned_vertex_data_chunks_.erase(
+      storage.skinned_vertex_data_chunks_.begin() + skinned_meshlet_range_descriptor->offset,
+      storage.skinned_vertex_data_chunks_.begin() + skinned_meshlet_range_descriptor->offset + remove_chunk_size);
+  for (uint32_t i = skinned_meshlet_range_descriptor_index; i < storage.skinned_meshlets_.size(); i++) {
+    storage.skinned_meshlets_[i].skinned_vertex_chunk_index = i;
+  }
+  for (uint32_t i = skinned_meshlet_range_descriptor_index + 1; i < storage.skinned_meshlet_range_descriptor_.size();
+       i++) {
+    assert(storage.skinned_meshlet_range_descriptor_[i]->offset >= skinned_meshlet_range_descriptor->range);
+    storage.skinned_meshlet_range_descriptor_[i]->offset -= skinned_meshlet_range_descriptor->range;
+  }
+  storage.skinned_meshlet_range_descriptor_.erase(storage.skinned_meshlet_range_descriptor_.begin() +
+                                                  skinned_meshlet_range_descriptor_index);
 
-	uint32_t skinnedTriangleRangeDescriptorIndex = UINT_MAX;
-	for (uint32_t i = 0; i < storage.m_skinnedTriangleRangeDescriptor.size(); i++)
-	{
-		if (storage.m_skinnedTriangleRangeDescriptor[i]->m_handle == handle)
-		{
-			skinnedTriangleRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (skinnedTriangleRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	}
-	const auto& skinnedTriangleRangeDescriptor = storage.m_skinnedTriangleRangeDescriptor[skinnedTriangleRangeDescriptorIndex];
-	storage.m_skinnedTriangles.erase(storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset,
-		storage.m_skinnedTriangles.begin() + skinnedTriangleRangeDescriptor->m_offset + skinnedTriangleRangeDescriptor->m_range);
-	for (uint32_t i = skinnedTriangleRangeDescriptorIndex + 1; i < storage.m_skinnedTriangleRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_skinnedTriangleRangeDescriptor[i]->m_offset >= skinnedTriangleRangeDescriptor->m_range);
-		storage.m_skinnedTriangleRangeDescriptor[i]->m_offset -= skinnedTriangleRangeDescriptor->m_range;
-	}
+  uint32_t skinned_triangle_range_descriptor_index = UINT_MAX;
+  for (uint32_t i = 0; i < storage.skinned_triangle_range_descriptor_.size(); i++) {
+    if (storage.skinned_triangle_range_descriptor_[i]->handle_ == handle) {
+      skinned_triangle_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (skinned_triangle_range_descriptor_index == UINT_MAX) {
+    return;
+  }
+  const auto& skinned_triangle_range_descriptor =
+      storage.skinned_triangle_range_descriptor_[skinned_triangle_range_descriptor_index];
+  storage.skinned_triangles_.erase(storage.skinned_triangles_.begin() + skinned_triangle_range_descriptor->offset,
+                                   storage.skinned_triangles_.begin() + skinned_triangle_range_descriptor->offset +
+                                       skinned_triangle_range_descriptor->range);
+  for (uint32_t i = skinned_triangle_range_descriptor_index + 1; i < storage.skinned_triangle_range_descriptor_.size();
+       i++) {
+    assert(storage.skinned_triangle_range_descriptor_[i]->offset >= skinned_triangle_range_descriptor->range);
+    storage.skinned_triangle_range_descriptor_[i]->offset -= skinned_triangle_range_descriptor->range;
+  }
 
-	for (uint32_t i = skinnedTriangleRangeDescriptor->m_offset; i < storage.m_skinnedTriangles.size(); i++)
-	{
-		storage.m_skinnedTriangles[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_skinnedTriangles[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_skinnedTriangles[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-	}
+  for (uint32_t i = skinned_triangle_range_descriptor->offset; i < storage.skinned_triangles_.size(); i++) {
+    storage.skinned_triangles_[i].x -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.skinned_triangles_[i].y -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.skinned_triangles_[i].z -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+  }
 
-	storage.m_skinnedTriangleRangeDescriptor.erase(storage.m_skinnedTriangleRangeDescriptor.begin() + skinnedTriangleRangeDescriptorIndex);
-	storage.m_requireSkinnedMeshDataDeviceUpdate = true;
+  storage.skinned_triangle_range_descriptor_.erase(storage.skinned_triangle_range_descriptor_.begin() +
+                                                   skinned_triangle_range_descriptor_index);
+  storage.require_skinned_mesh_data_device_update_ = true;
 }
 
-void GeometryStorage::FreeStrands(const Handle& handle)
-{
-	auto& storage = GetInstance();
-	uint32_t strandMeshletRangeDescriptorIndex = UINT_MAX;
-	for (int i = 0; i < storage.m_strandMeshletRangeDescriptor.size(); i++)
-	{
-		if (storage.m_strandMeshletRangeDescriptor[i]->m_handle == handle)
-		{
-			strandMeshletRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (strandMeshletRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	}
-	const auto& strandMeshletRangeDescriptor = storage.m_strandMeshletRangeDescriptor[strandMeshletRangeDescriptorIndex];
-	const uint32_t removeChunkSize = strandMeshletRangeDescriptor->m_range;
-	storage.m_strandMeshlets.erase(storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset, storage.m_strandMeshlets.begin() + strandMeshletRangeDescriptor->m_offset + removeChunkSize);
-	storage.m_strandPointDataChunks.erase(storage.m_strandPointDataChunks.begin() + strandMeshletRangeDescriptor->m_offset,
-		storage.m_strandPointDataChunks.begin() + strandMeshletRangeDescriptor->m_offset + removeChunkSize);
-	for (uint32_t i = strandMeshletRangeDescriptorIndex; i < storage.m_strandMeshlets.size(); i++)
-	{
-		storage.m_strandMeshlets[i].m_strandPointChunkIndex = i;
-	}
-	for (uint32_t i = strandMeshletRangeDescriptorIndex + 1; i < storage.m_strandMeshletRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_strandMeshletRangeDescriptor[i]->m_offset >= strandMeshletRangeDescriptor->m_range);
-		storage.m_strandMeshletRangeDescriptor[i]->m_offset -= strandMeshletRangeDescriptor->m_range;
-	}
-	storage.m_strandMeshletRangeDescriptor.erase(storage.m_strandMeshletRangeDescriptor.begin() + strandMeshletRangeDescriptorIndex);
+void GeometryStorage::FreeStrands(const Handle& handle) {
+  auto& storage = GetInstance();
+  uint32_t strand_meshlet_range_descriptor_index = UINT_MAX;
+  for (int i = 0; i < storage.strand_meshlet_range_descriptor_.size(); i++) {
+    if (storage.strand_meshlet_range_descriptor_[i]->handle_ == handle) {
+      strand_meshlet_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (strand_meshlet_range_descriptor_index == UINT_MAX) {
+    return;
+  }
+  const auto& strand_meshlet_range_descriptor =
+      storage.strand_meshlet_range_descriptor_[strand_meshlet_range_descriptor_index];
+  const uint32_t remove_chunk_size = strand_meshlet_range_descriptor->range;
+  storage.strand_meshlets_.erase(
+      storage.strand_meshlets_.begin() + strand_meshlet_range_descriptor->offset,
+      storage.strand_meshlets_.begin() + strand_meshlet_range_descriptor->offset + remove_chunk_size);
+  storage.strand_point_data_chunks_.erase(
+      storage.strand_point_data_chunks_.begin() + strand_meshlet_range_descriptor->offset,
+      storage.strand_point_data_chunks_.begin() + strand_meshlet_range_descriptor->offset + remove_chunk_size);
+  for (uint32_t i = strand_meshlet_range_descriptor_index; i < storage.strand_meshlets_.size(); i++) {
+    storage.strand_meshlets_[i].strand_point_chunk_index = i;
+  }
+  for (uint32_t i = strand_meshlet_range_descriptor_index + 1; i < storage.strand_meshlet_range_descriptor_.size();
+       i++) {
+    assert(storage.strand_meshlet_range_descriptor_[i]->offset >= strand_meshlet_range_descriptor->range);
+    storage.strand_meshlet_range_descriptor_[i]->offset -= strand_meshlet_range_descriptor->range;
+  }
+  storage.strand_meshlet_range_descriptor_.erase(storage.strand_meshlet_range_descriptor_.begin() +
+                                                 strand_meshlet_range_descriptor_index);
 
-	uint32_t segmentRangeDescriptorIndex = UINT_MAX;
-	for (uint32_t i = 0; i < storage.m_segmentRangeDescriptor.size(); i++)
-	{
-		if (storage.m_segmentRangeDescriptor[i]->m_handle == handle)
-		{
-			segmentRangeDescriptorIndex = i;
-			break;
-		}
-	}
-	if (segmentRangeDescriptorIndex == UINT_MAX)
-	{
-		return;
-	}
-	const auto& segmentRangeDescriptor = storage.m_segmentRangeDescriptor[segmentRangeDescriptorIndex];
-	storage.m_segments.erase(storage.m_segments.begin() + segmentRangeDescriptor->m_offset,
-		storage.m_segments.begin() + segmentRangeDescriptor->m_offset + segmentRangeDescriptor->m_range);
-	for (uint32_t i = segmentRangeDescriptorIndex + 1; i < storage.m_segmentRangeDescriptor.size(); i++)
-	{
-		assert(storage.m_segmentRangeDescriptor[i]->m_offset >= segmentRangeDescriptor->m_range);
-		storage.m_segmentRangeDescriptor[i]->m_offset -= segmentRangeDescriptor->m_range;
-	}
+  uint32_t segment_range_descriptor_index = UINT_MAX;
+  for (uint32_t i = 0; i < storage.segment_range_descriptor_.size(); i++) {
+    if (storage.segment_range_descriptor_[i]->handle_ == handle) {
+      segment_range_descriptor_index = i;
+      break;
+    }
+  }
+  if (segment_range_descriptor_index == UINT_MAX) {
+    return;
+  }
+  const auto& segment_range_descriptor = storage.segment_range_descriptor_[segment_range_descriptor_index];
+  storage.segments_.erase(
+      storage.segments_.begin() + segment_range_descriptor->offset,
+      storage.segments_.begin() + segment_range_descriptor->offset + segment_range_descriptor->range);
+  for (uint32_t i = segment_range_descriptor_index + 1; i < storage.segment_range_descriptor_.size(); i++) {
+    assert(storage.segment_range_descriptor_[i]->offset >= segment_range_descriptor->range);
+    storage.segment_range_descriptor_[i]->offset -= segment_range_descriptor->range;
+  }
 
-	for (uint32_t i = segmentRangeDescriptor->m_offset; i < storage.m_segments.size(); i++)
-	{
-		storage.m_segments[i].x -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_segments[i].y -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_segments[i].z -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-		storage.m_segments[i].w -= removeChunkSize * Graphics::Constants::MESHLET_MAX_VERTICES_SIZE;
-	}
-	storage.m_segmentRangeDescriptor.erase(storage.m_segmentRangeDescriptor.begin() + segmentRangeDescriptorIndex);
+  for (uint32_t i = segment_range_descriptor->offset; i < storage.segments_.size(); i++) {
+    storage.segments_[i].x -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.segments_[i].y -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.segments_[i].z -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+    storage.segments_[i].w -= remove_chunk_size * Graphics::Constants::meshlet_max_vertices_size;
+  }
+  storage.segment_range_descriptor_.erase(storage.segment_range_descriptor_.begin() + segment_range_descriptor_index);
 
-	storage.m_requireStrandMeshDataDeviceUpdate = true;
+  storage.require_strand_mesh_data_device_update_ = true;
 }
 
 void GeometryStorage::AllocateParticleInfo(const Handle& handle,
-	const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
-{
-	auto& storage = GetInstance();
-	storage.m_particleInfoListDataList.emplace_back();
-	auto& infoData = storage.m_particleInfoListDataList.back();
-	infoData.m_rangeDescriptor = rangeDescriptor;
-	infoData.m_rangeDescriptor->m_offset = storage.m_particleInfoListDataList.size() - 1;
-	infoData.m_rangeDescriptor->m_handle = handle;
-	VkBufferCreateInfo bufferCreateInfo{};
-	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.size = sizeof(ParticleInfo);
-	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	VmaAllocationCreateInfo bufferVmaAllocationCreateInfo{};
-	bufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	infoData.m_buffer = std::make_shared<Buffer>(bufferCreateInfo, bufferVmaAllocationCreateInfo);
-	infoData.m_descriptorSet = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
-	infoData.m_status = ParticleInfoListDataStatus::UpdatePending;
+                                           const std::shared_ptr<RangeDescriptor>& range_descriptor) {
+  auto& storage = GetInstance();
+  storage.particle_info_list_data_list_.emplace_back();
+  auto& info_data = storage.particle_info_list_data_list_.back();
+  info_data.range_descriptor = range_descriptor;
+  info_data.range_descriptor->offset = storage.particle_info_list_data_list_.size() - 1;
+  info_data.range_descriptor->handle_ = handle;
+  VkBufferCreateInfo buffer_create_info{};
+  buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  buffer_create_info.size = sizeof(ParticleInfo);
+  buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  VmaAllocationCreateInfo buffer_vma_allocation_create_info{};
+  buffer_vma_allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  info_data.m_buffer = std::make_shared<Buffer>(buffer_create_info, buffer_vma_allocation_create_info);
+  info_data.descriptor_set = std::make_shared<DescriptorSet>(Graphics::GetDescriptorSetLayout("INSTANCED_DATA_LAYOUT"));
+  info_data.m_status = ParticleInfoListDataStatus::UpdatePending;
 }
 
-void GeometryStorage::UpdateParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor,
-	const std::vector<ParticleInfo>& particleInfos)
-{
-	auto& storage = GetInstance();
-	assert(rangeDescriptor->m_offset < storage.m_particleInfoListDataList.size());
-	auto& infoData = storage.m_particleInfoListDataList.at(rangeDescriptor->m_offset);
-	assert(infoData.m_status != ParticleInfoListDataStatus::Removed);
-	infoData.m_particleInfoList = particleInfos;
-	infoData.m_status = ParticleInfoListDataStatus::UpdatePending;
+void GeometryStorage::UpdateParticleInfo(const std::shared_ptr<RangeDescriptor>& range_descriptor,
+                                         const std::vector<ParticleInfo>& particle_infos) {
+  auto& storage = GetInstance();
+  assert(range_descriptor->offset < storage.particle_info_list_data_list_.size());
+  auto& info_data = storage.particle_info_list_data_list_.at(range_descriptor->offset);
+  assert(info_data.m_status != ParticleInfoListDataStatus::Removed);
+  info_data.particle_info_list = particle_infos;
+  info_data.m_status = ParticleInfoListDataStatus::UpdatePending;
 }
 
-void GeometryStorage::FreeParticleInfo(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
-{
-	auto& storage = GetInstance();
-	assert(rangeDescriptor->m_offset < storage.m_particleInfoListDataList.size());
-	auto& infoData = storage.m_particleInfoListDataList.at(rangeDescriptor->m_offset);
-	assert(infoData.m_status != ParticleInfoListDataStatus::Removed);
-	infoData.m_status = ParticleInfoListDataStatus::Removed;
+void GeometryStorage::FreeParticleInfo(const std::shared_ptr<RangeDescriptor>& range_descriptor) {
+  auto& storage = GetInstance();
+  assert(range_descriptor->offset < storage.particle_info_list_data_list_.size());
+  auto& info_data = storage.particle_info_list_data_list_.at(range_descriptor->offset);
+  assert(info_data.m_status != ParticleInfoListDataStatus::Removed);
+  info_data.m_status = ParticleInfoListDataStatus::Removed;
 }
 
-const std::vector<ParticleInfo>& GeometryStorage::PeekParticleInfoList(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
-{
-	const auto& storage = GetInstance();
-	return storage.m_particleInfoListDataList[rangeDescriptor->m_offset].m_particleInfoList;
+const std::vector<ParticleInfo>& GeometryStorage::PeekParticleInfoList(
+    const std::shared_ptr<RangeDescriptor>& range_descriptor) {
+  const auto& storage = GetInstance();
+  return storage.particle_info_list_data_list_[range_descriptor->offset].particle_info_list;
 }
 
-const std::shared_ptr<DescriptorSet>& GeometryStorage::PeekDescriptorSet(const std::shared_ptr<RangeDescriptor>& rangeDescriptor)
-{
-	const auto& storage = GetInstance();
-	return storage.m_particleInfoListDataList[rangeDescriptor->m_offset].m_descriptorSet;
+const std::shared_ptr<DescriptorSet>& GeometryStorage::PeekDescriptorSet(
+    const std::shared_ptr<RangeDescriptor>& range_descriptor) {
+  const auto& storage = GetInstance();
+  return storage.particle_info_list_data_list_[range_descriptor->offset].descriptor_set;
 }
 
-const Meshlet& GeometryStorage::PeekMeshlet(const uint32_t meshletIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_meshlets[meshletIndex];
+const Meshlet& GeometryStorage::PeekMeshlet(const uint32_t meshlet_index) {
+  const auto& storage = GetInstance();
+  return storage.meshlets_[meshlet_index];
 }
 
-const SkinnedMeshlet& GeometryStorage::PeekSkinnedMeshlet(const uint32_t skinnedMeshletIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_skinnedMeshlets[skinnedMeshletIndex];
+const SkinnedMeshlet& GeometryStorage::PeekSkinnedMeshlet(const uint32_t skinned_meshlet_index) {
+  const auto& storage = GetInstance();
+  return storage.skinned_meshlets_[skinned_meshlet_index];
 }
 
-const StrandMeshlet& GeometryStorage::PeekStrandMeshlet(const uint32_t strandMeshletIndex)
-{
-	const auto& storage = GetInstance();
-	return storage.m_strandMeshlets[strandMeshletIndex];
+const StrandMeshlet& GeometryStorage::PeekStrandMeshlet(const uint32_t strand_meshlet_index) {
+  const auto& storage = GetInstance();
+  return storage.strand_meshlets_[strand_meshlet_index];
 }

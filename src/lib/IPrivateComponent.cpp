@@ -5,51 +5,51 @@
 //#include <ProjectManager.hpp>
 #include "Entities.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
 PrivateComponentElement::PrivateComponentElement(
         size_t id, const std::shared_ptr<IPrivateComponent> &data, const Entity &owner,
         const std::shared_ptr<Scene> &scene) {
-    m_typeId = id;
-    m_privateComponentData = data;
-    m_privateComponentData->m_owner = owner;
-    m_privateComponentData->m_scene = scene;
-    m_privateComponentData->OnCreate();
+    type_index = id;
+    private_component_data = data;
+    private_component_data->owner_ = owner;
+    private_component_data->scene_ = scene;
+    private_component_data->OnCreate();
 }
 
-void PrivateComponentElement::ResetOwner(const Entity &newOwner, const std::shared_ptr<Scene> &scene) const {
-    m_privateComponentData->m_owner = newOwner;
-    m_privateComponentData->m_scene = scene;
+void PrivateComponentElement::ResetOwner(const Entity &new_owner, const std::shared_ptr<Scene> &scene) const {
+    private_component_data->owner_ = new_owner;
+    private_component_data->scene_ = scene;
 }
 
 std::shared_ptr<Scene> IPrivateComponent::GetScene() const {
-    return m_scene.lock();
+    return scene_.lock();
 }
 
 bool IPrivateComponent::Started() const
 {
-    return m_started;
+    return started_;
 }
 
 bool IPrivateComponent::IsEnabled() const {
-    return m_enabled;
+    return enabled_;
 }
 
 size_t IPrivateComponent::GetVersion() const {
-    return m_version;
+    return version_;
 }
 
 Entity IPrivateComponent::GetOwner() const {
-    return m_owner;
+    return owner_;
 }
 
 void IPrivateComponent::SetEnabled(const bool &value) {
-    if (m_enabled != value) {
+    if (enabled_ != value) {
         if (value) {
             OnEnable();
         } else {
             OnDisable();
         }
-        m_enabled = value;
+        enabled_ = value;
     }
 }

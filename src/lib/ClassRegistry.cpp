@@ -1,2 +1,2 @@
 #include "ClassRegistry.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;

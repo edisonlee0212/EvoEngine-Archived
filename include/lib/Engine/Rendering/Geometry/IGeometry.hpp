@@ -1,21 +1,16 @@
 #pragma once
 #include "Transform.hpp"
 #include "Vertex.hpp"
-namespace EvoEngine
-{
-	class GraphicsPipelineStates;
+namespace evo_engine {
+class GraphicsPipelineStates;
 
-	enum class GeometryType
-	{
-		Mesh,
-		SkinnedMesh,
-		Strands
-	};
-	class IGeometry
-	{
-	public:
-		virtual void DrawIndexed(VkCommandBuffer vkCommandBuffer, GraphicsPipelineStates& globalPipelineState, int instanceCount) const = 0;
-		static const std::vector<VkVertexInputBindingDescription>& GetVertexBindingDescriptions(GeometryType geometryType);
-		static const std::vector<VkVertexInputAttributeDescription>& GetVertexAttributeDescriptions(GeometryType geometryType);
-	};
-}
+enum class GeometryType { Mesh, SkinnedMesh, Strands };
+class IGeometry {
+ public:
+  virtual void DrawIndexed(VkCommandBuffer vk_command_buffer, GraphicsPipelineStates& global_pipeline_state,
+                           int instance_count) const = 0;
+  static const std::vector<VkVertexInputBindingDescription>& GetVertexBindingDescriptions(GeometryType geometry_type);
+  static const std::vector<VkVertexInputAttributeDescription>& GetVertexAttributeDescriptions(
+      GeometryType geometry_type);
+};
+}  // namespace evo_engine

@@ -1,262 +1,225 @@
 #include "Jobs.hpp"
 
 #include "Console.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
-size_t Jobs::GetWorkerSize()
-{
-	const auto& jobs = GetInstance();
-	return jobs.m_jobSystem.GetWorkerSize();
+size_t Jobs::GetWorkerSize() {
+  const auto& jobs = GetInstance();
+  return jobs.job_system_.GetWorkerSize();
 }
 
-void Jobs::Initialize(const size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	jobs.m_jobSystem.ResizeWorker(workerSize);
+void Jobs::Initialize(const size_t worker_size) {
+  auto& jobs = GetInstance();
+  jobs.job_system_.ResizeWorker(worker_size);
 }
 
-void Jobs::RunParallelFor(const size_t size, std::function<void(unsigned i)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob({}, std::forward<std::function<void()>>(work)));
-	}
-	Wait(Combine(jobHandles));
+void Jobs::RunParallelFor(const size_t size, std::function<void(size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob({}, std::forward<std::function<void()>>(work)));
+  }
+  Wait(Combine(job_handles));
 }
 
-void Jobs::RunParallelFor(const size_t size, std::function<void(unsigned i, unsigned threadIndex)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i, threadIndex);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i, threadIndex);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob({}, std::forward<std::function<void()>>(work)));
-	}
-	Wait(Combine(jobHandles));
+void Jobs::RunParallelFor(const size_t size, std::function<void(size_t, size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i, thread_index);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i, thread_index);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob({}, std::forward<std::function<void()>>(work)));
+  }
+  Wait(Combine(job_handles));
 }
 
-JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(unsigned i)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob({}, std::forward<std::function<void()>>(work)));
-	}
-	return Combine(jobHandles);
+JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob({}, std::forward<std::function<void()>>(work)));
+  }
+  return Combine(job_handles);
 }
 
-JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(unsigned i, unsigned threadIndex)>&& func,
-	size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i, threadIndex);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i, threadIndex);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob({}, std::forward<std::function<void()>>(work)));
-	}
-	return Combine(jobHandles);
+JobHandle Jobs::ScheduleParallelFor(const size_t size, std::function<void(size_t, size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i, thread_index);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i, thread_index);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob({}, std::forward<std::function<void()>>(work)));
+  }
+  return Combine(job_handles);
 }
 
 void Jobs::RunParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
-	std::function<void(unsigned i)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob(dependencies, std::forward<std::function<void()>>(work)));
-	}
-	Wait(Combine(jobHandles));
+                          std::function<void(size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob(dependencies, std::forward<std::function<void()>>(work)));
+  }
+  Wait(Combine(job_handles));
 }
 
 void Jobs::RunParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
-	std::function<void(unsigned i, unsigned threadIndex)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i, threadIndex);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i, threadIndex);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob(dependencies, std::forward<std::function<void()>>(work)));
-	}
-	Wait(Combine(jobHandles));
+                          std::function<void(size_t, size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i, thread_index);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i, thread_index);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob(dependencies, std::forward<std::function<void()>>(work)));
+  }
+  Wait(Combine(job_handles));
 }
 
 JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
-	std::function<void(unsigned i)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob(dependencies, std::forward<std::function<void()>>(work)));
-	}
-	return Combine(jobHandles);
+                                    std::function<void(size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob(dependencies, std::forward<std::function<void()>>(work)));
+  }
+  return Combine(job_handles);
 }
 
 JobHandle Jobs::ScheduleParallelFor(const std::vector<JobHandle>& dependencies, const size_t size,
-	std::function<void(unsigned i, unsigned threadIndex)>&& func, size_t workerSize)
-{
-	auto& jobs = GetInstance();
-	if (workerSize == 0) workerSize = GetWorkerSize();
-	const auto threadLoad = size / workerSize;
-	const auto loadReminder = size % workerSize;
-	std::vector<JobHandle> jobHandles;
-	for (int threadIndex = 0; threadIndex < workerSize; threadIndex++)
-	{
-		const auto work = [func, threadIndex, workerSize, threadLoad, loadReminder]()
-			{
-				for (unsigned i = threadIndex * threadLoad; i < (threadIndex + 1) * threadLoad; i++)
-				{
-					func(i, threadIndex);
-				}
-				if (threadIndex < loadReminder)
-				{
-					const unsigned i = threadIndex + workerSize * threadLoad;
-					func(i, threadIndex);
-				}
-			};
-		jobHandles.emplace_back(jobs.m_jobSystem.PushJob(dependencies, std::forward<std::function<void()>>(work)));
-	}
-	return Combine(jobHandles);
+                                    std::function<void(size_t, size_t)>&& func, size_t worker_size) {
+  auto& jobs = GetInstance();
+  if (worker_size == 0)
+    worker_size = GetWorkerSize();
+  const auto thread_load = size / worker_size;
+  const auto load_reminder = size % worker_size;
+  std::vector<JobHandle> job_handles;
+  for (size_t thread_index = 0; thread_index < worker_size; thread_index++) {
+    const auto work = [func, thread_index, worker_size, thread_load, load_reminder]() {
+      for (size_t i = thread_index * thread_load; i < (thread_index + 1) * thread_load; i++) {
+        func(i, thread_index);
+      }
+      if (thread_index < load_reminder) {
+        const size_t i = thread_index + worker_size * thread_load;
+        func(i, thread_index);
+      }
+    };
+    job_handles.emplace_back(jobs.job_system_.PushJob(dependencies, std::forward<std::function<void()>>(work)));
+  }
+  return Combine(job_handles);
 }
 
-JobHandle Jobs::Run(const std::vector<JobHandle>& dependencies, std::function<void()>&& func)
-{
-	auto& jobs = GetInstance();
-	return jobs.m_jobSystem.PushJob(dependencies, std::forward<std::function<void()>>(func));
+JobHandle Jobs::Run(const std::vector<JobHandle>& dependencies, std::function<void()>&& func) {
+  auto& jobs = GetInstance();
+  return jobs.job_system_.PushJob(dependencies, std::forward<std::function<void()>>(func));
 }
 
-JobHandle Jobs::Run(std::function<void()>&& func)
-{
-	auto& jobs = GetInstance();
-	return jobs.m_jobSystem.PushJob({}, std::forward<std::function<void()>>(func));
+JobHandle Jobs::Run(std::function<void()>&& func) {
+  auto& jobs = GetInstance();
+  return jobs.job_system_.PushJob({}, std::forward<std::function<void()>>(func));
 }
 
-JobHandle Jobs::Combine(const std::vector<JobHandle>& dependencies)
-{
-	auto& jobs = GetInstance();
-	return jobs.m_jobSystem.PushJob(dependencies, []() {});
+JobHandle Jobs::Combine(const std::vector<JobHandle>& dependencies) {
+  auto& jobs = GetInstance();
+  return jobs.job_system_.PushJob(dependencies, []() {
+  });
 }
 
-void Jobs::Execute(const JobHandle& jobHandle)
-{
-	auto& jobs = GetInstance();
-	if (!jobHandle.Valid()) return;
-	jobs.m_jobSystem.ExecuteJob(jobHandle);
+void Jobs::Execute(const JobHandle& job_handle) {
+  auto& jobs = GetInstance();
+  if (!job_handle.Valid())
+    return;
+  jobs.job_system_.ExecuteJob(job_handle);
 }
 
-void Jobs::Wait(const JobHandle& jobHandle)
-{
-	auto& jobs = GetInstance();
-	if (!jobHandle.Valid()) return;
-	jobs.m_jobSystem.ExecuteJob(jobHandle);
-	jobs.m_jobSystem.Wait(jobHandle);
+void Jobs::Wait(const JobHandle& job_handle) {
+  auto& jobs = GetInstance();
+  if (!job_handle.Valid())
+    return;
+  jobs.job_system_.ExecuteJob(job_handle);
+  jobs.job_system_.Wait(job_handle);
 }

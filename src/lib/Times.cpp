@@ -1,60 +1,50 @@
 #include "Times.hpp"
-using namespace EvoEngine;
+using namespace evo_engine;
 
-double Times::m_timeStep = 0.016;
-double Times::m_deltaTime = 0;
-double Times::m_fixedDeltaTime = 0;
-size_t Times::m_frames = 0;
-size_t Times::m_steps = 0;
-std::chrono::time_point<std::chrono::system_clock> Times::m_startTime = {};
-std::chrono::time_point<std::chrono::system_clock> Times::m_lastFixedUpdateTime = {};
-std::chrono::time_point<std::chrono::system_clock> Times::m_lastUpdateTime = {};
+double Times::time_step_ = 0.016;
+double Times::delta_time_ = 0;
+double Times::fixed_delta_time_ = 0;
+size_t Times::frames_ = 0;
+size_t Times::steps_ = 0;
+std::chrono::time_point<std::chrono::system_clock> Times::start_time_ = {};
+std::chrono::time_point<std::chrono::system_clock> Times::last_fixed_update_time_ = {};
+std::chrono::time_point<std::chrono::system_clock> Times::last_update_time_ = {};
 
-void Times::OnInspect()
-{
-	if (ImGui::CollapsingHeader("Times Settings"))
-	{
-		float timeStep = m_timeStep;
-		if (ImGui::DragFloat("Times step", &timeStep, 0.001f, 0.001f, 1.0f))
-		{
-			m_timeStep = timeStep;
-		}
-	}
+void Times::OnInspect() {
+  if (ImGui::CollapsingHeader("Times Settings")) {
+    float time_step = time_step_;
+    if (ImGui::DragFloat("Times step", &time_step, 0.001f, 0.001f, 1.0f)) {
+      time_step_ = time_step;
+    }
+  }
 }
 
-double Times::TimeStep()
-{
-	return m_timeStep;
+double Times::TimeStep() {
+  return time_step_;
 }
-void Times::SetTimeStep(const double value)
-{
-	m_timeStep = value;
+void Times::SetTimeStep(const double value) {
+  time_step_ = value;
 }
-double Times::FixedDeltaTime()
-{
-	return m_fixedDeltaTime;
+double Times::FixedDeltaTime() {
+  return fixed_delta_time_;
 }
 
-double Times::DeltaTime()
-{
-	return m_deltaTime;
+double Times::DeltaTime() {
+  return delta_time_;
 }
 
-double Times::Now()
-{
-	const auto now = std::chrono::system_clock::now();
-	const std::chrono::duration<double> duration = now - m_startTime;
-	return duration.count();
+double Times::Now() {
+  const auto now = std::chrono::system_clock::now();
+  const std::chrono::duration<double> duration = now - start_time_;
+  return duration.count();
 }
 
-double Times::LastUpdateTime()
-{
-	const std::chrono::duration<double> duration = m_lastUpdateTime - m_startTime;
-	return duration.count();
+double Times::LastUpdateTime() {
+  const std::chrono::duration<double> duration = last_update_time_ - start_time_;
+  return duration.count();
 }
 
-double Times::LastFixedUpdateTime()
-{
-	const std::chrono::duration<double> duration = m_lastFixedUpdateTime - m_startTime;
-	return duration.count();
+double Times::LastFixedUpdateTime() {
+  const std::chrono::duration<double> duration = last_fixed_update_time_ - start_time_;
+  return duration.count();
 }

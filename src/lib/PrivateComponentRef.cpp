@@ -3,39 +3,31 @@
 //
 
 #include "PrivateComponentRef.hpp"
-//#include "ProjectManager.hpp"
+// #include "ProjectManager.hpp"
 #include "Entities.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
-bool PrivateComponentRef::Update()
-{
-    if (m_entityHandle.GetValue() == 0 || m_scene.expired())
-    {
-        Clear();
-        return false;
+using namespace evo_engine;
+bool PrivateComponentRef::Update() {
+  if (entity_handle_.GetValue() == 0 || scene_.expired()) {
+    Clear();
+    return false;
+  }
+  if (value_.expired()) {
+    const auto scene = scene_.lock();
+    if (const auto entity = scene->GetEntity(entity_handle_); entity.GetIndex() != 0) {
+      if (scene->HasPrivateComponent(entity, private_component_type_name_)) {
+        value_ = scene->GetPrivateComponent(entity, private_component_type_name_);
+        return true;
+      }
     }
-    if (m_value.expired())
-    {
-        auto scene = m_scene.lock();
-        auto entity = scene->GetEntity(m_entityHandle);
-        if (entity.GetIndex() != 0)
-        {
-            if (scene->HasPrivateComponent(entity, m_privateComponentTypeName))
-            {
-                m_value = scene->GetPrivateComponent(entity, m_privateComponentTypeName);
-                return true;
-            }
-        }
-        Clear();
-        return false;
-    }
-    return true;
+    Clear();
+    return false;
+  }
+  return true;
 }
-void PrivateComponentRef::Clear()
-{
-    m_value.reset();
-    m_entityHandle = m_handle = Handle(0);
-    m_scene.reset();
-    m_privateComponentTypeName = {};
+void PrivateComponentRef::Clear() {
+  value_.reset();
+  entity_handle_ = handle_ = Handle(0);
+  scene_.reset();
+  private_component_type_name_ = {};
 }
-

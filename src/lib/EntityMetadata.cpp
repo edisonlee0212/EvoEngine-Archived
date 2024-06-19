@@ -3,74 +3,71 @@
 //
 
 #include "EntityMetadata.hpp"
-#include "Serialization.hpp"
 #include "Scene.hpp"
-using namespace EvoEngine;
+#include "Serialization.hpp"
+using namespace evo_engine;
 
-void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene)
-{
-    m_name = in["m_name"].as<std::string>();
-    m_version = 1;
-    m_enabled = in["m_enabled"].as<bool>();
-    m_static = in["m_static"].as<bool>();
-    m_handle.m_value = in["m_handle"].as<uint64_t>();
-    m_ancestorSelected = false;
+void EntityMetadata::Deserialize(const YAML::Node &in, const std::shared_ptr<Scene> &scene) {
+  entity_name = in["n"].as<std::string>();
+  entity_version = 1;
+  entity_enabled = in["e"].as<bool>();
+  entity_static = in["s"].as<bool>();
+  entity_handle.value_ = in["h"].as<uint64_t>();
+  ancestor_selected = false;
 }
 
-void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const
-{
-    out << YAML::BeginMap;
-    {
-        out << YAML::Key << "m_name" << YAML::Value << m_name;
-        out << YAML::Key << "m_handle" << YAML::Value << m_handle.m_value;
-        out << YAML::Key << "m_enabled" << YAML::Value << m_enabled;
-        out << YAML::Key << "m_static" << YAML::Value << m_static;
-        if(m_parent.GetIndex() != 0) out << YAML::Key << "Parent.Handle" << YAML::Value << scene->GetEntityHandle(m_parent);
-        if(m_root.GetIndex() != 0)out << YAML::Key << "Root.Handle" << YAML::Value << scene->GetEntityHandle(m_root);
+void EntityMetadata::Serialize(YAML::Emitter &out, const std::shared_ptr<Scene> &scene) const {
+  out << YAML::BeginMap;
+  {
+    out << YAML::Key << "n" << YAML::Value << entity_name;
+    out << YAML::Key << "h" << YAML::Value << entity_handle.value_;
+    out << YAML::Key << "e" << YAML::Value << entity_enabled;
+    out << YAML::Key << "s" << YAML::Value << entity_static;
+    if (parent.GetIndex() != 0)
+      out << YAML::Key << "p" << YAML::Value << scene->GetEntityHandle(parent);
+    if (root.GetIndex() != 0)
+      out << YAML::Key << "r" << YAML::Value << scene->GetEntityHandle(root);
 
 #pragma region Private Components
-        out << YAML::Key << "m_privateComponentElements" << YAML::Value << YAML::BeginSeq;
-        for (const auto &element : m_privateComponentElements)
-        {
-            out << YAML::BeginMap;
-            out << YAML::Key << "m_typeName" << YAML::Value << element.m_privateComponentData->m_typeName;
-            out << YAML::Key << "m_enabled" << YAML::Value << element.m_privateComponentData->m_enabled;
-            element.m_privateComponentData->Serialize(out);
-            out << YAML::EndMap;
-        }
-        out << YAML::EndSeq;
-#pragma endregion
+    out << YAML::Key << "pc" << YAML::Value << YAML::BeginSeq;
+    for (const auto &element : private_component_elements) {
+      out << YAML::BeginMap;
+      out << YAML::Key << "tn" << YAML::Value << element.private_component_data->type_name_;
+      out << YAML::Key << "e" << YAML::Value << element.private_component_data->enabled_;
+      element.private_component_data->Serialize(out);
+      out << YAML::EndMap;
     }
-    out << YAML::EndMap;
+    out << YAML::EndSeq;
+#pragma endregion
+  }
+  out << YAML::EndMap;
 }
 
-void EntityMetadata::Clone(const std::unordered_map<Handle, Handle> &entityMap, const EntityMetadata &source, const std::shared_ptr<Scene> &scene)
-{
-    m_handle = source.m_handle;
-    m_name = source.m_name;
-    m_version = source.m_version;
-    m_enabled = source.m_enabled;
-    m_parent = source.m_parent;
-    m_root = source.m_root;
-    m_static = source.m_static;
-    m_dataComponentStorageIndex = source.m_dataComponentStorageIndex;
-    m_chunkArrayIndex = source.m_chunkArrayIndex;
-    m_children = source.m_children;
-    m_privateComponentElements.resize(source.m_privateComponentElements.size());
-    for(int i = 0; i < m_privateComponentElements.size(); i++)
-    {
-        m_privateComponentElements[i].m_privateComponentData =
-            std::dynamic_pointer_cast<IPrivateComponent>(Serialization::ProduceSerializable(
-                source.m_privateComponentElements[i].m_privateComponentData->GetTypeName(),
-                m_privateComponentElements[i].m_typeId));
-        m_privateComponentElements[i].m_privateComponentData->m_scene = scene;
-        m_privateComponentElements[i].m_privateComponentData->m_owner = source.m_privateComponentElements[i].m_privateComponentData->m_owner;
-        m_privateComponentElements[i].m_privateComponentData->OnCreate();
-        Serialization::ClonePrivateComponent(
-            m_privateComponentElements[i].m_privateComponentData,
-            source.m_privateComponentElements[i].m_privateComponentData);
-        m_privateComponentElements[i].m_privateComponentData->m_scene = scene;
-        m_privateComponentElements[i].m_privateComponentData->Relink(entityMap, scene);
-    }
-    m_ancestorSelected = false;
+void EntityMetadata::Clone(const std::unordered_map<Handle, Handle> &entity_map, const EntityMetadata &source,
+                           const std::shared_ptr<Scene> &scene) {
+  entity_handle = source.entity_handle;
+  entity_name = source.entity_name;
+  entity_version = source.entity_version;
+  entity_enabled = source.entity_enabled;
+  parent = source.parent;
+  root = source.root;
+  entity_static = source.entity_static;
+  data_component_storage_index = source.data_component_storage_index;
+  chunk_array_index = source.chunk_array_index;
+  children = source.children;
+  private_component_elements.resize(source.private_component_elements.size());
+  for (int i = 0; i < private_component_elements.size(); i++) {
+    private_component_elements[i].private_component_data = std::dynamic_pointer_cast<IPrivateComponent>(
+        Serialization::ProduceSerializable(source.private_component_elements[i].private_component_data->GetTypeName(),
+                                           private_component_elements[i].type_index));
+    private_component_elements[i].private_component_data->scene_ = scene;
+    private_component_elements[i].private_component_data->owner_ =
+        source.private_component_elements[i].private_component_data->owner_;
+    private_component_elements[i].private_component_data->OnCreate();
+    Serialization::ClonePrivateComponent(private_component_elements[i].private_component_data,
+                                         source.private_component_elements[i].private_component_data);
+    private_component_elements[i].private_component_data->scene_ = scene;
+    private_component_elements[i].private_component_data->Relink(entity_map, scene);
+  }
+  ancestor_selected = false;
 }

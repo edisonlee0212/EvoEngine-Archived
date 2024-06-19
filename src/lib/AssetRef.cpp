@@ -5,37 +5,31 @@
 #include "AssetRef.hpp"
 #include "ProjectManager.hpp"
 
-using namespace EvoEngine;
-bool AssetRef::Update()
-{
-    if (m_assetHandle.GetValue() == 0)
-    {
-        m_value.reset();
-        return false;
+using namespace evo_engine;
+bool AssetRef::Update() {
+  if (asset_handle_.GetValue() == 0) {
+    value_.reset();
+    return false;
+  }
+
+  if (!value_) {
+    if (const auto ptr = ProjectManager::GetAsset(asset_handle_)) {
+      value_ = ptr;
+      asset_type_name_ = ptr->GetTypeName();
+      return true;
     }
-    
-    if (!m_value)
-    {
-	    if (const auto ptr = ProjectManager::GetAsset(m_assetHandle))
-        {
-            m_value = ptr;
-            m_assetTypeName = ptr->GetTypeName();
-            return true;
-        }
-        Clear();
-        return false;
-    }
-    
-    return true;
+    Clear();
+    return false;
+  }
+
+  return true;
 }
 
-void AssetRef::Clear()
-{
-    m_value.reset();
-    m_assetHandle = Handle(0);
+void AssetRef::Clear() {
+  value_.reset();
+  asset_handle_ = Handle(0);
 }
-void AssetRef::Set(const AssetRef &target)
-{
-    m_assetHandle = target.m_assetHandle;
-    Update();
+void AssetRef::Set(const AssetRef &target) {
+  asset_handle_ = target.asset_handle_;
+  Update();
 }

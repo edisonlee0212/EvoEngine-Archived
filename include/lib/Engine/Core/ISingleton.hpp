@@ -1,5 +1,5 @@
 #pragma once
-namespace EvoEngine
+namespace evo_engine
 {
 template <typename T> class ISingleton
 {
@@ -17,4 +17,4 @@ template <typename T> class ISingleton
         return instance;
     }
 };
-} // namespace EvoEngine
+} // namespace evo_engine

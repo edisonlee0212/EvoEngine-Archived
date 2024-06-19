@@ -4,17 +4,14 @@
 #include "ILayer.hpp"
 #include "Scene.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
-void ILayer::OnInputEvent(const InputEvent& inputEvent)
-{
-	if(!m_subsequentLayer.expired())
-	{
-		m_subsequentLayer.lock()->OnInputEvent(inputEvent);
-	}
+void ILayer::OnInputEvent(const InputEvent& input_event) {
+  if (!subsequent_layer_.expired()) {
+    subsequent_layer_.lock()->OnInputEvent(input_event);
+  }
 }
 
-std::shared_ptr<Scene> ILayer::GetScene() const
-{
-	return m_scene.lock();
+std::shared_ptr<Scene> ILayer::GetScene() const {
+  return scene_.lock();
 }

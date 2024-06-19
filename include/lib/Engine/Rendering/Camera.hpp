@@ -4,107 +4,100 @@
 #include "RenderTexture.hpp"
 #include "Transform.hpp"
 
-namespace EvoEngine
-{
-    struct CameraInfoBlock
-    {
-        glm::mat4 m_projection = {};
-        glm::mat4 m_view = {};
-        glm::mat4 m_projectionView = {};
-        glm::mat4 m_inverseProjection = {};
-        glm::mat4 m_inverseView = {};
-        glm::mat4 m_inverseProjectionView = {};
-        glm::vec4 m_clearColor = {};
-        glm::vec4 m_reservedParameters1 = {};
-        glm::vec4 m_reservedParameters2 = {};
-        int m_skyboxTextureIndex = 0;
-        int m_environmentalIrradianceTextureIndex = 0;
-        int m_environmentalPrefilteredIndex = 0;
-        int m_cameraPadding = 0;
-        [[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
-        [[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
-    };
+namespace evo_engine {
+struct CameraInfoBlock {
+  glm::mat4 projection = {};
+  glm::mat4 view = {};
+  glm::mat4 projection_view = {};
+  glm::mat4 inverse_projection = {};
+  glm::mat4 inverse_view = {};
+  glm::mat4 inverse_projection_view = {};
+  glm::vec4 clear_color = {};
+  glm::vec4 reserved_parameters1 = {};
+  glm::vec4 reserved_parameters2 = {};
+  int skybox_texture_index = 0;
+  int environmental_irradiance_texture_index = 0;
+  int environmental_prefiltered_index = 0;
+  int camera_padding = 0;
+  [[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
+  [[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
+};
 
-    class Camera final : public IPrivateComponent
-    {
-        friend class Graphics;
-        friend class RenderLayer;
-        friend class EditorLayer;
-        friend struct CameraInfoBlock;
-        friend class PostProcessingStack;
-        friend class Bloom;
-        friend class SSAO;
-        friend class SSR;
-        
-        std::shared_ptr<RenderTexture> m_renderTexture;
-        
-        //Deferred shading GBuffer
-        std::shared_ptr<Image> m_gBufferNormal = {};
-        std::shared_ptr<ImageView> m_gBufferNormalView = {};
-        std::shared_ptr<Sampler> m_gBufferNormalSampler = {};
-        ImTextureID m_gBufferNormalImTextureId = {};
+class Camera final : public IPrivateComponent {
+  friend class Graphics;
+  friend class RenderLayer;
+  friend class EditorLayer;
+  friend struct CameraInfoBlock;
+  friend class PostProcessingStack;
+  friend class Bloom;
+  friend class Ssao;
+  friend class Ssr;
 
-        std::shared_ptr<Image> m_gBufferAlbedo = {};
-        std::shared_ptr<ImageView> m_gBufferAlbedoView = {};
-        std::shared_ptr<Sampler> m_gBufferAlbedoSampler = {};
-        ImTextureID m_gBufferAlbedoImTextureId = {};
+  std::shared_ptr<RenderTexture> render_texture_;
 
-        std::shared_ptr<Image> m_gBufferMaterial = {};
-        std::shared_ptr<ImageView> m_gBufferMaterialView = {};
-        std::shared_ptr<Sampler> m_gBufferMaterialSampler = {};
-        ImTextureID m_gBufferMaterialImTextureId = {};
+  // Deferred shading GBuffer
+  std::shared_ptr<Image> g_buffer_normal_ = {};
+  std::shared_ptr<ImageView> g_buffer_normal_view_ = {};
+  std::shared_ptr<Sampler> g_buffer_normal_sampler_ = {};
+  ImTextureID g_buffer_normal_im_texture_id_ = {};
 
-        size_t m_frameCount = 0;
-        bool m_rendered = false;
-        bool m_requireRendering = false;
+  std::shared_ptr<Image> g_buffer_albedo_ = {};
+  std::shared_ptr<ImageView> g_buffer_albedo_view_ = {};
+  std::shared_ptr<Sampler> g_buffer_albedo_sampler_ = {};
+  ImTextureID g_buffer_albedo_im_texture_id_ = {};
 
-        glm::uvec2 m_size = glm::uvec2(1, 1);
+  std::shared_ptr<Image> g_buffer_material_ = {};
+  std::shared_ptr<ImageView> g_buffer_material_view_ = {};
+  std::shared_ptr<Sampler> g_buffer_material_sampler_ = {};
+  ImTextureID g_buffer_material_im_texture_id_ = {};
 
-        std::shared_ptr<DescriptorSet> m_gBufferDescriptorSet = VK_NULL_HANDLE;
-        void UpdateGBuffer();
-    public:
-        void TransitGBufferImageLayout(VkCommandBuffer commandBuffer, VkImageLayout targetLayout) const;
+  size_t frame_count_ = 0;
+  bool rendered_ = false;
+  bool require_rendering_ = false;
 
-        void UpdateCameraInfoBlock(CameraInfoBlock& cameraInfoBlock, const GlobalTransform& globalTransform);
-        void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachmentInfos, VkAttachmentLoadOp loadOp, VkAttachmentStoreOp storeOp) const;
+  glm::uvec2 size_ = glm::uvec2(1, 1);
 
-        [[nodiscard]] float GetSizeRatio() const;
+  std::shared_ptr<DescriptorSet> g_buffer_descriptor_set_ = VK_NULL_HANDLE;
+  void UpdateGBuffer();
 
-        [[nodiscard]] const std::shared_ptr<RenderTexture> &GetRenderTexture() const;
-        [[nodiscard]] glm::uvec2 GetSize() const;
-        void Resize(const glm::uvec2& size);
-        void OnCreate() override;
-        [[nodiscard]] bool Rendered() const;
-        void SetRequireRendering(bool value);
-        float m_nearDistance = 0.1f;
-        float m_farDistance = 200.0f;
-        float m_fov = 120;
-        bool m_useClearColor = false;
-        glm::vec3 m_clearColor = glm::vec3(0.0f);
-        AssetRef m_skybox;
-        AssetRef m_postProcessingStack;
-        static void CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view);
-        static void CalculateFrustumPoints(
-            const std::shared_ptr<Camera>& cameraComponent,
-            float nearPlane,
-            float farPlane,
-            glm::vec3 cameraPos,
-            glm::quat cameraRot,
-            glm::vec3* points);
-        static glm::quat ProcessMouseMovement(float yawAngle, float pitchAngle, bool constrainPitch = true);
-        static void ReverseAngle(
-            const glm::quat& rotation, float& pitchAngle, float& yawAngle, const bool& constrainPitch = true);
-       [[nodiscard]] glm::mat4 GetProjection() const;
+ public:
+  void TransitGBufferImageLayout(VkCommandBuffer command_buffer, VkImageLayout target_layout) const;
 
-        glm::vec3 GetMouseWorldPoint(GlobalTransform& ltw, glm::vec2 mousePosition) const;
-        Ray ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mousePosition) const;
+  void UpdateCameraInfoBlock(CameraInfoBlock& camera_info_block, const GlobalTransform& global_transform);
+  void AppendGBufferColorAttachmentInfos(std::vector<VkRenderingAttachmentInfo>& attachment_infos,
+                                         VkAttachmentLoadOp load_op, VkAttachmentStoreOp store_op) const;
 
-        void Serialize(YAML::Emitter& out) const override;
-        void Deserialize(const YAML::Node& in) override;
-        void OnDestroy() override;
-        
-        bool OnInspect(const std::shared_ptr<EditorLayer>& editorLayer) override;
-        void CollectAssetRef(std::vector<AssetRef>& list) override;
+  [[nodiscard]] float GetSizeRatio() const;
 
-    };
-}
+  [[nodiscard]] const std::shared_ptr<RenderTexture>& GetRenderTexture() const;
+  [[nodiscard]] glm::uvec2 GetSize() const;
+  void Resize(const glm::uvec2& size);
+  void OnCreate() override;
+  [[nodiscard]] bool Rendered() const;
+  void SetRequireRendering(bool value);
+  float near_distance = 0.1f;
+  float far_distance = 200.0f;
+  float fov = 120;
+  bool use_clear_color = false;
+  glm::vec3 clear_color = glm::vec3(0.0f);
+  AssetRef skybox;
+  AssetRef post_processing_stack;
+  static void CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view);
+  static void CalculateFrustumPoints(const std::shared_ptr<Camera>& camera_component, float near_plane, float far_plane,
+                                     glm::vec3 camera_pos, glm::quat camera_rot, glm::vec3* points);
+  static glm::quat ProcessMouseMovement(float yaw_angle, float pitch_angle, bool constrain_pitch = true);
+  static void ReverseAngle(const glm::quat& rotation, float& pitch_angle, float& yaw_angle,
+                           const bool& constrain_pitch = true);
+  [[nodiscard]] glm::mat4 GetProjection() const;
+
+  glm::vec3 GetMouseWorldPoint(GlobalTransform& ltw, glm::vec2 mouse_position) const;
+  Ray ScreenPointToRay(GlobalTransform& ltw, glm::vec2 mouse_position) const;
+
+  void Serialize(YAML::Emitter& out) const override;
+  void Deserialize(const YAML::Node& in) override;
+  void OnDestroy() override;
+
+  bool OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
+  void CollectAssetRef(std::vector<AssetRef>& list) override;
+};
+}  // namespace evo_engine

@@ -1,411 +1,363 @@
 #include "TextureStorage.hpp"
 
 #include "Application.hpp"
-#include "RenderLayer.hpp"
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+#include "RenderLayer.hpp"
+using namespace evo_engine;
 
+void CubemapStorage::Initialize(uint32_t resolution, uint32_t mip_levels) {
+  Clear();
+  VkImageCreateInfo image_info{};
+  image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  image_info.imageType = VK_IMAGE_TYPE_2D;
+  image_info.extent.width = resolution;
+  image_info.extent.height = resolution;
+  image_info.extent.depth = 1;
+  image_info.mipLevels = mip_levels;
+  image_info.arrayLayers = 6;
+  image_info.format = Graphics::Constants::texture_2d;
+  image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+  image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+  image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  image_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+  image = std::make_shared<Image>(image_info);
 
+  VkImageViewCreateInfo view_info{};
+  view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  view_info.image = image->GetVkImage();
+  view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+  view_info.format = Graphics::Constants::texture_2d;
+  view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view_info.subresourceRange.baseMipLevel = 0;
+  view_info.subresourceRange.levelCount = mip_levels;
+  view_info.subresourceRange.baseArrayLayer = 0;
+  view_info.subresourceRange.layerCount = 6;
 
-void CubemapStorage::Initialize(uint32_t resolution, uint32_t mipLevels)
-{
-	Clear();
-	VkImageCreateInfo imageInfo{};
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = resolution;
-	imageInfo.extent.height = resolution;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 6;
-	imageInfo.format = Graphics::Constants::TEXTURE_2D;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-	m_image = std::make_shared<Image>(imageInfo);
+  image_view = std::make_shared<ImageView>(view_info);
 
-	VkImageViewCreateInfo viewInfo{};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = m_image->GetVkImage();
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	viewInfo.format = Graphics::Constants::TEXTURE_2D;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = mipLevels;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 6;
+  VkSamplerCreateInfo sampler_info{};
+  sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  sampler_info.magFilter = VK_FILTER_LINEAR;
+  sampler_info.minFilter = VK_FILTER_LINEAR;
+  sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.anisotropyEnable = VK_TRUE;
+  sampler_info.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+  sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  sampler_info.unnormalizedCoordinates = VK_FALSE;
+  sampler_info.compareEnable = VK_FALSE;
+  sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+  sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  if (mip_levels > 1) {
+    sampler_info.minLod = 0;
+    sampler_info.maxLod = static_cast<float>(mip_levels);
+  }
+  sampler = std::make_shared<Sampler>(sampler_info);
 
-	m_imageView = std::make_shared<ImageView>(viewInfo);
+  Graphics::ImmediateSubmit([&](const VkCommandBuffer command_buffer) {
+    image->TransitImageLayout(command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  });
 
+  for (int i = 0; i < 6; i++) {
+    VkImageViewCreateInfo face_view_info{};
+    face_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    face_view_info.image = image->GetVkImage();
+    face_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    face_view_info.format = Graphics::Constants::texture_2d;
+    face_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    face_view_info.subresourceRange.baseMipLevel = 0;
+    face_view_info.subresourceRange.levelCount = 1;
+    face_view_info.subresourceRange.baseArrayLayer = i;
+    face_view_info.subresourceRange.layerCount = 1;
 
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	if (mipLevels > 1) {
-		samplerInfo.minLod = 0;
-		samplerInfo.maxLod = static_cast<float>(mipLevels);
-	}
-	m_sampler = std::make_shared<Sampler>(samplerInfo);
+    face_views.emplace_back(std::make_shared<ImageView>(face_view_info));
+  }
 
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer) {
-		m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		}
-	);
-
-	for (int i = 0; i < 6; i++)
-	{
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_image->GetVkImage();
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = Graphics::Constants::TEXTURE_2D;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = i;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		m_faceViews.emplace_back(std::make_shared<ImageView>(viewInfo));
-	}
-
-	m_imTextureIds.resize(6);
-	for (int i = 0; i < 6; i++)
-	{
-		EditorLayer::UpdateTextureId(m_imTextureIds[i], m_sampler->GetVkSampler(), m_faceViews[i]->GetVkImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	}
+  im_texture_ids.resize(6);
+  for (int i = 0; i < 6; i++) {
+    EditorLayer::UpdateTextureId(im_texture_ids[i], sampler->GetVkSampler(), face_views[i]->GetVkImageView(),
+                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  }
 }
 
-VkImageLayout CubemapStorage::GetLayout() const
-{
-	return m_image->GetLayout();
+VkImageLayout CubemapStorage::GetLayout() const {
+  return image->GetLayout();
 }
 
-VkImage CubemapStorage::GetVkImage() const
-{
-	if (m_image)
-	{
-		return m_image->GetVkImage();
-	}
-	return VK_NULL_HANDLE;
+VkImage CubemapStorage::GetVkImage() const {
+  if (image) {
+    return image->GetVkImage();
+  }
+  return VK_NULL_HANDLE;
 }
 
-VkImageView CubemapStorage::GetVkImageView() const
-{
-	if (m_imageView)
-	{
-		return m_imageView->GetVkImageView();
-	}
-	return VK_NULL_HANDLE;
+VkImageView CubemapStorage::GetVkImageView() const {
+  if (image_view) {
+    return image_view->GetVkImageView();
+  }
+  return VK_NULL_HANDLE;
 }
 
-VkImageLayout Texture2DStorage::GetLayout() const
-{
-	return m_image->GetLayout();
+VkImageLayout Texture2DStorage::GetLayout() const {
+  return image->GetLayout();
 }
 
-VkImage Texture2DStorage::GetVkImage() const
-{
-	if (m_image)
-	{
-		return m_image->GetVkImage();
-	}
-	return VK_NULL_HANDLE;
+VkImage Texture2DStorage::GetVkImage() const {
+  if (image) {
+    return image->GetVkImage();
+  }
+  return VK_NULL_HANDLE;
 }
 
-VkImageView Texture2DStorage::GetVkImageView() const
-{
-	if (m_imageView)
-	{
-		return m_imageView->GetVkImageView();
-	}
-	return VK_NULL_HANDLE;
+VkImageView Texture2DStorage::GetVkImageView() const {
+  if (image_view) {
+    return image_view->GetVkImageView();
+  }
+  return VK_NULL_HANDLE;
 }
 
-VkSampler Texture2DStorage::GetVkSampler() const
-{
-	if (m_sampler)
-	{
-		return m_sampler->GetVkSampler();
-	}
-	return VK_NULL_HANDLE;
+VkSampler Texture2DStorage::GetVkSampler() const {
+  if (sampler) {
+    return sampler->GetVkSampler();
+  }
+  return VK_NULL_HANDLE;
 }
-VkSampler CubemapStorage::GetVkSampler() const
-{
-	if (m_sampler)
-	{
-		return m_sampler->GetVkSampler();
-	}
-	return VK_NULL_HANDLE;
+VkSampler CubemapStorage::GetVkSampler() const {
+  if (sampler) {
+    return sampler->GetVkSampler();
+  }
+  return VK_NULL_HANDLE;
 }
-std::shared_ptr<Image> Texture2DStorage::GetImage() const
-{
-	return m_image;
+std::shared_ptr<Image> Texture2DStorage::GetImage() const {
+  return image;
 }
-std::shared_ptr<Image> CubemapStorage::GetImage() const
-{
-	return m_image;
+std::shared_ptr<Image> CubemapStorage::GetImage() const {
+  return image;
 }
 
-void Texture2DStorage::Initialize(const glm::uvec2& resolution)
-{
-	Clear();
-	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(resolution.x, resolution.y)))) + 1;
-	mipLevels = 1;
-	VkImageCreateInfo imageInfo{};
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = resolution.x;
-	imageInfo.extent.height = resolution.y;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 1;
-	imageInfo.format = Graphics::Constants::TEXTURE_2D;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+void Texture2DStorage::Initialize(const glm::uvec2& resolution) {
+  Clear();
+  constexpr uint32_t mip_levels = 1;
+  VkImageCreateInfo image_info{};
+  image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  image_info.imageType = VK_IMAGE_TYPE_2D;
+  image_info.extent.width = resolution.x;
+  image_info.extent.height = resolution.y;
+  image_info.extent.depth = 1;
+  image_info.mipLevels = mip_levels;
+  image_info.arrayLayers = 1;
+  image_info.format = Graphics::Constants::texture_2d;
+  image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+  image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  image_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+  image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	m_image = std::make_shared<Image>(imageInfo);
-	VkImageViewCreateInfo viewInfo{};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = m_image->GetVkImage();
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = Graphics::Constants::TEXTURE_2D;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = imageInfo.mipLevels;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
+  image = std::make_shared<Image>(image_info);
+  VkImageViewCreateInfo view_info{};
+  view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  view_info.image = image->GetVkImage();
+  view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  view_info.format = Graphics::Constants::texture_2d;
+  view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view_info.subresourceRange.baseMipLevel = 0;
+  view_info.subresourceRange.levelCount = image_info.mipLevels;
+  view_info.subresourceRange.baseArrayLayer = 0;
+  view_info.subresourceRange.layerCount = 1;
 
-	m_imageView = std::make_shared<ImageView>(viewInfo);
+  image_view = std::make_shared<ImageView>(view_info);
 
+  VkSamplerCreateInfo sampler_info{};
+  sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  sampler_info.magFilter = VK_FILTER_LINEAR;
+  sampler_info.minFilter = VK_FILTER_LINEAR;
+  sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  sampler_info.anisotropyEnable = VK_TRUE;
+  sampler_info.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+  sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  sampler_info.unnormalizedCoordinates = VK_FALSE;
+  sampler_info.compareEnable = VK_FALSE;
+  sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+  sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  sampler_info.minLod = 0;
+  sampler_info.maxLod = static_cast<float>(image_info.mipLevels);
+  sampler_info.mipLodBias = 0.0f;
 
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = Graphics::GetVkPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	samplerInfo.minLod = 0;
-	samplerInfo.maxLod = static_cast<float>(imageInfo.mipLevels);
-	samplerInfo.mipLodBias = 0.0f;
-
-	m_sampler = std::make_shared<Sampler>(samplerInfo);
+  sampler = std::make_shared<Sampler>(sampler_info);
 }
 
-void Texture2DStorage::SetDataImmediately(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
-{
-	UploadData(data, resolution);
+void Texture2DStorage::SetDataImmediately(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) {
+  UploadData(data, resolution);
 }
 
-void Texture2DStorage::UploadData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
-{
-	Initialize(resolution);
-	const auto imageSize = resolution.x * resolution.y * sizeof(glm::vec4);
-	VkBufferCreateInfo stagingBufferCreateInfo{};
-	stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	stagingBufferCreateInfo.size = imageSize;
-	stagingBufferCreateInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	VmaAllocationCreateInfo stagingBufferVmaAllocationCreateInfo{};
-	stagingBufferVmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferVmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+void Texture2DStorage::UploadData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) {
+  Initialize(resolution);
+  const auto image_size = resolution.x * resolution.y * sizeof(glm::vec4);
+  VkBufferCreateInfo staging_buffer_create_info{};
+  staging_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  staging_buffer_create_info.size = image_size;
+  staging_buffer_create_info.usage =
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  staging_buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  VmaAllocationCreateInfo staging_buffer_vma_allocation_create_info{};
+  staging_buffer_vma_allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
+  staging_buffer_vma_allocation_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	Buffer stagingBuffer{ stagingBufferCreateInfo, stagingBufferVmaAllocationCreateInfo };
-	void* deviceData = nullptr;
-	vmaMapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation(), &deviceData);
-	memcpy(deviceData, data.data(), imageSize);
-	vmaUnmapMemory(Graphics::GetVmaAllocator(), stagingBuffer.GetVmaAllocation());
+  const Buffer staging_buffer{staging_buffer_create_info, staging_buffer_vma_allocation_create_info};
+  void* device_data = nullptr;
+  vmaMapMemory(Graphics::GetVmaAllocator(), staging_buffer.GetVmaAllocation(), &device_data);
+  memcpy(device_data, data.data(), image_size);
+  vmaUnmapMemory(Graphics::GetVmaAllocator(), staging_buffer.GetVmaAllocation());
 
-	Graphics::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			m_image->CopyFromBuffer(commandBuffer, stagingBuffer.GetVkBuffer());
-			m_image->GenerateMipmaps(commandBuffer);
-			m_image->TransitImageLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		});
+  Graphics::ImmediateSubmit([&](const VkCommandBuffer command_buffer) {
+    image->TransitImageLayout(command_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    image->CopyFromBuffer(command_buffer, staging_buffer.GetVkBuffer());
+    image->GenerateMipmaps(command_buffer);
+    image->TransitImageLayout(command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  });
 
-	
-	EditorLayer::UpdateTextureId(m_imTextureId, m_sampler->GetVkSampler(), m_imageView->GetVkImageView(), m_image->GetLayout());
-
-	
+  EditorLayer::UpdateTextureId(im_texture_id, sampler->GetVkSampler(), image_view->GetVkImageView(),
+                               image->GetLayout());
 }
 
-void Texture2DStorage::Clear()
-{
-	if (m_imTextureId != nullptr) {
-		ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(m_imTextureId));
-		m_imTextureId = nullptr;
-	}
-	m_sampler.reset();
-	m_imageView.reset();
-	m_image.reset();
+void Texture2DStorage::Clear() {
+  if (im_texture_id != nullptr) {
+    ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(im_texture_id));
+    im_texture_id = nullptr;
+  }
+  sampler.reset();
+  image_view.reset();
+  image.reset();
 }
 
-void CubemapStorage::Clear()
-{
-	for(auto& m_imTextureId : m_imTextureIds){
-		if (m_imTextureId != nullptr) {
-			ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(m_imTextureId));
-			m_imTextureId = nullptr;
-		}
-	}
-	m_sampler.reset();
-	m_imageView.reset();
-	m_image.reset();
-	m_faceViews.clear();
-
+void CubemapStorage::Clear() {
+  for (auto& im_texture_id : im_texture_ids) {
+    if (im_texture_id != nullptr) {
+      ImGui_ImplVulkan_RemoveTexture(static_cast<VkDescriptorSet>(im_texture_id));
+      im_texture_id = nullptr;
+    }
+  }
+  sampler.reset();
+  image_view.reset();
+  image.reset();
+  face_views.clear();
 }
-void Texture2DStorage::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution)
-{
-	m_newData = data;
-	m_newResolution = resolution;
+void Texture2DStorage::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) {
+  new_data_ = data;
+  new_resolution_ = resolution;
 }
 
-void TextureStorage::DeviceSync()
-{
-	auto& storage = GetInstance();
-	const auto currentFrameIndex = Graphics::GetCurrentFrameIndex();
+void TextureStorage::DeviceSync() {
+  auto& storage = GetInstance();
+  const auto current_frame_index = Graphics::GetCurrentFrameIndex();
 
-	const auto renderLayer = Application::GetLayer<RenderLayer>();
+  const auto render_layer = Application::GetLayer<RenderLayer>();
 
-	for (int textureIndex = 0; textureIndex < storage.m_texture2Ds.size(); textureIndex++)
-	{
-		auto& textureStorage = storage.m_texture2Ds[textureIndex];
-		if (textureStorage.m_pendingDelete)
-		{
-			storage.m_texture2Ds[textureIndex] = storage.m_texture2Ds.back();
-			storage.m_texture2Ds[textureIndex].m_handle->m_value = textureIndex;
-			storage.m_texture2Ds.pop_back();
-			textureIndex--;
-		}
-	}
+  for (int texture_index = 0; texture_index < storage.texture_2ds_.size(); texture_index++) {
+    if (const auto& texture_storage = storage.texture_2ds_[texture_index]; texture_storage.pending_delete) {
+      storage.texture_2ds_[texture_index] = storage.texture_2ds_.back();
+      storage.texture_2ds_[texture_index].handle->value = texture_index;
+      storage.texture_2ds_.pop_back();
+      texture_index--;
+    }
+  }
 
-	for (int textureIndex = 0; textureIndex < storage.m_texture2Ds.size(); textureIndex++)
-	{
-		auto& textureStorage = storage.m_texture2Ds[textureIndex];
-		if (!textureStorage.m_newData.empty()){
-			textureStorage.UploadData(textureStorage.m_newData, textureStorage.m_newResolution);
-			textureStorage.m_newData.clear();
-			textureStorage.m_newResolution = {};
-		}
-		VkDescriptorImageInfo imageInfo;
-		imageInfo.imageLayout = textureStorage.GetLayout();
-		imageInfo.imageView = textureStorage.GetVkImageView();
-		imageInfo.sampler = textureStorage.GetVkSampler();
-		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(13, imageInfo, textureIndex);
-	}
+  for (int texture_index = 0; texture_index < storage.texture_2ds_.size(); texture_index++) {
+    auto& texture_storage = storage.texture_2ds_[texture_index];
+    if (!texture_storage.new_data_.empty()) {
+      texture_storage.UploadData(texture_storage.new_data_, texture_storage.new_resolution_);
+      texture_storage.new_data_.clear();
+      texture_storage.new_resolution_ = {};
+    }
+    VkDescriptorImageInfo image_info;
+    image_info.imageLayout = texture_storage.GetLayout();
+    image_info.imageView = texture_storage.GetVkImageView();
+    image_info.sampler = texture_storage.GetVkSampler();
+    if (!render_layer->per_frame_descriptor_sets_.empty())
+      render_layer->per_frame_descriptor_sets_[current_frame_index]->UpdateImageDescriptorBinding(13, image_info,
+                                                                                               texture_index);
+  }
 
-	for (int textureIndex = 0; textureIndex < storage.m_cubemaps.size(); textureIndex++)
-	{
-		auto& textureStorage = storage.m_cubemaps[textureIndex];
-		if (textureStorage.m_pendingDelete)
-		{
-			storage.m_cubemaps[textureIndex] = storage.m_cubemaps.back();
-			storage.m_cubemaps[textureIndex].m_handle->m_value = textureIndex;
-			storage.m_cubemaps.pop_back();
-			textureIndex--;
-		}
-	}
+  for (int texture_index = 0; texture_index < storage.cubemaps_.size(); texture_index++) {
+    if (const auto& texture_storage = storage.cubemaps_[texture_index]; texture_storage.pending_delete) {
+      storage.cubemaps_[texture_index] = storage.cubemaps_.back();
+      storage.cubemaps_[texture_index].handle->value = texture_index;
+      storage.cubemaps_.pop_back();
+      texture_index--;
+    }
+  }
 
-	for (int textureIndex = 0; textureIndex < storage.m_cubemaps.size(); textureIndex++)
-	{
-		auto& textureStorage = storage.m_cubemaps[textureIndex];
-		//if (!textureStorage.m_newData.empty()) textureStorage.UploadData();
-		VkDescriptorImageInfo imageInfo;
-		imageInfo.imageLayout = textureStorage.GetLayout();
-		imageInfo.imageView = textureStorage.GetVkImageView();
-		imageInfo.sampler = textureStorage.GetVkSampler();
-		if(!renderLayer->m_perFrameDescriptorSets.empty()) renderLayer->m_perFrameDescriptorSets[currentFrameIndex]->UpdateImageDescriptorBinding(14, imageInfo, textureIndex);
-	}
+  for (int texture_index = 0; texture_index < storage.cubemaps_.size(); texture_index++) {
+    auto& texture_storage = storage.cubemaps_[texture_index];
+    // if (!textureStorage.m_newData.empty()) textureStorage.UploadData();
+    VkDescriptorImageInfo image_info;
+    image_info.imageLayout = texture_storage.GetLayout();
+    image_info.imageView = texture_storage.GetVkImageView();
+    image_info.sampler = texture_storage.GetVkSampler();
+    if (!render_layer->per_frame_descriptor_sets_.empty())
+      render_layer->per_frame_descriptor_sets_[current_frame_index]->UpdateImageDescriptorBinding(14, image_info,
+                                                                                               texture_index);
+  }
 }
 
-const Texture2DStorage& TextureStorage::PeekTexture2DStorage(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	return storage.m_texture2Ds.at(handle->m_value);
+const Texture2DStorage& TextureStorage::PeekTexture2DStorage(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  return storage.texture_2ds_.at(handle->value);
 }
 
-Texture2DStorage& TextureStorage::RefTexture2DStorage(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	return storage.m_texture2Ds.at(handle->m_value);
+Texture2DStorage& TextureStorage::RefTexture2DStorage(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  return storage.texture_2ds_.at(handle->value);
 }
 
-const CubemapStorage& TextureStorage::PeekCubemapStorage(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	return storage.m_cubemaps.at(handle->m_value);
+const CubemapStorage& TextureStorage::PeekCubemapStorage(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  return storage.cubemaps_.at(handle->value);
 }
 
-CubemapStorage& TextureStorage::RefCubemapStorage(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	return storage.m_cubemaps.at(handle->m_value);
+CubemapStorage& TextureStorage::RefCubemapStorage(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  return storage.cubemaps_.at(handle->value);
 }
 
-void TextureStorage::UnRegisterTexture2D(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	storage.m_texture2Ds[handle->m_value].m_pendingDelete = true;
+void TextureStorage::UnRegisterTexture2D(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  storage.texture_2ds_[handle->value].pending_delete = true;
 }
 
-void TextureStorage::UnRegisterCubemap(const std::shared_ptr<TextureStorageHandle>& handle)
-{
-	auto& storage = GetInstance();
-	storage.m_cubemaps[handle->m_value].m_pendingDelete = true;
+void TextureStorage::UnRegisterCubemap(const std::shared_ptr<TextureStorageHandle>& handle) {
+  auto& storage = GetInstance();
+  storage.cubemaps_[handle->value].pending_delete = true;
 }
 
-std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterTexture2D()
-{
-	auto& storage = GetInstance();
-	const auto retVal = std::make_shared<TextureStorageHandle>();
-	retVal->m_value = storage.m_texture2Ds.size();
-	storage.m_texture2Ds.emplace_back();
-	auto& newTexture2DStorage = storage.m_texture2Ds.back();
-	newTexture2DStorage.m_handle = retVal;
-	storage.m_texture2Ds.back().Initialize({1, 1});
-	return retVal;
+std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterTexture2D() {
+  auto& storage = GetInstance();
+  const auto ret_val = std::make_shared<TextureStorageHandle>();
+  ret_val->value = storage.texture_2ds_.size();
+  storage.texture_2ds_.emplace_back();
+  auto& new_texture_2d_storage = storage.texture_2ds_.back();
+  new_texture_2d_storage.handle = ret_val;
+  storage.texture_2ds_.back().Initialize({1, 1});
+  return ret_val;
 }
 
-std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterCubemap()
-{
-	auto& storage = GetInstance();
-	const auto retVal = std::make_shared<TextureStorageHandle>();
-	retVal->m_value = storage.m_cubemaps.size();
-	storage.m_cubemaps.emplace_back();
-	auto& newCubemapStorage = storage.m_cubemaps.back();
-	newCubemapStorage.m_handle = retVal;
-	storage.m_cubemaps.back().Initialize(1, 1);
-	return retVal;
+std::shared_ptr<TextureStorageHandle> TextureStorage::RegisterCubemap() {
+  auto& storage = GetInstance();
+  const auto ret_val = std::make_shared<TextureStorageHandle>();
+  ret_val->value = storage.cubemaps_.size();
+  storage.cubemaps_.emplace_back();
+  auto& new_cubemap_storage = storage.cubemaps_.back();
+  new_cubemap_storage.handle = ret_val;
+  storage.cubemaps_.back().Initialize(1, 1);
+  return ret_val;
 }
 
-void TextureStorage::Initialize()
-{
+void TextureStorage::Initialize() {
 }
-
-
-

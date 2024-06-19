@@ -103,25 +103,22 @@ target_compile_definitions(evoengine
 		${EVOENGINE_INTERNALS_DEF}
 		${EVOENGINE_DEFAULT_PROJECT_DEF}
 		${DEBUG_STATUS}
-		${PHYSX_COMPILE_OPTION}
+		
 		)
 if (WIN32)
 	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
-		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
 		set(ASSIMP_LIBS
 				${ASSIMP_DIR}/lib/Release/assimp-vc143-mt.lib
 				${ASSIMP_DIR}/lib/Release/zlibstatic.lib
 				)
 	elseif (CMAKE_BUILD_TYPE MATCHES "^[Rr]elWithDebInfo")
-		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/release/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined.lib)
 		set(ASSIMP_LIBS
 				${ASSIMP_DIR}/lib/RelWithDebInfo/assimp-vc143-mt.lib
 				${ASSIMP_DIR}/lib/RelWithDebInfo/zlibstatic.lib
 				)
 	else()
-		file(GLOB PHYSX_LIBS "3rdParty/physx/win.x86_64.vc143.mt/debug/*.lib")
 		set(SHADERC_LIB ${SHADERC_DIR}lib/windows/shaderc_combined_d.lib)
 		set(ASSIMP_LIBS
 				${ASSIMP_DIR}/lib/Debug/assimp-vc143-mtd.lib
@@ -130,7 +127,6 @@ if (WIN32)
 	endif ()
 	target_link_libraries(evoengine
 			${GLFW_DIR}glfw3.lib
-			${PHYSX_LIBS}
 			${SHADERC_LIB}
 			${ASSIMP_LIBS}
 			)
@@ -144,15 +140,12 @@ if (WIN32)
 else()
 	# Linker and compiler settings for Linux platform
 	if (CMAKE_BUILD_TYPE MATCHES "^[Rr]elease")
-		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
 		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/release/*.a")
 		set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 	elseif (CMAKE_BUILD_TYPE MATCHES "^[Rr]elWithDebInfo")
-		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/release/*.a")
 		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/release/*.a")
 		set(CMAKE_CXX_FLAGS_RELWITHDEBINGO "-O2 -g -NDEBUG")
 	elseif (CMAKE_BUILD_TYPE MATCHES "[Dd]ebug")
-		file(GLOB PHYSX_LIBS "3rdParty/physx/linux.clang/debug/*.a")
 		file(GLOB SHADERC_LIBS "3rdParty/shaderc/lib/linux/debug/*.a")
 		set(CMAKE_CXX_FLAGS_DEBUG "-g")
 	endif ()
@@ -169,7 +162,6 @@ else()
 			Xi
 			assimp
 			${SHADERC_LIBS}
-			${PHYSX_LIBS}
 			)
 endif ()
 

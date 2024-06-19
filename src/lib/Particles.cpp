@@ -1,115 +1,105 @@
-#include "EditorLayer.hpp"
 #include "Particles.hpp"
+#include "EditorLayer.hpp"
 
-using namespace EvoEngine;
+using namespace evo_engine;
 
-void Particles::OnCreate()
-{
-	m_particleInfoList = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
-	m_boundingBox = Bound();
-	SetEnabled(true);
+void Particles::OnCreate() {
+  particle_info_list = ProjectManager::CreateTemporaryAsset<ParticleInfoList>();
+  bounding_box = Bound();
+  SetEnabled(true);
 }
 
-void Particles::RecalculateBoundingBox()
-{
-	const auto particleInfoList = m_particleInfoList.Get<ParticleInfoList>();
-	if (!particleInfoList) return;
-	if (particleInfoList->PeekParticleInfoList().empty())
-	{
-		m_boundingBox.m_min = glm::vec3(0.0f);
-		m_boundingBox.m_max = glm::vec3(0.0f);
-		return;
-	}
-	auto minBound = glm::vec3(FLT_MAX);
-	auto maxBound = glm::vec3(FLT_MAX);
-	const auto meshBound = m_mesh.Get<Mesh>()->GetBound();
-	for (const auto& i : particleInfoList->PeekParticleInfoList())
-	{
-		const glm::vec3 center = i.m_instanceMatrix.m_value * glm::vec4(meshBound.Center(), 1.0f);
-		const glm::vec3 size = glm::vec4(meshBound.Size(), 0) * i.m_instanceMatrix.m_value / 2.0f;
-		minBound = glm::vec3(
-			(glm::min)(minBound.x, center.x - size.x),
-			(glm::min)(minBound.y, center.y - size.y),
-			(glm::min)(minBound.z, center.z - size.z));
+void Particles::RecalculateBoundingBox() {
+  const auto pil = particle_info_list.Get<ParticleInfoList>();
+  if (!pil)
+    return;
+  if (pil->PeekParticleInfoList().empty()) {
+    bounding_box.min = glm::vec3(0.0f);
+    bounding_box.max = glm::vec3(0.0f);
+    return;
+  }
+  auto min_bound = glm::vec3(FLT_MAX);
+  auto max_bound = glm::vec3(FLT_MAX);
+  const auto mesh_bound = mesh.Get<Mesh>()->GetBound();
+  for (const auto& i : pil->PeekParticleInfoList()) {
+    const glm::vec3 center = i.instance_matrix.value * glm::vec4(mesh_bound.Center(), 1.0f);
+    const glm::vec3 size = glm::vec4(mesh_bound.Size(), 0) * i.instance_matrix.value / 2.0f;
+    min_bound = glm::vec3((glm::min)(min_bound.x, center.x - size.x), (glm::min)(min_bound.y, center.y - size.y),
+                         (glm::min)(min_bound.z, center.z - size.z));
 
-		maxBound = glm::vec3(
-			(glm::max)(maxBound.x, center.x + size.x),
-			(glm::max)(maxBound.y, center.y + size.y),
-			(glm::max)(maxBound.z, center.z + size.z));
-	}
-	m_boundingBox.m_max = maxBound;
-	m_boundingBox.m_min = minBound;
+    max_bound = glm::vec3((glm::max)(max_bound.x, center.x + size.x), (glm::max)(max_bound.y, center.y + size.y),
+                         (glm::max)(max_bound.z, center.z + size.z));
+  }
+  bounding_box.max = max_bound;
+  bounding_box.min = min_bound;
 }
 
-bool Particles::OnInspect(const std::shared_ptr<EditorLayer>& editorLayer)
-{
-	bool changed = false;
-	if (ImGui::Checkbox("Cast shadow##Particles", &m_castShadow)) changed = true;
-	if (editorLayer->DragAndDropButton<Material>(m_material, "Material")) changed = true;
-	if (editorLayer->DragAndDropButton<Mesh>(m_mesh, "Mesh")) changed = true;
-	if (editorLayer->DragAndDropButton<ParticleInfoList>(m_particleInfoList, "ParticleInfoList")) changed = true;
+bool Particles::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
+  bool changed = false;
+  if (ImGui::Checkbox("Cast shadow##Particles", &cast_shadow))
+    changed = true;
+  if (editor_layer->DragAndDropButton<Material>(material, "Material"))
+    changed = true;
+  if (editor_layer->DragAndDropButton<Mesh>(mesh, "Mesh"))
+    changed = true;
+  if (editor_layer->DragAndDropButton<ParticleInfoList>(particle_info_list, "ParticleInfoList"))
+    changed = true;
 
-	if (const auto particleInfoList = m_particleInfoList.Get<ParticleInfoList>()) {
-		ImGui::Text(("Instance count##Particles" + std::to_string(particleInfoList->PeekParticleInfoList().size())).c_str());
-		if (ImGui::Button("Calculate bounds##Particles"))
-		{
-			RecalculateBoundingBox();
-		}
-		static bool displayBound;
-		ImGui::Checkbox("Display bounds##Particles", &displayBound);
-		if (displayBound)
-		{
-			static auto displayBoundColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
-			ImGui::ColorEdit4("Color:##Particles", (float*)(void*)&displayBoundColor);
-			const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).m_value;
+  if (const auto pil = particle_info_list.Get<ParticleInfoList>()) {
+    ImGui::Text(
+        ("Instance count##Particles" + std::to_string(pil->PeekParticleInfoList().size())).c_str());
+    if (ImGui::Button("Calculate bounds##Particles")) {
+      RecalculateBoundingBox();
+    }
+    static bool display_bound;
+    ImGui::Checkbox("Display bounds##Particles", &display_bound);
+    if (display_bound) {
+      static auto display_bound_color = glm::vec4(0.0f, 1.0f, 0.0f, 0.2f);
+      ImGui::ColorEdit4("Color:##Particles", (float*)(void*)&display_bound_color);
+      const auto transform = GetScene()->GetDataComponent<GlobalTransform>(GetOwner()).value;
 
-			GizmoSettings gizmoSettings;
-			gizmoSettings.m_drawSettings.m_cullMode = VK_CULL_MODE_NONE;
-			gizmoSettings.m_drawSettings.m_blending = true;
-			gizmoSettings.m_drawSettings.m_polygonMode = VK_POLYGON_MODE_LINE;
-			gizmoSettings.m_drawSettings.m_lineWidth = 3.0f;
+      GizmoSettings gizmo_settings;
+      gizmo_settings.draw_settings.cull_mode = VK_CULL_MODE_NONE;
+      gizmo_settings.draw_settings.blending = true;
+      gizmo_settings.draw_settings.polygon_mode = VK_POLYGON_MODE_LINE;
+      gizmo_settings.draw_settings.line_width = 3.0f;
 
-			editorLayer->DrawGizmoCube(displayBoundColor,
-				transform * glm::translate(m_boundingBox.Center()) * glm::scale(m_boundingBox.Size()),
-				1, gizmoSettings);
-		}
-	}
-	return changed;
+      editor_layer->DrawGizmoCube(display_bound_color,
+                                  transform * glm::translate(bounding_box.Center()) * glm::scale(bounding_box.Size()),
+                                  1, gizmo_settings);
+    }
+  }
+  return changed;
 }
 
-void Particles::Serialize(YAML::Emitter& out) const
-{
-	out << YAML::Key << "m_castShadow" << m_castShadow;
+void Particles::Serialize(YAML::Emitter& out) const {
+  out << YAML::Key << "cast_shadow" << cast_shadow;
 
-	m_mesh.Save("m_mesh", out);
-	m_material.Save("m_material", out);
-	m_particleInfoList.Save("m_particleInfoList", out);
+  mesh.Save("mesh", out);
+  material.Save("material", out);
+  particle_info_list.Save("particle_info_list", out);
 }
 
-void Particles::Deserialize(const YAML::Node& in)
-{
-	m_castShadow = in["m_castShadow"].as<bool>();
+void Particles::Deserialize(const YAML::Node& in) {
+  cast_shadow = in["cast_shadow"].as<bool>();
 
-	m_mesh.Load("m_mesh", in);
-	m_material.Load("m_material", in);
-	m_particleInfoList.Load("m_particleInfoList", in);
+  mesh.Load("mesh", in);
+  material.Load("material", in);
+  particle_info_list.Load("particle_info_list", in);
 }
-void Particles::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target)
-{
+void Particles::PostCloneAction(const std::shared_ptr<IPrivateComponent>& target) {
 }
 
-void Particles::CollectAssetRef(std::vector<AssetRef>& list)
-{
-	list.push_back(m_mesh);
-	list.push_back(m_material);
-	list.push_back(m_particleInfoList);
+void Particles::CollectAssetRef(std::vector<AssetRef>& list) {
+  list.push_back(mesh);
+  list.push_back(material);
+  list.push_back(particle_info_list);
 }
-void Particles::OnDestroy()
-{
-	m_mesh.Clear();
-	m_material.Clear();
-	m_particleInfoList.Clear();
+void Particles::OnDestroy() {
+  mesh.Clear();
+  material.Clear();
+  particle_info_list.Clear();
 
-	m_material.Clear();
-	m_castShadow = true;
+  material.Clear();
+  cast_shadow = true;
 }

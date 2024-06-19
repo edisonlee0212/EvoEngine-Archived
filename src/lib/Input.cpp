@@ -1,113 +1,86 @@
 #include "Input.hpp"
-#include "Scene.hpp"
 #include "Application.hpp"
-#include "WindowLayer.hpp"
 #include "EditorLayer.hpp"
-using namespace EvoEngine;
+#include "Scene.hpp"
+#include "WindowLayer.hpp"
+using namespace evo_engine;
 
-void Input::KeyCallBack(GLFWwindow* window, int key, int scanCode, int action, int mods)
-{
-	auto& input = GetInstance();
-	if(action == GLFW_PRESS)
-	{
-		input.m_pressedKeys[key] = KeyActionType::Press;
-		Dispatch({ key, KeyActionType::Press });
-		//std::cout << "P" + std::to_string(key) << std::endl;
-	}else if(action == GLFW_RELEASE)
-	{
-		if (input.m_pressedKeys.find(key) != input.m_pressedKeys.end())
-		{
-			//Dispatch hold if the key is already pressed.
-			input.m_pressedKeys.erase(key);
-			Dispatch({ key, KeyActionType::Release });
-		}
-		//std::cout << "R" + std::to_string(key) << std::endl;
-	}
+void Input::KeyCallBack(GLFWwindow* window, int key, int scan_code, int action, int mods) {
+  auto& input = GetInstance();
+  if (action == GLFW_PRESS) {
+    input.pressed_keys_[key] = KeyActionType::Press;
+    Dispatch({key, KeyActionType::Press});
+  } else if (action == GLFW_RELEASE) {
+    if (input.pressed_keys_.find(key) != input.pressed_keys_.end()) {
+      // Dispatch hold if the key is already pressed.
+      input.pressed_keys_.erase(key);
+      Dispatch({key, KeyActionType::Release});
+    }
+  }
 }
 
-void Input::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods)
-{
-	auto& input = GetInstance();
-	if (action == GLFW_PRESS)
-	{
-		input.m_pressedKeys[button] = KeyActionType::Press;
-		Dispatch({ button, KeyActionType::Press });
-		//std::cout << "P" + std::to_string(button) << std::endl;
-	}
-	else if (action == GLFW_RELEASE)
-	{
-		if (input.m_pressedKeys.find(button) != input.m_pressedKeys.end())
-		{
-			//Dispatch hold if the key is already pressed.
-			input.m_pressedKeys.erase(button);
-			Dispatch({ button, KeyActionType::Release });
-		}
-		//std::cout << "R" + std::to_string(button) << std::endl;
-	}
+void Input::MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods) {
+  auto& input = GetInstance();
+  if (action == GLFW_PRESS) {
+    input.pressed_keys_[button] = KeyActionType::Press;
+    Dispatch({button, KeyActionType::Press});
+  } else if (action == GLFW_RELEASE) {
+    if (input.pressed_keys_.find(button) != input.pressed_keys_.end()) {
+      // Dispatch hold if the key is already pressed.
+      input.pressed_keys_.erase(button);
+      Dispatch({button, KeyActionType::Release});
+    }
+  }
 }
 
-void Input::Dispatch(const InputEvent& event)
-{
-	const auto &layers = Application::GetLayers();
-	if(!layers.empty())
-	{
-		layers[0]->OnInputEvent(event);
-	}
-	if (!Application::GetLayer<EditorLayer>()) {
-		const auto activeScene = Application::GetActiveScene();
-		
-		auto& scenePressedKeys = activeScene->m_pressedKeys;
-		if (event.m_keyAction == KeyActionType::Press)
-		{
-			scenePressedKeys[event.m_key] = KeyActionType::Press;
-		}
-		else if (event.m_keyAction == KeyActionType::Release)
-		{
-			if (scenePressedKeys.find(event.m_key) != scenePressedKeys.end())
-			{
-				//Dispatch hold if the key is already pressed.
-				scenePressedKeys.erase(event.m_key);
-			}
-		}
-	}
+void Input::Dispatch(const InputEvent& event) {
+  if (const auto& layers = Application::GetLayers(); !layers.empty()) {
+    layers[0]->OnInputEvent(event);
+  }
+  if (!Application::GetLayer<EditorLayer>()) {
+    const auto active_scene = Application::GetActiveScene();
+
+    auto& scene_pressed_keys = active_scene->pressed_keys_;
+    if (event.key_action == KeyActionType::Press) {
+      scene_pressed_keys[event.key] = KeyActionType::Press;
+    } else if (event.key_action == KeyActionType::Release) {
+      if (scene_pressed_keys.find(event.key) != scene_pressed_keys.end()) {
+        // Dispatch hold if the key is already pressed.
+        scene_pressed_keys.erase(event.key);
+      }
+    }
+  }
 }
 
-void Input::PreUpdate()
-{
-	auto& input = GetInstance();
-	input.m_mousePosition = { FLT_MIN, FLT_MIN };
+void Input::PreUpdate() {
+  auto& input = GetInstance();
+  input.mouse_position_ = {FLT_MIN, FLT_MIN};
 
-	for(auto& i : input.m_pressedKeys)
-	{
-		i.second = KeyActionType::Hold;
-	}
-	const auto scene = Application::GetActiveScene();
-	if (scene) {
-		for (auto& i : scene->m_pressedKeys)
-		{
-			i.second = KeyActionType::Hold;
-		}
-	}
-	if (const auto windowLayer = Application::GetLayer<WindowLayer>())
-	{
-		glfwPollEvents();
-		double x = FLT_MIN;
-		double y = FLT_MIN;
-		glfwGetCursorPos(windowLayer->GetGlfwWindow(), &x, &y);
-		input.m_mousePosition = { x, y };
-	}
+  for (auto& i : input.pressed_keys_) {
+    i.second = KeyActionType::Hold;
+  }
+  if (const auto scene = Application::GetActiveScene()) {
+    for (auto& i : scene->pressed_keys_) {
+      i.second = KeyActionType::Hold;
+    }
+  }
+  if (const auto window_layer = Application::GetLayer<WindowLayer>()) {
+    glfwPollEvents();
+    double x = FLT_MIN;
+    double y = FLT_MIN;
+    glfwGetCursorPos(window_layer->GetGlfwWindow(), &x, &y);
+    input.mouse_position_ = {x, y};
+  }
 }
 
-glm::vec2 Input::GetMousePosition()
-{
-	const auto& input = GetInstance();
-	return input.m_mousePosition;
+glm::vec2 Input::GetMousePosition() {
+  const auto& input = GetInstance();
+  return input.mouse_position_;
 }
 
-KeyActionType Input::GetKey(const int key)
-{
-	const auto& input = GetInstance();
-	if (const auto search = input.m_pressedKeys.find(key); search != input.m_pressedKeys.end()) 
-		return search->second;
-	return KeyActionType::Release;
+KeyActionType Input::GetKey(const int key) {
+  const auto& input = GetInstance();
+  if (const auto search = input.pressed_keys_.find(key); search != input.pressed_keys_.end())
+    return search->second;
+  return KeyActionType::Release;
 }
