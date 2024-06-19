@@ -344,11 +344,11 @@ void RenderLayer::RenderAllCameras() {
     }
   }
 
-  camera_indices_.clear();
+  
   material_indices_.clear();
   instance_indices_.clear();
   instance_handles_.clear();
-  camera_info_blocks_.clear();
+  
   material_info_blocks_.clear();
   instance_info_blocks_.clear();
 
@@ -488,6 +488,9 @@ uint32_t RenderLayer::RegisterInstanceIndex(const Handle& handle, const Instance
 
 void RenderLayer::CollectCameras(std::vector<std::pair<GlobalTransform, std::shared_ptr<Camera>>>& cameras) {
   auto scene = GetScene();
+  camera_indices_.clear();
+  camera_info_blocks_.clear();
+
   std::vector<std::pair<std::shared_ptr<Camera>, glm::vec3>> camera_pairs;
 
   if (auto editor_layer = Application::GetLayer<EditorLayer>()) {
