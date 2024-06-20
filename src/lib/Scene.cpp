@@ -607,7 +607,7 @@ void Scene::OnCreate() {
   SetDataComponent(directional_light_entity, ltw);
   auto direction_light = GetOrSetPrivateComponent<DirectionalLight>(directional_light_entity).lock();
 #pragma endregion
-
+  /*
 #pragma region Ground
   const auto ground_entity = CreateEntity("Ground");
   ltw.SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -618,6 +618,7 @@ void Scene::OnCreate() {
   ground_mesh_renderer_component->material = ProjectManager::CreateTemporaryAsset<Material>();
   ground_mesh_renderer_component->mesh = Resources::GetResource<Mesh>("PRIMITIVE_QUAD");
 #pragma endregion
+  */
 }
 
 bool Scene::LoadInternal(const std::filesystem::path& path) {
