@@ -110,7 +110,7 @@ void Graphics::CreateGraphicsPipelines() const {
 
     standard_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
     standard_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
+    standard_deferred_prepass->color_attachment_formats = {2, Constants::g_buffer_color};
 
     auto& push_constant_range = standard_deferred_prepass->push_constant_ranges.emplace_back();
     push_constant_range.size = sizeof(RenderInstancePushConstant);
@@ -131,7 +131,7 @@ void Graphics::CreateGraphicsPipelines() const {
 
     standard_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
     standard_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
+    standard_deferred_prepass->color_attachment_formats = {2, Constants::g_buffer_color};
 
     auto& push_constant_range = standard_deferred_prepass->push_constant_ranges.emplace_back();
     push_constant_range.size = sizeof(RenderInstancePushConstant);
@@ -141,48 +141,7 @@ void Graphics::CreateGraphicsPipelines() const {
     standard_deferred_prepass->PreparePipeline();
     RegisterGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH", standard_deferred_prepass);
   }
-  {
-    const auto standard_deferred_prepass = std::make_shared<GraphicsPipeline>();
-    standard_deferred_prepass->vertex_shader = Resources::GetResource<Shader>("STANDARD_VERT");
-    standard_deferred_prepass->fragment_shader =
-        Resources::GetResource<Shader>("STANDARD_DEFERRED_MESHLET_COLORED_FRAG");
-    standard_deferred_prepass->geometry_type = GeometryType::Mesh;
-    standard_deferred_prepass->descriptor_set_layouts.emplace_back(per_frame_layout);
-
-    standard_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
-    standard_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
-
-    auto& push_constant_range = standard_deferred_prepass->push_constant_ranges.emplace_back();
-    push_constant_range.size = sizeof(RenderInstancePushConstant);
-    push_constant_range.offset = 0;
-    push_constant_range.stageFlags = VK_SHADER_STAGE_ALL;
-
-    standard_deferred_prepass->PreparePipeline();
-    RegisterGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS", standard_deferred_prepass);
-  }
-  if (Constants::enable_mesh_shader) {
-    const auto standard_deferred_prepass = std::make_shared<GraphicsPipeline>();
-    standard_deferred_prepass->task_shader = Resources::GetResource<Shader>("STANDARD_TASK");
-    standard_deferred_prepass->mesh_shader = Resources::GetResource<Shader>("STANDARD_MESHLET_COLORED_MESH");
-
-    standard_deferred_prepass->fragment_shader =
-        Resources::GetResource<Shader>("STANDARD_DEFERRED_MESHLET_COLORED_FRAG");
-    standard_deferred_prepass->geometry_type = GeometryType::Mesh;
-    standard_deferred_prepass->descriptor_set_layouts.emplace_back(per_frame_layout);
-
-    standard_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
-    standard_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
-
-    auto& push_constant_range = standard_deferred_prepass->push_constant_ranges.emplace_back();
-    push_constant_range.size = sizeof(RenderInstancePushConstant);
-    push_constant_range.offset = 0;
-    push_constant_range.stageFlags = VK_SHADER_STAGE_ALL;
-
-    standard_deferred_prepass->PreparePipeline();
-    RegisterGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS_MESH", standard_deferred_prepass);
-  }
+  
   {
     const auto standard_skinned_deferred_prepass = std::make_shared<GraphicsPipeline>();
     standard_skinned_deferred_prepass->vertex_shader = Resources::GetResource<Shader>("STANDARD_SKINNED_VERT");
@@ -193,7 +152,7 @@ void Graphics::CreateGraphicsPipelines() const {
 
     standard_skinned_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
     standard_skinned_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_skinned_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
+    standard_skinned_deferred_prepass->color_attachment_formats = {2, Constants::g_buffer_color};
 
     auto& push_constant_range = standard_skinned_deferred_prepass->push_constant_ranges.emplace_back();
     push_constant_range.size = sizeof(RenderInstancePushConstant);
@@ -212,7 +171,7 @@ void Graphics::CreateGraphicsPipelines() const {
 
     standard_instanced_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
     standard_instanced_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_instanced_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
+    standard_instanced_deferred_prepass->color_attachment_formats = {2, Constants::g_buffer_color};
 
     auto& push_constant_range = standard_instanced_deferred_prepass->push_constant_ranges.emplace_back();
     push_constant_range.size = sizeof(RenderInstancePushConstant);
@@ -238,7 +197,7 @@ void Graphics::CreateGraphicsPipelines() const {
 
     standard_strands_deferred_prepass->depth_attachment_format = Constants::g_buffer_depth;
     standard_strands_deferred_prepass->stencil_attachment_format = VK_FORMAT_UNDEFINED;
-    standard_strands_deferred_prepass->color_attachment_formats = {3, Constants::g_buffer_color};
+    standard_strands_deferred_prepass->color_attachment_formats = {2, Constants::g_buffer_color};
 
     auto& push_constant_range = standard_strands_deferred_prepass->push_constant_ranges.emplace_back();
     push_constant_range.size = sizeof(RenderInstancePushConstant);

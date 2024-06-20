@@ -8,8 +8,7 @@ layout (location = 0) in VS_OUT {
 } fs_in;
 
 layout (location = 0) out vec4 outNormal;
-layout (location = 1) out vec4 outAlbedo;
-layout (location = 2) out vec4 outMaterial;
+layout (location = 1) out vec4 outMaterial;
 
 layout(location = 5) in flat uint currentInstanceIndex;
 

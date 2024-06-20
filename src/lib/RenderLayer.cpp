@@ -153,6 +153,8 @@ void RenderLayer::RenderAllCameras() {
       render_info_block.split_distances[split] = split_end;
     }
     render_info_block.brdflut_texture_index = environmental_brdf_lut_->GetTextureStorageIndex();
+    if(enable_debug_visualization) render_info_block.debug_visualization = 1;
+    else render_info_block.debug_visualization = 0;
   }
 
   {
@@ -180,7 +182,8 @@ void RenderLayer::RenderAllCameras() {
   instance_info_descriptor_buffers_[current_frame_index]->UploadVector(instance_info_blocks_);
 
   mesh_draw_indexed_indirect_commands_buffers_[current_frame_index]->UploadVector(mesh_draw_indexed_indirect_commands_);
-  mesh_draw_mesh_tasks_indirect_commands_buffers_[current_frame_index]->UploadVector(mesh_draw_mesh_tasks_indirect_commands_);
+  mesh_draw_mesh_tasks_indirect_commands_buffers_[current_frame_index]->UploadVector(
+      mesh_draw_mesh_tasks_indirect_commands_);
 
   VkDescriptorBufferInfo buffer_info;
   buffer_info.offset = 0;
@@ -285,7 +288,7 @@ void RenderLayer::RenderAllCameras() {
           gizmos_pipeline->Bind(command_buffer);
           gizmos_pipeline->BindDescriptorSet(command_buffer, 0, GetPerFrameDescriptorSet()->GetVkDescriptorSet());
           gizmos_pipeline->BindDescriptorSet(command_buffer, 1,
-                                            i.instanced_data->GetDescriptorSet()->GetVkDescriptorSet());
+                                             i.instanced_data->GetDescriptorSet()->GetVkDescriptorSet());
 
           i.editor_camera_component->GetRenderTexture()->BeginRendering(command_buffer, VK_ATTACHMENT_LOAD_OP_LOAD,
                                                                         VK_ATTACHMENT_STORE_OP_STORE);
@@ -296,8 +299,7 @@ void RenderLayer::RenderAllCameras() {
           push_constant.camera_index = GetCameraIndex(i.editor_camera_component->GetHandle());
           gizmos_pipeline->PushConstant(command_buffer, 0, push_constant);
           GeometryStorage::BindVertices(command_buffer);
-          i.mesh->DrawIndexed(command_buffer, gizmos_pipeline->states,
-                                i.instanced_data->PeekParticleInfoList().size());
+          i.mesh->DrawIndexed(command_buffer, gizmos_pipeline->states, i.instanced_data->PeekParticleInfoList().size());
           i.editor_camera_component->GetRenderTexture()->EndRendering(command_buffer);
         });
       }
@@ -344,11 +346,10 @@ void RenderLayer::RenderAllCameras() {
     }
   }
 
-  
   material_indices_.clear();
   instance_indices_.clear();
   instance_handles_.clear();
-  
+
   material_info_blocks_.clear();
   instance_info_blocks_.clear();
 
@@ -409,7 +410,8 @@ void RenderLayer::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     }
 
     if (ImGui::TreeNodeEx("Strands settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-      ImGui::DragFloat("Curve subdivision factor", &render_info_block.strands_subdivision_x_factor, 1.0f, 1.0f, 1000.0f);
+      ImGui::DragFloat("Curve subdivision factor", &render_info_block.strands_subdivision_x_factor, 1.0f, 1.0f,
+                       1000.0f);
       ImGui::DragFloat("Ring subdivision factor", &render_info_block.strands_subdivision_y_factor, 1.0f, 1.0f, 1000.0f);
       ImGui::DragInt("Max curve subdivision", &render_info_block.strands_subdivision_max_x, 1, 1, 15);
       ImGui::DragInt("Max ring subdivision", &render_info_block.strands_subdivision_max_y, 1, 1, 15);
@@ -533,7 +535,8 @@ void RenderLayer::CollectDirectionalLights(
   auto& min_bound = scene_bound.min;
   auto& max_bound = scene_bound.max;
 
-  const std::vector<Entity>* directional_light_entities = scene->UnsafeGetPrivateComponentOwnersList<DirectionalLight>();
+  const std::vector<Entity>* directional_light_entities =
+      scene->UnsafeGetPrivateComponentOwnersList<DirectionalLight>();
   render_info_block.directional_light_size = 0;
   if (directional_light_entities && !directional_light_entities->empty()) {
     directional_light_info_blocks_.resize(Graphics::Settings::max_directional_light_size * cameras.size());
@@ -575,7 +578,8 @@ void RenderLayer::CollectDirectionalLights(
         glm::vec3 light_dir = glm::normalize(rotation * glm::vec3(0, 0, 1));
         float plane_distance = 0;
         glm::vec3 center;
-        const auto block_index = camera_index * Graphics::Settings::max_directional_light_size + directional_light_index;
+        const auto block_index =
+            camera_index * Graphics::Settings::max_directional_light_size + directional_light_index;
         directional_light_info_blocks_[block_index].direction = glm::vec4(light_dir, 0.0f);
         directional_light_info_blocks_[block_index].diffuse =
             glm::vec4(dlc->diffuse * dlc->diffuse_brightness, dlc->cast_shadow);
@@ -592,9 +596,11 @@ void RenderLayer::CollectDirectionalLights(
           float max = 0;
           glm::vec3 light_pos;
           glm::vec3 corner_points[8];
-          Camera::CalculateFrustumPoints(camera, split_start, split_end, main_camera_pos, main_camera_rot, corner_points);
+          Camera::CalculateFrustumPoints(camera, split_start, split_end, main_camera_pos, main_camera_rot,
+                                         corner_points);
           glm::vec3 camera_frustum_center =
-              (main_camera_rot * glm::vec3(0, 0, -1)) * ((split_end - split_start) / 2.0f + split_start) + main_camera_pos;
+              (main_camera_rot * glm::vec3(0, 0, -1)) * ((split_end - split_start) / 2.0f + split_start) +
+              main_camera_pos;
           if (stable_fit) {
             // Less detail but no shimmering when rotating the camera.
             // max = glm::distance(cornerPoints[4], cameraFrustumCenter);
@@ -603,59 +609,60 @@ void RenderLayer::CollectDirectionalLights(
             // More detail but cause shimmering when rotating camera.
             max = (glm::max)(
                 max, glm::distance(corner_points[0], Ray::ClosestPointOnLine(corner_points[0], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[1], Ray::ClosestPointOnLine(corner_points[1], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[2], Ray::ClosestPointOnLine(corner_points[2], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[3], Ray::ClosestPointOnLine(corner_points[3], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[4], Ray::ClosestPointOnLine(corner_points[4], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[5], Ray::ClosestPointOnLine(corner_points[5], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[6], Ray::ClosestPointOnLine(corner_points[6], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
             max = (glm::max)(
                 max, glm::distance(corner_points[7], Ray::ClosestPointOnLine(corner_points[7], camera_frustum_center,
-                                                                            camera_frustum_center - light_dir)));
+                                                                             camera_frustum_center - light_dir)));
           }
 
-          glm::vec3 p0 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, max_bound.y, max_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
-          glm::vec3 p7 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, min_bound.y, min_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
+          glm::vec3 p0 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, max_bound.y, max_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
+          glm::vec3 p7 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, min_bound.y, min_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
 
           float d0 = glm::distance(p0, p7);
 
-          glm::vec3 p1 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, max_bound.y, min_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
-          glm::vec3 p6 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, min_bound.y, max_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
+          glm::vec3 p1 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, max_bound.y, min_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
+          glm::vec3 p6 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, min_bound.y, max_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
 
           float d1 = glm::distance(p1, p6);
 
-          glm::vec3 p2 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, min_bound.y, max_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
-          glm::vec3 p5 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, max_bound.y, min_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
+          glm::vec3 p2 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, min_bound.y, max_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
+          glm::vec3 p5 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, max_bound.y, min_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
 
           float d2 = glm::distance(p2, p5);
 
-          glm::vec3 p3 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, min_bound.y, min_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
-          glm::vec3 p4 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, max_bound.y, max_bound.z), camera_frustum_center,
-                                                 camera_frustum_center + light_dir);
+          glm::vec3 p3 = Ray::ClosestPointOnLine(glm::vec3(max_bound.x, min_bound.y, min_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
+          glm::vec3 p4 = Ray::ClosestPointOnLine(glm::vec3(min_bound.x, max_bound.y, max_bound.z),
+                                                 camera_frustum_center, camera_frustum_center + light_dir);
 
           float d3 = glm::distance(p3, p4);
 
-          center = Ray::ClosestPointOnLine(scene_bound.Center(), camera_frustum_center, camera_frustum_center + light_dir);
+          center =
+              Ray::ClosestPointOnLine(scene_bound.Center(), camera_frustum_center, camera_frustum_center + light_dir);
           plane_distance = (glm::max)((glm::max)(d0, d1), (glm::max)(d2, d3));
           light_pos = center - light_dir * plane_distance;
           light_view = glm::lookAt(light_pos, light_pos + light_dir, glm::normalize(rotation * glm::vec3(0, 1, 0)));
@@ -668,7 +675,8 @@ void RenderLayer::CollectDirectionalLights(
               shadow_origin * static_cast<float>(directional_light_info_blocks_[block_index].viewport.z) / 2.0f;
           glm::vec4 rounded_origin = glm::round(shadow_origin);
           glm::vec4 round_offset = rounded_origin - shadow_origin;
-          round_offset = round_offset * 2.0f / static_cast<float>(directional_light_info_blocks_[block_index].viewport.z);
+          round_offset =
+              round_offset * 2.0f / static_cast<float>(directional_light_info_blocks_[block_index].viewport.z);
           round_offset.z = 0.0f;
           round_offset.w = 0.0f;
           glm::mat4 shadow_proj = light_projection;
@@ -717,11 +725,12 @@ void RenderLayer::CollectPointLights() {
       point_light_info_blocks_[render_info_block.point_light_size].diffuse =
           glm::vec4(plc->diffuse * plc->diffuse_brightness, plc->cast_shadow);
       point_light_info_blocks_[render_info_block.point_light_size].specular = glm::vec4(0);
-      point_light_info_blocks_[render_info_block.point_light_size].constant_linear_quad_far_plane.w = plc->GetFarPlane();
+      point_light_info_blocks_[render_info_block.point_light_size].constant_linear_quad_far_plane.w =
+          plc->GetFarPlane();
 
-      glm::mat4 shadow_proj =
-          glm::perspective(glm::radians(90.0f), 1.0f, 1.0f,
-                           point_light_info_blocks_[render_info_block.point_light_size].constant_linear_quad_far_plane.w);
+      glm::mat4 shadow_proj = glm::perspective(
+          glm::radians(90.0f), 1.0f, 1.0f,
+          point_light_info_blocks_[render_info_block.point_light_size].constant_linear_quad_far_plane.w);
       point_light_info_blocks_[render_info_block.point_light_size].light_space_matrix[0] =
           shadow_proj * glm::lookAt(position, position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
       point_light_info_blocks_[render_info_block.point_light_size].light_space_matrix[1] =
@@ -737,7 +746,8 @@ void RenderLayer::CollectPointLights() {
       point_light_info_blocks_[render_info_block.point_light_size].reserved_parameters =
           glm::vec4(plc->bias, plc->light_size, 0, 0);
 
-      sorted_point_light_indices.insert({glm::distance(main_camera_position, position), render_info_block.point_light_size});
+      sorted_point_light_indices.insert(
+          {glm::distance(main_camera_position, position), render_info_block.point_light_size});
       render_info_block.point_light_size++;
     }
     std::vector<glm::uvec3> view_port_results;
@@ -803,7 +813,8 @@ void RenderLayer::CollectSpotLights() {
           glm::vec4(glm::cos(glm::radians(slc->inner_degrees)), glm::cos(glm::radians(slc->outer_degrees)),
                     slc->light_size, slc->bias);
 
-      sorted_spot_light_indices.insert({glm::distance(main_camera_position, position), render_info_block.spot_light_size});
+      sorted_spot_light_indices.insert(
+          {glm::distance(main_camera_position, position), render_info_block.spot_light_size});
       render_info_block.spot_light_size++;
     }
     std::vector<glm::uvec3> view_port_results;
@@ -861,10 +872,11 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
   const bool count_draw_calls = count_shadow_rendering_draw_calls;
   const bool use_mesh_shader = Graphics::Constants::enable_mesh_shader && Graphics::Settings::use_mesh_shader;
   const auto current_frame_index = Graphics::GetCurrentFrameIndex();
-  const auto& point_light_shadow_pipeline = use_mesh_shader ? Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_MESH")
-                                                       : Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
+  const auto& point_light_shadow_pipeline = use_mesh_shader
+                                                ? Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_MESH")
+                                                : Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP");
   const auto& spot_light_shadow_pipeline = use_mesh_shader ? Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_MESH")
-                                                      : Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
+                                                           : Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP");
 
   const auto& point_light_shadow_skinned_pipeline = Graphics::GetGraphicsPipeline("POINT_LIGHT_SHADOW_MAP_SKINNED");
   const auto& spot_light_shadow_skinned_pipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_SKINNED");
@@ -876,7 +888,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
   const auto& spot_light_shadow_strands_pipeline = Graphics::GetGraphicsPipeline("SPOT_LIGHT_SHADOW_MAP_STRANDS");
   auto& graphics = Graphics::GetInstance();
 
-  const uint32_t task_work_group_invocations = graphics.mesh_shader_properties_ext_.maxPreferredTaskWorkGroupInvocations;
+  const uint32_t task_work_group_invocations =
+      graphics.mesh_shader_properties_ext_.maxPreferredTaskWorkGroupInvocations;
 
   Graphics::AppendCommands([&](VkCommandBuffer command_buffer) {
 #pragma region Viewport and scissor
@@ -914,7 +927,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
         point_light_shadow_pipeline->states.ResetAllStates(0);
-        point_light_shadow_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         point_light_shadow_pipeline->states.view_port = viewport;
         point_light_shadow_pipeline->states.scissor = scissor;
 
@@ -944,9 +956,9 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
               graphics.draw_call[current_frame_index]++;
             if (count_draw_calls)
               graphics.triangles[current_frame_index] += total_mesh_triangles_;
-            vkCmdDrawIndexedIndirect(command_buffer,
-                                     mesh_draw_indexed_indirect_commands_buffers_[current_frame_index]->GetVkBuffer(), 0,
-                                     mesh_draw_indexed_indirect_commands_.size(), sizeof(VkDrawIndexedIndirectCommand));
+            vkCmdDrawIndexedIndirect(
+                command_buffer, mesh_draw_indexed_indirect_commands_buffers_[current_frame_index]->GetVkBuffer(), 0,
+                mesh_draw_indexed_indirect_commands_.size(), sizeof(VkDrawIndexedIndirectCommand));
           } else {
             deferred_render_instances_.Dispatch([&](const RenderInstance& render_command) {
               if (!render_command.cast_shadow)
@@ -989,7 +1001,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
         point_light_shadow_instanced_pipeline->states.ResetAllStates(0);
-        point_light_shadow_instanced_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         point_light_shadow_instanced_pipeline->states.view_port = viewport;
         point_light_shadow_instanced_pipeline->states.scissor = scissor;
         vkCmdBeginRendering(command_buffer, &render_info);
@@ -1020,8 +1031,8 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
             if (count_draw_calls)
               graphics.draw_call[current_frame_index]++;
             if (count_draw_calls)
-              graphics.triangles[current_frame_index] += render_command.mesh->triangles_.size() *
-                                                         render_command.particle_infos->PeekParticleInfoList().size();
+              graphics.triangles[current_frame_index] +=
+                  render_command.mesh->triangles_.size() * render_command.particle_infos->PeekParticleInfoList().size();
             mesh->DrawIndexed(command_buffer, point_light_shadow_instanced_pipeline->states,
                               render_command.particle_infos->PeekParticleInfoList().size());
           });
@@ -1040,7 +1051,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
         point_light_shadow_skinned_pipeline->states.ResetAllStates(0);
-        point_light_shadow_skinned_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         point_light_shadow_skinned_pipeline->states.view_port = viewport;
         point_light_shadow_skinned_pipeline->states.scissor = scissor;
         vkCmdBeginRendering(command_buffer, &render_info);
@@ -1089,7 +1099,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
         point_light_shadow_strands_pipeline->states.ResetAllStates(0);
-        point_light_shadow_strands_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         point_light_shadow_strands_pipeline->states.view_port = viewport;
         point_light_shadow_strands_pipeline->states.scissor = scissor;
         vkCmdBeginRendering(command_buffer, &render_info);
@@ -1156,7 +1165,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
       render_info.pColorAttachments = nullptr;
       render_info.pDepthAttachment = &depth_attachment;
       spot_light_shadow_pipeline->states.ResetAllStates(0);
-      spot_light_shadow_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
       spot_light_shadow_pipeline->states.view_port = viewport;
       spot_light_shadow_pipeline->states.scissor = scissor;
       vkCmdBeginRendering(command_buffer, &render_info);
@@ -1228,7 +1236,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
       render_info.pColorAttachments = nullptr;
       render_info.pDepthAttachment = &depth_attachment;
       spot_light_shadow_instanced_pipeline->states.ResetAllStates(0);
-      spot_light_shadow_instanced_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
       spot_light_shadow_instanced_pipeline->states.view_port = viewport;
       spot_light_shadow_instanced_pipeline->states.scissor = scissor;
       vkCmdBeginRendering(command_buffer, &render_info);
@@ -1277,7 +1284,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
       render_info.pColorAttachments = nullptr;
       render_info.pDepthAttachment = &depth_attachment;
       spot_light_shadow_skinned_pipeline->states.ResetAllStates(0);
-      spot_light_shadow_skinned_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
       spot_light_shadow_skinned_pipeline->states.view_port = viewport;
       spot_light_shadow_skinned_pipeline->states.scissor = scissor;
       vkCmdBeginRendering(command_buffer, &render_info);
@@ -1324,7 +1330,6 @@ void RenderLayer::PreparePointAndSpotLightShadowMap() const {
       render_info.pColorAttachments = nullptr;
       render_info.pDepthAttachment = &depth_attachment;
       spot_light_shadow_strands_pipeline->states.ResetAllStates(0);
-      spot_light_shadow_strands_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
       spot_light_shadow_strands_pipeline->states.view_port = viewport;
       spot_light_shadow_strands_pipeline->states.scissor = scissor;
       vkCmdBeginRendering(command_buffer, &render_info);
@@ -1366,7 +1371,8 @@ void RenderLayer::CalculateLodFactor(const glm::vec3& center, const float max_di
   const auto scene = GetScene();
   if (const auto* owners = scene->UnsafeGetPrivateComponentOwnersList<LodGroup>()) {
     for (auto owner : *owners) {
-      if (const auto lod_group = scene->GetOrSetPrivateComponent<LodGroup>(owner).lock(); !lod_group->override_lod_factor) {
+      if (const auto lod_group = scene->GetOrSetPrivateComponent<LodGroup>(owner).lock();
+          !lod_group->override_lod_factor) {
         auto gt = scene->GetDataComponent<GlobalTransform>(owner);
         const auto distance = glm::distance(gt.GetPosition(), center);
         const auto distance_factor = glm::clamp(distance / max_distance, 0.f, 1.f);
@@ -1420,8 +1426,8 @@ bool RenderLayer::CollectRenderInstances(Bound& world_bound) {
             }
           } else if (const auto particles = renderer.Get<Particles>()) {
             lod_group_renderers.insert(particles->GetHandle());
-            if (render_current_level && scene->IsEntityEnabled(owner) && scene->IsEntityEnabled(particles->GetOwner()) &&
-                particles->IsEnabled()) {
+            if (render_current_level && scene->IsEntityEnabled(owner) &&
+                scene->IsEntityEnabled(particles->GetOwner()) && particles->IsEnabled()) {
               if (TryRegisterRenderer(scene, owner, particles, min_bound, max_bound, enable_selection_high_light)) {
                 has_render_instance = true;
               }
@@ -1430,7 +1436,8 @@ bool RenderLayer::CollectRenderInstances(Bound& world_bound) {
             lod_group_renderers.insert(strands_renderer->GetHandle());
             if (render_current_level && scene->IsEntityEnabled(owner) &&
                 scene->IsEntityEnabled(strands_renderer->GetOwner()) && strands_renderer->IsEnabled()) {
-              if (TryRegisterRenderer(scene, owner, strands_renderer, min_bound, max_bound, enable_selection_high_light)) {
+              if (TryRegisterRenderer(scene, owner, strands_renderer, min_bound, max_bound,
+                                      enable_selection_high_light)) {
                 has_render_instance = true;
               }
             }
@@ -1462,7 +1469,8 @@ bool RenderLayer::CollectRenderInstances(Bound& world_bound) {
         auto skinned_mesh_renderer = scene->GetOrSetPrivateComponent<SkinnedMeshRenderer>(owner).lock();
         if (lod_group_renderers.find(skinned_mesh_renderer->GetHandle()) != lod_group_renderers.end())
           continue;
-        if (TryRegisterRenderer(scene, owner, skinned_mesh_renderer, min_bound, max_bound, enable_selection_high_light)) {
+        if (TryRegisterRenderer(scene, owner, skinned_mesh_renderer, min_bound, max_bound,
+                                enable_selection_high_light)) {
           has_render_instance = true;
         }
       }
@@ -1543,10 +1551,11 @@ void RenderLayer::CreateStandardDescriptorBuffers() {
 
     buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     buffer_create_info.size = sizeof(glm::vec4) * Graphics::Constants::max_kernel_amount * 2;
-    kernel_descriptor_buffers_.emplace_back(std::make_unique<Buffer>(buffer_create_info, buffer_vma_allocation_create_info));
+    kernel_descriptor_buffers_.emplace_back(
+        std::make_unique<Buffer>(buffer_create_info, buffer_vma_allocation_create_info));
     buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     buffer_create_info.size = sizeof(DirectionalLightInfo) * Graphics::Settings::max_directional_light_size *
-                            Graphics::Constants::initial_camera_size;
+                              Graphics::Constants::initial_camera_size;
     directional_light_info_descriptor_buffers_.emplace_back(
         std::make_unique<Buffer>(buffer_create_info, buffer_vma_allocation_create_info));
     buffer_create_info.size = sizeof(PointLightInfo) * Graphics::Settings::max_point_light_size;
@@ -1632,7 +1641,8 @@ void RenderLayer::PrepareEnvironmentalBrdfLut() {
   }
   const auto environmental_brdf_pipeline = Graphics::GetGraphicsPipeline("ENVIRONMENTAL_MAP_BRDF");
   Graphics::ImmediateSubmit([&](const VkCommandBuffer command_buffer) {
-    environmental_brdf_lut_texture_storage.image->TransitImageLayout(command_buffer, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+    environmental_brdf_lut_texture_storage.image->TransitImageLayout(command_buffer,
+                                                                     VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 #pragma region Viewport and scissor
     VkRect2D render_area;
     render_area.offset = {0, 0};
@@ -1687,20 +1697,21 @@ void RenderLayer::PrepareEnvironmentalBrdfLut() {
 #pragma endregion
     }
     environmental_brdf_lut_texture_storage.image->TransitImageLayout(command_buffer,
-                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   });
 }
 
-void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform, const std::shared_ptr<Camera>& camera) {
+void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
+                                 const std::shared_ptr<Camera>& camera) {
   const bool count_draw_calls = count_shadow_rendering_draw_calls;
   const bool use_mesh_shader = Graphics::Constants::enable_mesh_shader && Graphics::Settings::use_mesh_shader;
   const auto current_frame_index = Graphics::GetCurrentFrameIndex();
   const int camera_index = GetCameraIndex(camera->GetHandle());
   const auto scene = Application::GetActiveScene();
 #pragma region Directional Light Shadows
-  const auto& directional_light_shadow_pipeline = use_mesh_shader
-                                                   ? Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH")
-                                                   : Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
+  const auto& directional_light_shadow_pipeline =
+      use_mesh_shader ? Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_MESH")
+                      : Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP");
   const auto& directional_light_shadow_pipeline_skinned =
       Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED");
   const auto& directional_light_shadow_pipeline_instanced =
@@ -1708,7 +1719,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
   const auto& directional_light_shadow_pipeline_strands =
       Graphics::GetGraphicsPipeline("DIRECTIONAL_LIGHT_SHADOW_MAP_STRANDS");
   auto& graphics = Graphics::GetInstance();
-  const uint32_t task_work_group_invocations = graphics.mesh_shader_properties_ext_.maxPreferredTaskWorkGroupInvocations;
+  const uint32_t task_work_group_invocations =
+      graphics.mesh_shader_properties_ext_.maxPreferredTaskWorkGroupInvocations;
   Graphics::AppendCommands([&](VkCommandBuffer command_buffer) {
 #pragma region Viewport and scissor
     VkRect2D render_area;
@@ -1743,6 +1755,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         render_info.colorAttachmentCount = 0;
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
+        directional_light_shadow_pipeline->states.ResetAllStates(0);
         directional_light_shadow_pipeline->states.scissor = scissor;
         directional_light_shadow_pipeline->states.view_port = viewport;
         directional_light_shadow_pipeline->states.color_blend_attachment_states.clear();
@@ -1751,7 +1764,6 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         directional_light_shadow_pipeline->Bind(command_buffer);
         directional_light_shadow_pipeline->BindDescriptorSet(
             command_buffer, 0, per_frame_descriptor_sets_[current_frame_index]->GetVkDescriptorSet());
-        directional_light_shadow_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         GeometryStorage::BindVertices(command_buffer);
         for (int i = 0; i < render_info_block.directional_light_size; i++) {
           const auto& directional_light_info_block =
@@ -1776,9 +1788,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
               graphics.draw_call[current_frame_index]++;
             if (count_draw_calls)
               graphics.triangles[current_frame_index] += total_mesh_triangles_;
-            vkCmdDrawIndexedIndirect(command_buffer,
-                                     mesh_draw_indexed_indirect_commands_buffers_[current_frame_index]->GetVkBuffer(), 0,
-                                     mesh_draw_indexed_indirect_commands_.size(), sizeof(VkDrawIndexedIndirectCommand));
+            vkCmdDrawIndexedIndirect(
+                command_buffer, mesh_draw_indexed_indirect_commands_buffers_[current_frame_index]->GetVkBuffer(), 0,
+                mesh_draw_indexed_indirect_commands_.size(), sizeof(VkDrawIndexedIndirectCommand));
           } else {
             deferred_render_instances_.Dispatch([&](const RenderInstance& render_command) {
               if (!render_command.cast_shadow)
@@ -1821,6 +1833,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         render_info.colorAttachmentCount = 0;
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
+        directional_light_shadow_pipeline_instanced->states.ResetAllStates(0);
         directional_light_shadow_pipeline_instanced->states.scissor = scissor;
         directional_light_shadow_pipeline_instanced->states.view_port = viewport;
         directional_light_shadow_pipeline_instanced->states.color_blend_attachment_states.clear();
@@ -1858,8 +1871,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
             if (count_draw_calls)
               graphics.draw_call[current_frame_index]++;
             if (count_draw_calls)
-              graphics.triangles[current_frame_index] += render_command.mesh->triangles_.size() *
-                                                         render_command.particle_infos->PeekParticleInfoList().size();
+              graphics.triangles[current_frame_index] +=
+                  render_command.mesh->triangles_.size() * render_command.particle_infos->PeekParticleInfoList().size();
             mesh->DrawIndexed(command_buffer, directional_light_shadow_pipeline_instanced->states,
                               render_command.particle_infos->PeekParticleInfoList().size());
           });
@@ -1877,6 +1890,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         render_info.colorAttachmentCount = 0;
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
+        directional_light_shadow_pipeline_skinned->states.ResetAllStates(0);
         directional_light_shadow_pipeline_skinned->states.scissor = scissor;
         directional_light_shadow_pipeline_skinned->states.view_port = viewport;
         directional_light_shadow_pipeline_skinned->states.color_blend_attachment_states.clear();
@@ -1930,6 +1944,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         render_info.colorAttachmentCount = 0;
         render_info.pColorAttachments = nullptr;
         render_info.pDepthAttachment = &depth_attachment;
+        directional_light_shadow_pipeline_strands->states.ResetAllStates(0);
         directional_light_shadow_pipeline_strands->states.scissor = scissor;
         directional_light_shadow_pipeline_strands->states.view_port = viewport;
         directional_light_shadow_pipeline_strands->states.color_blend_attachment_states.clear();
@@ -2024,12 +2039,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
       render_info.colorAttachmentCount = color_attachment_infos.size();
       render_info.pColorAttachments = color_attachment_infos.data();
 
-      const auto& deferred_prepass_pipeline =
-          enable_debug_visualization
-              ? use_mesh_shader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS_MESH")
-                              : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_MESHLET_COLORED_PREPASS")
-          : use_mesh_shader ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH")
-                          : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
+      const auto& deferred_prepass_pipeline = use_mesh_shader
+                                                  ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS_MESH")
+                                                  : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_PREPASS");
       deferred_prepass_pipeline->states.ResetAllStates(color_attachment_infos.size());
       deferred_prepass_pipeline->states.view_port = viewport;
       deferred_prepass_pipeline->states.scissor = scissor;
@@ -2132,7 +2144,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
       render_info.colorAttachmentCount = color_attachment_infos.size();
       render_info.pColorAttachments = color_attachment_infos.data();
 
-      const auto& deferred_skinned_prepass_pipeline = Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
+      const auto& deferred_skinned_prepass_pipeline =
+          Graphics::GetGraphicsPipeline("STANDARD_SKINNED_DEFERRED_PREPASS");
       deferred_skinned_prepass_pipeline->states.ResetAllStates(color_attachment_infos.size());
       deferred_skinned_prepass_pipeline->states.view_port = viewport;
       deferred_skinned_prepass_pipeline->states.scissor = scissor;
@@ -2172,7 +2185,8 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
       render_info.colorAttachmentCount = color_attachment_infos.size();
       render_info.pColorAttachments = color_attachment_infos.data();
 
-      const auto& deferred_strands_prepass_pipeline = Graphics::GetGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS");
+      const auto& deferred_strands_prepass_pipeline =
+          Graphics::GetGraphicsPipeline("STANDARD_STRANDS_DEFERRED_PREPASS");
       deferred_strands_prepass_pipeline->states.ResetAllStates(color_attachment_infos.size());
       deferred_strands_prepass_pipeline->states.view_port = viewport;
       deferred_strands_prepass_pipeline->states.scissor = scissor;
@@ -2217,10 +2231,10 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
       render_info.pColorAttachments = color_attachment_infos.data();
       render_info.pDepthAttachment = VK_NULL_HANDLE;
       lighting_->directional_light_shadow_map_->TransitImageLayout(command_buffer,
-                                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
       const auto& deferred_lighting_pipeline =
           is_scene_camera ? Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING_SCENE_CAMERA")
-                        : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
+                          : Graphics::GetGraphicsPipeline("STANDARD_DEFERRED_LIGHTING");
       vkCmdBeginRendering(command_buffer, &render_info);
       deferred_lighting_pipeline->states.ResetAllStates(color_attachment_infos.size());
       deferred_lighting_pipeline->states.depth_test = false;
@@ -2229,9 +2243,9 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
       deferred_lighting_pipeline->BindDescriptorSet(
           command_buffer, 0, per_frame_descriptor_sets_[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
       deferred_lighting_pipeline->BindDescriptorSet(command_buffer, 1,
-                                                  camera->g_buffer_descriptor_set_->GetVkDescriptorSet());
+                                                    camera->g_buffer_descriptor_set_->GetVkDescriptorSet());
       deferred_lighting_pipeline->BindDescriptorSet(command_buffer, 2,
-                                                  lighting_->lighting_descriptor_set->GetVkDescriptorSet());
+                                                    lighting_->lighting_descriptor_set->GetVkDescriptorSet());
       deferred_lighting_pipeline->states.view_port = viewport;
       deferred_lighting_pipeline->states.scissor = scissor;
       RenderInstancePushConstant push_constant;
@@ -2279,9 +2293,9 @@ bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const
 
   glm::vec3 size = mesh_bound.Size();
   min_bound = glm::vec3((glm::min)(min_bound.x, center.x - size.x), (glm::min)(min_bound.y, center.y - size.y),
-                       (glm::min)(min_bound.z, center.z - size.z));
+                        (glm::min)(min_bound.z, center.z - size.z));
   max_bound = glm::vec3((glm::max)(max_bound.x, center.x + size.x), (glm::max)(max_bound.y, center.y + size.y),
-                       (glm::max)(max_bound.z, center.z + size.z));
+                        (glm::max)(max_bound.z, center.z + size.z));
 
   MaterialInfoBlock material_info_block;
   material->UpdateMaterialInfoBlock(material_info_block);
@@ -2355,9 +2369,9 @@ bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const
 
   glm::vec3 size = mesh_bound.Size();
   min_bound = glm::vec3((glm::min)(min_bound.x, center.x - size.x), (glm::min)(min_bound.y, center.y - size.y),
-                       (glm::min)(min_bound.z, center.z - size.z));
+                        (glm::min)(min_bound.z, center.z - size.z));
   max_bound = glm::vec3((glm::max)(max_bound.x, center.x + size.x), (glm::max)(max_bound.y, center.y + size.y),
-                       (glm::max)(max_bound.z, center.z + size.z));
+                        (glm::max)(max_bound.z, center.z + size.z));
 
   MaterialInfoBlock material_info_block;
   material->UpdateMaterialInfoBlock(material_info_block);
@@ -2412,10 +2426,10 @@ bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const
 
   glm::vec3 size = mesh_bound.Size();
   min_bound = glm::vec3((glm::min)(min_bound.x, center.x - size.x), (glm::min)(min_bound.y, center.y - size.y),
-                       (glm::min)(min_bound.z, center.z - size.z));
+                        (glm::min)(min_bound.z, center.z - size.z));
 
   max_bound = glm::vec3((glm::max)(max_bound.x, center.x + size.x), (glm::max)(max_bound.y, center.y + size.y),
-                       (glm::max)(max_bound.z, center.z + size.z));
+                        (glm::max)(max_bound.z, center.z + size.z));
 
   MaterialInfoBlock material_info_block;
   material->UpdateMaterialInfoBlock(material_info_block);
@@ -2518,9 +2532,9 @@ bool RenderLayer::TryRegisterRenderer(const std::shared_ptr<Scene>& scene, const
 
   glm::vec3 size = mesh_bound.Size();
   min_bound = glm::vec3((glm::min)(min_bound.x, center.x - size.x), (glm::min)(min_bound.y, center.y - size.y),
-                       (glm::min)(min_bound.z, center.z - size.z));
+                        (glm::min)(min_bound.z, center.z - size.z));
   max_bound = glm::vec3((glm::max)(max_bound.x, center.x + size.x), (glm::max)(max_bound.y, center.y + size.y),
-                       (glm::max)(max_bound.z, center.z + size.z));
+                        (glm::max)(max_bound.z, center.z + size.z));
 
   MaterialInfoBlock material_info_block;
   material->UpdateMaterialInfoBlock(material_info_block);

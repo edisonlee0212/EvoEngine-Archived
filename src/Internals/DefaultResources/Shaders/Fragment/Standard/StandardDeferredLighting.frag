@@ -6,8 +6,7 @@ layout (location = 0) in VS_OUT {
 
 layout(set = EE_PER_PASS_SET, binding = 18) uniform sampler2D inDepth;
 layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D inNormal;
-layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inAlbedo;
-layout(set = EE_PER_PASS_SET, binding = 21) uniform sampler2D inMaterial;
+layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inMaterial;
 
 layout (location = 0) out vec4 FragColor;
 

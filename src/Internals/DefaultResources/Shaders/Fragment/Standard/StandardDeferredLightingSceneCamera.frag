@@ -6,8 +6,7 @@ layout (location = 0) in VS_OUT {
 
 layout(set = EE_PER_PASS_SET, binding = 18) uniform sampler2D inDepth;
 layout(set = EE_PER_PASS_SET, binding = 19) uniform sampler2D inNormal;
-layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inAlbedo;
-layout(set = EE_PER_PASS_SET, binding = 21) uniform sampler2D inMaterial;
+layout(set = EE_PER_PASS_SET, binding = 20) uniform sampler2D inMaterial;
 
 layout (location = 0) out vec4 FragColor;
 void main()
@@ -44,23 +43,33 @@ void main()
 
 	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	
+	int instanceIndex = int(round(texture(inNormal, fs_in.TexCoord).a));
 
 	int materialIndex = int(round(texture(inMaterial, fs_in.TexCoord).w));
 	vec2 materialTexCoord = texture(inMaterial, fs_in.TexCoord).xy;
 	MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[materialIndex];
 
-	float roughness = materialProperties.EE_PBR_ROUGHNESS;
-	float metallic = materialProperties.EE_PBR_METALLIC;
-	float emission = materialProperties.EE_PBR_EMISSION;
-	float ao = materialProperties.EE_PBR_AO;
-	vec4 albedo = materialProperties.EE_PBR_ALBEDO;
+	float roughness = 0.0;
+	float metallic = 0.0;
+	float emission = 1.0;
+	float ao = 1.0;
+	vec4 albedo = vec4(1.0);
+	if(EE_RENDERING_SETTINGS_DEBUG_VISUALIZATION == 0) {
+		roughness = materialProperties.EE_PBR_ROUGHNESS;
+		metallic = materialProperties.EE_PBR_METALLIC;
+		emission = materialProperties.EE_PBR_EMISSION;
+		ao = materialProperties.EE_PBR_AO;
+		albedo = materialProperties.EE_PBR_ALBEDO;
 
-	if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], materialTexCoord);
-
-	
+		if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], materialTexCoord).r;
+		if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], materialTexCoord).r;
+		if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], materialTexCoord).r;
+		if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], materialTexCoord);
+	}else if(EE_RENDERING_SETTINGS_DEBUG_VISUALIZATION == 1){
+		albedo = vec4(EE_UNIFORM_KERNEL[materialIndex % MAX_KERNEL_AMOUNT].xyz, 1.0);
+	}else if(EE_RENDERING_SETTINGS_DEBUG_VISUALIZATION == 2){
+		albedo = vec4(EE_UNIFORM_KERNEL[instanceIndex % MAX_KERNEL_AMOUNT].xyz, 1.0);
+	}
 	vec3 cameraPosition = EE_CAMERA_POSITION();
 	vec3 viewDir = normalize(cameraPosition - fragPos);
 	bool receiveShadow = true;

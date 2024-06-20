@@ -10,7 +10,7 @@ void GraphicsPipelineStates::ResetAllStates(const size_t color_attachment_size) 
   depth_clamp = false;
   rasterizer_discard = false;
   polygon_mode = VK_POLYGON_MODE_FILL;
-  cull_mode = VK_CULL_MODE_BACK_BIT;
+  cull_mode = VK_CULL_MODE_NONE;
   front_face = VK_FRONT_FACE_CLOCKWISE;
   depth_bias = false;
   depth_bias_constant_clamp_slope = glm::vec3(0.0f);

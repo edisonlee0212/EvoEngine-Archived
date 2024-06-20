@@ -113,6 +113,11 @@ struct RenderInfoBlock {
   alignas(4) int point_light_size = 0;
   alignas(4) int spot_light_size = 0;
   alignas(4) int brdflut_texture_index = 0;
+
+  alignas(4) int debug_visualization = 0;
+  alignas(4) int padding0 = 0;
+  alignas(4) int padding1 = 0;
+  alignas(4) int padding2 = 0;
 };
 
 struct EnvironmentInfoBlock {
