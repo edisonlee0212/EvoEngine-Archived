@@ -785,8 +785,7 @@ void EditorLayer::SceneCameraWindow() {
           else if (graphics.triangles[current_frame_index] < 999999)
             draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000)) + "K";
           else
-            draw_call_info +=
-                std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
+            draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
           draw_call_info += " tris";
           ImGui::Text(draw_call_info.c_str());
           ImGui::Text("%d drawcall", graphics.draw_call[current_frame_index]);
@@ -807,15 +806,19 @@ void EditorLayer::SceneCameraWindow() {
             default_scene_camera_rotation = sceneCameraRotation;
           }
           ImGui::PushItemWidth(100);
+          ImGui::DragFloat("Background Intensity", &sceneCamera->background_intensity, 0.01f, 0.0f, 10.f);
           ImGui::Checkbox("Use clear color", &sceneCamera->use_clear_color);
-          ImGui::ColorEdit3("Clear color", &sceneCamera->clear_color.x);
+          if (sceneCamera->use_clear_color) {
+            ImGui::ColorEdit3("Clear Color", (float*)(void*)&sceneCamera->clear_color);
+          } else {
+            DragAndDropButton<Cubemap>(sceneCamera->skybox, "Skybox");
+          }
           ImGui::SliderFloat("FOV", &sceneCamera->fov, 1.0f, 359.f, "%.1f");
           ImGui::DragFloat3("Position", &sceneCameraPosition.x, 0.1f, 0, 0, "%.1f");
           ImGui::DragFloat("Speed", &velocity, 0.1f, 0, 0, "%.1f");
           ImGui::DragFloat("Sensitivity", &sensitivity, 0.1f, 0, 0, "%.1f");
           ImGui::Checkbox("Copy Transform", &apply_transform_to_main_camera);
           ImGui::DragFloat("Resolution", &scene_camera_resolution_multiplier, 0.1f, 0.1f, 4.0f);
-          DragAndDropButton<Cubemap>(sceneCamera->skybox, "Skybox", true);
           ImGui::PopItemWidth();
         }
         ImGui::EndChild();
@@ -988,8 +991,7 @@ void EditorLayer::MainCameraWindow() {
           else if (graphics.triangles[current_frame_index] < 999999)
             draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000)) + "K";
           else
-            draw_call_info +=
-                std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
+            draw_call_info += std::to_string(static_cast<int>(graphics.triangles[current_frame_index] / 1000000)) + "M";
           draw_call_info += " tris";
           ImGui::Text(draw_call_info.c_str());
           ImGui::Text("%d drawcall", graphics.draw_call[current_frame_index]);

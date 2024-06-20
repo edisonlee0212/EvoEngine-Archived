@@ -12,7 +12,7 @@ bool SpotLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     changed = false;
   if (ImGui::ColorEdit3("Color", &diffuse[0]))
     changed = false;
-  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.1f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.01f, 0.0f, 999.0f))
     changed = false;
   if (ImGui::DragFloat("Bias", &bias, 0.001f, 0.0f, 999.0f))
     changed = false;
@@ -28,7 +28,7 @@ bool SpotLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     changed = false;
   if (ImGui::DragFloat("Outer Degrees", &outer_degrees, 0.1f, inner_degrees, 180.0f))
     changed = false;
-  if (ImGui::DragFloat("Light Size", &light_size, 0.01f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Light Size", &light_size, 0.001f, 0.0f, 999.0f))
     changed = false;
 
   return changed;
@@ -82,7 +82,7 @@ bool PointLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     changed = false;
   if (ImGui::ColorEdit3("Color", &diffuse[0]))
     changed = false;
-  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.1f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.01f, 0.0f, 999.0f))
     changed = false;
   if (ImGui::DragFloat("Bias", &bias, 0.001f, 0.0f, 999.0f))
     changed = false;
@@ -94,7 +94,7 @@ bool PointLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   if (ImGui::DragFloat("Quadratic", &quadratic, 0.00001f, 0, 10, "%.5f"))
     changed = false;
 
-  if (ImGui::DragFloat("Light Size", &light_size, 0.01f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Light Size", &light_size, 0.001f, 0.0f, 999.0f))
     changed = false;
 
   return changed;
@@ -136,13 +136,13 @@ bool DirectionalLight::OnInspect(const std::shared_ptr<EditorLayer>& editor_laye
     changed = false;
   if (ImGui::ColorEdit3("Color", &diffuse[0]))
     changed = false;
-  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.1f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Intensity", &diffuse_brightness, 0.01f, 0.0f, 999.0f))
     changed = false;
   if (ImGui::DragFloat("Bias", &bias, 0.001f, 0.0f, 999.0f))
     changed = false;
   if (ImGui::DragFloat("Normal Offset", &normal_offset, 0.001f, 0.0f, 999.0f))
     changed = false;
-  if (ImGui::DragFloat("Light Size", &light_size, 0.01f, 0.0f, 999.0f))
+  if (ImGui::DragFloat("Light Size", &light_size, 0.001f, 0.0f, 999.0f))
     changed = false;
   return changed;
 }

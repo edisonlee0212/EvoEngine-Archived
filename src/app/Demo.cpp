@@ -208,7 +208,7 @@ void SetupDemoScene(const DemoSetup demo_setup, ApplicationInfo& application_inf
 #pragma region Dynamic Lighting
         const auto dir_light_entity = scene->CreateEntity("Directional Light");
         const auto dir_light = scene->GetOrSetPrivateComponent<DirectionalLight>(dir_light_entity).lock();
-        dir_light->diffuse_brightness = 0.0f;
+        dir_light->diffuse_brightness = 1.0f;
         dir_light->light_size = 0.2f;
         const auto point_light_right_entity = scene->CreateEntity("Left Point Light");
         const auto point_light_right_renderer =

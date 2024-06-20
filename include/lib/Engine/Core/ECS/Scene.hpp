@@ -26,10 +26,11 @@ class Environment {
   [[nodiscard]] std::shared_ptr<LightProbe> GetLightProbe(const glm::vec3& position);
   [[nodiscard]] std::shared_ptr<ReflectionProbe> GetReflectionProbe(const glm::vec3& position);
   glm::vec3 background_color = glm::vec3(1.0f, 1.0f, 1.0f);
-  float environment_gamma = 2.2f;
+  float background_intensity = 1.0f;
+
+  float environment_gamma = 1.0f;
   float ambient_light_intensity = 0.8f;
   EnvironmentType environment_type = EnvironmentType::EnvironmentalMap;
-  float background_intensity = 1.0f;
   void Serialize(YAML::Emitter& out) const;
   void Deserialize(const YAML::Node& in);
 };

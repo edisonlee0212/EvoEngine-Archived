@@ -18,7 +18,7 @@ struct CameraInfoBlock {
   int skybox_texture_index = 0;
   int environmental_irradiance_texture_index = 0;
   int environmental_prefiltered_index = 0;
-  int camera_padding = 0;
+  int camera_use_clear_color = 0;
   [[nodiscard]] glm::vec3 Project(const glm::vec3& position) const;
   [[nodiscard]] glm::vec3 UnProject(const glm::vec3& position) const;
 };
@@ -80,6 +80,7 @@ class Camera final : public IPrivateComponent {
   float fov = 120;
   bool use_clear_color = false;
   glm::vec3 clear_color = glm::vec3(0.0f);
+  float background_intensity = 1.0f;
   AssetRef skybox;
   AssetRef post_processing_stack;
   static void CalculatePlanes(std::vector<Plane>& planes, const glm::mat4& projection, const glm::mat4& view);

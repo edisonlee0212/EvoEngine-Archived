@@ -221,12 +221,12 @@ void Camera::UpdateCameraInfoBlock(CameraInfoBlock& camera_info_block, const Glo
       glm::inverse(camera_info_block.projection) * glm::inverse(camera_info_block.view);
   camera_info_block.reserved_parameters1 =
       glm::vec4(near_distance, far_distance, glm::tan(glm::radians(fov * 0.5f)), glm::tan(glm::radians(fov * 0.25f)));
-  camera_info_block.clear_color = glm::vec4(clear_color, 1.0f);
+  camera_info_block.clear_color = glm::vec4(clear_color, background_intensity);
   camera_info_block.reserved_parameters2 = glm::vec4(size_.x, size_.y, static_cast<float>(size_.x) / size_.y, 0.0f);
   if (use_clear_color) {
-    camera_info_block.clear_color.w = 1.0f;
+    camera_info_block.camera_use_clear_color = 1;
   } else {
-    camera_info_block.clear_color.w = 0.0f;
+    camera_info_block.camera_use_clear_color = 0;
   }
 
   if (const auto camera_skybox = skybox.Get<Cubemap>()) {
@@ -465,24 +465,35 @@ void Camera::Serialize(YAML::Emitter& out) const {
   out << YAML::Key << "near_distance" << YAML::Value << near_distance;
   out << YAML::Key << "far_distance" << YAML::Value << far_distance;
   out << YAML::Key << "fov" << YAML::Value << fov;
+  out << YAML::Key << "background_intensity" << YAML::Value << background_intensity;
 
   skybox.Save("skybox", out);
   post_processing_stack.Save("post_processing_stack", out);
 }
 
 void Camera::Deserialize(const YAML::Node& in) {
-  int resolution_x = in["x"].as<int>();
-  int resolution_y = in["y"].as<int>();
-  use_clear_color = in["use_clear_color"].as<bool>();
-  clear_color = in["clear_color"].as<glm::vec3>();
-  near_distance = in["near_distance"].as<float>();
-  far_distance = in["far_distance"].as<float>();
-  fov = in["fov"].as<float>();
-  Resize({resolution_x, resolution_y});
+  if (in["use_clear_color"])
+    use_clear_color = in["use_clear_color"].as<bool>();
+  if (in["clear_color"])
+    clear_color = in["clear_color"].as<glm::vec3>();
+  if (in["near_distance"])
+    near_distance = in["near_distance"].as<float>();
+  if (in["far_distance"])
+    far_distance = in["far_distance"].as<float>();
+  if (in["fov"])
+    fov = in["fov"].as<float>();
+  if (in["x"] && in["y"]) {
+    int resolution_x = in["x"].as<int>();
+    int resolution_y = in["y"].as<int>();
+    Resize({resolution_x, resolution_y});
+  }
   skybox.Load("skybox", in);
   post_processing_stack.Load("post_processing_stack", in);
   rendered_ = false;
   require_rendering_ = false;
+
+  if (in["background_intensity"])
+    background_intensity = in["background_intensity"].as<float>();
 }
 
 void Camera::OnDestroy() {
@@ -513,8 +524,17 @@ bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     }
     ImGui::TreePop();
   }
+  if (ImGui::TreeNodeEx("Background", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::DragFloat("Intensity", &background_intensity, 0.01f, 0.0f, 10.f);
+    ImGui::Checkbox("Use clear color", &use_clear_color);
+    if (use_clear_color) {
+      ImGui::ColorEdit3("Clear Color", (float*)(void*)&clear_color);
+    } else {
+      editor_layer->DragAndDropButton<Cubemap>(skybox, "Skybox");
+    }
+    ImGui::TreePop();
+  }
 
-  ImGui::Checkbox("Use clear color", &use_clear_color);
   const auto scene = GetScene();
   const bool saved_state = (this == scene->main_camera.Get<Camera>().get());
   bool is_main_camera = saved_state;
@@ -531,11 +551,6 @@ bool Camera::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
     if (ImGui::DragInt2("Resolution", &resolution.x, 1, 1, 4096)) {
       Resize({resolution.x, resolution.y});
     }
-  }
-  if (use_clear_color) {
-    ImGui::ColorEdit3("Clear Color", (float*)(void*)&clear_color);
-  } else {
-    editor_layer->DragAndDropButton<Cubemap>(skybox, "Skybox");
   }
 
   editor_layer->DragAndDropButton<PostProcessingStack>(post_processing_stack, "PostProcessingStack");
