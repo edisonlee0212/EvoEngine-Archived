@@ -406,6 +406,13 @@ void Resources::LoadShaders() {
         FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Fragment/Empty.frag");
     auto frag_shader = CreateResource<Shader>("EMPTY_FRAG");
     frag_shader->Set(ShaderType::Fragment, frag_shader_code);
+
+    frag_shader_code =
+        std::string("#version 460\n") + Graphics::GetInstance().shader_basic_constants_ + "\n" +
+        Graphics::GetInstance().shader_basic_ + "\n" +
+        FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") / "Shaders/Fragment/ShadowMapPassThrough.frag");
+    frag_shader = CreateResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
+    frag_shader->Set(ShaderType::Fragment, frag_shader_code);
   }
 #pragma endregion
 #pragma region Environmental

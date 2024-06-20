@@ -17,8 +17,9 @@ class Texture2D : public IAsset {
 
   std::shared_ptr<TextureStorageHandle> texture_storage_handle_;
 
-  void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const;
-
+  void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution, bool local_copy);
+  std::vector<glm::vec4> local_data_;
+  glm::uvec2 local_resolution_;
  protected:
   bool SaveInternal(const std::filesystem::path& path) const override;
   bool LoadInternal(const std::filesystem::path& path) override;
@@ -57,7 +58,7 @@ class Texture2D : public IAsset {
   [[nodiscard]] uint32_t GetTextureStorageIndex() const;
   ~Texture2D() override;
   bool OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) override;
-  [[nodiscard]] glm::ivec2 GetResolution() const;
+  [[nodiscard]] glm::uvec2 GetResolution() const;
   void StoreToPng(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1,
                   unsigned compression_level = 8) const;
   void StoreToTga(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1) const;
@@ -69,9 +70,9 @@ class Texture2D : public IAsset {
   void GetRgChannelData(std::vector<glm::vec2>& dst, int resize_x = -1, int resize_y = -1) const;
   void GetRedChannelData(std::vector<float>& dst, int resize_x = -1, int resize_y = -1) const;
 
-  void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution);
-  void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution);
-  void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution);
-  void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution);
+  void SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution, bool local_copy = false);
+  void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution, bool local_copy = false);
+  void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution, bool local_copy = false);
+  void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution, bool local_copy = false);
 };
 }  // namespace evo_engine

@@ -1,6 +1,5 @@
 #extension GL_ARB_shader_draw_parameters : enable
 
-precision highp float;
 layout (location = 0) in VS_OUT {
 	vec3 FragPos;
 	vec3 Normal;

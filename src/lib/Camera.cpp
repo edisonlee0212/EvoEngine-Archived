@@ -145,7 +145,7 @@ void Camera::UpdateGBuffer() {
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     view_info.image = g_buffer_material_->GetVkImage();
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    view_info.format = Graphics::Constants::g_buffer_color;
+    view_info.format = Graphics::Constants::g_buffer_material;
     view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     view_info.subresourceRange.baseMipLevel = 0;
     view_info.subresourceRange.levelCount = 1;

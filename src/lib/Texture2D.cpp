@@ -10,9 +10,13 @@
 
 using namespace evo_engine;
 
-void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution) const {
+void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution, const bool local_copy) {
   auto& texture_storage = TextureStorage::RefTexture2DStorage(texture_storage_handle_);
   texture_storage.SetData(data, resolution);
+  if (local_copy) {
+    local_data_ = data;
+    local_resolution_ = resolution;
+  }
 }
 
 bool Texture2D::SaveInternal(const std::filesystem::path& path) const {
@@ -36,7 +40,7 @@ bool Texture2D::SaveInternal(const std::filesystem::path& path) const {
     out_stream.flush();
     return true;
   } else {
-    EVOENGINE_ERROR("Not implemented!");
+    EVOENGINE_ERROR("Not implemented!")
     return false;
   }
   return true;
@@ -118,7 +122,11 @@ void Texture2D::ApplyOpacityMap(const std::shared_ptr<Texture2D>& target) {
 
 void Texture2D::Serialize(YAML::Emitter& out) const {
   std::vector<glm::vec4> pixels;
-  GetRgbaChannelData(pixels);
+  if (local_data_.empty())
+    GetRgbaChannelData(pixels);
+  else
+    pixels = local_data_;
+
   out << YAML::Key << "hdr" << YAML::Value << hdr;
 
   out << YAML::Key << "red_channel" << YAML::Value << red_channel;
@@ -262,17 +270,20 @@ bool Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   return changed;
 }
 
-glm::ivec2 Texture2D::GetResolution() const {
-  const auto texture_storage = PeekTexture2DStorage();
-  return {texture_storage.image->GetExtent().width, texture_storage.image->GetExtent().height};
+glm::uvec2 Texture2D::GetResolution() const {
+  if (local_data_.empty()) {
+    const auto texture_storage = PeekTexture2DStorage();
+    return {texture_storage.image->GetExtent().width, texture_storage.image->GetExtent().height};
+  }
+
+  return local_resolution_;
 }
 
 void Texture2D::StoreToPng(const std::filesystem::path& path, const int resize_x, const int resize_y,
                            const unsigned compression_level) const {
   const auto& texture_storage = PeekTexture2DStorage();
 
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
 
   size_t target_channel_size = 0;
   if (red_channel)
@@ -283,16 +294,20 @@ void Texture2D::StoreToPng(const std::filesystem::path& path, const int resize_x
     target_channel_size++;
   if (alpha_channel)
     target_channel_size++;
-
-  constexpr size_t device_channels = 4;
   std::vector<float> dst;
-  dst.resize(resolution_x * resolution_y * device_channels);
-  // Retrieve image data here.
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
-  image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(dst, resolution_x * resolution_y * device_channels);
+  constexpr size_t device_channels = 4;
+  const size_t data_length = sizeof(float) * device_channels * resolution.x * resolution.y;
+  dst.resize(resolution.x * resolution.y * device_channels);
+  if (local_data_.empty()) {
+    // Retrieve image data here.
+    Buffer image_buffer(data_length);
+    image_buffer.CopyFromImage(*texture_storage.image);
+    image_buffer.DownloadVector(dst, resolution.x * resolution.y * device_channels);
+  } else {
+    memcpy(dst.data(), local_data_.data(), data_length);
+  }
 
-  StoreToPng(path, dst, resolution_x, resolution_y, 4, target_channel_size, compression_level, resize_x, resize_y);
+  StoreToPng(path, dst, resolution.x, resolution.y, 4, target_channel_size, compression_level, resize_x, resize_y);
 }
 void Texture2D::StoreToPng(const std::filesystem::path& path, const std::vector<float>& src_data, const int src_x,
                            const int src_y, const int src_channel_size, const int target_channel_size,
@@ -322,15 +337,15 @@ void Texture2D::StoreToPng(const std::filesystem::path& path, const std::vector<
             glm::clamp(static_cast<int>(255.9f * src_data[i * src_channel_size + target_channel_index]), 0, 255);
       }
     });
-    stbi_write_png(path.string().c_str(), src_x, src_y, target_channel_size, pixels.data(), src_x * target_channel_size);
+    stbi_write_png(path.string().c_str(), src_x, src_y, target_channel_size, pixels.data(),
+                   src_x * target_channel_size);
   }
 }
 
 void Texture2D::StoreToTga(const std::filesystem::path& path, const int resize_x, const int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
 
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
 
   size_t target_channel_size = 0;
   if (red_channel)
@@ -342,23 +357,27 @@ void Texture2D::StoreToTga(const std::filesystem::path& path, const int resize_x
   if (alpha_channel)
     target_channel_size++;
 
-  constexpr size_t device_channels = 4;
   std::vector<float> dst;
-  dst.resize(resolution_x * resolution_y * device_channels);
-  // Retrieve image data here.
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
-  image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(dst, resolution_x * resolution_y * device_channels);
+  constexpr size_t device_channels = 4;
+  const size_t data_length = sizeof(float) * device_channels * resolution.x * resolution.y;
+  dst.resize(resolution.x * resolution.y * device_channels);
+  if (local_data_.empty()) {
+    // Retrieve image data here.
+    Buffer image_buffer(data_length);
+    image_buffer.CopyFromImage(*texture_storage.image);
+    image_buffer.DownloadVector(dst, resolution.x * resolution.y * device_channels);
+  } else {
+    memcpy(dst.data(), local_data_.data(), data_length);
+  }
 
-  StoreToTga(path, dst, resolution_x, resolution_y, 4, target_channel_size, resize_x, resize_y);
+  StoreToTga(path, dst, resolution.x, resolution.y, 4, target_channel_size, resize_x, resize_y);
 }
 
 void Texture2D::StoreToJpg(const std::filesystem::path& path, const int resize_x, const int resize_y,
                            const unsigned quality) const {
   const auto& texture_storage = PeekTexture2DStorage();
 
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
 
   size_t target_channel_size = 0;
   if (red_channel)
@@ -370,15 +389,20 @@ void Texture2D::StoreToJpg(const std::filesystem::path& path, const int resize_x
   if (alpha_channel)
     target_channel_size++;
 
-  constexpr size_t device_channels = 4;
   std::vector<float> dst;
-  dst.resize(resolution_x * resolution_y * device_channels);
-  // Retrieve image data here.
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
-  image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(dst, resolution_x * resolution_y * device_channels);
+  constexpr size_t device_channels = 4;
+  const size_t data_length = sizeof(float) * device_channels * resolution.x * resolution.y;
+  dst.resize(resolution.x * resolution.y * device_channels);
+  if (local_data_.empty()) {
+    // Retrieve image data here.
+    Buffer image_buffer(data_length);
+    image_buffer.CopyFromImage(*texture_storage.image);
+    image_buffer.DownloadVector(dst, resolution.x * resolution.y * device_channels);
+  } else {
+    memcpy(dst.data(), local_data_.data(), data_length);
+  }
 
-  StoreToJpg(path, dst, resolution_x, resolution_y, 4, target_channel_size, quality, resize_x, resize_y);
+  StoreToJpg(path, dst, resolution.x, resolution.y, 4, target_channel_size, quality, resize_x, resize_y);
 }
 
 void Texture2D::StoreToJpg(const std::filesystem::path& path, const std::vector<float>& src_data, const int src_x,
@@ -416,8 +440,8 @@ void Texture2D::StoreToJpg(const std::filesystem::path& path, const std::vector<
 }
 
 void Texture2D::StoreToTga(const std::filesystem::path& path, const std::vector<float>& src_data, const int src_x,
-                           const int src_y, const int src_channel_size, const int target_channel_size, const int resize_x,
-                           const int resize_y) {
+                           const int src_y, const int src_channel_size, const int target_channel_size,
+                           const int resize_x, const int resize_y) {
   stbi_flip_vertically_on_write(true);
 
   std::vector<uint8_t> pixels;
@@ -448,8 +472,8 @@ void Texture2D::StoreToTga(const std::filesystem::path& path, const std::vector<
 }
 
 void Texture2D::StoreToHdr(const std::filesystem::path& path, const std::vector<float>& src_data, const int src_x,
-                           const int src_y, const int src_channel_size, const int target_channel_size, const int resize_x,
-                           const int resize_y) {
+                           const int src_y, const int src_channel_size, const int target_channel_size,
+                           const int resize_x, const int resize_y) {
   std::vector<float> pixels;
   stbi_flip_vertically_on_write(true);
   if (resize_x > 0 && resize_y > 0 && (resize_x != src_x || resize_y != src_y)) {
@@ -479,8 +503,7 @@ void Texture2D::StoreToHdr(const std::filesystem::path& path, const std::vector<
 void Texture2D::StoreToHdr(const std::filesystem::path& path, const int resize_x, const int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
 
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
 
   size_t target_channel_size = 0;
   if (red_channel)
@@ -492,15 +515,20 @@ void Texture2D::StoreToHdr(const std::filesystem::path& path, const int resize_x
   if (alpha_channel)
     target_channel_size++;
 
-  constexpr size_t device_channels = 4;
   std::vector<float> dst;
-  dst.resize(resolution_x * resolution_y * device_channels);
-  // Retrieve image data here.
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
-  image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(dst, resolution_x * resolution_y * device_channels);
+  constexpr size_t device_channels = 4;
+  const size_t data_length = sizeof(float) * device_channels * resolution.x * resolution.y;
+  dst.resize(resolution.x * resolution.y * device_channels);
+  if (local_data_.empty()) {
+    // Retrieve image data here.
+    Buffer image_buffer(data_length);
+    image_buffer.CopyFromImage(*texture_storage.image);
+    image_buffer.DownloadVector(dst, resolution.x * resolution.y * device_channels);
+  } else {
+    memcpy(dst.data(), local_data_.data(), data_length);
+  }
 
-  StoreToHdr(path, dst, resolution_x, resolution_y, 4, target_channel_size, resize_x, resize_y);
+  StoreToHdr(path, dst, resolution.x, resolution.y, 4, target_channel_size, resize_x, resize_y);
 }
 
 ImTextureID Texture2D::GetImTextureId() const {
@@ -541,34 +569,32 @@ std::shared_ptr<Image> Texture2D::GetImage() const {
 
 void Texture2D::GetRgbaChannelData(std::vector<glm::vec4>& dst, const int resize_x, const int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
-  if ((resize_x == -1 && resize_y == -1) || (resolution_x == resize_x && resolution_y == resize_y)) {
-    Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
+  const auto resolution = GetResolution();
+  if ((resize_x == -1 && resize_y == -1) || (resolution.x == resize_x && resolution.y == resize_y)) {
+    Buffer image_buffer(sizeof(glm::vec4) * resolution.x * resolution.y);
     image_buffer.CopyFromImage(*texture_storage.image);
-    image_buffer.DownloadVector(dst, resolution_x * resolution_y);
+    image_buffer.DownloadVector(dst, resolution.x * resolution.y);
     return;
   }
   std::vector<glm::vec4> src;
-  src.resize(resolution_x * resolution_y);
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
+  src.resize(resolution.x * resolution.y);
+  Buffer image_buffer(sizeof(glm::vec4) * resolution.x * resolution.y);
   image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(src, resolution_x * resolution_y);
+  image_buffer.DownloadVector(src, resolution.x * resolution.y);
 
   dst.resize(resize_x * resize_y);
-  stbir_resize_float(reinterpret_cast<float*>(src.data()), resolution_x, resolution_y, 0,
+  stbir_resize_float(reinterpret_cast<float*>(src.data()), resolution.x, resolution.y, 0,
                      reinterpret_cast<float*>(dst.data()), resize_x, resize_y, 0, 4);
 }
 
 void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resize_x, int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
   std::vector<glm::vec4> pixels;
-  pixels.resize(resolution_x * resolution_y);
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
+  pixels.resize(resolution.x * resolution.y);
+  Buffer image_buffer(sizeof(glm::vec4) * resolution.x * resolution.y);
   image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(pixels, resolution_x * resolution_y);
+  image_buffer.DownloadVector(pixels, resolution.x * resolution.y);
   dst.resize(pixels.size());
   Jobs::RunParallelFor(pixels.size(), [&](unsigned i) {
     dst[i] = pixels[i];
@@ -577,13 +603,12 @@ void Texture2D::GetRgbChannelData(std::vector<glm::vec3>& dst, int resize_x, int
 
 void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resize_x, int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
   std::vector<glm::vec4> pixels;
-  pixels.resize(resolution_x * resolution_y);
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
+  pixels.resize(resolution.x * resolution.y);
+  Buffer image_buffer(sizeof(glm::vec4) * resolution.x * resolution.y);
   image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(pixels, resolution_x * resolution_y);
+  image_buffer.DownloadVector(pixels, resolution.x * resolution.y);
   dst.resize(pixels.size());
   Jobs::RunParallelFor(pixels.size(), [&](unsigned i) {
     dst[i] = glm::vec2(pixels[i].r, pixels[i].g);
@@ -592,21 +617,21 @@ void Texture2D::GetRgChannelData(std::vector<glm::vec2>& dst, int resize_x, int 
 
 void Texture2D::GetRedChannelData(std::vector<float>& dst, int resize_x, int resize_y) const {
   const auto& texture_storage = PeekTexture2DStorage();
-  const auto resolution_x = texture_storage.image->GetExtent().width;
-  const auto resolution_y = texture_storage.image->GetExtent().height;
+  const auto resolution = GetResolution();
   std::vector<glm::vec4> pixels;
-  pixels.resize(resolution_x * resolution_y);
-  Buffer image_buffer(sizeof(glm::vec4) * resolution_x * resolution_y);
+  pixels.resize(resolution.x * resolution.y);
+  Buffer image_buffer(sizeof(glm::vec4) * resolution.x * resolution.y);
   image_buffer.CopyFromImage(*texture_storage.image);
-  image_buffer.DownloadVector(pixels, resolution_x * resolution_y);
+  image_buffer.DownloadVector(pixels, resolution.x * resolution.y);
   dst.resize(pixels.size());
   Jobs::RunParallelFor(pixels.size(), [&](unsigned i) {
     dst[i] = pixels[i].r;
   });
 }
 
-void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution) {
-  SetData(src, resolution);
+void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm::uvec2& resolution,
+                                   const bool local_copy) {
+  SetData(src, resolution, local_copy);
   red_channel = true;
   green_channel = true;
   blue_channel = true;
@@ -614,13 +639,14 @@ void Texture2D::SetRgbaChannelData(const std::vector<glm::vec4>& src, const glm:
   SetUnsaved();
 }
 
-void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution) {
+void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution,
+                                  const bool local_copy) {
   std::vector<glm::vec4> image_data;
   image_data.resize(resolution.x * resolution.y);
   Jobs::RunParallelFor(image_data.size(), [&](unsigned i) {
     image_data[i] = glm::vec4(src[i], 1.0f);
   });
-  SetData(image_data, resolution);
+  SetData(image_data, resolution, local_copy);
   red_channel = true;
   green_channel = true;
   blue_channel = true;
@@ -629,13 +655,14 @@ void Texture2D::SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::
   SetUnsaved();
 }
 
-void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution) {
+void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution,
+                                 const bool local_copy) {
   std::vector<glm::vec4> image_data;
   image_data.resize(resolution.x * resolution.y);
   Jobs::RunParallelFor(image_data.size(), [&](unsigned i) {
     image_data[i] = glm::vec4(src[i], 0.0f, 1.0f);
   });
-  SetData(image_data, resolution);
+  SetData(image_data, resolution, local_copy);
   red_channel = true;
   green_channel = true;
   blue_channel = false;
@@ -644,13 +671,13 @@ void Texture2D::SetRgChannelData(const std::vector<glm::vec2>& src, const glm::u
   SetUnsaved();
 }
 
-void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution) {
+void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution, const bool local_copy) {
   std::vector<glm::vec4> image_data;
   image_data.resize(resolution.x * resolution.y);
   Jobs::RunParallelFor(image_data.size(), [&](unsigned i) {
     image_data[i] = glm::vec4(src[i], 0.0f, 0.0f, 1.0f);
   });
-  SetData(image_data, resolution);
+  SetData(image_data, resolution, local_copy);
   red_channel = true;
   green_channel = false;
   blue_channel = false;

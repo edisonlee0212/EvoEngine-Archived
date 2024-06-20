@@ -176,6 +176,7 @@ class Graphics final : public ISingleton<Graphics> {
     constexpr static VkFormat render_texture_color = VK_FORMAT_R32G32B32A32_SFLOAT;
     constexpr static VkFormat g_buffer_depth = VK_FORMAT_D32_SFLOAT;
     constexpr static VkFormat g_buffer_color = VK_FORMAT_R16G16B16A16_SFLOAT;
+    constexpr static VkFormat g_buffer_material = VK_FORMAT_R16G16B16A16_SFLOAT;
     constexpr static VkFormat shadow_map = VK_FORMAT_D32_SFLOAT;
     constexpr static uint32_t meshlet_max_vertices_size = 64;
     constexpr static uint32_t meshlet_max_triangles_size = 40;

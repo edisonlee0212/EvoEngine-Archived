@@ -6,6 +6,7 @@
 #include "ProjectManager.hpp"
 #include "Serialization.hpp"
 #include "SkinnedMeshRenderer.hpp"
+#include "TextureStorage.hpp"
 #include "TransformGraph.hpp"
 #include "UnknownPrivateComponent.hpp"
 #include "Utilities.hpp"
@@ -783,7 +784,7 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
       color_data[i].a = alpha_data[i].r;
     });
     std::shared_ptr<Texture2D> replacement_texture = ProjectManager::CreateTemporaryAsset<Texture2D>();
-    replacement_texture->SetRgbaChannelData(color_data, albedo_texture->GetResolution());
+    replacement_texture->SetRgbaChannelData(color_data, albedo_texture->GetResolution(), true);
     pair.second = replacement_texture;
   }
 

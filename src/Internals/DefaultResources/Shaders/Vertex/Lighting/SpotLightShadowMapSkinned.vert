@@ -9,6 +9,11 @@ layout (location = 5) in ivec4 inBoneIds;
 layout (location = 6) in vec4 inWeights;
 layout (location = 7) in ivec4 inBoneIds2; 
 layout (location = 8) in vec4 inWeights2;
+layout(location = 0) out VS_OUT {
+	vec2 TexCoord;
+} vs_out;
+
+layout(location = 5) out flat uint currentInstanceIndex;
 
 void main()
 {
@@ -34,6 +39,7 @@ void main()
 	if(inBoneIds2[3] != -1){
 		boneTransform += EE_ANIM_BONES[inBoneIds2[3]] * inWeights2[3];
 	}
-	uint currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
+	currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
+    vs_out.TexCoord = inTexCoord;
     gl_Position = EE_SPOT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix * EE_INSTANCES[currentInstanceIndex].model * boneTransform * vec4(inPosition, 1.0);
 }

@@ -294,7 +294,7 @@ void Graphics::CreateGraphicsPipelines() const {
   {
     const auto directional_light_shadow_map = std::make_shared<GraphicsPipeline>();
     directional_light_shadow_map->vertex_shader = Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_VERT");
-    directional_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    directional_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     directional_light_shadow_map->geometry_type = GeometryType::Mesh;
     directional_light_shadow_map->descriptor_set_layouts.emplace_back(per_frame_layout);
     directional_light_shadow_map->depth_attachment_format = Constants::shadow_map;
@@ -330,7 +330,7 @@ void Graphics::CreateGraphicsPipelines() const {
     const auto directional_light_shadow_map_skinned = std::make_shared<GraphicsPipeline>();
     directional_light_shadow_map_skinned->vertex_shader =
         Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_SKINNED_VERT");
-    directional_light_shadow_map_skinned->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    directional_light_shadow_map_skinned->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     directional_light_shadow_map_skinned->geometry_type = GeometryType::SkinnedMesh;
     directional_light_shadow_map_skinned->descriptor_set_layouts.emplace_back(per_frame_layout);
     directional_light_shadow_map_skinned->descriptor_set_layouts.emplace_back(bone_matrices_layout);
@@ -349,7 +349,7 @@ void Graphics::CreateGraphicsPipelines() const {
     const auto directional_light_shadow_map_instanced = std::make_shared<GraphicsPipeline>();
     directional_light_shadow_map_instanced->vertex_shader =
         Resources::GetResource<Shader>("DIRECTIONAL_LIGHT_SHADOW_MAP_INSTANCED_VERT");
-    directional_light_shadow_map_instanced->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    directional_light_shadow_map_instanced->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     directional_light_shadow_map_instanced->geometry_type = GeometryType::Mesh;
     directional_light_shadow_map_instanced->descriptor_set_layouts.emplace_back(per_frame_layout);
     directional_light_shadow_map_instanced->descriptor_set_layouts.emplace_back(instanced_data_layout);
@@ -394,7 +394,7 @@ void Graphics::CreateGraphicsPipelines() const {
   {
     const auto point_light_shadow_map = std::make_shared<GraphicsPipeline>();
     point_light_shadow_map->vertex_shader = Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_VERT");
-    point_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    point_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     point_light_shadow_map->geometry_type = GeometryType::Mesh;
     point_light_shadow_map->descriptor_set_layouts.emplace_back(per_frame_layout);
     point_light_shadow_map->depth_attachment_format = Constants::shadow_map;
@@ -432,7 +432,7 @@ void Graphics::CreateGraphicsPipelines() const {
     const auto point_light_shadow_map_skinned = std::make_shared<GraphicsPipeline>();
     point_light_shadow_map_skinned->vertex_shader =
         Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_SKINNED_VERT");
-    point_light_shadow_map_skinned->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    point_light_shadow_map_skinned->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     point_light_shadow_map_skinned->geometry_type = GeometryType::SkinnedMesh;
     point_light_shadow_map_skinned->descriptor_set_layouts.emplace_back(per_frame_layout);
     point_light_shadow_map_skinned->descriptor_set_layouts.emplace_back(bone_matrices_layout);
@@ -451,7 +451,7 @@ void Graphics::CreateGraphicsPipelines() const {
     const auto point_light_shadow_map_instanced = std::make_shared<GraphicsPipeline>();
     point_light_shadow_map_instanced->vertex_shader =
         Resources::GetResource<Shader>("POINT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
-    point_light_shadow_map_instanced->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    point_light_shadow_map_instanced->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     point_light_shadow_map_instanced->geometry_type = GeometryType::Mesh;
     point_light_shadow_map_instanced->descriptor_set_layouts.emplace_back(per_frame_layout);
     point_light_shadow_map_instanced->descriptor_set_layouts.emplace_back(instanced_data_layout);
@@ -496,7 +496,7 @@ void Graphics::CreateGraphicsPipelines() const {
   {
     const auto spot_light_shadow_map = std::make_shared<GraphicsPipeline>();
     spot_light_shadow_map->vertex_shader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_VERT");
-    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     spot_light_shadow_map->geometry_type = GeometryType::Mesh;
     spot_light_shadow_map->descriptor_set_layouts.emplace_back(per_frame_layout);
     spot_light_shadow_map->depth_attachment_format = Constants::shadow_map;
@@ -533,7 +533,7 @@ void Graphics::CreateGraphicsPipelines() const {
   {
     const auto spot_light_shadow_map = std::make_shared<GraphicsPipeline>();
     spot_light_shadow_map->vertex_shader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_SKINNED_VERT");
-    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     spot_light_shadow_map->geometry_type = GeometryType::SkinnedMesh;
     spot_light_shadow_map->descriptor_set_layouts.emplace_back(per_frame_layout);
     spot_light_shadow_map->descriptor_set_layouts.emplace_back(bone_matrices_layout);
@@ -551,7 +551,7 @@ void Graphics::CreateGraphicsPipelines() const {
   {
     const auto spot_light_shadow_map = std::make_shared<GraphicsPipeline>();
     spot_light_shadow_map->vertex_shader = Resources::GetResource<Shader>("SPOT_LIGHT_SHADOW_MAP_INSTANCED_VERT");
-    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("EMPTY_FRAG");
+    spot_light_shadow_map->fragment_shader = Resources::GetResource<Shader>("SHADOW_MAP_PASS_THROUGH_FRAG");
     spot_light_shadow_map->geometry_type = GeometryType::Mesh;
     spot_light_shadow_map->descriptor_set_layouts.emplace_back(per_frame_layout);
     spot_light_shadow_map->descriptor_set_layouts.emplace_back(instanced_data_layout);

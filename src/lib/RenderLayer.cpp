@@ -1750,7 +1750,7 @@ void RenderLayer::RenderToCamera(const GlobalTransform& camera_global_transform,
         vkCmdBeginRendering(command_buffer, &render_info);
         directional_light_shadow_pipeline->Bind(command_buffer);
         directional_light_shadow_pipeline->BindDescriptorSet(
-            command_buffer, 0, per_frame_descriptor_sets_[Graphics::GetCurrentFrameIndex()]->GetVkDescriptorSet());
+            command_buffer, 0, per_frame_descriptor_sets_[current_frame_index]->GetVkDescriptorSet());
         directional_light_shadow_pipeline->states.cull_mode = VK_CULL_MODE_NONE;
         GeometryStorage::BindVertices(command_buffer);
         for (int i = 0; i < render_info_block.directional_light_size; i++) {
