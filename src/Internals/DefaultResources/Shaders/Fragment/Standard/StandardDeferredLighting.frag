@@ -27,22 +27,28 @@ void main()
 	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
-	float metallic = 	texture(inMaterial, fs_in.TexCoord).x;
-	float roughness = 	texture(inMaterial, fs_in.TexCoord).y;
-	float emission = 	texture(inMaterial, fs_in.TexCoord).z;
-	float ao = 			texture(inMaterial, fs_in.TexCoord).w;
+	int materialIndex = int(round(texture(inMaterial, fs_in.TexCoord).w));
+	vec2 materialTexCoord = texture(inMaterial, fs_in.TexCoord).xy;
+	MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[materialIndex];
 
-	vec3 albedo = 		texture(inAlbedo, fs_in.TexCoord).xyz;
+	float roughness = materialProperties.EE_PBR_ROUGHNESS;
+	float metallic = materialProperties.EE_PBR_METALLIC;
+	float emission = materialProperties.EE_PBR_EMISSION;
+	float ao = materialProperties.EE_PBR_AO;
+	vec4 albedo = materialProperties.EE_PBR_ALBEDO;
 
-	
+	if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], materialTexCoord).r;
+	if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], materialTexCoord).r;
+	if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], materialTexCoord).r;
+	if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], materialTexCoord);
 
 	vec3 cameraPosition = EE_CAMERA_POSITION();
 	vec3 viewDir = normalize(cameraPosition - fragPos);
 	bool receiveShadow = true;
 	vec3 F0 = vec3(0.04); 
-	F0 = mix(F0, albedo, metallic);
-	vec3 result = EE_FUNC_CALCULATE_LIGHTS(receiveShadow, albedo, 1.0, depth, normal, viewDir, fragPos, metallic, roughness, F0);
-	vec3 ambient = EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(albedo, normal, viewDir, metallic, roughness, F0);
+	F0 = mix(F0, albedo.xyz, metallic);
+	vec3 result = EE_FUNC_CALCULATE_LIGHTS(receiveShadow, albedo.xyz, 1.0, depth, normal, viewDir, fragPos, metallic, roughness, F0);
+	vec3 ambient = EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(albedo.xyz, normal, viewDir, metallic, roughness, F0);
 	vec3 color = result + emission * normalize(albedo.xyz) + ambient * ao;
 	color = pow(color, vec3(1.0 / EE_GAMMA));
 	FragColor = vec4(color, 1.0);

@@ -33,20 +33,9 @@ void main()
 		normal = normalize(TBN * normal);
 	}
 
-	float roughness = materialProperties.EE_PBR_ROUGHNESS;
-	float metallic = materialProperties.EE_PBR_METALLIC;
-	float emission = materialProperties.EE_PBR_EMISSION;
-	float ao = materialProperties.EE_PBR_AO;
-
-	if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], texCoord).r;
-	if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], texCoord).r;
-	if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], texCoord).r;
-
 	// also store the per-fragment normals into the gbuffer
 	outNormal.rgb = normalize((gl_FrontFacing ? 1.0 : -1.0) * normal);
 	outNormal.a = instanceIndex + 1;
-	outAlbedo = albedo;
-	outAlbedo.a = EE_INSTANCES[instanceIndex].infoIndex1;
-
-	outMaterial = vec4(metallic, roughness, emission, ao);
+	
+	outMaterial = vec4(texCoord.x, texCoord.y, EE_INSTANCES[instanceIndex].infoIndex1, EE_INSTANCES[instanceIndex].materialIndex);
 }
