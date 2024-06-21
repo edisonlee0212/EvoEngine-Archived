@@ -383,9 +383,9 @@ std::shared_ptr<Mesh> ReadMesh(aiMesh* importer_mesh) {
   mesh->SetVertices(attributes, vertices, indices);
   return mesh;
 }
-std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists, 
-                                          std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map,
-                                             aiMesh* importer_mesh) {
+std::shared_ptr<SkinnedMesh> ReadSkinnedMesh(
+    std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
+    std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map, aiMesh* importer_mesh) {
   SkinnedVertexAttributes skinned_vertex_attributes{};
   std::vector<SkinnedVertex> vertices;
   std::vector<unsigned> indices;
@@ -519,10 +519,10 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
                  std::unordered_map<unsigned, std::shared_ptr<Material>>& loaded_materials,
                  std::unordered_map<std::string, std::shared_ptr<Texture2D>>& texture_2ds_loaded,
                  std::vector<std::pair<std::shared_ptr<Texture2D>, std::shared_ptr<Texture2D>>>& opacity_maps,
-                std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
+                 std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>>& bones_lists,
                  std::unordered_map<std::string, std::shared_ptr<Bone>>& bones_map, const aiNode* importer_node,
-                 const std::shared_ptr<AssimpImportNode>& assimp_node,
-                 const aiScene* importer_scene, const std::shared_ptr<Animation>& animation) -> bool {
+                 const std::shared_ptr<AssimpImportNode>& assimp_node, const aiScene* importer_scene,
+                 const std::shared_ptr<Animation>& animation) -> bool {
   bool added_mesh_renderer = false;
   for (unsigned i = 0; i < importer_node->mNumMeshes; i++) {
     // the modelNode object only contains indices to index the actual objects in the scene.
@@ -587,8 +587,8 @@ auto ProcessNode(const std::string& directory, Prefab* model_node,
     auto child_assimp_node = std::make_shared<AssimpImportNode>(importer_node->mChildren[i]);
     child_assimp_node->parent_node = assimp_node;
     const bool child_add =
-        ProcessNode(directory, child_node.get(), loaded_materials, texture_2ds_loaded, opacity_maps, bones_lists, bones_map,
-                    importer_node->mChildren[i], child_assimp_node, importer_scene, animation);
+        ProcessNode(directory, child_node.get(), loaded_materials, texture_2ds_loaded, opacity_maps, bones_lists,
+                    bones_map, importer_node->mChildren[i], child_assimp_node, importer_scene, animation);
     if (child_add) {
       model_node->child_prefabs.push_back(std::move(child_node));
     }
@@ -764,8 +764,8 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 
   std::unordered_map<Handle, std::vector<std::shared_ptr<Bone>>> bones_lists;
   if (std::unordered_map<std::string, std::shared_ptr<Texture2D>> loaded_textures;
-      !ProcessNode(directory, this, loaded_materials, loaded_textures, opacity_maps, bones_lists, bones_map, scene->mRootNode,
-                   root_assimp_node, scene, animation)) {
+      !ProcessNode(directory, this, loaded_materials, loaded_textures, opacity_maps, bones_lists, bones_map,
+                   scene->mRootNode, root_assimp_node, scene, animation)) {
     EVOENGINE_ERROR("Model is empty!")
     return false;
   }
@@ -816,6 +816,7 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
     private_components.push_back(holder);
   }
   GatherAssets();
+  return true;
 }
 
 #pragma endregion
@@ -824,12 +825,13 @@ bool Prefab::LoadModelInternal(const std::filesystem::path& path, bool optimize,
 
 struct AssimpExportNode {
   int mesh_index = -1;
+  std::string name;
   aiMatrix4x4 transform;
 
   std::vector<AssimpExportNode> children;
 
   void Collect(const std::shared_ptr<Prefab>& current_prefab,
-               std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
+               std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes, std::vector<std::string>& mesh_names,
                std::vector<std::shared_ptr<Material>>& materials);
 
   void Process(aiNode* exporter_node);
@@ -837,8 +839,10 @@ struct AssimpExportNode {
 
 void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& current_prefab,
                                std::vector<std::pair<std::shared_ptr<Mesh>, int>>& meshes,
+                               std::vector<std::string>& mesh_names,
                                std::vector<std::shared_ptr<Material>>& materials) {
   mesh_index = -1;
+  name = current_prefab->instance_name;
   for (const auto& data_component : current_prefab->data_components) {
     if (data_component.data_component_type == Typeof<Transform>()) {
       transform = Mat4Cast(std::reinterpret_pointer_cast<Transform>(data_component.data_component)->value);
@@ -863,6 +867,7 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& current_prefab,
         if (mesh_index == -1) {
           mesh_index = meshes.size();
           meshes.emplace_back(mesh, target_material_index);
+          mesh_names.emplace_back(current_prefab->instance_name);
         }
       }
     }
@@ -871,11 +876,12 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& current_prefab,
   for (const auto& child_prefab : current_prefab->child_prefabs) {
     children.emplace_back();
     auto& new_node = children.back();
-    new_node.Collect(child_prefab, meshes, materials);
+    new_node.Collect(child_prefab, meshes, mesh_names, materials);
   }
 }
 
 void AssimpExportNode::Process(aiNode* exporter_node) {
+  exporter_node->mName = name;
   if (mesh_index != -1) {
     exporter_node->mNumMeshes = 1;
     exporter_node->mMeshes = new unsigned int[1];
@@ -900,11 +906,12 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
   exporter_scene.mMetaData = new aiMetadata();
   std::vector<std::pair<std::shared_ptr<Mesh>, int>> meshes;
   std::vector<std::shared_ptr<Material>> materials;
-
+  std::vector<std::string> mesh_names;
   AssimpExportNode root_node;
-  root_node.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, materials);
+  root_node.Collect(std::dynamic_pointer_cast<Prefab>(GetSelf()), meshes, mesh_names, materials);
 
   exporter_scene.mRootNode = new aiNode();
+  exporter_scene.mRootNode->mName = instance_name;
   exporter_scene.mNumMeshes = meshes.size();
   if (meshes.empty()) {
     exporter_scene.mMeshes = nullptr;
@@ -913,6 +920,8 @@ bool Prefab::SaveModelInternal(const std::filesystem::path& path) const {
   }
   for (int mesh_index = 0; mesh_index < meshes.size(); mesh_index++) {
     aiMesh* exporter_mesh = exporter_scene.mMeshes[mesh_index] = new aiMesh();
+
+    exporter_mesh->mName = aiString(mesh_names[mesh_index]);
     auto& mesh = meshes.at(mesh_index);
     const auto& vertices = mesh.first->UnsafeGetVertices();
     const auto& triangles = mesh.first->UnsafeGetTriangles();
