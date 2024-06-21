@@ -1322,6 +1322,27 @@ bool Prefab::SaveInternal(const std::filesystem::path& path) const {
     Serialize(out);
     std::unordered_map<Handle, std::shared_ptr<IAsset>> asset_map;
     CollectAssets(asset_map);
+    std::vector<AssetRef> list;
+    bool list_check = true;
+    while (list_check) {
+      const size_t current_size = asset_map.size();
+      list.clear();
+      for (const auto& i : asset_map) {
+        i.second->CollectAssetRef(list);
+      }
+      for (auto& i : list) {
+        if (const auto asset = i.Get<IAsset>(); asset && !Resources::IsResource(asset->GetHandle())) {
+          if (asset->IsTemporary()) {
+            asset_map[asset->GetHandle()] = asset;
+          } else if (!asset->Saved()) {
+            asset->Save();
+          }
+        }
+      }
+      if (asset_map.size() == current_size)
+        list_check = false;
+    }
+
     if (!asset_map.empty()) {
       out << YAML::Key << "LocalAssets" << YAML::Value << YAML::BeginSeq;
       for (auto& i : asset_map) {
