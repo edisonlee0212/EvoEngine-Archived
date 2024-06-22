@@ -882,6 +882,8 @@ void AssimpExportNode::Collect(const std::shared_ptr<Prefab>& current_prefab,
 
 void AssimpExportNode::Process(aiNode* exporter_node) {
   exporter_node->mName = name;
+  exporter_node->mTransformation = transform;
+  
   if (mesh_index != -1) {
     exporter_node->mNumMeshes = 1;
     exporter_node->mMeshes = new unsigned int[1];
