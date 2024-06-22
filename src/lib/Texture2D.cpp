@@ -18,7 +18,10 @@ void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& re
     local_resolution_ = resolution;
   }
 }
-
+void Texture2D::UnsafeUploadDataImmediately() const {
+    auto& texture_storage = TextureStorage::RefTexture2DStorage(texture_storage_handle_);
+  texture_storage.UploadDataImmediately();
+}
 bool Texture2D::SaveInternal(const std::filesystem::path& path) const {
   if (path.extension() == ".png") {
     StoreToPng(path);
@@ -103,6 +106,8 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path) {
   stbi_image_free(data);
   return true;
 }
+
+
 
 void Texture2D::ApplyOpacityMap(const std::shared_ptr<Texture2D>& target) {
   std::vector<glm::vec4> color_data;

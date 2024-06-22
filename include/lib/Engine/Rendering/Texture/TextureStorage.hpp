@@ -32,6 +32,7 @@ class Texture2DStorage {
   void Initialize(const glm::uvec2& resolution);
   void SetDataImmediately(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
   void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution);
+  void UploadDataImmediately();
   void Clear();
 };
 class CubemapStorage {

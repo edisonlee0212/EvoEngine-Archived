@@ -25,6 +25,8 @@ class Texture2D : public IAsset {
   bool LoadInternal(const std::filesystem::path& path) override;
 
  public:
+  void UnsafeUploadDataImmediately() const;
+
   bool red_channel = false;
   bool green_channel = false;
   bool blue_channel = false;
@@ -74,5 +76,6 @@ class Texture2D : public IAsset {
   void SetRgbChannelData(const std::vector<glm::vec3>& src, const glm::uvec2& resolution, bool local_copy = false);
   void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution, bool local_copy = false);
   void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution, bool local_copy = false);
-};
+
+  };
 }  // namespace evo_engine

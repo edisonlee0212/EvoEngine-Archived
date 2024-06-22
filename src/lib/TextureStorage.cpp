@@ -254,6 +254,10 @@ void Texture2DStorage::SetData(const std::vector<glm::vec4>& data, const glm::uv
   new_resolution_ = resolution;
 }
 
+void Texture2DStorage::UploadDataImmediately() {
+  SetDataImmediately(new_data_, new_resolution_);
+}
+
 void TextureStorage::DeviceSync() {
   auto& storage = GetInstance();
   const auto current_frame_index = Graphics::GetCurrentFrameIndex();
