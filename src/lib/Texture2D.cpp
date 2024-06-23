@@ -19,7 +19,7 @@ void Texture2D::SetData(const std::vector<glm::vec4>& data, const glm::uvec2& re
   }
 }
 void Texture2D::UnsafeUploadDataImmediately() const {
-    auto& texture_storage = TextureStorage::RefTexture2DStorage(texture_storage_handle_);
+  auto& texture_storage = TextureStorage::RefTexture2DStorage(texture_storage_handle_);
   texture_storage.UploadDataImmediately();
 }
 bool Texture2D::SaveInternal(const std::filesystem::path& path) const {
@@ -106,8 +106,6 @@ bool Texture2D::LoadInternal(const std::filesystem::path& path) {
   stbi_image_free(data);
   return true;
 }
-
-
 
 void Texture2D::ApplyOpacityMap(const std::shared_ptr<Texture2D>& target) {
   std::vector<glm::vec4> color_data;
@@ -265,7 +263,7 @@ bool Texture2D::OnInspect(const std::shared_ptr<EditorLayer>& editor_layer) {
   if (texture_storage.im_texture_id) {
     static float debug_scale = 0.25f;
     ImGui::DragFloat("Scale", &debug_scale, 0.01f, 0.1f, 10.0f);
-    debug_scale = glm::clamp(debug_scale, 0.1f, 1.0f);
+    debug_scale = glm::clamp(debug_scale, 0.1f, 10.0f);
     ImGui::Image(texture_storage.im_texture_id,
                  ImVec2(texture_storage.image->GetExtent().width * debug_scale,
                         texture_storage.image->GetExtent().height * debug_scale),
@@ -689,4 +687,32 @@ void Texture2D::SetRedChannelData(const std::vector<float>& src, const glm::uvec
   alpha_channel = false;
 
   SetUnsaved();
+}
+
+void Texture2D::Resize(std::vector<glm::vec4>& src, const glm::uvec2& src_resolution, std::vector<glm::vec4>& dst,
+                       const glm::uvec2& dst_resolution) {
+  dst.resize(dst_resolution.x * dst_resolution.y);
+  stbir_resize_float(static_cast<float*>(static_cast<void*>(src.data())), src_resolution.x, src_resolution.y, 0,
+                     static_cast<float*>(static_cast<void*>(dst.data())), dst_resolution.x, dst_resolution.y, 0, 4);
+}
+
+void Texture2D::Resize(std::vector<glm::vec3>& src, const glm::uvec2& src_resolution, std::vector<glm::vec3>& dst,
+                       const glm::uvec2& dst_resolution) {
+  dst.resize(dst_resolution.x * dst_resolution.y);
+  stbir_resize_float(static_cast<float*>(static_cast<void*>(src.data())), src_resolution.x, src_resolution.y, 0,
+                     static_cast<float*>(static_cast<void*>(dst.data())), dst_resolution.x, dst_resolution.y, 0, 3);
+}
+
+void Texture2D::Resize(std::vector<glm::vec2>& src, const glm::uvec2& src_resolution, std::vector<glm::vec2>& dst,
+                       const glm::uvec2& dst_resolution) {
+  dst.resize(dst_resolution.x * dst_resolution.y);
+  stbir_resize_float(static_cast<float*>(static_cast<void*>(src.data())), src_resolution.x, src_resolution.y, 0,
+                     static_cast<float*>(static_cast<void*>(dst.data())), dst_resolution.x, dst_resolution.y, 0, 2);
+}
+
+void Texture2D::Resize(std::vector<float>& src, const glm::uvec2& src_resolution, std::vector<float>& dst,
+                       const glm::uvec2& dst_resolution) {
+  dst.resize(dst_resolution.x * dst_resolution.y);
+  stbir_resize_float(static_cast<float*>(static_cast<void*>(src.data())), src_resolution.x, src_resolution.y, 0,
+                     static_cast<float*>(static_cast<void*>(dst.data())), dst_resolution.x, dst_resolution.y, 0, 1);
 }

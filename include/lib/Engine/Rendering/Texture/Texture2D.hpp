@@ -20,6 +20,7 @@ class Texture2D : public IAsset {
   void SetData(const std::vector<glm::vec4>& data, const glm::uvec2& resolution, bool local_copy);
   std::vector<glm::vec4> local_data_;
   glm::uvec2 local_resolution_;
+
  protected:
   bool SaveInternal(const std::filesystem::path& path) const override;
   bool LoadInternal(const std::filesystem::path& path) override;
@@ -33,8 +34,8 @@ class Texture2D : public IAsset {
   bool alpha_channel = false;
 
   static void StoreToPng(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
-                         int src_channel_size, int target_channel_size, unsigned compression_level = 8, int resize_x = -1,
-                         int resize_y = -1);
+                         int src_channel_size, int target_channel_size, unsigned compression_level = 8,
+                         int resize_x = -1, int resize_y = -1);
   static auto StoreToJpg(const std::filesystem::path& path, const std::vector<float>& src_data, int src_x, int src_y,
                          int src_channel_size, int target_channel_size, unsigned quality = 100, int resize_x = -1,
                          int resize_y = -1) -> void;
@@ -64,7 +65,8 @@ class Texture2D : public IAsset {
   void StoreToPng(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1,
                   unsigned compression_level = 8) const;
   void StoreToTga(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1) const;
-  void StoreToJpg(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1, unsigned quality = 100) const;
+  void StoreToJpg(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1,
+                  unsigned quality = 100) const;
   void StoreToHdr(const std::filesystem::path& path, int resize_x = -1, int resize_y = -1) const;
 
   void GetRgbaChannelData(std::vector<glm::vec4>& dst, int resize_x = -1, int resize_y = -1) const;
@@ -77,5 +79,13 @@ class Texture2D : public IAsset {
   void SetRgChannelData(const std::vector<glm::vec2>& src, const glm::uvec2& resolution, bool local_copy = false);
   void SetRedChannelData(const std::vector<float>& src, const glm::uvec2& resolution, bool local_copy = false);
 
-  };
+  static void Resize(std::vector<glm::vec4>& src, const glm::uvec2& src_resolution, std::vector<glm::vec4>& dst,
+                     const glm::uvec2& dst_resolution);
+  static void Resize(std::vector<glm::vec3>& src, const glm::uvec2& src_resolution, std::vector<glm::vec3>& dst,
+                     const glm::uvec2& dst_resolution);
+  static void Resize(std::vector<glm::vec2>& src, const glm::uvec2& src_resolution, std::vector<glm::vec2>& dst,
+                     const glm::uvec2& dst_resolution);
+  static void Resize(std::vector<float>& src, const glm::uvec2& src_resolution, std::vector<float>& dst,
+                     const glm::uvec2& dst_resolution);
+};
 }  // namespace evo_engine
