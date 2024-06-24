@@ -62,7 +62,7 @@ struct Bone {
   std::vector<std::shared_ptr<Bone>> children;
   /* Interpolates b/w positions,rotations & scaling keys based on the current time of the
   animation and prepares the local transformation matrix by combining all keys transformations */
-  void Animate(const std::string &name, const float &animation_time, const glm::mat4 &parent_transform,
+  void Animate(const std::string &target_name, const float &animation_time, const glm::mat4 &parent_transform,
                const glm::mat4 &root_transform, std::vector<glm::mat4> &results);
   bool OnInspect();
 

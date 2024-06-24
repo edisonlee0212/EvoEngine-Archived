@@ -159,7 +159,17 @@ Entity LoadScene(const std::shared_ptr<Scene>& scene, const std::string& base_en
 }
 
 void SetupDemoScene(const DemoSetup demo_setup, ApplicationInfo& application_info) {
-  std::filesystem::path resource_folder_path("../../../Resources");
+
+  std::filesystem::path resource_folder_path("../../../../../Resources");
+  if (!std::filesystem::exists(resource_folder_path)) {
+    resource_folder_path = "../../../../Resources";
+  }
+  if (!std::filesystem::exists(resource_folder_path)) {
+    resource_folder_path = "../../../Resources";
+  }
+  if (!std::filesystem::exists(resource_folder_path)) {
+    resource_folder_path = "../../Resources";
+  }
   if (!std::filesystem::exists(resource_folder_path)) {
     resource_folder_path = "../../Resources";
   }

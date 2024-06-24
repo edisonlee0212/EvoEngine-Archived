@@ -180,13 +180,6 @@ void Resources::LoadShaders() {
                                                    "Shaders/Fragment/Standard/StandardDeferred.frag");
     frag_shader = CreateResource<Shader>("STANDARD_DEFERRED_FRAG");
     frag_shader->Set(ShaderType::Fragment, frag_shader_code);
-
-    frag_shader_code = std::string("#version 460\n") + Graphics::GetInstance().shader_basic_constants_ + "\n" +
-                       Graphics::GetInstance().shader_basic_ + "\n" +
-                       FileUtils::LoadFileAsString(std::filesystem::path("./DefaultResources") /
-                                                   "Shaders/Fragment/Standard/StandardDeferredMeshletColored.frag");
-    frag_shader = CreateResource<Shader>("STANDARD_DEFERRED_MESHLET_COLORED_FRAG");
-    frag_shader->Set(ShaderType::Fragment, frag_shader_code);
   }
 #pragma endregion
 

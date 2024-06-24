@@ -1,18 +1,18 @@
 #include "Animation.hpp"
 using namespace evo_engine;
-void Bone::Animate(const std::string& name, const float& animation_time, const glm::mat4& parent_transform,
+void Bone::Animate(const std::string& target_name, const float& animation_time, const glm::mat4& parent_transform,
                    const glm::mat4& root_transform, std::vector<glm::mat4>& results) {
   glm::mat4 global_transform = parent_transform;
-  if (const auto search = animations.find(name); search != animations.end()) {
-    const auto translation = animations[name].InterpolatePosition(animation_time);
-    const auto rotation = animations[name].InterpolateRotation(animation_time);
-    const auto scale = animations[name].InterpolateScaling(animation_time);
+  if (const auto search = animations.find(target_name); search != animations.end()) {
+    const auto translation = animations[target_name].InterpolatePosition(animation_time);
+    const auto rotation = animations[target_name].InterpolateRotation(animation_time);
+    const auto scale = animations[target_name].InterpolateScaling(animation_time);
     global_transform *= translation * rotation * scale;
   }
 
   results[index] = global_transform;
   for (auto& i : children) {
-    i->Animate(name, animation_time, global_transform, root_transform, results);
+    i->Animate(target_name, animation_time, global_transform, root_transform, results);
   }
 }
 
