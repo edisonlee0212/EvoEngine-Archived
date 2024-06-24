@@ -83,8 +83,8 @@ void Application::PreUpdateInternal() {
     }
     duration = std::chrono::system_clock::now() - last_fixed_update_time;
     step++;
-    const auto now = std::chrono::system_clock::now();
-    const std::chrono::duration<double> fixed_delta_time = now - Times::last_fixed_update_time_;
+    const auto current_time = std::chrono::system_clock::now();
+    const std::chrono::duration<double> fixed_delta_time = current_time - Times::last_fixed_update_time_;
     Times::fixed_delta_time_ = fixed_delta_time.count();
     Times::last_fixed_update_time_ = std::chrono::system_clock::now();
     if (step > 10) {

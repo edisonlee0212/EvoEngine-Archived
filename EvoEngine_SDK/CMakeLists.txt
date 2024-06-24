@@ -2,35 +2,35 @@
 # EvoEngine SDK - code
 # ------------------------------------------------------------------
 
-file(GLOB EVOENGINE_SDK_SOURCES "src/*.cpp")
+set(EVOENGINE_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(EVOENGINE_SDK_DIR ${EVOENGINE_SDK_DIR} PARENT_SCOPE)
+
+file(GLOB EVOENGINE_SDK_SOURCES ${EVOENGINE_SDK_DIR}/src/*.cpp)
 add_library(EvoEngine_SDK
 		STATIC
 		${IMGUI_SOURCES}
 		${EVOENGINE_SDK_SOURCES}
 		)
 
-set(EVOENGINE_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(EVOENGINE_SDK_DIR ${EVOENGINE_SDK_DIR} PARENT_SCOPE)
-
 set(EVOENGINE_SDK_INCLUDES
 		${3RD_PARTY_INCLUDES}
-		${CMAKE_CURRENT_SOURCE_DIR}/include
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Core
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Core/ECS
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Core/Math
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Layers
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Assets
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Physics
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/PBR
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/Animation
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/Renderer
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/Geometry
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/Texture
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/Platform
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Rendering/PostProcessing
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Editor
-		${CMAKE_CURRENT_SOURCE_DIR}/include/Utilities
+		${EVOENGINE_SDK_DIR}/include
+		${EVOENGINE_SDK_DIR}/include/Core
+		${EVOENGINE_SDK_DIR}/include/Core/ECS
+		${EVOENGINE_SDK_DIR}/include/Core/Math
+		${EVOENGINE_SDK_DIR}/include/Layers
+		${EVOENGINE_SDK_DIR}/include/Assets
+		${EVOENGINE_SDK_DIR}/include/Physics
+		${EVOENGINE_SDK_DIR}/include/Rendering
+		${EVOENGINE_SDK_DIR}/include/Rendering/PBR
+		${EVOENGINE_SDK_DIR}/include/Rendering/Animation
+		${EVOENGINE_SDK_DIR}/include/Rendering/Renderer
+		${EVOENGINE_SDK_DIR}/include/Rendering/Geometry
+		${EVOENGINE_SDK_DIR}/include/Rendering/Texture
+		${EVOENGINE_SDK_DIR}/include/Rendering/Platform
+		${EVOENGINE_SDK_DIR}/include/Rendering/PostProcessing
+		${EVOENGINE_SDK_DIR}/include/Editor
+		${EVOENGINE_SDK_DIR}/include/Utilities
 
 		${CMAKE_CURRENT_BINARY_DIR}
 		)
@@ -41,7 +41,7 @@ target_include_directories(EvoEngine_SDK
 		${EVOENGINE_SDK_INCLUDES}
 		)
 
-set(EVOENGINE_SDK_PCH ${CMAKE_CURRENT_SOURCE_DIR}/include/EvoEngine_SDK_PCH.hpp)
+set(EVOENGINE_SDK_PCH ${EVOENGINE_SDK_DIR}/include/EvoEngine_SDK_PCH.hpp)
 set(EVOENGINE_SDK_PCH ${EVOENGINE_SDK_PCH} PARENT_SCOPE)
 
 target_precompile_headers(EvoEngine_SDK

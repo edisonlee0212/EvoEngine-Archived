@@ -9,7 +9,7 @@
 #include "Times.hpp"
 #include "TransformGraph.hpp"
 #include "WindowLayer.hpp"
-
+#include "TextureBaking.hpp"
 #include "PostProcessingStack.hpp"
 
 using namespace evo_engine;
