@@ -20,7 +20,7 @@ if (${CMAKE_BINARY_DIR} STREQUAL ${PROJECT_BINARY_DIR} OR EVOENGINE_BUILD_APP_DE
 		)
 	target_link_libraries(Demo
 		EvoEngine_SDK
-		EvoEngine_Plugins
+		${EvoEngine_Plugins}
 		)
 	file(COPY imgui.ini DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 	evoengine_sdk_copy_resources(Demo ${CMAKE_CURRENT_BINARY_DIR})

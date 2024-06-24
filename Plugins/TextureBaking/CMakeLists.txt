@@ -7,21 +7,21 @@ set(TEXTURE_BAKING_INCLUDES ${TEXTURE_BAKING_INCLUDES} PARENT_SCOPE)
 
 file(GLOB TEXTURE_BAKING_SOURCES ${TEXTURE_BAKING_DIRECTORY}/src/*.cpp)
 
-add_library(TextureBaking
+add_library(TextureBakingPlugin
 	STATIC
 	${TEXTURE_BAKING_SOURCES}
 	)
 		
-target_include_directories(TextureBaking
+target_include_directories(TextureBakingPlugin
 	PRIVATE
 	${EVOENGINE_SDK_INCLUDES}
 	${TEXTURE_BAKING_INCLUDES}
 	)
 
-set(TEXTURE_BAKING_PCH ${TEXTURE_BAKING_DIRECTORY}/include/TextureBaking_SDK_PCH.hpp)
+set(TEXTURE_BAKING_PCH ${TEXTURE_BAKING_DIRECTORY}/include/TextureBaking_PCH.hpp)
 set(TEXTURE_BAKING_PCH ${TEXTURE_BAKING_PCH} PARENT_SCOPE)
 
-target_precompile_headers(TextureBaking
+target_precompile_headers(TextureBakingPlugin
 	PRIVATE
 	${EVOENGINE_SDK_PCH}
 	${TEXTURE_BAKING_PCH}
