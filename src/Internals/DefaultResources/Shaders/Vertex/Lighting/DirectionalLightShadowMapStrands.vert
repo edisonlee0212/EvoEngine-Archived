@@ -16,5 +16,5 @@ void main()
 	uint currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
 	vs_out.FragPos = vec3(EE_INSTANCES[currentInstanceIndex].model * vec4(inPosition, 1.0));
 	vs_out.Thickness = inThickness;
-	vs_out.Normal = vec3(EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX] * vec4(inNormal, 0.0));
+	vs_out.Normal = vec3(EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].light_space_matrix[EE_LIGHT_SPLIT_INDEX] * vec4(inNormal, 0.0));
 }

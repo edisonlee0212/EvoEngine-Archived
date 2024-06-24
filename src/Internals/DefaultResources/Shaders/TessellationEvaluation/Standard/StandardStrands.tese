@@ -21,13 +21,13 @@ layout(location = 5) out uint currentInstanceIndexOut;
 void main(){
 	currentInstanceIndexOut = currentInstanceIndexIn;
 	vec3 position, normal, tangent, tempV;
-	float thickness, texCoord, tempF;
+	float thickness, tex_coord, tempF;
 	EE_SPLINE_INTERPOLATION(tcs_in[0].FragPos, tcs_in[1].FragPos, tcs_in[2].FragPos, tcs_in[3].FragPos, position, tangent, gl_TessCoord.x);
 	EE_SPLINE_INTERPOLATION(tcs_in[0].Normal, tcs_in[1].Normal, tcs_in[2].Normal, tcs_in[3].Normal, normal, tempV, gl_TessCoord.x);
-	EE_SPLINE_INTERPOLATION(tcs_in[0].TexCoord, tcs_in[1].TexCoord, tcs_in[2].TexCoord, tcs_in[3].TexCoord, texCoord, tempF, gl_TessCoord.x);
+	EE_SPLINE_INTERPOLATION(tcs_in[0].TexCoord, tcs_in[1].TexCoord, tcs_in[2].TexCoord, tcs_in[3].TexCoord, tex_coord, tempF, gl_TessCoord.x);
 	EE_SPLINE_INTERPOLATION(tcs_in[0].Thickness, tcs_in[1].Thickness, tcs_in[2].Thickness, tcs_in[3].Thickness, thickness, tempF, gl_TessCoord.x);
 
-	tes_out.TexCoord = texCoord;
+	tes_out.TexCoord = tex_coord;
 	tes_out.FragPos = position;
 	tes_out.Normal = normal;
 	tes_out.Thickness = thickness;

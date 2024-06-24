@@ -54,5 +54,5 @@ void main()
 	vs_out.Normal = N;
 	vs_out.Tangent = T;
 	vs_out.TexCoord = inTexCoord;
-	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vs_out.FragPos, 1.0);
+	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].projection_view * vec4(vs_out.FragPos, 1.0);
 }

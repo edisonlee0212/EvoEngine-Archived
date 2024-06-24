@@ -42,7 +42,7 @@ void main()
 	uint verticesSize = meshlet.verticesSize;
 	uint triangleSize = meshlet.triangleSize;
 	SetMeshOutputsEXT(verticesSize, triangleSize);
-	mat4 projectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
+	mat4 projectionView = EE_CAMERAS[EE_CAMERA_INDEX].projection_view;
 	[[unroll]]
 	for (uint i = 0; i < uint(MESHLET_VERTEX_ITERATIONS); ++i)
 	{
@@ -58,7 +58,7 @@ void main()
 		ms_v_out[vert].FragPos =	vec3(model * vec4(v.position.xyz, 1.0));
 		ms_v_out[vert].Normal = N;
 		ms_v_out[vert].Tangent = T;
-		ms_v_out[vert].TexCoord = v.texCoord.xy;
+		ms_v_out[vert].TexCoord = v.tex_coord.xy;
 		gl_MeshVerticesEXT[vert].gl_Position = projectionView * vec4(ms_v_out[vert].FragPos, 1.0);
 		currentInstanceIndex[vert] = instanceIndex;
 	}
@@ -69,9 +69,9 @@ void main()
 		if(prim <= triangleSize){
 			gl_PrimitiveTriangleIndicesEXT[prim] = 
 				uvec3(
-					meshlet.primitiveIndices[prim * 3],
-					meshlet.primitiveIndices[prim * 3 + 1],
-					meshlet.primitiveIndices[prim * 3 + 2]);
+					meshlet.indices[prim * 3],
+					meshlet.indices[prim * 3 + 1],
+					meshlet.indices[prim * 3 + 2]);
 		}
 	}
 }

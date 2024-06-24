@@ -14,5 +14,5 @@ void main()
 {
     currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
     vs_out.TexCoord = inTexCoord;
-    gl_Position = EE_SPOT_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix * EE_INSTANCES[currentInstanceIndex].model * vec4(inPosition, 1.0);
+    gl_Position = EE_SPOT_LIGHTS[EE_CAMERA_INDEX].light_space_matrix * EE_INSTANCES[currentInstanceIndex].model * vec4(inPosition, 1.0);
 }

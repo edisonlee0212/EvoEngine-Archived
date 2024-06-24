@@ -26,20 +26,20 @@ void main()
 	vec3 normal = 		texture(inNormal, fs_in.TexCoord).xyz;
 	float depth = EE_LINEARIZE_DEPTH(ndcDepth);
 
-	int materialIndex = int(round(texture(inMaterial, fs_in.TexCoord).w));
+	int material_index = int(round(texture(inMaterial, fs_in.TexCoord).w));
 	vec2 materialTexCoord = texture(inMaterial, fs_in.TexCoord).xy;
-	MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[materialIndex];
+	MaterialProperties materialProperties = EE_MATERIAL_PROPERTIES[material_index];
 
-	float roughness = materialProperties.EE_PBR_ROUGHNESS;
-	float metallic = materialProperties.EE_PBR_METALLIC;
-	float emission = materialProperties.EE_PBR_EMISSION;
-	float ao = materialProperties.EE_PBR_AO;
-	vec4 albedo = materialProperties.EE_PBR_ALBEDO;
+	float roughness = materialProperties.roughness;
+	float metallic = materialProperties.metallic;
+	float emission = materialProperties.emission;
+	float ao = materialProperties.ambient_occulusion;
+	vec4 albedo = materialProperties.albedo;
 
-	if (materialProperties.EE_ROUGHNESS_MAP_INDEX != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.EE_ROUGHNESS_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_METALLIC_MAP_INDEX != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.EE_METALLIC_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_AO_MAP_INDEX != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.EE_AO_MAP_INDEX], materialTexCoord).r;
-	if (materialProperties.EE_ALBEDO_MAP_INDEX != -1) albedo = texture(EE_TEXTURE_2DS[materialProperties.EE_ALBEDO_MAP_INDEX], materialTexCoord);
+	if (materialProperties.roughness_map_index != -1) roughness = texture(EE_TEXTURE_2DS[materialProperties.roughness_map_index], materialTexCoord).r;
+	if (materialProperties.metallic_map_index != -1) metallic = texture(EE_TEXTURE_2DS[materialProperties.metallic_map_index], materialTexCoord).r;
+	if (materialProperties.ao_texture_index != -1) ao = texture(EE_TEXTURE_2DS[materialProperties.ao_texture_index], materialTexCoord).r;
+	if (materialProperties.albedo_map_index != -1) albedo = texture(EE_TEXTURE_2DS[materialProperties.albedo_map_index], materialTexCoord);
 
 	vec3 cameraPosition = EE_CAMERA_POSITION();
 	vec3 viewDir = normalize(cameraPosition - fragPos);
@@ -49,6 +49,6 @@ void main()
 	vec3 result = EE_FUNC_CALCULATE_LIGHTS(receiveShadow, albedo.xyz, 1.0, depth, normal, viewDir, fragPos, metallic, roughness, F0);
 	vec3 ambient = EE_FUNC_CALCULATE_ENVIRONMENTAL_LIGHT(albedo.xyz, normal, viewDir, metallic, roughness, F0);
 	vec3 color = result + emission * normalize(albedo.xyz) + ambient * ao;
-	color = pow(color, vec3(1.0 / EE_GAMMA));
+	color = pow(color, vec3(1.0 / EE_RENDER_INFO.gamma));
 	FragColor = vec4(color, 1.0);
 }

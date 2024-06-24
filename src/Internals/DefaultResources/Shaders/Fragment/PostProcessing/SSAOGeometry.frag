@@ -25,7 +25,7 @@ void main()
     vec3 normal = texture(gNormal, fs_in.TexCoord).rgb;
     originalColor = texture(color, fs_in.TexCoord).rgb;
     if(normal == vec3(0.0)) return;
-    normal = normalize(mat3(EE_CAMERA_VIEW) * normal);
+    normal = normalize(mat3(view) * normal);
     vec3 randomVec = EE_UNIFORM_KERNEL[int(InterleavedGradientNoise(viewPos) * MAX_KERNEL_AMOUNT) % MAX_KERNEL_AMOUNT].xyz;
     // create TBN change-of-basis matrix: from tangent-space to view-space
     vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -43,7 +43,7 @@ void main()
         samplePos = viewPos + samplePos * radius;
         // project sample position (to sample texture) (to get position on screen/texture)
         vec4 offset = vec4(samplePos, 1.0);
-        offset = EE_CAMERA_PROJECTION * offset; // from view to clip-space
+        offset = projection * offset; // from view to clip-space
         offset.xyz /= offset.w; // perspective divide
         offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
         validAmount = validAmount + 1;

@@ -12,7 +12,7 @@ const float PI2 = 6.28318531;
 
 void main(){
 	mat4 model = EE_MODEL_MATRIX;
-	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
+	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].projection_view;
 	mat4 inverseModel = inverse(model);
 	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{

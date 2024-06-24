@@ -10,7 +10,7 @@ layout (location = 0) in TES_OUT {
 const float PI2 = 6.28318531;
 void main(){
 	mat4 model = EE_INSTANCES[EE_INSTANCE_INDEX].model;
-	mat4 lightSpaceMatrix = EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].lightSpaceMatrix[EE_LIGHT_SPLIT_INDEX];
+	mat4 light_space_matrix = EE_DIRECTIONAL_LIGHTS[EE_CAMERA_INDEX].light_space_matrix[EE_LIGHT_SPLIT_INDEX];
 	mat4 inverseModel = inverse(model);
 	for(int i = 0; i < tes_in.length() - 1; ++i)
 	{
@@ -47,11 +47,11 @@ void main(){
 			vec3 newPT = vec3(model * vec4(modelPosT.xyz + (v21 * sin(-angle) + v22 * cos(-angle)) * thickT, 1.0));
 
 			//Source Vertex
-			gl_Position = lightSpaceMatrix * vec4(newPS, 1);
+			gl_Position = light_space_matrix * vec4(newPS, 1);
 			EmitVertex();
 
 			//Target Vertex
-			gl_Position = lightSpaceMatrix * vec4(newPT, 1);
+			gl_Position = light_space_matrix * vec4(newPT, 1);
 			EmitVertex();
 		}
 	}

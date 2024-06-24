@@ -91,24 +91,24 @@ vec4 RayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth)
 void main()
 {
 	vec2 texSize  = textureSize(inColor, 0).xy;
-	vec2 texCoord = fs_in.TexCoord;
+	vec2 tex_coord = fs_in.TexCoord;
 
-	float metallic = texture(inMaterial, texCoord).r;
-	float roughness = texture(inMaterial, texCoord).g;
+	float metallic = texture(inMaterial, tex_coord).r;
+	float roughness = texture(inMaterial, tex_coord).g;
 
-	vec3 viewNormal = normalize((EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_VIEW * vec4(texture(inNormal, texCoord).rgb, 0.0)).xyz);
+	vec3 viewNormal = normalize((EE_CAMERAS[EE_CAMERA_INDEX].view * vec4(texture(inNormal, tex_coord).rgb, 0.0)).xyz);
 
-	float ndcDepth = texture(inDepth, texCoord).x;
-	vec3 viewPos = EE_DEPTH_TO_VIEW_POS(texCoord, ndcDepth);
+	float ndcDepth = texture(inDepth, tex_coord).x;
+	vec3 viewPos = EE_DEPTH_TO_VIEW_POS(tex_coord, ndcDepth);
 
 	vec3 texturePixelPosition;
-	texturePixelPosition.xy = texCoord;
+	texturePixelPosition.xy = tex_coord;
 	texturePixelPosition.z = ndcDepth;
 
 	vec3 viewReflection = normalize(reflect(viewPos, normalize(viewNormal)));
 	
 	vec3 viewRayEndPosition = viewPos + viewReflection * 100.0;
-	vec4 textureRayEndPosition = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION * vec4(viewRayEndPosition, 1.0);
+	vec4 textureRayEndPosition = EE_CAMERAS[EE_CAMERA_INDEX].projection * vec4(viewRayEndPosition, 1.0);
 
 	textureRayEndPosition /= textureRayEndPosition.w;
 	textureRayEndPosition.xyz = (textureRayEndPosition.xyz + vec3(1.0)) * 0.5;
@@ -125,7 +125,7 @@ void main()
 
 	
 	
-	vec2 dCoord = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - texCoord.xy));
+	vec2 dCoord = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - tex_coord.xy));
 	float screenEdgefactor = clamp(1.0 - (dCoord.x + dCoord.y), 0.0, 1.0);
 	float reflectionMultiplier = pow(metallic, reflectionSpecularFalloffExponent) * screenEdgefactor * -textureRayDir.z;
 	// Get color
@@ -135,7 +135,7 @@ void main()
 
 	outOriginalColorVisibility = clamp(vec4(texture(inColor, texturePixelPosition.xy).rgb, 1.0), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
 	//outOriginalColorVisibility = clamp(vec4(outColor, 1.0), vec4(0, 0, 0, 0), vec4(1, 1, 1, 1));
-	outOriginalColor = texture(inColor, texCoord).rgb;
+	outOriginalColor = texture(inColor, tex_coord).rgb;
 }
 
 

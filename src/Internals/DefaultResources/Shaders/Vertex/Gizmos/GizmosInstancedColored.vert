@@ -18,6 +18,6 @@ void main()
 	vs_out.Color = EE_INSTANCED_DATA[gl_InstanceIndex].color;
 
 	mat4 scaleMatrix = EE_GET_SCALE_MATRIX();
-	mat4 matrix = EE_MODEL_MATRIX * EE_INSTANCED_DATA[gl_InstanceIndex].instanceMatrix * scaleMatrix;
-	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vec3(matrix * vec4(inPosition, 1.0)), 1.0);
+	mat4 matrix = EE_MODEL_MATRIX * EE_INSTANCED_DATA[gl_InstanceIndex].instance_matrix * scaleMatrix;
+	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].projection_view * vec4(vec3(matrix * vec4(inPosition, 1.0)), 1.0);
 }

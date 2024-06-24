@@ -17,7 +17,7 @@ layout(location = 5) out flat uint currentInstanceIndex;
 void main()
 {
 	currentInstanceIndex = gl_DrawID + EE_INSTANCE_INDEX;
-	mat4 matrix = EE_INSTANCES[currentInstanceIndex].model * EE_INSTANCED_DATA[gl_InstanceIndex].instanceMatrix;
+	mat4 matrix = EE_INSTANCES[currentInstanceIndex].model * EE_INSTANCED_DATA[gl_InstanceIndex].instance_matrix;
 	vs_out.FragPos = vec3(matrix * vec4(inPosition, 1.0));
 	vec3 N = normalize(vec3(matrix * vec4(inNormal,    0.0)));
 	vec3 T = normalize(vec3(matrix * vec4(inTangent,   0.0)));
@@ -26,5 +26,5 @@ void main()
 	vs_out.Normal = N;
 	vs_out.Tangent = T;
 	vs_out.TexCoord = inTexCoord;
-	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(vs_out.FragPos, 1.0);
+	gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].projection_view * vec4(vs_out.FragPos, 1.0);
 }

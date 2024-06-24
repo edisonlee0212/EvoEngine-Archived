@@ -44,17 +44,17 @@ void main()
 		ms_v_out[i].FragPos = vec3(model * vec4(v.position.xyz, 1.0));
 		ms_v_out[i].Normal = N;
 		ms_v_out[i].Tangent = T;
-		ms_v_out[i].TexCoord = v.texCoord.xy;
+		ms_v_out[i].TexCoord = v.tex_coord.xy;
 		currentInstanceIndex[i] = chunkIndex;
-		gl_MeshVerticesEXT[i].gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(ms_v_out[i].FragPos, 1.0);
+		gl_MeshVerticesEXT[i].gl_Position = EE_CAMERAS[EE_CAMERA_INDEX].projection_view * vec4(ms_v_out[i].FragPos, 1.0);
 	}
 
 	for (uint i = 0; i < triangleSize; ++i)
 	{
 		gl_PrimitiveTriangleIndicesEXT[i] = 
 			uvec3(
-				meshlet.primitiveIndices[i * 3],
-				meshlet.primitiveIndices[i * 3 + 1],
-				meshlet.primitiveIndices[i * 3 + 2]);
+				meshlet.indices[i * 3],
+				meshlet.indices[i * 3 + 1],
+				meshlet.indices[i * 3 + 2]);
 	}
 }

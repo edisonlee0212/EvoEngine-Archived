@@ -32,8 +32,8 @@ taskPayloadSharedEXT Task ts_out;
 void main()
 {
 	uint instanceIndex = EE_INSTANCE_INDEX;
-	uint meshLetIndexOffset = EE_INSTANCES[instanceIndex].meshletIndexOffset;
-	uint meshletSize = EE_INSTANCES[instanceIndex].meshletSize;
+	uint meshLetIndexOffset = EE_INSTANCES[instanceIndex].meshlet_offset;
+	uint meshlet_size = EE_INSTANCES[instanceIndex].meshlet_size;
 
 #if EXT_TASK_SUBGROUP_COUNT > 1
 	if (laneID == 0) {
@@ -51,7 +51,7 @@ void main()
 		uint meshletLocal  = laneID + i * WORKGROUP_SIZE;
 		uint meshletGlobal = baseID + meshletLocal;
 
-		bool render = !(meshletGlobal > meshLetIndexOffset + meshletSize - 1);
+		bool render = !(meshletGlobal > meshLetIndexOffset + meshlet_size - 1);
 
 		uvec4 voteMeshlets = subgroupBallot(render);
 		uint numMeshlets  = subgroupBallotBitCount(voteMeshlets);

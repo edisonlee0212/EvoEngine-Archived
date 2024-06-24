@@ -21,5 +21,5 @@ void main()
 	vs_out.FragPos = vec3(EE_INSTANCES[currentInstanceIndex].model * vec4(inPosition, 1.0));
 	vs_out.Thickness = inThickness;
 	vs_out.TexCoord = inTexCoord;
-	vs_out.Normal = vec3(EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW * vec4(inNormal, 0.0));
+	vs_out.Normal = vec3(EE_CAMERAS[EE_CAMERA_INDEX].projection_view * vec4(inNormal, 0.0));
 }

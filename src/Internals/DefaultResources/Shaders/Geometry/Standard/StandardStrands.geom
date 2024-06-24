@@ -23,7 +23,7 @@ layout(location = 5) out uint currentInstanceIndexOut;
 
 void main(){
 	
-	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].EE_CAMERA_PROJECTION_VIEW;
+	mat4 cameraProjectionView = EE_CAMERAS[EE_CAMERA_INDEX].projection_view;
 	uint instanceIndex = currentInstanceIndexIn[0];
 	mat4 model = EE_INSTANCES[instanceIndex].model;
 	mat4 inverseModel = inverse(model);
