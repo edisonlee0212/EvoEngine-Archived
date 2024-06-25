@@ -1,5 +1,5 @@
-#include "Application.hpp"
 #include "AnimationPlayer.hpp"
+#include "Application.hpp"
 #include "ClassRegistry.hpp"
 #include "EditorLayer.hpp"
 #include "MeshRenderer.hpp"
@@ -12,11 +12,13 @@
 #include "PostProcessingStack.hpp"
 
 #ifdef RAY_TRACER_PLUGIN
-#  include <CUDAModule.hpp>
-#  include <RayTracerLayer.hpp>
+#include <CUDAModule.hpp>
+#include <RayTracerLayer.hpp>
 #endif
 #ifdef PHYSICS_PLUGIN
-#  include "PhysicsLayer.hpp"
+#include "PhysicsLayer.hpp"
+#include "RigidBody.hpp"
+
 #endif
 using namespace evo_engine;
 #pragma region Helpers
@@ -52,7 +54,7 @@ int main() {
   Application::PushLayer<EditorLayer>();
   Application::PushLayer<RenderLayer>();
 
-#ifdef BUILD_WITH_RAYTRACER
+#ifdef RAY_TRACER_PLUGIN
   Application::PushLayer<RayTracerLayer>();
 #endif
 #ifdef PHYSICS_PLUGIN
@@ -64,7 +66,7 @@ int main() {
 
   Application::Initialize(application_info);
 
-#ifdef BUILD_WITH_RAYTRACER
+#ifdef RAY_TRACER_PLUGIN
   const auto ray_tracer_layer = Application::GetLayer<RayTracerLayer>();
   ray_tracer_layer->show_camera_window = false;
   ray_tracer_layer->show_scene_window = false;
@@ -276,7 +278,6 @@ void SetupDemoScene(DemoSetup demo_setup, ApplicationInfo& application_info) {
         point_light_right->quadratic = 0.1f;
         point_light_right->diffuse = glm::vec3(1.0, 0.8, 0.0);
 
-        
         Transform point_light_right_transform;
         point_light_right_transform.SetPosition(glm::vec3(4, 1.2, -5));
         point_light_right_transform.SetScale({1.0f, 1.0f, 1.0f});
@@ -294,8 +295,8 @@ void SetupDemoScene(DemoSetup demo_setup, ApplicationInfo& application_info) {
             start_time = Times::Now();
           const float current_time = Times::Now() - start_time;
           const float cos_time = glm::cos(current_time / 5.0f);
-          //Transform dir_light_transform;
-          //dir_light_transform.SetEulerRotation(glm::radians(glm::vec3(105.0f, current_time * 20, 0.0f)));
+          // Transform dir_light_transform;
+          // dir_light_transform.SetEulerRotation(glm::radians(glm::vec3(105.0f, current_time * 20, 0.0f)));
           Transform point_light_right_transform;
           point_light_right_transform.SetPosition(glm::vec3(4, 1.2, cos_time * 5 - 5));
           point_light_right_transform.SetScale({1.0f, 1.0f, 1.0f});

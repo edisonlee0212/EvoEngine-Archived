@@ -52,8 +52,9 @@ add_subdirectory(${EVOENGINE_SDK_DIR})
 # EvoEngine - Plugins
 # ------------------------------------------------------------------
 
-set(PLUGINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Plugins)
+set(PLUGINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/EvoEngine_Plugins)
 add_subdirectory(${PLUGINS_DIR})
+
 
 set(EVOENGINE_DEFS ${EVOENGINE_SDK_DEFS} ${EVOENGINE_PLUGINS_DEFS})
 set(EVOENGINE_INCLUDES ${EVOENGINE_SDK_INCLUDES} ${EVOENGINE_PLUGINS_INCLUDES})

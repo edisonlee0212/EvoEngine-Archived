@@ -15,6 +15,10 @@ if(EVOENGINE_PLUGIN_TEXTURE_BAKING)
   add_subdirectory(TextureBaking)
 endif()
 
+option(EVOENGINE_PLUGIN_RAY_TRACER "Build the ray tracer plugin" ON)
+if(EVOENGINE_PLUGIN_RAY_TRACER)
+  add_subdirectory(RayTracer)
+endif()
 
 set(EvoEngine_Plugins ${EvoEngine_Plugins} PARENT_SCOPE)
 set(EVOENGINE_PLUGINS_INCLUDES ${EVOENGINE_PLUGINS_INCLUDES} PARENT_SCOPE)

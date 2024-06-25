@@ -22,8 +22,6 @@ target_include_directories(PhysicsPlugin
 	${PHYSICS_INCLUDES}
 	)
 
-message(status ${3RD_PARTY_DIR}/physx/include)
-
 set(PHYSICS_PCH ${PHYSICS_DIRECTORY}/include/Physics_PCH.hpp)
 set(PHYSICS_PCH ${PHYSICS_PCH} PARENT_SCOPE)
 
