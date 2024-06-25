@@ -148,6 +148,8 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 	target_compile_options(EvoEngine_SDK PRIVATE -fPIC -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-newline-eof -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors -Wno-constant-conversion)
 endif ()
 
+set(EVOENGINE_SDK_DEFS NOMINMAX PARENT_SCOPE)
+
 # ------------------------------------------------------------------
 # EvoEngine SDK - Copy resources
 # ------------------------------------------------------------------
@@ -156,13 +158,5 @@ function(evoengine_sdk_copy_resources dst_target dst_dir)
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
 		${EVOENGINE_SDK_DIR}/Internals
 		${dst_dir})
-	foreach (SHADERC_DLL ${SHADERC_DLLS})
-		add_custom_command(
-			TARGET ${dst_target}
-			POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${SHADERC_DLL}
-			${dst_dir}
-	)
-	endforeach ()
+	
 endfunction()

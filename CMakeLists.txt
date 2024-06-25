@@ -55,9 +55,26 @@ add_subdirectory(${EVOENGINE_SDK_DIR})
 set(PLUGINS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Plugins)
 add_subdirectory(${PLUGINS_DIR})
 
-
+set(EVOENGINE_DEFS ${EVOENGINE_SDK_DEFS} ${EVOENGINE_PLUGINS_DEFS})
 set(EVOENGINE_INCLUDES ${EVOENGINE_SDK_INCLUDES} ${EVOENGINE_PLUGINS_INCLUDES})
-set(EVOENGINE_PCH ${EVOENGINE_SDK_PCH} ${EVOENGINE_PLUGINS_PCH})
+set(EVOENGINE_PCHS ${EVOENGINE_SDK_PCH} ${EVOENGINE_PLUGINS_PCHS})
+set(EVOENGINE_DLLS ${EVOENGINE_SDK_DLLS} ${EVOENGINE_PLUGINS_DLLS})
+
+# ------------------------------------------------------------------
+# EvoEngine SDK - Copy resources
+# ------------------------------------------------------------------
+function(evoengine_copy_resources dst_target dst_dir)
+	evoengine_sdk_copy_resources(${dst_target} ${dst_dir})
+	foreach (EVOENGINE_DLL ${EVOENGINE_DLLS})
+		add_custom_command(
+			TARGET ${dst_target}
+			POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy
+			${EVOENGINE_DLL}
+			${dst_dir}
+	)
+	endforeach ()
+endfunction()
 
 # ------------------------------------------------------------------
 # Demo
