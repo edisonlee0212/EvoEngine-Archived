@@ -57,6 +57,10 @@ target_link_libraries(EvoEngine_SDK
 		yaml-cpp
 		meshoptimizer
 		GPUOpen::VulkanMemoryAllocator
+		csvpp
+		JSON
+		xatlas
+		Base64
 		)
 
 set(EVOENGINE_SDK_INTERNALS_DIR ${CMAKE_CURRENT_BINARY_DIR}/Internals/)

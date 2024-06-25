@@ -15,10 +15,12 @@ add_library(PhysicsPlugin
 target_compile_definitions(PhysicsPlugin
 	PRIVATE
 	${EVOENGINE_SDK_DEFS}
+	${EVOENGINE_PLUGINS_DEFS}
 	)
 target_include_directories(PhysicsPlugin
 	PRIVATE
 	${EVOENGINE_SDK_INCLUDES}
+	${EVOENGINE_PLUGINS_INCLUDES}
 	${PHYSICS_INCLUDES}
 	)
 
@@ -28,6 +30,7 @@ set(PHYSICS_PCH ${PHYSICS_PCH} PARENT_SCOPE)
 target_precompile_headers(PhysicsPlugin
 	PRIVATE
 	${EVOENGINE_SDK_PCH}
+	${EVOENGINE_PLUGINS_PCHS}
 	${PHYSICS_PCH}
 	)
 if (WIN32)

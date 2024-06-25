@@ -71,10 +71,12 @@ endif ()
 target_compile_definitions(RayTracerPlugin
 	PRIVATE
 	${EVOENGINE_SDK_DEFS}
+	${EVOENGINE_PLUGINS_DEFS}
 	)	
 target_include_directories(RayTracerPlugin
 	PRIVATE
 	${EVOENGINE_SDK_INCLUDES}
+	${EVOENGINE_PLUGINS_INCLUDES}
 	${RAY_TRACER_INCLUDES}
 	)
 
