@@ -2,9 +2,10 @@
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
 enable_language(CUDA)
 
-include(${CMAKE_MODULE_PATH}/configure_optix.cmake)
 
 set(RAY_TRACER_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+include(${RAY_TRACER_DIRECTORY}/cmake/configure_optix.cmake)
 
 file(GLOB RAY_TRACER_SOURCES
 	${CMAKE_CURRENT_BINARY_DIR}
